@@ -92,10 +92,7 @@ make_model(
     using allocator_type = rebind_hardware_allocator<T, hardware_accelerator::allocator_type>;
     using container_type = allocator_type::container_type;
 
-    auto alloc0 = allocator_type(gpu.get_allocator());
-    auto alloc1 = hardware_nocopy_allocator(alloc0, gpu.get_hardware_device());
-    auto alloc = hardware_resident_allocator(alloc1, gpu.get_hardware_device());
-
+    auto alloc = allocator_type(gpu.get_allocator());
 
     auto input = shared_tensor(tensors["tok_embeddings.weight"].as<2>(alloc));
     nn::embedding embedding(input, gpu);
@@ -135,8 +132,6 @@ make_model(
 
         layers.push_back(std::move(transformer));
     }
-
-    alloc.wire_memory();
 
     // Re-use the same linear module (or even a tensor) in both, embeddings computation
     // and in output layer computation.

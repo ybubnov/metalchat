@@ -91,6 +91,12 @@ public:
         _m_this_thread.set_allocator(alloc);
     }
 
+    void
+    set_allocator(allocator_type alloc)
+    {
+        _m_this_thread.set_allocator(alloc);
+    }
+
     template <basic_hardware_allocator_t<void> Allocator>
     void
     set_allocator(Allocator&& alloc)
