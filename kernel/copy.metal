@@ -81,25 +81,28 @@ __lib_metalchat_kernel2(scatter, float, 16);
 __lib_metalchat_kernel2(scatter, float, 32);
 
 
-#define __gather_parameters(T)                                  \
-    constant layout2& output_layout              [[buffer(0)]], \
-    device T* output_data                        [[buffer(1)]], \
-    constant layout2& input_layout               [[buffer(2)]], \
-    device const T* input_data                   [[buffer(3)]], \
-    constant layout2& index_layout               [[buffer(4)]], \
-    device const int32_t* index_data             [[buffer(5)]], \
-    uint2 gid [[threadgroup_position_in_grid]],                 \
-    uint2 tid [[thread_position_in_threadgroup]],               \
-    uint2 threadgroup_size [[threads_per_threadgroup]]
+template <typename T> struct __gather_parameters {
+    constant layout2& output_layout;
+    device T* output_data;
+    constant layout2& input_layout;
+    device const T* input_data;
+    constant layout2& index_layout;
+    device const int32_t* index_data;
+};
 
 
 template <typename T, uint BlockSize>
 kernel void
-gather(__gather_parameters(T))
+gather(
+    __gather_parameters<T> params,
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
+)
 {
-    tensor2<T> output(output_layout, output_data);
-    tensor2<const T> input(input_layout, input_data);
-    tensor2<const int32_t> index(index_layout, index_data);
+    tensor2<T> output(params.output_layout, params.output_data);
+    tensor2<const T> input(params.input_layout, params.input_data);
+    tensor2<const int32_t> index(params.index_layout, params.index_data);
 
     const uint dim_size = index.size(1);
     const uint i = gid.x;
@@ -112,17 +115,11 @@ gather(__gather_parameters(T))
 }
 
 
-template [[host_name("gather_8_float")]]
-kernel void gather<float, 8>(__gather_parameters(float));
-template [[host_name("gather_16_float")]]
-kernel void gather<float, 16>(__gather_parameters(float));
-template [[host_name("gather_32_float")]]
-kernel void gather<float, 32>(__gather_parameters(float));
+__lib_metalchat_kernel2(gather, float, 8);
+__lib_metalchat_kernel2(gather, float, 16);
+__lib_metalchat_kernel2(gather, float, 32);
 
 
-template [[host_name("gather_8_int32_t")]]
-kernel void gather<int32_t, 8>(__gather_parameters(int32_t));
-template [[host_name("gather_16_int32_t")]]
-kernel void gather<int32_t, 16>(__gather_parameters(int32_t));
-template [[host_name("gather_32_int32_t")]]
-kernel void gather<int32_t, 32>(__gather_parameters(int32_t));
+__lib_metalchat_kernel2(gather, int32_t, 8);
+__lib_metalchat_kernel2(gather, int32_t, 16);
+__lib_metalchat_kernel2(gather, int32_t, 32);

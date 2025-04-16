@@ -32,7 +32,7 @@ private:
         auto label = NS::TransferPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
         queue->setLabel(label.get());
 
-        auto capacity = std::size_t(512) * 1024 * 1024;
+        auto capacity = std::size_t(1024) * 1024 * 1024;
         auto alloc = polymorphic_hardware_memory_allocator<void>(
             std::make_shared<hardware_heap_allocator<void>>(_m_device, capacity)
         );
