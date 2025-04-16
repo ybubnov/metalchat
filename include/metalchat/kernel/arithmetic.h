@@ -55,9 +55,9 @@ public:
 };
 
 
-template <typename T> class add2 {
+template <typename T, std::size_t BlockSize = 8> class add2 {
 private:
-    inline static const std::string operation_name = "add2";
+    inline static const std::string operation_name = "add2_" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 
@@ -71,9 +71,6 @@ public:
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        constexpr std::size_t block_size_x = 4;
-        constexpr std::size_t block_size_y = 4;
-
         constexpr auto M = Input1::dim();
 
         auto data_size = input1.numel();
@@ -90,8 +87,8 @@ public:
 
         auto input1_view = input1.view({-1, int(dim0_size), int(dim1_size)});
 
-        auto thread_size_x = ceil_div(dim0_size, block_size_x);
-        auto thread_size_y = ceil_div(dim1_size, block_size_y);
+        auto thread_size_x = ceil_div(dim0_size, BlockSize);
+        auto thread_size_y = ceil_div(dim1_size, BlockSize);
         auto thread = dim3(thread_size_x, thread_size_y);
         auto grid = dim3(thread_size_x * num_rows, thread_size_y);
 

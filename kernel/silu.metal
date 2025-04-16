@@ -2,27 +2,31 @@
 
 #include <metal_stdlib>
 
+#include "kernel.h"
 #include "tensor.h"
 
 
 using namespace metal;
 
 
-#define __silu_parameters(T)                                \
-    constant tensor_layout<2>& output_layout [[buffer(0)]], \
-    device T* output                         [[buffer(1)]], \
-    constant tensor_layout<2>& input_layout  [[buffer(2)]], \
-    device const T* input                    [[buffer(3)]], \
-    uint gid [[threadgroup_position_in_grid]],              \
-    uint tid [[thread_index_in_threadgroup]]
+template <typename T> struct __silu_parameters {
+    constant tensor_layout<2>& output_layout;
+    device T* output;
+    constant tensor_layout<2>& input_layout;
+    device const T* input;
+};
 
 
 template <typename T, uint BlockSize>
 kernel void
-silu(__silu_parameters(T))
+silu(
+    __silu_parameters<T> params,
+    uint gid [[threadgroup_position_in_grid]],
+    uint tid [[thread_index_in_threadgroup]]
+)
 {
-    tensor<const T, 2> in{input, input_layout};
-    tensor<T, 2> out{output, output_layout};
+    tensor<const T, 2> in{params.input, params.input_layout};
+    tensor<T, 2> out{params.output, params.output_layout};
 
     const uint dim_size = in.size(1);
     const uint i = gid;
@@ -37,39 +41,10 @@ silu(__silu_parameters(T))
 }
 
 
-template [[host_name("silu_1_bfloat")]]
-kernel void silu<bfloat, 1>(__silu_parameters(bfloat));
+__lib_metalchat_kernel(silu, bfloat, 8);
+__lib_metalchat_kernel(silu, bfloat, 16);
+__lib_metalchat_kernel(silu, bfloat, 32);
 
-template [[host_name("silu_2_bfloat")]]
-kernel void silu<bfloat, 2>(__silu_parameters(bfloat));
-
-template [[host_name("silu_4_bfloat")]]
-kernel void silu<bfloat, 4>(__silu_parameters(bfloat));
-
-template [[host_name("silu_8_bfloat")]]
-kernel void silu<bfloat, 8>(__silu_parameters(bfloat));
-
-template [[host_name("silu_16_bfloat")]]
-kernel void silu<bfloat, 16>(__silu_parameters(bfloat));
-
-template [[host_name("silu_32_bfloat")]]
-kernel void silu<bfloat, 32>(__silu_parameters(bfloat));
-
-
-template [[host_name("silu_1_float")]]
-kernel void silu<float, 1>(__silu_parameters(float));
-
-template [[host_name("silu_2_float")]]
-kernel void silu<float, 2>(__silu_parameters(float));
-
-template [[host_name("silu_4_float")]]
-kernel void silu<float, 4>(__silu_parameters(float));
-
-template [[host_name("silu_8_float")]]
-kernel void silu<float, 8>(__silu_parameters(float));
-
-template [[host_name("silu_16_float")]]
-kernel void silu<float, 16>(__silu_parameters(float));
-
-template [[host_name("silu_32_float")]]
-kernel void silu<float, 32>(__silu_parameters(float));
+__lib_metalchat_kernel(silu, float, 8);
+__lib_metalchat_kernel(silu, float, 16);
+__lib_metalchat_kernel(silu, float, 32);
