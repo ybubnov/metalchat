@@ -16,7 +16,7 @@ namespace llama {
 
 template <typename T, ContiguousContainer Container> class transformer {
 private:
-    attention<T, Container> _m_attention;
+    attention<T, device_ref<T>> _m_attention;
     nn::rmsnorm<T, Container> _m_attention_norm;
 
     feed_forward<T, device_ref<T>> _m_ff;
@@ -29,7 +29,7 @@ public:
     transformer(const transformer&) = delete;
 
     transformer(
-        attention<T, Container>&& attention,
+        attention<T, device_ref<T>>&& attention,
         nn::rmsnorm<T, Container>&& attention_norm,
         feed_forward<T, device_ref<T>>&& ff,
         nn::rmsnorm<T, Container>&& ff_norm,

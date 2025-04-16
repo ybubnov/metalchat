@@ -20,8 +20,6 @@ make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_
     nn::embedding embedding(tensors["tok_embeddings.weight"].as<T, 2>(device), device);
     nn::rmsnorm norm(tensors["norm.weight"].as<T, 1>(), device);
 
-    std::cout << embedding << std::endl;
-
     auto options = llama::attention_options{
         .head_dim = 64,
         .n_heads = 32,
@@ -41,10 +39,10 @@ make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_
         );
 
         llama::attention attention(
-            tensors[layer_name + "attention.wq.weight"].as<T, 2>(),
-            tensors[layer_name + "attention.wk.weight"].as<T, 2>(),
-            tensors[layer_name + "attention.wv.weight"].as<T, 2>(),
-            tensors[layer_name + "attention.wo.weight"].as<T, 2>(), options, device
+            tensors[layer_name + "attention.wq.weight"].as<T, 2>(device),
+            tensors[layer_name + "attention.wk.weight"].as<T, 2>(device),
+            tensors[layer_name + "attention.wv.weight"].as<T, 2>(device),
+            tensors[layer_name + "attention.wo.weight"].as<T, 2>(device), options, device
         );
 
         nn::rmsnorm attention_norm(
