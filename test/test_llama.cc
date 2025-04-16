@@ -20,7 +20,7 @@ TEST_CASE("Test make model", "[llama]")
 
     auto m = make_llama<bf16>(tensors, gpu0);
 
-    auto input = bpe.encode("Sunday is the last day of ").reshape({1, -1});
+    auto input = bpe.encode("In the beginning was ").reshape({1, -1});
 
     auto output = m(input);
     std::cout << output << std::endl;

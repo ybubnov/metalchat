@@ -25,42 +25,31 @@ public:
     template <
         integral IndexType,
         ContiguousContainer InputContainer,
-        ContiguousContainer WeightContainer,
-        ContiguousContainer OutputContainer>
-    void
-    operator()(
-        const tensor<IndexType, 1, InputContainer>& input,
-        const tensor<T, 2, WeightContainer>& weight,
-        const tensor<T, 2, OutputContainer>& output
-    )
-    {
-        if (output.size(0) != input.size(0) || output.size(1) != weight.size(1)) {
-            throw std::invalid_argument(std::format(
-                "output tensor should be of size [{}, {}], but is {}", input.size(0),
-                weight.size(1), output.sizes()
-            ));
-        }
-
-        auto stride = scalar<IndexType>(weight.stride(0));
-
-        auto threads = dim3(input.size(0), weight.size(1));
-        auto thread = dim3(1);
-
-        blocking(threads, thread)(input, weight, stride, output);
-    }
-
-    template <
-        integral IndexType,
-        ContiguousContainer InputContainer,
         ContiguousContainer WeightContainer>
     auto
     operator()(
-        const tensor<IndexType, 1, InputContainer>& input,
+        const tensor<IndexType, 2, InputContainer>& input,
         const tensor<T, 2, WeightContainer>& weight
     )
     {
-        auto output = empty<T>({input.size(0), weight.size(1)}, m_device);
-        operator()(input, weight, output);
+        auto output = empty<T>({input.size(0), input.size(1), weight.size(1)}, m_device);
+
+        auto data_size = input.numel();
+        auto emb_size = weight.sizes().back();
+        auto dim_size = input.sizes().back();
+        auto num_rows = data_size / dim_size;
+
+        constexpr std::size_t block_size = 4;
+        constexpr std::size_t eblock_size = 128;
+
+        auto x_size = ceil_div(dim_size, block_size);
+        auto y_size = ceil_div(emb_size, eblock_size);
+        auto thread = dim3(x_size, y_size);
+        auto threads = dim3(x_size * num_rows, y_size);
+
+        blocking(threads, thread)(
+            scalar<IndexType>(dim_size), scalar<IndexType>(emb_size), input, weight, output
+        );
         return output;
     }
 };
