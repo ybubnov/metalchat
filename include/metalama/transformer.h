@@ -4,6 +4,9 @@
 #include "metalama/tensor.h"
 
 
+namespace metalama {
+
+
 template <typename T>
 struct attention {
     tensor<T, 2> q;
@@ -11,3 +14,6 @@ struct attention {
     tensor<T, 2> v;
     tensor<T, 2> o;
 };
+
+
+} // namespace metalama

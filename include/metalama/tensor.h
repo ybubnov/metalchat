@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <iomanip>
@@ -9,80 +10,156 @@
 #include <metalama/format.h>
 
 
-template <typename T>
-struct unmanaged_ptr_traits {
-    using ptr_type = T*;
+namespace metalama {
 
-    ptr_type data;
-
-    unmanaged_ptr_traits(T* data_)
-    : data(data_)
-    {}
-};
 
 template <typename T>
-struct managed_ptr_traits {
+struct array_ref {
     using ptr_type = T*;
 
-    ptr_type data;
-    managed_ptr_traits(T* data_)
-    : data(data_)
-    {}
+    virtual ptr_type
+    data()
+        = 0;
 
-    ~managed_ptr_traits()
-    {
-        delete[] data;
-        data = nullptr;
-    }
+    virtual ~array_ref() {}
 };
 
 
-template <typename T, std::size_t N, template <typename U> class ptr_traits = unmanaged_ptr_traits>
-class tensor_base {
-protected:
-    ptr_traits<T> ptr;
-    ptr_traits<const std::size_t> shape_ptr;
-    ptr_traits<const std::size_t> strides_ptr;
+template <typename T>
+struct weak_ref : public array_ref<T> {
+private:
+    T* m_data = nullptr;
 
 public:
-    tensor_base(T* data, const std::size_t* shape, const std::size_t* strides)
-    : ptr(data),
-      shape_ptr(shape),
-      strides_ptr(strides)
+    weak_ref(T* data)
+    : m_data(data)
     {}
 
-    tensor_base(tensor_base&& t)
+    weak_ref(const weak_ref& ref)
+    : weak_ref(ref.m_data)
+    {}
+
+    T*
+    data() override
     {
-        ptr = t.ptr;
-        shape_ptr = t.shape_ptr;
-        strides_ptr = t.strides_ptr;
-        t.ptr.data = nullptr;
-        t.shape_ptr.data = nullptr;
-        t.strides_ptr.data = nullptr;
+        return m_data;
     }
+
+    ~weak_ref() { m_data = nullptr; }
+};
+
+template <typename T>
+struct owned_ref : public array_ref<T> {
+private:
+    T* m_data = nullptr;
+
+public:
+    owned_ref(T* data)
+    : m_data(data)
+    {}
+
+    owned_ref(const owned_ref& ref) = delete;
+
+    ~owned_ref()
+    {
+        delete[] m_data;
+        m_data = nullptr;
+        std::cout << "owned_ref::~owned_ref()" << std::endl;
+    }
+
+    T*
+    data() override
+    {
+        return m_data;
+    }
+};
+
+
+template <typename T>
+struct tensor_traits {
+    using data_type = std::unique_ptr<array_ref<T>>;
+    using size_type = std::unique_ptr<array_ref<std::size_t>>;
+
+    template <typename V, template <typename U> class ref_type>
+    static inline std::unique_ptr<ref_type<V>>
+    move(V* values)
+    {
+        return std::move(std::make_unique<ref_type<V>>(values));
+    }
+
+    static inline data_type
+    weak_move(T* data)
+    {
+        return move<T, weak_ref>(data);
+    }
+
+    static inline size_type
+    weak_move(std::size_t* size)
+    {
+        return move<std::size_t, weak_ref>(size);
+    }
+};
+
+
+template <typename T, std::size_t N>
+class tensor_base {
+public:
+    using traits = tensor_traits<T>;
+
+    tensor_base(T* data, std::size_t* shape, std::size_t* strides)
+    : m_data(traits::weak_move(data)),
+      m_shape(traits::weak_move(shape)),
+      m_strides(traits::weak_move(strides))
+    {}
+
+    tensor_base(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
+    : m_data(std::move(data)),
+      m_shape(std::move(shape)),
+      m_strides(std::move(strides))
+    {}
+
+    tensor_base(tensor_base<T, N>&& t)
+    : m_data(std::move(t.m_data)),
+      m_shape(std::move(t.m_shape)),
+      m_strides(std::move(t.m_strides))
+    {}
 
     inline T*
     data_ptr()
     {
-        return ptr.data;
+        return m_data->data();
     }
 
     inline const T*
     data_ptr() const
     {
-        return ptr.data;
+        return m_data->data();
     }
 
     inline std::vector<std::size_t>
     shape() const
     {
-        return std::vector(shape_ptr.data, shape_ptr.data + N);
+        return std::vector(m_shape->data(), m_shape->data() + N);
     }
 
     inline std::size_t
     size(std::size_t dim) const
     {
-        return shape_ptr.data[dim];
+        return m_shape->data()[dim];
+    }
+
+    std::size_t
+    numel() const
+    {
+        if (N == 0) {
+            return 0;
+        }
+
+        std::size_t n = 1;
+        for (std::size_t i = 0; i < N; i++) {
+            n *= m_shape->data()[i];
+        }
+        return n;
     }
 
     virtual void
@@ -90,21 +167,26 @@ public:
     {
         os << "[...]";
     }
+
+protected:
+    std::unique_ptr<array_ref<T>> m_data = nullptr;
+    std::unique_ptr<array_ref<std::size_t>> m_shape = nullptr;
+    std::unique_ptr<array_ref<std::size_t>> m_strides = nullptr;
 };
 
 
-template <typename T, std::size_t N, template <typename U> class ptr_traits = unmanaged_ptr_traits>
+template <typename T, std::size_t N>
 struct tensor_format {
-    const tensor_base<T, N, ptr_traits>& tensor;
+    const tensor_base<T, N>& tensor;
     const int w;
 
-    tensor_format(const tensor_base<T, N, ptr_traits>& tensor_, const int w_ = 0)
+    tensor_format(const tensor_base<T, N>& tensor_, const int w_ = 0)
     : tensor(tensor_),
       w(w_)
     {}
 
     friend std::ostream&
-    operator<<(std::ostream& os, const tensor_format<T, N, ptr_traits>& tf)
+    operator<<(std::ostream& os, const tensor_format<T, N>& tf)
     {
         tf.tensor.data_repr(os, tf.w);
         return os;
@@ -112,37 +194,45 @@ struct tensor_format {
 };
 
 
-template <typename T, std::size_t N, template <typename U> class ptr_traits = unmanaged_ptr_traits>
+template <typename T, std::size_t N>
 std::ostream&
-operator<<(std::ostream& os, const tensor_base<T, N, ptr_traits>& t)
+operator<<(std::ostream& os, const tensor_base<T, N>& t)
 {
-    os << tensor_format<T, N, ptr_traits>(t, 1) << ", shape=(" << t.shape() << ")";
+    os << tensor_format<T, N>(t, 1) << ", shape=(" << t.shape() << ")";
     return os;
 }
 
 
-template <typename T, std::size_t N, template <typename U> class ptr_traits = unmanaged_ptr_traits>
-class tensor : public tensor_base<T, N, ptr_traits> {
+template <typename T, std::size_t N>
+class tensor : public tensor_base<T, N> {
 public:
-    tensor(T* data, const std::size_t* shape, const std::size_t* strides)
-    : tensor_base<T, N, ptr_traits>(data, shape, strides)
+    tensor(T* data, std::size_t* shape, std::size_t* strides)
+    : tensor_base<T, N>(data, shape, strides)
+    {}
+
+    tensor(
+        std::unique_ptr<array_ref<T>>&& data,
+        std::unique_ptr<array_ref<std::size_t>>&& shape,
+        std::unique_ptr<array_ref<std::size_t>>&& strides
+    )
+    : tensor_base<T, N>(std::move(data), std::move(shape), std::move(strides))
     {}
 
     tensor<T, N - 1>
     at(std::size_t i)
     {
-        auto new_data = this->data_ptr() + this->strides_ptr.data[0] * i;
-        auto new_shape = this->shape_ptr.data + 1;
-        auto new_strides = this->strides_ptr.data + 1;
+        auto new_data = this->data_ptr() + this->m_strides->data()[0] * i;
+        auto new_shape = this->m_shape->data() + 1;
+        auto new_strides = this->m_strides->data() + 1;
         return tensor(new_data, new_shape, new_strides);
     }
 
     const tensor<const T, N - 1>
     at(std::size_t i) const
     {
-        auto new_data = this->data_ptr() + this->strides_ptr.data[0] * i;
-        auto new_shape = this->shape_ptr.data + 1;
-        auto new_strides = this->strides_ptr.data + 1;
+        auto new_data = this->data_ptr() + this->m_strides->data()[0] * i;
+        auto new_shape = this->m_shape->data() + 1;
+        auto new_strides = this->m_strides->data() + 1;
         return tensor<const T, N - 1>(new_data, new_shape, new_strides);
     }
 
@@ -186,17 +276,25 @@ public:
 };
 
 
-template <typename T, template <typename U> class ptr_traits>
-class tensor<T, 1, ptr_traits> : public tensor_base<T, 1, ptr_traits> {
+template <typename T>
+class tensor<T, 1> : public tensor_base<T, 1> {
 public:
-    tensor(T* data, const std::size_t* shape, const std::size_t* strides)
-    : tensor_base<T, 1, ptr_traits>(data, shape, strides)
+    tensor(T* data, std::size_t* shape, std::size_t* strides)
+    : tensor_base<T, 1>(data, shape, strides)
+    {}
+
+    tensor(
+        std::unique_ptr<array_ref<T>>&& data,
+        std::unique_ptr<array_ref<std::size_t>>&& shape,
+        std::unique_ptr<array_ref<std::size_t>>&& strides
+    )
+    : tensor_base<T, 1>(std::move(data), std::move(shape), std::move(strides))
     {}
 
     T&
     operator[](std::size_t i)
     {
-        return this->data_ptr[i];
+        return this->data_ptr()[i];
     }
 
     void
@@ -221,8 +319,8 @@ public:
 
 template <typename T, std::size_t N>
     requires(N > 0)
-tensor<T, N, managed_ptr_traits>
-rand(std::array<std::size_t, N> shape)
+tensor<T, N>
+empty(std::array<std::size_t, N> shape)
 {
     auto strides = new std::size_t[N];
     strides[N - 1] = 1;
@@ -239,11 +337,34 @@ rand(std::array<std::size_t, N> shape)
     }
 
     T* data = new T[size];
-    return tensor<T, N, managed_ptr_traits>(data, sizes, strides);
+    return tensor<T, N>(
+        std::make_unique<owned_ref<T>>(data), std::make_unique<owned_ref<std::size_t>>(sizes),
+        std::make_unique<owned_ref<std::size_t>>(strides)
+    );
 }
 
+
+template <typename T, std::size_t N>
+tensor<T, N>
+full(std::array<std::size_t, N> shape, const T& fill_value)
+{
+    auto t = empty<T, N>(shape);
+    std::fill_n(t.data_ptr(), t.numel(), fill_value);
+    return t;
+}
+
+
+template <typename T, std::size_t N>
+tensor<T, N>
+zeros(std::array<std::size_t, N> shape)
+{
+    return full<T, N>(shape, 0);
+}
 
 using bfloat_tensor1d = tensor<__fp16, 1>;
 using bfloat_tensor2d = tensor<__fp16, 2>;
 using int32_tensor1d = tensor<int32_t, 1>;
 using int32_tensor2d = tensor<int32_t, 2>;
+
+
+} //  namespace metalama

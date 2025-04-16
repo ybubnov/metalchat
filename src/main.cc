@@ -7,8 +7,6 @@
 
 #include <iostream>
 
-#include <metalama/tensor.h>
-
 
 int
 main()
@@ -86,7 +84,8 @@ main()
     command_buf->commit();
     command_buf->waitUntilCompleted();
 
-    float* output_content = (float*)output_buf->contents();
+    // float* output_content = (float*)output_buf->contents();
+    float* output_content = output;
     for (std::size_t i = 0; i < length; i++) {
         std::cout << output_content[i];
         if (i < length - 1) {

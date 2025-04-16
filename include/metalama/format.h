@@ -4,6 +4,7 @@
 #include <iostream>
 
 
+namespace metalama {
 namespace fmt {
 
 constexpr int precision = 3;
@@ -55,3 +56,6 @@ operator<<(std::ostream& os, const std::vector<__fp16>& vec)
     operator<< <__fp16>(os, vec);
     return os;
 }
+
+
+} // namespace metalama
