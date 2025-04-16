@@ -10,7 +10,7 @@
 namespace metalchat {
 
 
-template <typename T, std::size_t BlockSize = 8> class rmsnorm {
+template <typename T, std::size_t BlockSize = 16> class rmsnorm {
 private:
     inline static const std::string operation_name = "rmsnorm_" + std::to_string(BlockSize);
 

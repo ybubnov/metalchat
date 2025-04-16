@@ -1,5 +1,6 @@
 #include <algorithm>
 
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_vector.hpp>
 
@@ -13,9 +14,9 @@ using namespace metalchat;
 TEST_CASE("Test sorting", "[kernel::sort]")
 {
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::sort<float, 2048> sort(gpu0);
+    metalchat::sort<float, 32> sort(gpu0);
 
-    auto input = shared_tensor(rand<float>({1, 1, 128256}));
+    auto input = shared_tensor(rand<float>({1, 1, 2000}));
     auto [values_future, indices_future] = sort(input);
 
     auto values = values_future.get();
@@ -31,10 +32,6 @@ TEST_CASE("Test sorting", "[kernel::sort]")
     REQUIRE(indices.size(1) == input.size(1));
     REQUIRE(indices.size(2) == input.size(2));
 
-    std::cout << input << std::endl;
-    std::cout << values << std::endl;
-    std::cout << indices << std::endl;
-
     for (std::size_t i = 0; i < values.size(0); i++) {
         for (std::size_t j = 0; j < values.size(1); j++) {
             auto values_ij = values[i][j];
@@ -49,4 +46,19 @@ TEST_CASE("Test sorting", "[kernel::sort]")
             REQUIRE(std::is_sorted(values_out.begin(), values_out.end(), std::greater<float>()));
         }
     }
+}
+
+
+TEST_CASE("Sorting benchmark", "[kernel::sort]")
+{
+    metalchat::device gpu0("metalchat.metallib", 1);
+    metalchat::sort<float, 2048> sort(gpu0);
+
+    auto input = shared_tensor(rand<float>({1, 1, 128256}));
+
+    BENCHMARK("sort 128256 elements")
+    {
+        auto [values_future, indices_future] = sort(input);
+        return values_future.get();
+    };
 }

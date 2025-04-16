@@ -110,7 +110,11 @@ public:
     make_ready_at_thread_exit()
     {
         if (!_m_committed) {
-            // std::cout << "------ commit -----" << std::endl;
+            auto label = std::format("metalchat commands (size={})", _m_size);
+            auto commands_label
+                = NS::TransferPtr(NS::String::string(label.c_str(), NS::UTF8StringEncoding));
+            _m_commands->setLabel(commands_label.get());
+
             _m_commands->commit();
             _m_committed = true;
         }

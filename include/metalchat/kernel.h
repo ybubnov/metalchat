@@ -64,12 +64,22 @@ public:
             );
         }
 
+        _m_function->setLabel(fn_name.get());
+
         NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
         NS::Error* error_ptr = error.get();
 
         auto device_ptr = library->device();
-        _m_pipeline
-            = NS::TransferPtr(device_ptr->newComputePipelineState(_m_function.get(), &error_ptr));
+
+        auto descriptor = NS::TransferPtr(MTL::ComputePipelineDescriptor::alloc());
+        descriptor->init();
+        descriptor->setComputeFunction(_m_function.get());
+        descriptor->setLabel(fn_name.get());
+
+        _m_pipeline = NS::TransferPtr(device_ptr->newComputePipelineState(
+            descriptor.get(), MTL::PipelineOptionNone, nullptr, &error_ptr
+        ));
+
         if (!_m_pipeline) {
             throw std::runtime_error(std::format(
                 "base_kernel: failed to create compute pipeline, {}",
