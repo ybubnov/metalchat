@@ -56,7 +56,7 @@ public:
         auto h = _m_sum(input, res0.get());
 
         auto res1 = _m_ff(_m_ff_norm((*h.get())));
-        auto output = _m_sum(h.get(), shared_tensor(std::move(res1)));
+        auto output = _m_sum(h.get(), res1.get());
         return output;
     }
 

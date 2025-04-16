@@ -8,12 +8,14 @@
 using namespace metal;
 
 
-#define __hadamard_parameters(T)               \
-    constant uint& dim_size [[buffer(0)]],     \
-    device const T* input1 [[buffer(1)]],      \
-    device const T* input2 [[buffer(2)]],      \
-    device T* output [[buffer(3)]],            \
-    uint gid [[threadgroup_position_in_grid]], \
+#define __hadamard_parameters(T)                             \
+    constant tensor_layout<2>& output_layout  [[buffer(0)]], \
+    device T* output                          [[buffer(1)]], \
+    constant tensor_layout<2>& input1_layout  [[buffer(2)]], \
+    device const T* input1                    [[buffer(3)]], \
+    constant tensor_layout<2>& input2_layout  [[buffer(4)]], \
+    device const T* input2                    [[buffer(5)]], \
+    uint gid [[threadgroup_position_in_grid]],               \
     uint tid [[thread_index_in_threadgroup]]
 
 
@@ -23,16 +25,18 @@ hadamard(__hadamard_parameters(T))
 {
     constexpr uint BLOCK_SIZE = 32;
 
-    device const T* in1 = input1 + gid * dim_size;
-    device const T* in2 = input2 + gid * dim_size;
-    device T* out = output + gid * dim_size;
+    tensor<const T, 2> in1{input1, input1_layout};
+    tensor<const T, 2> in2{input2, input2_layout};
+    tensor<T, 2> out{output, output_layout};
 
-    uint i = tid * BLOCK_SIZE;
-    uint remainder_size = dim_size % BLOCK_SIZE;
-    uint block_size = i + BLOCK_SIZE > dim_size ? remainder_size : BLOCK_SIZE;
+    const uint dim_size = in1.size(1);
+    const uint i = gid;
 
-    for (uint j = 0; j < block_size; j++) {
-        out[i + j] = in1[i + j] * in2[i + j];
+    const uint begin = tid * BLOCK_SIZE;
+    const uint end = begin + BLOCK_SIZE;
+
+    for (uint k = 0; k < end && k < dim_size; k++) {
+        out.at(i, k) = in1.at(i, k) * in2.at(i, k);
     }
 }
 
