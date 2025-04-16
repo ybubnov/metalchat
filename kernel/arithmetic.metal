@@ -19,33 +19,32 @@ template <typename T> struct __add_parameters {
 template <typename T, uint BlockSize>
 kernel void
 add(__add_parameters<T> params,
-    uint gid [[threadgroup_position_in_grid]],
-    uint tid [[thread_index_in_threadgroup]])
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]])
 {
     tensor<const T, 2> in1{params.input1, params.input1_layout};
     tensor<const T, 2> in2{params.input2, params.input2_layout};
     tensor<T, 2> out{params.output, params.output_layout};
 
     const uint dim_size = in1.size(1);
-    const uint i = gid;
+    const uint i = gid.x;
 
-    const uint begin = tid * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint k = tid.x + gid.y * threadgroup_size.x;
 
-    // #pragma unroll(BlockSize)
-    for (uint k = 0; k < end && k < dim_size; k++) {
+    if (k < dim_size) {
         out.at(i, k) = in1.at(i, k) + in2.at(i, k);
     }
 }
 
 
-__lib_metalchat_kernel(add, bfloat, 8);
-__lib_metalchat_kernel(add, bfloat, 16);
-__lib_metalchat_kernel(add, bfloat, 32);
+__lib_metalchat_kernel2x(add, bfloat, 8);
+__lib_metalchat_kernel2x(add, bfloat, 16);
+__lib_metalchat_kernel2x(add, bfloat, 32);
 
-__lib_metalchat_kernel(add, float, 8);
-__lib_metalchat_kernel(add, float, 16);
-__lib_metalchat_kernel(add, float, 32);
+__lib_metalchat_kernel2x(add, float, 8);
+__lib_metalchat_kernel2x(add, float, 16);
+__lib_metalchat_kernel2x(add, float, 32);
 
 
 template <typename T> struct __add2_parameters {
@@ -110,31 +109,30 @@ template <typename T> struct __sub_parameters {
 template <typename T, uint BlockSize>
 kernel void
 sub(__sub_parameters<T> params,
-    uint gid [[threadgroup_position_in_grid]],
-    uint tid [[thread_index_in_threadgroup]])
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]])
 {
     tensor<const T, 2> in1{params.input1, params.input1_layout};
     tensor<const T, 2> in2{params.input2, params.input2_layout};
     tensor<T, 2> out{params.output, params.output_layout};
 
     const uint dim_size = in1.size(1);
-    const uint i = gid;
+    const uint i = gid.x;
 
-    const uint begin = tid * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint k = tid.x + gid.y * threadgroup_size.x;
 
-#pragma unroll
-    for (uint k = 0; k < end && k < dim_size; k++) {
+    if (k < dim_size) {
         out.at(i, k) = in1.at(i, k) - in2.at(i, k);
     }
 }
 
 
-__lib_metalchat_kernel(sub, bfloat, 8);
-__lib_metalchat_kernel(sub, bfloat, 16);
-__lib_metalchat_kernel(sub, bfloat, 32);
-__lib_metalchat_kernel(sub, bfloat, 128);
+__lib_metalchat_kernel2x(sub, bfloat, 8);
+__lib_metalchat_kernel2x(sub, bfloat, 16);
+__lib_metalchat_kernel2x(sub, bfloat, 32);
+__lib_metalchat_kernel2x(sub, bfloat, 128);
 
-__lib_metalchat_kernel(sub, float, 8);
-__lib_metalchat_kernel(sub, float, 16);
-__lib_metalchat_kernel(sub, float, 32);
+__lib_metalchat_kernel2x(sub, float, 8);
+__lib_metalchat_kernel2x(sub, float, 16);
+__lib_metalchat_kernel2x(sub, float, 32);

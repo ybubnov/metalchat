@@ -17,30 +17,29 @@ template <typename T, uint BlockSize>
 kernel void
 copy(
     __copy_parameters<T> params,
-    uint gid [[threadgroup_position_in_grid]],
-    uint tid [[thread_position_in_threadgroup]]
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
     const uint dim_size = params.input.size(1);
-    const uint i = gid;
+    const uint i = gid.x;
 
-    const uint begin = tid * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint k = tid.x + gid.y * threadgroup_size.x;
 
-#pragma unroll
-    for (uint k = begin; k < end && k < dim_size; k++) {
+    if (k < dim_size) {
         params.output.at(i, k) = params.input.at(i, k);
     }
 }
 
 
-__lib_metalchat_kernel(copy, bfloat, 8);
-__lib_metalchat_kernel(copy, bfloat, 16);
-__lib_metalchat_kernel(copy, bfloat, 32);
+__lib_metalchat_kernel2x(copy, bfloat, 8);
+__lib_metalchat_kernel2x(copy, bfloat, 16);
+__lib_metalchat_kernel2x(copy, bfloat, 32);
 
-__lib_metalchat_kernel(copy, float, 8);
-__lib_metalchat_kernel(copy, float, 16);
-__lib_metalchat_kernel(copy, float, 32);
+__lib_metalchat_kernel2x(copy, float, 8);
+__lib_metalchat_kernel2x(copy, float, 16);
+__lib_metalchat_kernel2x(copy, float, 32);
 
 
 template <typename T> struct __scatter_parameters {
@@ -54,31 +53,31 @@ template <typename T, uint BlockSize>
 kernel void
 scatter(
     __scatter_parameters<T> params,
-    uint gid [[threadgroup_position_in_grid]],
-    uint tid [[thread_position_in_threadgroup]]
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
     const uint dim_size = params.output.size(1);
-    const uint i = gid;
+    const uint i = gid.x;
 
-    const uint begin = tid * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint k = tid.x + gid.y * threadgroup_size.x;
 
-    for (uint k = begin; k < end && k < dim_size; k++) {
+    if (k < dim_size) {
         if (params.mask.at(i, k)) {
             params.output.at(i, k) = params.value;
         }
     }
 }
 
-__lib_metalchat_kernel(scatter, bfloat, 8);
-__lib_metalchat_kernel(scatter, bfloat, 16);
-__lib_metalchat_kernel(scatter, bfloat, 32);
-__lib_metalchat_kernel(scatter, bfloat, 128);
+__lib_metalchat_kernel2x(scatter, bfloat, 8);
+__lib_metalchat_kernel2x(scatter, bfloat, 16);
+__lib_metalchat_kernel2x(scatter, bfloat, 32);
+__lib_metalchat_kernel2x(scatter, bfloat, 128);
 
-__lib_metalchat_kernel(scatter, float, 8);
-__lib_metalchat_kernel(scatter, float, 16);
-__lib_metalchat_kernel(scatter, float, 32);
+__lib_metalchat_kernel2x(scatter, float, 8);
+__lib_metalchat_kernel2x(scatter, float, 16);
+__lib_metalchat_kernel2x(scatter, float, 32);
 
 
 #define __gather_parameters(T)                                  \
@@ -88,8 +87,9 @@ __lib_metalchat_kernel(scatter, float, 32);
     device const T* input_data                   [[buffer(3)]], \
     constant layout2& index_layout               [[buffer(4)]], \
     device const int32_t* index_data             [[buffer(5)]], \
-    uint gid [[threadgroup_position_in_grid]],                  \
-    uint tid [[thread_position_in_threadgroup]]
+    uint2 gid [[threadgroup_position_in_grid]],                 \
+    uint2 tid [[thread_position_in_threadgroup]],               \
+    uint2 threadgroup_size [[threads_per_threadgroup]]
 
 
 template <typename T, uint BlockSize>
@@ -101,12 +101,11 @@ gather(__gather_parameters(T))
     tensor2<const int32_t> index(index_layout, index_data);
 
     const uint dim_size = index.size(1);
-    const uint i = gid;
+    const uint i = gid.x;
 
-    const uint begin = tid * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint k = tid.x + gid.y * threadgroup_size.x;
 
-    for (uint k = begin; k < end && k < dim_size; k++) {
+    if (k < dim_size) {
         output.at(i, k) = input.at(i, index.at(i, k));
     }
 }

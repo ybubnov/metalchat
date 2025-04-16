@@ -16,28 +16,27 @@ template <typename T, uint BlockSize>
 kernel void
 silu(
     __silu_parameters<T> params,
-    uint gid [[threadgroup_position_in_grid]],
-    uint tid [[thread_index_in_threadgroup]]
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
     const uint dim_size = params.input.size(1);
-    const uint i = gid;
+    const uint i = gid.x;
 
-    const uint begin = tid * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint k = tid.x + gid.y * threadgroup_size.x;
 
-#pragma unroll
-    for (uint k = begin; k < end && k < dim_size; k++) {
+    if (k < dim_size) {
         T x = params.input.at(i, k);
         params.output.at(i, k) = x / (T(1.0) + T(metal::exp(-x)));
     }
 }
 
 
-__lib_metalchat_kernel(silu, bfloat, 8);
-__lib_metalchat_kernel(silu, bfloat, 16);
-__lib_metalchat_kernel(silu, bfloat, 32);
+__lib_metalchat_kernel2x(silu, bfloat, 8);
+__lib_metalchat_kernel2x(silu, bfloat, 16);
+__lib_metalchat_kernel2x(silu, bfloat, 32);
 
-__lib_metalchat_kernel(silu, float, 8);
-__lib_metalchat_kernel(silu, float, 16);
-__lib_metalchat_kernel(silu, float, 32);
+__lib_metalchat_kernel2x(silu, float, 8);
+__lib_metalchat_kernel2x(silu, float, 16);
+__lib_metalchat_kernel2x(silu, float, 32);

@@ -34,7 +34,7 @@ private:
             ));
         }
 
-        auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
+        auto [grid, thread] = make_kernel_grid_2d(input, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto task_future = task.bind_front(output, input);
@@ -84,7 +84,7 @@ public:
     operator()(Input input, Mask mask, T value)
     {
         // TODO: ensure that input is the same shape as mask.
-        auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
+        auto [grid, thread] = make_kernel_grid_2d(input, BlockSize);
 
         auto input_view = flatten<2>(input);
         auto mask_view = flatten<2>(mask);
@@ -118,7 +118,7 @@ public:
         auto num_rows = data_size / dim_size;
 
         // TODO:: ensure that input has the same dimensions as index.
-        auto [grid, thread] = make_kernel_grid_1d(index, BlockSize);
+        auto [grid, thread] = make_kernel_grid_2d(index, BlockSize);
 
         auto input_view = flatten<2>(input);
         auto index_view = flatten<2>(index);
