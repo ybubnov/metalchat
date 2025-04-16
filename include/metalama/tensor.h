@@ -38,24 +38,24 @@ template <typename T, std::size_t N, template <typename U> class ptr_traits = un
 class tensor_base {
 protected:
     ptr_traits<T> ptr;
-    const std::size_t* sizes;
-    const std::size_t* strides;
+    ptr_traits<const std::size_t> shape_ptr;
+    ptr_traits<const std::size_t> strides_ptr;
 
 public:
-    tensor_base(T* data_, const std::size_t* sizes_, const std::size_t* strides_)
-    : ptr(data_),
-      sizes(sizes_),
-      strides(strides_)
+    tensor_base(T* data, const std::size_t* shape, const std::size_t* strides)
+    : ptr(data),
+      shape_ptr(shape),
+      strides_ptr(strides)
     {}
 
     tensor_base(tensor_base&& t)
     {
         ptr = t.ptr;
-        sizes = t.sizes;
-        strides = t.strides;
+        shape_ptr = t.shape_ptr;
+        strides_ptr = t.strides_ptr;
         t.ptr.data = nullptr;
-        t.sizes = nullptr;
-        t.strides = nullptr;
+        t.shape_ptr.data = nullptr;
+        t.strides_ptr.data = nullptr;
     }
 
     inline T*
@@ -73,19 +73,19 @@ public:
     inline std::vector<std::size_t>
     shape() const
     {
-        return std::vector(sizes, sizes + N);
+        return std::vector(shape_ptr.data, shape_ptr.data + N);
     }
 
     inline std::size_t
-    size(std::size_t dim)
+    size(std::size_t dim) const
     {
-        return sizes[dim];
+        return shape_ptr.data[dim];
     }
 
     virtual void
     data_repr(std::ostream& os, int w) const
     {
-        os << std::setw(w) << "" << "[...]";
+        os << "[...]";
     }
 };
 
@@ -103,7 +103,6 @@ struct tensor_format {
     friend std::ostream&
     operator<<(std::ostream& os, const tensor_format<T, N, ptr_traits>& tf)
     {
-        os << std::setw(tf.w) << "";
         tf.tensor.data_repr(os, tf.w);
         return os;
     }
@@ -114,7 +113,7 @@ template <typename T, std::size_t N, template <typename U> class ptr_traits = un
 std::ostream&
 operator<<(std::ostream& os, const tensor_base<T, N, ptr_traits>& t)
 {
-    os << tensor_format<T, N, ptr_traits>(t, 0) << ", shape=(" << t.shape() << ")";
+    os << tensor_format<T, N, ptr_traits>(t, 8) << ", shape=(" << t.shape() << ")";
     return os;
 }
 
@@ -122,22 +121,26 @@ operator<<(std::ostream& os, const tensor_base<T, N, ptr_traits>& t)
 template <typename T, std::size_t N, template <typename U> class ptr_traits = unmanaged_ptr_traits>
 class tensor : public tensor_base<T, N, ptr_traits> {
 public:
-    tensor(T* data_, const std::size_t* sizes_, const std::size_t* strides_)
-    : tensor_base<T, N, ptr_traits>(data_, sizes_, strides_)
+    tensor(T* data, const std::size_t* shape, const std::size_t* strides)
+    : tensor_base<T, N, ptr_traits>(data, shape, strides)
     {}
 
     tensor<T, N-1>
     at(std::size_t i)
     {
-        auto j = this->strides[0] * i;
-        return tensor(this->data_ptr() + j, this->sizes + 1, this->strides + 1);
+        auto new_data = this->data_ptr() + this->strides_ptr.data[0] * i;
+        auto new_shape = this->shape_ptr.data + 1;
+        auto new_strides = this->strides_ptr.data + 1;
+        return tensor(new_data, new_shape, new_strides);
     }
 
     const tensor<const T, N-1>
     at(std::size_t i) const
     {
-        auto j = this->strides[0] * i;
-        return tensor<const T, N-1>(this->data_ptr() + j, this->sizes + 1, this->strides + 1);
+        auto new_data = this->data_ptr() + this->strides_ptr.data[0] * i;
+        auto new_shape = this->shape_ptr.data + 1;
+        auto new_strides = this->strides_ptr.data + 1;
+        return tensor<const T, N-1>(new_data, new_shape, new_strides);
     }
 
     tensor<T, N-1>
@@ -149,30 +152,29 @@ public:
     void
     data_repr(std::ostream& os, int w) const override
     {
-        auto size = this->sizes[0];
+        auto size = this->size(0);
         auto max_size = fmt::edgeitems * 2 + 1;
-        w += 1;
 
         os << "[";
         if (size > max_size) {
             for (std::size_t i = 0; i < fmt::edgeitems; i++) {
-                auto W = i > 0 ? w : 0;
-                os << tensor_format(at(i), W) << fmt::comma(i, size) << std::endl;
+                os << tensor_format(at(i), w+1) << fmt::comma(i, size);
+                os << std::endl << std::setw(w) << "";
             }
 
-            os << std::setw(w) << "" << "..., " << std::endl;
+            os << "..., " << std::endl << std::setw(w) << "";
 
             for (std::size_t i = size - fmt::edgeitems; i < size; i++) {
-                os << tensor_format(at(i), w) << fmt::comma(i, size);
+                os << tensor_format(at(i), w+1) << fmt::comma(i, size);
                 if (i < size - 1) {
-                    os << std::endl;
+                    os << std::endl << std::setw(w) << "";
                 }
             }
         } else {
             for (std::size_t i = 0; i < size; i++) {
-                os << tensor_format(at(i), w) << fmt::comma(i, size);
+                os << tensor_format(at(i), w+1) << fmt::comma(i, size);
                 if (i < size - 1) {
-                    os << std::endl;
+                    os << std::endl << std::setw(w) << "";
                 }
             }
         }
@@ -184,8 +186,8 @@ public:
 template <typename T, template <typename U> class ptr_traits>
 class tensor<T, 1, ptr_traits> : public tensor_base<T, 1, ptr_traits> {
 public:
-    tensor(T* data_, const std::size_t* sizes_, const std::size_t* strides_)
-    : tensor_base<T, 1, ptr_traits>(data_, sizes_, strides_)
+    tensor(T* data, const std::size_t* shape, const std::size_t* strides)
+    : tensor_base<T, 1, ptr_traits>(data, shape, strides)
     {}
 
     T&
@@ -197,7 +199,7 @@ public:
     void
     data_repr(std::ostream& os, int w) const override
     {
-        auto size = this->sizes[0];
+        auto size = this->size(0);
         auto max_size = fmt::edgeitems * 2 + 1;
 
         os << "[";
@@ -220,13 +222,14 @@ tensor<T, N, managed_ptr_traits>
 rand(std::array<std::size_t, N> shape)
 {
     auto strides = new std::size_t[N];
-    auto sizes = new std::size_t[N];
+    strides[N-1] = 1;
 
     for (auto i = N - 2; i < N; --i) {
         strides[i] = strides[i + 1] * shape[i + 1];
     }
 
     std::size_t size = 1;
+    auto sizes = new std::size_t[N];
     for (auto i = 0; i < N; i++) {
         sizes[i] = shape[i];
         size *= shape[i];
