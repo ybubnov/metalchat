@@ -41,8 +41,8 @@ TEST_CASE("Scalar multiplication", "[kernel::scalar_mul]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::scalar_mul<float> m(gpu0);
 
-    auto input = rand<float>({1, 32, 4, 64});
-    auto output = m(input, 8.0f);
+    auto input = shared_tensor(rand<float>({1, 32, 4, 64}));
+    auto output = m(input, 8.0f).get();
 
     REQUIRE(output.dim() == 4);
     for (auto i = 0; i < output.dim(); i++) {

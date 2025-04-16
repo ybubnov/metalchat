@@ -30,9 +30,9 @@ public:
         return _m_bmm(input, *_m_weight);
     }
 
-    template <ContiguousContainer InputContainer>
+    template <std::size_t N, ContiguousContainer InputContainer>
     auto
-    operator()(shared_tensor<T, 3, InputContainer> input)
+    operator()(shared_tensor<T, N, InputContainer> input)
     {
         return _m_bmm(input, _m_weight);
     }

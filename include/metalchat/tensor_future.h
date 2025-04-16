@@ -75,6 +75,12 @@ public:
         _m_future.wait();
     }
 
+    static constexpr std::size_t
+    dim()
+    {
+        return N;
+    }
+
     template <std::size_t M>
     future_tensor<T, M>
     view(const int (&&dims)[M]) const requires(M > 0)
