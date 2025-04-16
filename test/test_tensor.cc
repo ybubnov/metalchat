@@ -14,7 +14,7 @@ using namespace metalchat::indexing;
 TEST_CASE("Tensor transpose", "[tensor::transpose]")
 {
     auto x = rand<float>({2, 3, 4});
-    auto x_t = x.transpose(0, 2, 1);
+    auto x_t = x.transpose({0, 2, 1});
 
     REQUIRE(x_t.size(0) == 2);
     REQUIRE(x_t.size(1) == 4);
@@ -34,7 +34,7 @@ TEST_CASE("Tensor slice transpose", "[tensor::transpose]")
     REQUIRE(y.size(2) == 2);
     REQUIRE(y.size(3) == 1);
 
-    auto y_t = y.transpose(1, 0, 3, 2);
+    auto y_t = y.transpose({1, 0, 3, 2});
     REQUIRE(y_t.size(0) == 2);
     REQUIRE(y_t.size(1) == 1);
     REQUIRE(y_t.size(2) == 1);
@@ -58,7 +58,7 @@ TEST_CASE("Tensor transpose in scope", "[tensor::transpose]")
 {
     auto x = []() {
         auto x = full<float>({3, 4, 2, 2}, 7.0);
-        return x.transpose(0, 2, 3, 1);
+        return x.transpose({0, 2, 3, 1});
     }();
 
     REQUIRE(x.dim() == 4);
@@ -84,4 +84,38 @@ TEST_CASE("Tensor format", "[tensor::ostream]")
     std::cout << t1 << std::endl;
     std::cout << t2 << std::endl;
     std::cout << t3 << std::endl;
+}
+
+
+TEST_CASE("Tensor reshape", "[tensor::reshape]")
+{
+    auto t = rand<float>({3, 4, 2});
+
+    auto t0 = t.reshape({24});
+    REQUIRE(t0.dim() == 1);
+    REQUIRE(t0.size(0) == 24);
+
+    t0[23] = 15.0;
+    REQUIRE(t[2][3][1] == 15.0);
+}
+
+
+TEST_CASE("Tensor reshape unsqueeze", "[tensor::reshape]")
+{
+    auto t = rand<float>({4, 5, 2});
+    auto t0 = t.reshape({4, 5, 2, -1});
+
+    REQUIRE(t0.dim() == 4);
+    REQUIRE(t0.size(0) == 4);
+    REQUIRE(t0.size(1) == 5);
+    REQUIRE(t0.size(2) == 2);
+    REQUIRE(t0.size(3) == 1);
+    REQUIRE(t0.stride(0) == 10);
+    REQUIRE(t0.stride(1) == 2);
+    REQUIRE(t0.stride(2) == 1);
+    REQUIRE(t0.stride(3) == 1);
+
+    REQUIRE(t.numel() == t0.numel());
+    t0[3][4][1][0] = 100.0;
+    REQUIRE(t[3][4][1] == 100.0);
 }
