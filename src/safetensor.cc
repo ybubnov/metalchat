@@ -26,7 +26,7 @@ main()
     std::cout << "device = " << gpu0.name() << std::endl;
     std::cout << model_file["model.embed_tokens.weight"].as<__fp16, 2>() << std::endl;
 
-    auto input = rand<int32_t, 1>({10});
+    auto input = rand<int32_t, 3>({12, 4, 15});
     std::cout << input << std::endl;
 
     //metalama::op embedding<int32, __fp16>("embedding");
