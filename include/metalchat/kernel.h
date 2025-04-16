@@ -1,12 +1,5 @@
 #pragma once
 
-#define NS_PRIVATE_IMPLEMENTATION
-#define CA_PRIVATE_IMPLEMENTATION
-#define MTL_PRIVATE_IMPLEMENTATION
-#include <Foundation/Foundation.hpp>
-#include <Metal/Metal.hpp>
-#include <QuartzCore/QuartzCore.hpp>
-
 #include <format>
 #include <future>
 #include <tuple>
@@ -48,7 +41,8 @@ private:
     NS::SharedPtr<MTL::Function> _m_function;
     NS::SharedPtr<MTL::ComputePipelineState> _m_pipeline;
 
-    shared_kernel_thread _m_kernel_thread;
+    // TODO: is it a good idea to use a reference wrapper here?
+    std::reference_wrapper<shared_kernel_thread> _m_kernel_thread;
 
 public:
     kernel_base(const kernel_base& k) noexcept = default;
@@ -56,7 +50,7 @@ public:
     kernel_base(
         const std::string& name,
         NS::SharedPtr<MTL::Library> library,
-        shared_kernel_thread kernel_thread
+        shared_kernel_thread& kernel_thread
     )
     : _m_function(),
       _m_pipeline(),
@@ -88,7 +82,7 @@ public:
     std::shared_ptr<kernel_thread>
     get_this_thread()
     {
-        return _m_kernel_thread.get_this_thread();
+        return _m_kernel_thread.get().get_this_thread();
     }
 
     MTL::Device*

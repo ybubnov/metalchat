@@ -17,9 +17,9 @@ private:
 
     kernel_base _m_kernel;
 
-    template <ContiguousContainer InputContainer, ContiguousContainer OutputContainer>
+    template <immutable_tensor2d InputTensor, immutable_tensor2d OutputTensor>
     auto
-    copy(shared_tensor<T, 2, InputContainer> input, shared_tensor<T, 2, OutputContainer> output)
+    copy(InputTensor input, OutputTensor output)
     {
         if (auto dim_size = output.sizes().back(); dim_size != input.sizes().back()) {
             throw std::invalid_argument(std::format(
@@ -61,9 +61,9 @@ public:
     ///
     /// The operation is executed asynchronously on GPU, therefore output tensor should be
     /// allocated on GPU memory.
-    template <std::size_t N, std::size_t M, ContiguousContainer InputContainer>
+    template <immutable_tensor InputTensor, immutable_device_tensor OutputTensor>
     auto
-    operator()(shared_tensor<T, N, InputContainer> input, shared_tensor<T, M, device_ref<T>> output)
+    operator()(InputTensor input, OutputTensor output)
     {
         return copy(input.template flatten<2>(), output.template flatten<2>());
     }

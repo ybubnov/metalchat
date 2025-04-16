@@ -57,15 +57,15 @@ public:
       _m_layers(std::move(layers))
     {}
 
-    template <integral IndexType, ContiguousContainer InputContainer>
+    template <immutable_tensor2d InputTensor> requires(integral<typename InputTensor::value_type>)
     auto
-    operator()(shared_tensor<IndexType, 2, InputContainer> input, std::size_t start_pos = 0)
+    operator()(InputTensor input, std::size_t start_pos = 0)
     {
         const auto mask = create_additive_causal_mask(input.size(1));
-        auto x = _m_embedding(input).get();
+        auto x = _m_embedding(input);
 
         for (auto& layer : _m_layers) {
-            x = layer(x, mask, start_pos).get();
+            x = layer(x.get(), mask, start_pos);
         }
 
         auto output = _m_norm(x);
@@ -74,7 +74,7 @@ public:
         auto seqlen = output.size(1);
         output = output[s(), s(seqlen - 1, seqlen), s()];
 
-        return _m_output(output.get());
+        return _m_output(output);
     }
 };
 

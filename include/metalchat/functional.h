@@ -39,7 +39,7 @@ concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, device& device)
     size0[dim] = 0;
 
     for (auto first = begin; first != end; ++first) {
-        assert((*first).is_contiguous());
+        // assert((*first).is_contiguous());
 
         auto sizes = (*first).sizes();
         for (auto i = 0; i < tensor_type::dim(); i++) {

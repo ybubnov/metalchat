@@ -23,9 +23,9 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <std::size_t N, ContiguousContainer InputContainer>
+    template <immutable_tensor InputTensor>
     auto
-    operator()(shared_tensor<T, N, InputContainer> input)
+    operator()(InputTensor input)
     {
         constexpr std::size_t block_size = 32;
 

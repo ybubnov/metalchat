@@ -70,15 +70,9 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <
-        std::size_t N,
-        ContiguousContainer InputContainer,
-        ContiguousContainer MultiplierContainer>
+    template <immutable_tensor InputTensor, immutable_scalar Multiplier>
     auto
-    operator()(
-        shared_tensor<T, N, InputContainer> input,
-        shared_tensor<T, 0, MultiplierContainer> multiplier
-    )
+    operator()(InputTensor input, Multiplier multiplier)
     {
         constexpr std::size_t block_size = 32;
 
@@ -95,9 +89,9 @@ public:
         return output.view(input.sizes());
     }
 
-    template <std::size_t N, ContiguousContainer InputContainer>
+    template <immutable_tensor InputTensor>
     auto
-    operator()(shared_tensor<T, N, InputContainer> input, const T multiplier)
+    operator()(InputTensor input, const T multiplier)
     {
         return operator()(input, shared_tensor(scalar(multiplier)));
     }

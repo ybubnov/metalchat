@@ -37,14 +37,14 @@ public:
       m_silu(device)
     {}
 
-    template <ContiguousContainer InputContainer>
+    template <immutable_tensor3d InputTensor>
     auto
-    operator()(shared_tensor<T, 3, InputContainer> input)
+    operator()(InputTensor input)
     {
         auto input2 = m_w3(input);
-        auto input1 = m_silu(m_w1(input).get());
+        auto input1 = m_silu(m_w1(input));
 
-        return m_w2(m_hadamard(input1.get(), input2.get()).get());
+        return m_w2(m_hadamard(input1, input2));
     }
 
     friend std::ostream&

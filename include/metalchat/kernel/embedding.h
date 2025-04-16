@@ -26,15 +26,10 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <
-        integral IndexType,
-        ContiguousContainer InputContainer,
-        ContiguousContainer WeightContainer>
+    template <immutable_tensor2d InputTensor, immutable_tensor2d WeightTensor>
+    requires(integral<typename InputTensor::value_type>)
     auto
-    operator()(
-        shared_tensor<IndexType, 2, InputContainer> input,
-        shared_tensor<T, 2, WeightContainer> weight
-    )
+    operator()(InputTensor input, WeightTensor weight)
     {
         auto data_size = input.numel();
         auto emb_size = weight.sizes().back();
@@ -73,6 +68,16 @@ public:
         immutable_tensor2d CosTensor,
         immutable_tensor2d SinTensor>
     auto
+    debug_rope(InputTensor input, CosTensor freqs_cos, SinTensor freqs_sin, std::size_t start_pos)
+    {
+        return operator()(input, freqs_cos, freqs_sin, start_pos);
+    }
+
+    template <
+        immutable_tensor4d InputTensor,
+        immutable_tensor2d CosTensor,
+        immutable_tensor2d SinTensor>
+    auto
     operator()(InputTensor input, CosTensor freqs_cos, SinTensor freqs_sin, std::size_t start_pos)
     {
         constexpr std::size_t block_size = 32;
@@ -95,7 +100,7 @@ public:
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto fn = task.bind_front(
-            shared_tensor(input.view({-1, int(dim_size)})), freqs_cos, freqs_sin,
+            input.view({-1, int(dim_size)}), freqs_cos, freqs_sin,
             shared_tensor(scalar<int32_t>(bs)), shared_tensor(scalar<int32_t>(n_head)),
             shared_tensor(scalar<int32_t>(start_pos))
         );

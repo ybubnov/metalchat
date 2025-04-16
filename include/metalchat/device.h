@@ -34,7 +34,9 @@ private:
     }
 
 public:
-    device(const std::filesystem::path& path, std::size_t thread_capacity = 8)
+    device(device&&) noexcept = default;
+
+    device(const std::filesystem::path& path, std::size_t thread_capacity = 64)
     : _m_device(_m_make_device()),
       _m_library(),
       _m_kernels(),
