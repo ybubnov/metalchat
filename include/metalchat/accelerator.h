@@ -19,7 +19,7 @@ private:
     NS::SharedPtr<MTL::Device> _m_device;
     NS::SharedPtr<MTL::Library> _m_library;
 
-    std::unordered_map<std::string, kernel_base> _m_kernels;
+    std::unordered_map<std::string, basic_kernel> _m_kernels;
     shared_kernel_thread _m_this_thread;
 
     NS::SharedPtr<MTL::Device>
@@ -98,19 +98,19 @@ public:
         _m_this_thread.set_allocator(std::move(alloc));
     }
 
-    kernel_base
+    basic_kernel
     load(const std::string& name)
     {
         if (auto it = _m_kernels.find(name); it != _m_kernels.end()) {
             return it->second;
         }
 
-        auto kernel = kernel_base(name, _m_library, _m_this_thread);
+        auto kernel = basic_kernel(name, _m_library, _m_this_thread);
         _m_kernels.insert_or_assign(name, kernel);
         return kernel;
     }
 
-    kernel_base
+    basic_kernel
     load(const std::string& name, const std::string& type)
     {
         return load(std::format("{}_{}", name, type));

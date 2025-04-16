@@ -15,7 +15,7 @@ template <typename T, std::size_t BlockSize = 16> class cpy {
 private:
     inline static const std::string operation_name = "copy_" + std::to_string(BlockSize);
 
-    kernel_base _m_kernel;
+    basic_kernel _m_kernel;
 
     template <immutable_tensor2_t<T> Input, immutable_tensor2_t<T> Output>
     auto
@@ -73,7 +73,7 @@ template <typename T, std::size_t BlockSize = 16> class scatter {
 private:
     inline static const std::string operation_name = "scatter_" + std::to_string(BlockSize);
 
-    kernel_base _m_kernel;
+    basic_kernel _m_kernel;
 
 public:
     scatter(hardware_accelerator& gpu)
@@ -103,7 +103,7 @@ template <typename T, std::size_t BlockSize = 16> class gather {
 private:
     inline static const std::string operation_name = "gather_" + std::to_string(BlockSize);
 
-    kernel_base _m_kernel;
+    basic_kernel _m_kernel;
 
 public:
     gather(hardware_accelerator& gpu)

@@ -17,7 +17,7 @@ template <typename T, std::size_t BlockSize = 16> class bmm {
 private:
     inline static const std::string operation_name = "bmm_" + std::to_string(BlockSize);
 
-    kernel_base _m_kernel;
+    basic_kernel _m_kernel;
 
 public:
     bmm(hardware_accelerator& gpu)

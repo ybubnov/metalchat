@@ -1,7 +1,155 @@
 API Reference
 =============
 
+TBD
+
 .. toctree::
+   :hidden:
    :maxdepth: 1
 
    allocator
+   tensor
+   kernel
+
+
+Allocator library
+-----------------
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:class:`metalchat::hardware_memory_allocator`
+     - Metal hazard-tracking shared memory allocator.
+
+   * - :cpp:class:`metalchat::hardware_heap_allocator`
+     - Metal heap allocator of shared memory without hazard tracking.
+
+   * - :cpp:class:`metalchat::rebind_hardware_allocator`
+     - Provides a way to obtain a hardware allocator of a different type.
+
+   * - :cpp:class:`metalchat::polymorphic_hardware_memory_allocator`
+     - An allocator that exhibits different allocation behaviour depending on particular
+       implementation.
+
+Allocator concepts
+^^^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:concept:`metalchat::allocator`
+     - TBD
+
+   * - :cpp:concept:`metalchat::allocator_t`
+     - TBD
+
+   * - :cpp:concept:`metalchat::hardware_allocator`
+     - TBD
+
+   * - :cpp:concept:`metalchat::hardware_allocator_t`
+     - TBD
+
+
+Tensor library
+--------------
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:class:`metalchat::tensor`
+     - A multi-dimensional matrix containing elements of a single data type.
+
+   * - :cpp:class:`metalchat::tensor_iterator`
+     - A sequential accessor to the tensor's elements.
+
+   * - :cpp:class:`metalchat::shared_tensor`
+     - A tensor that could be shared by multiple owners.
+
+   * - :cpp:class:`metalchat::future_tensor`
+     - A tensor associated with a computation task, which result is not ready yet.
+
+
+Tensor concepts
+^^^^^^^^^^^^^^^
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:concept:`metalchat::immutable_tensor`
+     - TBD
+
+   * - :cpp:concept:`metalchat::immutable_tensor_t`
+     - TBD
+
+   * - :cpp:concept:`metalchat::immutable_tensor1_t`
+     - TBD
+
+   * - :cpp:concept:`metalchat::immutable_tensor2_t`
+     - TBD
+
+   * - :cpp:concept:`metalchat::immutable_tensor3_t`
+     - TBD
+
+   * - :cpp:concept:`metalchat::immutable_tensor4_t`
+     - TBD
+
+   * - :cpp:concept:`metalchat::immutable_hardware_tensor_t`
+     - TBD
+
+   * - :cpp:concept:`metalchat::asynchronously_invocable`
+     - A concept specifies that a type T can be called asynchronously.
+
+
+Tensor functions
+^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:func:`metalchat::scalar`
+     - TBD
+
+   * - :cpp:func:`metalchat::empty`
+     - TBD
+
+
+Kernel library
+--------------
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:class:`metalchat::hardware_accelerator`
+     - TBD
+
+   * - :cpp:class:`metalchat::basic_kernel`
+     - TBD
+
+   * - :cpp:class:`metalchat::binary_kernel_wrapper`
+     - TBD
+
+   * - :cpp:class:`metalchat::kernel_task`
+     - TBD
+
+   * - :cpp:class:`metalchat::kernel_thread`
+     - TBD
+
+   * - :cpp:class:`metalchat::shared_kernel_thread`
+     - TBD
+
+
+Kernel Concepts
+^^^^^^^^^^^^^^^
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:concept:`metalchat::hardware_encodable_function`
+     - TBD

@@ -37,7 +37,7 @@ template <typename T, std::size_t BlockSize = 8> class add2 {
 private:
     inline static const std::string operation_name = "add2_" + std::to_string(BlockSize);
 
-    kernel_base _m_kernel;
+    basic_kernel _m_kernel;
 
 public:
     add2(hardware_accelerator& gpu)
