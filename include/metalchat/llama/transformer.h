@@ -46,12 +46,13 @@ public:
     auto
     operator()(
         const tensor<T, 3, InputContainer>& input,
-        const std::optional<tensor<T, 2, MaskContainer>>& mask
+        const std::optional<tensor<T, 2, MaskContainer>>& mask,
+        std::size_t start_pos = 0
     )
     {
         auto norm = _m_attention_norm(input);
 
-        auto r = _m_attention(norm, mask);
+        auto r = _m_attention(norm, mask, start_pos);
         auto h = _m_sum(input, r);
 
         r = _m_ff(_m_ff_norm(h));

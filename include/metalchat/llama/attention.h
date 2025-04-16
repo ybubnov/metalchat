@@ -79,7 +79,8 @@ public:
     auto
     operator()(
         const tensor<T, 3, InputContainer>& input,
-        const std::optional<tensor<T, 2, MaskContainer>>& mask
+        const std::optional<tensor<T, 2, MaskContainer>>& mask,
+        std::size_t start_pos = 0
     )
     {
         int bs = input.size(0);
@@ -93,8 +94,8 @@ public:
         auto k = m_wk(input).reshape({bs, len, n_kv_heads, head_dim});
         auto v = m_wv(input).reshape({bs, len, n_kv_heads, head_dim});
 
-        auto queries = m_rope(q);
-        auto k_rot = m_rope(k);
+        auto queries = m_rope(q, /*start_pos=*/start_pos);
+        auto k_rot = m_rope(k, /*start_pos=*/start_pos);
 
         // TODO: cache queries and keys.
         auto repeat_kv
