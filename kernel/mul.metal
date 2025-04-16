@@ -50,9 +50,9 @@ __lib_metalchat_kernel2(hadamard, float, 32);
 
 
 template <typename T> struct __scalar_mul_parameters {
-    constant tensor_layout<2>& output_layout;
+    constant layout2& output_layout;
     device T* output;
-    constant tensor_layout<2>& input_layout;
+    constant layout2& input_layout;
     device const T* input;
     constant const T& multiplier;
 };
@@ -67,8 +67,8 @@ scalar_mul(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    tensor<const T, 2> in{params.input, params.input_layout};
-    tensor<T, 2> out{params.output, params.output_layout};
+    tensor2<const T> in(params.input_layout, params.input);
+    tensor2<T> out(params.output_layout, params.output);
 
     const uint dim_size = in.size(1);
     const uint i = gid.x;
@@ -87,6 +87,7 @@ __lib_metalchat_kernel2(scalar_mul, bfloat, 16);
 __lib_metalchat_kernel2(scalar_mul, bfloat, 32);
 __lib_metalchat_kernel2(scalar_mul, bfloat, 128);
 
+__lib_metalchat_kernel2(scalar_mul, float, 1);
 __lib_metalchat_kernel2(scalar_mul, float, 8);
 __lib_metalchat_kernel2(scalar_mul, float, 16);
 __lib_metalchat_kernel2(scalar_mul, float, 32);

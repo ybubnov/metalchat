@@ -7,11 +7,11 @@
 
 
 template <typename T> struct __add_parameters {
-    constant tensor_layout<2>& output_layout [[buffer(0)]];
+    constant layout2& output_layout [[buffer(0)]];
     device T* output [[buffer(1)]];
-    constant tensor_layout<2>& input1_layout [[buffer(2)]];
+    constant layout2& input1_layout [[buffer(2)]];
     device const T* input1 [[buffer(3)]];
-    constant tensor_layout<2>& input2_layout [[buffer(4)]];
+    constant layout2& input2_layout [[buffer(4)]];
     device const T* input2 [[buffer(5)]];
 };
 
@@ -23,9 +23,9 @@ add(__add_parameters<T> params,
     uint2 tid [[thread_position_in_threadgroup]],
     uint2 threadgroup_size [[threads_per_threadgroup]])
 {
-    tensor<const T, 2> in1{params.input1, params.input1_layout};
-    tensor<const T, 2> in2{params.input2, params.input2_layout};
-    tensor<T, 2> out{params.output, params.output_layout};
+    tensor2<const T> in1(params.input1_layout, params.input1);
+    tensor2<const T> in2(params.input1_layout, params.input2);
+    tensor2<T> out(params.output_layout, params.output);
 
     const uint dim_size = in1.size(1);
     const uint i = gid.x;
@@ -52,7 +52,7 @@ template <typename T> struct __add2_parameters {
     device T* output;
     constant tensor_layout<3>& input1_layout;
     device const T* input1;
-    constant tensor_layout<2>& input2_layout;
+    constant layout2& input2_layout;
     device const T* input2;
 };
 
@@ -67,7 +67,7 @@ add2(
 )
 {
     tensor<const T, 3> in1{params.input1, params.input1_layout};
-    tensor<const T, 2> in2{params.input2, params.input2_layout};
+    tensor2<const T> in2(params.input2_layout, params.input2);
     tensor<T, 3> out{params.output, params.output_layout};
 
     const uint dim0_size = in2.size(0);
@@ -96,11 +96,11 @@ __lib_metalchat_kernel3(add2, float, 32);
 
 
 template <typename T> struct __sub_parameters {
-    constant tensor_layout<2>& output_layout;
+    constant layout2& output_layout;
     device T* output;
-    constant tensor_layout<2>& input1_layout;
+    constant layout2& input1_layout;
     device const T* input1;
-    constant tensor_layout<2>& input2_layout;
+    constant layout2& input2_layout;
     device const T* input2;
 };
 
@@ -112,9 +112,9 @@ sub(__sub_parameters<T> params,
     uint2 tid [[thread_position_in_threadgroup]],
     uint2 threadgroup_size [[threads_per_threadgroup]])
 {
-    tensor<const T, 2> in1{params.input1, params.input1_layout};
-    tensor<const T, 2> in2{params.input2, params.input2_layout};
-    tensor<T, 2> out{params.output, params.output_layout};
+    tensor2<const T> in1(params.input1_layout, params.input1);
+    tensor2<const T> in2(params.input2_layout, params.input2);
+    tensor2<T> out(params.output_layout, params.output);
 
     const uint dim_size = in1.size(1);
     const uint i = gid.x;

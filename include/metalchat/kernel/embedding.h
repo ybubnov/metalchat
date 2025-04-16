@@ -19,8 +19,7 @@ namespace kernel {
 template <typename T, std::size_t BlockSize = 16, std::size_t EmbeddingBlockSize = 64>
 class embedding {
 private:
-    inline static const std::string operation_name
-        = "embedding_" + std::to_string(BlockSize) + "x" + std::to_string(EmbeddingBlockSize);
+    inline static const std::string operation_name = "embedding_" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 

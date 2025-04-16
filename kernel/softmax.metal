@@ -11,9 +11,9 @@ using namespace metal;
 
 
 #define __softmax_parameters(T)                             \
-    constant tensor_layout<2>& output_layout [[buffer(0)]], \
+    constant layout2& output_layout          [[buffer(0)]], \
     device T* output                         [[buffer(1)]], \
-    constant tensor_layout<2>& input_layout  [[buffer(2)]], \
+    constant layout2& input_layout           [[buffer(2)]], \
     device const T* input                    [[buffer(3)]], \
     uint gid [[threadgroup_position_in_grid]],              \
     uint tid [[thread_index_in_threadgroup]],               \
@@ -27,8 +27,8 @@ softmax(__softmax_parameters(T))
 {
     constexpr uint SIMD_SIZE = 32;
 
-    tensor<const T, 2> in{input, input_layout};
-    tensor<T, 2> out{output, output_layout};
+    tensor2<const T> in(input_layout, input);
+    tensor2<T> out(output_layout, output);
 
     float threadlocal_sum = 0.0f;
 
