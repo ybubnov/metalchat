@@ -66,8 +66,8 @@ TEST_CASE("Read-write 1d tensor slicing", "[tensor::operator]")
 
 TEST_CASE("Copy 2d tensor through slicing", "[tensor::operator=]")
 {
-    auto t0 = full<bf16>({7, 8}, 2.0);
-    auto t1 = rand<bf16>({3, 2});
+    auto t0 = full<float>({7, 8}, 2.0);
+    auto t1 = rand<float>({3, 2});
 
     t0[slice(4, 7), slice(6, 8)] = t1;
 

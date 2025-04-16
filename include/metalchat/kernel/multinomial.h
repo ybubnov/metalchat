@@ -37,7 +37,7 @@ public:
 
         auto thread_size = ceil_div(dim_size, BlockSize);
         auto thread = dim3(thread_size);
-        auto grid = dim3(thread_size * num_rows);
+        auto grid = dim3(thread_size * num_rows, BlockSize);
 
         auto init_state = _m_seed(_m_generator);
         auto init_seq = _m_seed(_m_generator);

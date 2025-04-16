@@ -14,8 +14,9 @@
     device const int32_t* input                  [[buffer(3)]], \
     constant tensor_layout<2>& weight_layout     [[buffer(4)]], \
     device const T* weight                       [[buffer(5)]], \
-    uint2 gid [[threadgroup_position_in_grid]],                 \
-    uint2 tid [[thread_position_in_threadgroup]]
+    uint3 gid [[threadgroup_position_in_grid]],                 \
+    uint3 tid [[thread_position_in_threadgroup]],               \
+    uint3 threadgroup_size [[threads_per_threadgroup]]
 
 
 /// Batched implementation of the embedding operation.
@@ -42,13 +43,12 @@ embedding(__embedding_parameters(T))
     const uint emb_size = w.size(1);
     const uint i = gid.x;
 
-    const uint begin = tid.x * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint j = tid.x + gid.z * threadgroup_size.z;
 
     const uint emb_begin = tid.y * EmbeddingBlockSize;
     const uint emb_end = emb_begin + EmbeddingBlockSize;
 
-    for (uint j = begin; j < end && j < dim_size; j++) {
+    if (j < dim_size) {
         for (uint k = emb_begin; k < emb_end && k < emb_size; k++) {
             out.at(i, j, k) = w.at(in.at(i, j), k);
         }

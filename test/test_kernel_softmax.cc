@@ -40,9 +40,9 @@ TEST_CASE("Softmax predefined array", "[kernel::softmax]")
 TEST_CASE("Softmax sum should be 1.0", "[kernel::softmax]")
 {
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::softmax<bf16> softmax(gpu0);
+    metalchat::softmax<float> softmax(gpu0);
 
-    auto input = shared_tensor(rand<bf16>({30}));
+    auto input = shared_tensor(rand<float>({30}));
     auto output = softmax(input).get();
 
     auto sum = std::reduce(output.data_ptr(), output.data_ptr() + output.numel());
