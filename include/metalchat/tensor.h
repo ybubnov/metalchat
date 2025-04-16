@@ -20,13 +20,13 @@
 namespace metalchat {
 
 
-template <typename T, ContiguousContainer Container> struct tensor_traits {
+template <typename T, contiguous_container Container> struct tensor_traits {
     using data_type = std::shared_ptr<Container>;
     using size_type = std::unique_ptr<array_ref<std::size_t>>;
 };
 
 
-template <typename T, std::size_t N, ContiguousContainer Container> class tensor {
+template <typename T, std::size_t N, contiguous_container Container> class tensor {
 public:
     using traits_type = tensor_traits<T, Container>;
 
@@ -791,7 +791,7 @@ to_tensor(std::size_t (&&sizes)[N], ForwardIt first, ForwardIt last)
 }
 
 
-template <typename T, std::size_t N, ContiguousContainer Container>
+template <typename T, std::size_t N, contiguous_container Container>
 auto
 to_tensor(const tensor<T, N, Container>& t)
 {

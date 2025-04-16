@@ -8,7 +8,7 @@
 namespace metalchat {
 namespace nn {
 
-template <typename T, ContiguousContainer Container> class rmsnorm {
+template <typename T, contiguous_container Container> class rmsnorm {
 private:
     shared_tensor<T, 1, Container> _m_weight;
     metalchat::rmsnorm<T> _m_norm;

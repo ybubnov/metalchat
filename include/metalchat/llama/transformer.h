@@ -14,12 +14,12 @@
 namespace metalchat {
 namespace llama {
 
-template <typename T, ContiguousContainer Container> class transformer {
+template <typename T, contiguous_container Container> class transformer {
 private:
-    attention<T, device_ref<T>> _m_attention;
+    attention<T, Container> _m_attention;
     nn::rmsnorm<T, Container> _m_attention_norm;
 
-    feed_forward<T, device_ref<T>> _m_ff;
+    feed_forward<T, Container> _m_ff;
     nn::rmsnorm<T, Container> _m_ff_norm;
 
     device& _m_device;
@@ -29,9 +29,9 @@ public:
     transformer(const transformer&) = delete;
 
     transformer(
-        attention<T, device_ref<T>>&& attention,
+        attention<T, Container>&& attention,
         nn::rmsnorm<T, Container>&& attention_norm,
-        feed_forward<T, device_ref<T>>&& ff,
+        feed_forward<T, Container>&& ff,
         nn::rmsnorm<T, Container>&& ff_norm,
         device& device
     )

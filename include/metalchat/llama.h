@@ -17,7 +17,8 @@ make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_
 {
     using container_type = device_ref<T>;
 
-    nn::embedding embedding(tensors["tok_embeddings.weight"].as<T, 2>(device), device);
+    auto input = shared_tensor(tensors["tok_embeddings.weight"].as<T, 2>(device));
+    nn::embedding embedding(input, device);
     nn::rmsnorm norm(tensors["norm.weight"].as<T, 1>(device), device);
 
     auto options = llama::attention_options{
@@ -61,8 +62,7 @@ make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_
     // Re-use the same linear module (or even a tensor) in both, embeddings computation
     // and in output layer computation.
     return llama::model(
-        std::move(embedding), std::move(norm),
-        nn::linear(tensors["tok_embeddings.weight"].as<T, 2>(device), device), std::move(layers)
+        std::move(embedding), std::move(norm), nn::linear(input, device), std::move(layers)
     );
 }
 

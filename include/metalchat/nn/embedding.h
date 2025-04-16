@@ -12,17 +12,19 @@ namespace metalchat {
 namespace nn {
 
 
-template <typename T, ContiguousContainer Container> class embedding {
+template <typename T, contiguous_container Container> class embedding {
 private:
     shared_tensor<T, 2, Container> _m_weight;
     metalchat::embedding<T> _m_embedding;
 
 public:
-    embedding(embedding&&) = default;
+    embedding(shared_tensor<T, 2, Container> weight, device& device)
+    : _m_weight(weight),
+      _m_embedding(device)
+    {}
 
     embedding(tensor<T, 2, Container>&& weight, device& device)
-    : _m_weight(std::move(weight)),
-      _m_embedding(device)
+    : embedding(shared_tensor(std::move(weight)), device)
     {}
 
     template <immutable_tensor2_t<int32_t> Input>

@@ -13,6 +13,13 @@
 namespace metalchat {
 
 
+/// The `asynchronously_invocable` concept specifies that a type T can be called asynchronously,
+/// and result could be either awaited through future or through callback (or both).
+///
+/// Effectively, this type is used as a opaque wrapper around a task that computes result of a
+/// future tensor. The implementation of `operator()` should not block the thread and exit fast.
+/// The implementation of `make_ready_at_thread_exit` should block the thread, until the result
+/// is not computed.
 template <typename T>
 concept asynchronously_invocable = requires(std::remove_reference_t<T> t) {
     { t() } -> std::same_as<std::shared_future<void>>;
@@ -21,6 +28,15 @@ concept asynchronously_invocable = requires(std::remove_reference_t<T> t) {
 };
 
 
+/// A tensor associated with a computation task, which result is not ready yet.
+///
+/// A future tensor holds a pointer to the pre-allocated on-device memory, and a task that
+/// is responsible for filling that memory. Future tensor is immutable, meaning that it's
+/// content cannot be modified before the completion of an associated task.
+///
+/// Since the tensor is immutable, any immutable operation (which does not modify the
+/// underlying data) could be executed. Such operations include: transposition, slicing,
+/// narrowing, dimensionality expansion, etc.
 template <typename T, std::size_t N> class future_tensor {
 public:
     using result_type = shared_tensor<T, N, device_ref<T>>;
@@ -52,7 +68,8 @@ public:
         // command buffers calls a callback that sets a value to the promise, so
         // all waiting routines will be unblocked.
         //
-        // TODO: does it make sense to move it to the function-binding instead of lambda?
+        // The main advantage of this approach is that the task and all its associated
+        // memory will be released as a result of calling this callback.
         auto future = task([ft = std::make_shared<future_tensor<T, N>>(*this)] {
             const std::scoped_lock __lock(*(ft->_m_future_mutex));
             ft->_m_future_wait = nullptr;
@@ -63,8 +80,8 @@ public:
             std::bind(&std::shared_future<void>::wait, std::move(future))
         );
 
-        //  Erase type of the task, and simply ensure that task is ready, when a user
-        //  calls either `wait` or `get` method of the future tensor.
+        // Erase type of the task, and simply ensure that task is ready, when a user
+        // calls either `wait` or `get` method of the future tensor.
         _m_future_wait = std::make_shared<future_wait_type::element_type>(
             std::bind(&Task::make_ready_at_thread_exit, std::move(task))
         );
@@ -84,6 +101,11 @@ public:
         );
     }
 
+    /// Create a future tensor that expects completion of two other future tensors
+    ///
+    /// A future tensor `result` becomes the result of the new tensor completion. This
+    /// operation in non-destructible, so both `result` and `future` tensors could be
+    /// awaited separately from this tensor.
     template <typename U, std::size_t M>
     future_tensor(future_tensor result, future_tensor<U, M> future)
     : _m_result(result._m_result),
@@ -99,11 +121,16 @@ public:
         );
     }
 
+    /// Create a future tensor that expects completion of the specified task.
+    ///
+    /// A new tensor will wait for completion of both self task and a new asynchronously
+    /// invocable task, and only then makes result accessible.
     template <asynchronously_invocable Task>
     future_tensor(future_tensor result, Task&& task)
     : future_tensor(result, future_tensor(result._m_result, std::move(task)))
     {}
 
+    /// A naive future tensor that does not wait for any task and returns result immediately.
     future_tensor(result_type result)
     : _m_result(result),
       _m_future_mutex(std::make_shared<std::mutex>()),

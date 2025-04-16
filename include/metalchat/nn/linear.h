@@ -2,32 +2,38 @@
 
 #include <iostream>
 
-#include <metalchat/kernel/bmm.h>
+#include <metalchat/functional.h>
 
 
 namespace metalchat {
 namespace nn {
 
 
-template <typename T, ContiguousContainer WeightContainer> class linear {
+/// Applies an affine linear transformation to the incoming data.
+///
+/// This module does not support bias adjustment to the input tensor, and only multiplies
+/// it (input) by the specified weight tensor. Meaning it effectively works as matrix
+/// multiplication operation.
+template <typename T, contiguous_container WeightContainer> class linear {
 private:
     shared_tensor<T, 2, WeightContainer> _m_weight;
-    bmm<T> _m_bmm;
+    device& _m_device;
 
 public:
-    linear(linear&&) = default;
-    linear(const linear&) = delete;
+    linear(shared_tensor<T, 2, WeightContainer> weight, device& device)
+    : _m_weight(weight.transpose({1, 0})),
+      _m_device(device)
+    {}
 
     linear(tensor<T, 2, WeightContainer>&& weight, device& device)
-    : _m_weight(std::move(weight.t())),
-      _m_bmm(device)
+    : linear(shared_tensor(std::move(weight)), device)
     {}
 
     template <immutable_tensor_t<T> Input>
     auto
     operator()(Input input)
     {
-        return _m_bmm(input, _m_weight);
+        return fn::matmul(input, _m_weight, _m_device);
     }
 
     friend std::ostream&
