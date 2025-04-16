@@ -22,6 +22,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 find_package(cppcodec CONFIG REQUIRED)
 find_package(simdjson CONFIG REQUIRED)
 find_package(metal-cpp CONFIG REQUIRED)
+find_package(ICU CONFIG REQUIRED)
 
 
 set(metalchat_METALLIB metalchat.metallib)
@@ -36,6 +37,7 @@ set_target_properties(metalchat PROPERTIES SOVERSION ${metalchat_LIBRARY_SOVERSI
 target_link_libraries(metalchat simdjson::simdjson)
 target_link_libraries(metalchat cppcodec::cppcodec)
 target_link_libraries(metalchat metal-cpp::metal-cpp)
+target_link_libraries(metalchat icu::icu)
 #target_link_libraries(metalchat ${FOUNDATION})
 #target_link_libraries(metalchat ${METAL})
 #target_link_libraries(metalchat ${QUARTZCORE})

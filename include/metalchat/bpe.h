@@ -1,66 +1,60 @@
 #pragma once
 
+#include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
 #include <cppcodec/base64_rfc4648.hpp>
+#include <unicode/regex.h>
 
-
-namespace std {
-
-
-template <typename SizeT, typename T>
-void
-hash_combine(SizeT& seed, T value)
-{
-    hash<T> make_hash;
-    seed ^= make_hash(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-}
-
-
-template <std::integral T, class Allocator> struct hash<vector<T, Allocator>> {
-    using argument_type = vector<T, Allocator>;
-
-    size_t
-    operator()(const argument_type& argument) const noexcept
-    {
-        size_t seed = argument.size();
-        for (auto& element : argument) {
-            hash_combine(seed, element);
-        }
-        return seed;
-    }
-};
-
-
-} // namespace std
+#include <metalchat/container.h>
+#include <metalchat/tensor.h>
 
 
 namespace metalchat {
 
 
 class bpe {
-private:
-    using string_type = std::vector<uint8_t>;
-    using index_type = uint32_t;
+public:
+    using string_type = std::string;
+    using index_type = int32_t;
 
+private:
     using base64 = cppcodec::base64_rfc4648;
 
     std::unordered_map<string_type, index_type> _m_fmap;
     std::unordered_map<index_type, string_type> _m_rmap;
 
+    std::unique_ptr<icu::RegexMatcher> _m_re;
+
 public:
+    static constexpr index_type pad = -1;
+
+    /// A regular expression string that is used to split the input text into tokens.
+    static constexpr const char* token_regex
+        = R"((?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+)";
+
     bpe(const std::filesystem::path& p)
     : _m_fmap(),
-      _m_rmap()
+      _m_rmap(),
+      _m_re(nullptr)
     {
-        std::ifstream file(p.c_str(), std::ios::binary);
+        UErrorCode status = U_ZERO_ERROR;
+        _m_re = std::make_unique<icu::RegexMatcher>(token_regex, 0, status);
 
+        if (U_FAILURE(status)) {
+            throw std::invalid_argument(
+                std::format("unable to compile regexp '{}'", u_errorName(status))
+            );
+        }
+
+        std::ifstream file(p, std::ios::binary);
         if (!file.is_open()) {
             throw std::invalid_argument(std::format("unable to open file '{}'", p.string()));
         }
@@ -72,13 +66,43 @@ public:
             auto value_part = line.substr(delim + 1);
 
             index_type key = std::stoi(value_part);
-            string_type value = base64::decode(key_part.c_str(), delim);
+            string_type value = base64::decode<string_type>(key_part);
 
             _m_fmap.insert(std::make_pair(value, key));
             _m_rmap.insert(std::make_pair(key, value));
         }
+    }
 
-        file.close();
+    tensor<index_type, 1, owning_ref<index_type>>
+    encode(const std::string& s)
+    {
+        _m_re->reset(icu::UnicodeString::fromUTF8(s));
+        std::vector<int32_t> ids;
+
+        UErrorCode status = U_ZERO_ERROR;
+        while (_m_re->find(status)) {
+            if (U_FAILURE(status)) {
+                throw std::runtime_error(
+                    std::format("unable to find next token '{}'", u_errorName(status))
+                );
+            }
+
+            auto match = _m_re->group(status);
+            if (U_FAILURE(status)) {
+                throw std::runtime_error(
+                    std::format("unable to match a token '{}'", u_errorName(status))
+                );
+            }
+
+            std::string key;
+            match.toUTF8String(key);
+
+            if (auto it = _m_fmap.find(key); it != _m_fmap.end()) {
+                ids.push_back(it->second);
+            }
+        }
+
+        return tensor(tensor_base<index_type, 1, owning_ref<index_type>>(std::move(ids)));
     }
 };
 

@@ -1,6 +1,7 @@
 [requires]
 catch2/3.7.1
 cppcodec/0.2
+icu/76.1
 metal-cpp/14.2
 simdjson/3.11.2
 
@@ -9,10 +10,11 @@ CMakeDeps
 CMakeToolchain
 
 [options]
-simdjson/*:shared=True
 catch2/*:shared=True
+icu/*:shared=True
 cppcodec/*:shared=True
 metal-cpp/*:shared=True
+simdjson/*:shared=True
 
 [layout]
 cmake_layout
