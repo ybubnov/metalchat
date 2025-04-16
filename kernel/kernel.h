@@ -10,15 +10,9 @@
     function_name<type, block_size>(__##function_name##_parameters<type>, uint, uint)
 
 
-#define __lib_metalchat_kernel2(function_name, type, block_size)                         \
-    template [[host_name(__lib_metalchat_concatenate(function_name, block_size, type))]] \
-    kernel void                                                                          \
-    function_name<type, block_size>(__##function_name##_parameters<type>, uint2, uint2)
-
-
-#define __lib_metalchat_kernel2x(function_name, type, block_size)                         \
-    template [[host_name(__lib_metalchat_concatenate(function_name, block_size, type))]]  \
-    kernel void                                                                           \
+#define __lib_metalchat_kernel2(function_name, type, block_size)                               \
+    template [[host_name(__lib_metalchat_concatenate(function_name, block_size, type))]]       \
+    kernel void                                                                                \
     function_name<type, block_size>(__##function_name##_parameters<type>, uint2, uint2, uint2)
 
 

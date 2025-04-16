@@ -31,7 +31,8 @@ kernel void
 sort(
     __sort_parameters<T> params,
     uint2 gid [[threadgroup_position_in_grid]],
-    uint2 tid [[thread_position_in_threadgroup]]
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
     const uint dim_size = params.input.size(1);

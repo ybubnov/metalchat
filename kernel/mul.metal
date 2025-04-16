@@ -40,13 +40,13 @@ hadamard(
 }
 
 
-__lib_metalchat_kernel2x(hadamard, bfloat, 8);
-__lib_metalchat_kernel2x(hadamard, bfloat, 16);
-__lib_metalchat_kernel2x(hadamard, bfloat, 32);
+__lib_metalchat_kernel2(hadamard, bfloat, 8);
+__lib_metalchat_kernel2(hadamard, bfloat, 16);
+__lib_metalchat_kernel2(hadamard, bfloat, 32);
 
-__lib_metalchat_kernel2x(hadamard, float, 8);
-__lib_metalchat_kernel2x(hadamard, float, 16);
-__lib_metalchat_kernel2x(hadamard, float, 32);
+__lib_metalchat_kernel2(hadamard, float, 8);
+__lib_metalchat_kernel2(hadamard, float, 16);
+__lib_metalchat_kernel2(hadamard, float, 32);
 
 
 template <typename T> struct __scalar_mul_parameters {
@@ -81,11 +81,11 @@ scalar_mul(
 }
 
 
-__lib_metalchat_kernel2x(scalar_mul, bfloat, 8);
-__lib_metalchat_kernel2x(scalar_mul, bfloat, 16);
-__lib_metalchat_kernel2x(scalar_mul, bfloat, 32);
-__lib_metalchat_kernel2x(scalar_mul, bfloat, 128);
+__lib_metalchat_kernel2(scalar_mul, bfloat, 8);
+__lib_metalchat_kernel2(scalar_mul, bfloat, 16);
+__lib_metalchat_kernel2(scalar_mul, bfloat, 32);
+__lib_metalchat_kernel2(scalar_mul, bfloat, 128);
 
-__lib_metalchat_kernel2x(scalar_mul, float, 8);
-__lib_metalchat_kernel2x(scalar_mul, float, 16);
-__lib_metalchat_kernel2x(scalar_mul, float, 32);
+__lib_metalchat_kernel2(scalar_mul, float, 8);
+__lib_metalchat_kernel2(scalar_mul, float, 16);
+__lib_metalchat_kernel2(scalar_mul, float, 32);
