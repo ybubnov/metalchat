@@ -90,9 +90,7 @@ public:
         //
         // TODO: does it even make sense to make the repetition, would it be better
         // to adjust the implementation of the "rope", so it uses the same memory?
-        std::cout << "K sizes=" << keys.sizes() << std::endl;
         auto keys_rep = repeat_interleave(std::move(keys), m_options.repeats(), /*dim=*/2);
-        std::cout << "K shape=" << keys_rep.sizes() << std::endl;
         auto K = keys_rep.reshape({bs, n_heads, len, -1});
         auto K_ = m_rope(K);
 

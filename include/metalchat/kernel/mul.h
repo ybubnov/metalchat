@@ -80,13 +80,19 @@ public:
         const tensor<T, 0, MultiplierContainer>& multiplier
     )
     {
+        constexpr std::size_t block_size = 32;
+
+        auto data_size = input.numel();
+        auto dim_size = input.sizes().back();
+        auto num_rows = data_size / dim_size;
+
         auto output = empty_like(input, m_device);
-        auto n = scalar<int32_t>(input.numel());
 
-        auto threads = dim3(input.numel());
-        auto thread = dim3(32);
+        auto thread_size = ceil_div(dim_size, block_size);
+        auto thread = dim3(thread_size);
+        auto threads = dim3(thread_size * num_rows);
 
-        blocking(threads, thread)(n, input, multiplier, output);
+        blocking(threads, thread)(scalar<int32_t>(dim_size), input, multiplier, output);
         return output;
     }
 

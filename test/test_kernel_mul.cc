@@ -34,3 +34,31 @@ TEST_CASE("Hadamard product", "[kernel::hadamard]")
         }
     }
 }
+
+
+TEST_CASE("Scalar multiplication", "[kernel::scalar_mul]")
+{
+    metalchat::device gpu0("metalchat.metallib");
+    metalchat::scalar_mul<float> m(gpu0);
+
+    auto input = rand<float>({1, 32, 4, 64});
+    auto output = m(input, 8.0f);
+
+    REQUIRE(output.dim() == 4);
+    for (auto i = 0; i < output.dim(); i++) {
+        REQUIRE(output.size(i) == input.size(i));
+    }
+
+    for (auto i = 0; i < output.size(0); i++) {
+        for (auto j = 0; j < output.size(1); j++) {
+            for (auto m = 0; m < output.size(2); m++) {
+                for (auto n = 0; n < output.size(2); n++) {
+                    REQUIRE_THAT(
+                        (output[i, j, m, n]),
+                        Catch::Matchers::WithinAbs(input[i, j, m, n] * 8.0f, 0.00001)
+                    );
+                }
+            }
+        }
+    }
+}
