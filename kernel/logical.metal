@@ -16,27 +16,26 @@ template <typename T> struct __gt_parameters {
 template <typename T, uint BlockSize>
 kernel void
 gt(__gt_parameters<T> params,
-   uint gid [[threadgroup_position_in_grid]],
-   uint tid [[thread_index_in_threadgroup]])
+   uint2 gid [[threadgroup_position_in_grid]],
+   uint2 tid [[thread_position_in_threadgroup]],
+   uint2 threadgroup_size [[threads_per_threadgroup]])
 {
     const uint dim_size = params.input.size(1);
-    const uint i = gid;
+    const uint i = gid.x;
 
-    const uint begin = tid * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint k = tid.x + gid.y * threadgroup_size.x;
 
-#pragma unroll(BlockSize)
-    for (uint k = 0; k < end && k < dim_size; k++) {
+    if (k < dim_size) {
         params.output.at(i, k) = (params.input.at(i, k) > params.value);
     }
 }
 
 
-__lib_metalchat_kernel(gt, bfloat, 8);
-__lib_metalchat_kernel(gt, bfloat, 16);
-__lib_metalchat_kernel(gt, bfloat, 32);
-__lib_metalchat_kernel(gt, bfloat, 128);
+__lib_metalchat_kernel2x(gt, bfloat, 8);
+__lib_metalchat_kernel2x(gt, bfloat, 16);
+__lib_metalchat_kernel2x(gt, bfloat, 32);
+__lib_metalchat_kernel2x(gt, bfloat, 128);
 
-__lib_metalchat_kernel(gt, float, 8);
-__lib_metalchat_kernel(gt, float, 16);
-__lib_metalchat_kernel(gt, float, 32);
+__lib_metalchat_kernel2x(gt, float, 8);
+__lib_metalchat_kernel2x(gt, float, 16);
+__lib_metalchat_kernel2x(gt, float, 32);

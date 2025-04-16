@@ -41,7 +41,7 @@ mul(Tensor t, const T multiplier, device& gpu)
 }
 
 
-template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 16>
+template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 8>
 auto
 hadamard(Tensor1 t1, Tensor2 t2, device& gpu)
 {

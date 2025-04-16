@@ -34,6 +34,22 @@ make_kernel_grid_1d(const Tensor& t, std::size_t block_size)
 }
 
 
+template <immutable_tensor Tensor>
+std::tuple<dim3, dim3>
+make_kernel_grid_2d(const Tensor& t, std::size_t block_size)
+{
+    auto data_size = t.numel();
+    auto dim_size = t.sizes().back();
+    auto num_rows = data_size / dim_size;
+
+    auto thread_size = ceil_div(dim_size, block_size);
+    auto thread = dim3(thread_size);
+    auto grid = dim3(thread_size * num_rows, block_size);
+
+    return std::forward_as_tuple(grid, thread);
+}
+
+
 template <immutable_tensor... Args> class kernel_task {
 private:
     using arguments_type = std::tuple<Args...>;

@@ -20,8 +20,9 @@ template <typename T, uint BlockSize>
 kernel void
 hadamard(
     __hadamard_parameters<T> params,
-    uint gid [[threadgroup_position_in_grid]],
-    uint tid [[thread_index_in_threadgroup]]
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
     tensor2<T> output(params.output_layout, params.output_data);
@@ -29,25 +30,23 @@ hadamard(
     tensor2<const T> input2(params.input2_layout, params.input2_data);
 
     const uint dim_size = input1.size(1);
-    const uint i = gid;
+    const uint i = gid.x;
 
-    const uint begin = tid * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint k = tid.x + gid.y * threadgroup_size.x;
 
-#pragma unroll
-    for (uint k = 0; k < end && k < dim_size; k++) {
+    if (k < dim_size) {
         output.at(i, k) = input1.at(i, k) * input2.at(i, k);
     }
 }
 
 
-__lib_metalchat_kernel(hadamard, bfloat, 8);
-__lib_metalchat_kernel(hadamard, bfloat, 16);
-__lib_metalchat_kernel(hadamard, bfloat, 32);
+__lib_metalchat_kernel2x(hadamard, bfloat, 8);
+__lib_metalchat_kernel2x(hadamard, bfloat, 16);
+__lib_metalchat_kernel2x(hadamard, bfloat, 32);
 
-__lib_metalchat_kernel(hadamard, float, 8);
-__lib_metalchat_kernel(hadamard, float, 16);
-__lib_metalchat_kernel(hadamard, float, 32);
+__lib_metalchat_kernel2x(hadamard, float, 8);
+__lib_metalchat_kernel2x(hadamard, float, 16);
+__lib_metalchat_kernel2x(hadamard, float, 32);
 
 
 template <typename T> struct __scalar_mul_parameters {
@@ -63,31 +62,30 @@ template <typename T, uint BlockSize>
 kernel void
 scalar_mul(
     __scalar_mul_parameters<T> params,
-    uint gid [[threadgroup_position_in_grid]],
-    uint tid [[thread_index_in_threadgroup]]
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
     tensor<const T, 2> in{params.input, params.input_layout};
     tensor<T, 2> out{params.output, params.output_layout};
 
     const uint dim_size = in.size(1);
-    const uint i = gid;
+    const uint i = gid.x;
 
-    const uint begin = tid * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint k = tid.x + gid.y * threadgroup_size.x;
 
-#pragma unroll
-    for (uint k = 0; k < end && k < dim_size; k++) {
+    if (k < dim_size) {
         out.at(i, k) = in.at(i, k) * params.multiplier;
     }
 }
 
 
-__lib_metalchat_kernel(scalar_mul, bfloat, 8);
-__lib_metalchat_kernel(scalar_mul, bfloat, 16);
-__lib_metalchat_kernel(scalar_mul, bfloat, 32);
-__lib_metalchat_kernel(scalar_mul, bfloat, 128);
+__lib_metalchat_kernel2x(scalar_mul, bfloat, 8);
+__lib_metalchat_kernel2x(scalar_mul, bfloat, 16);
+__lib_metalchat_kernel2x(scalar_mul, bfloat, 32);
+__lib_metalchat_kernel2x(scalar_mul, bfloat, 128);
 
-__lib_metalchat_kernel(scalar_mul, float, 8);
-__lib_metalchat_kernel(scalar_mul, float, 16);
-__lib_metalchat_kernel(scalar_mul, float, 32);
+__lib_metalchat_kernel2x(scalar_mul, float, 8);
+__lib_metalchat_kernel2x(scalar_mul, float, 16);
+__lib_metalchat_kernel2x(scalar_mul, float, 32);

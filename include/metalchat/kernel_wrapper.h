@@ -34,7 +34,7 @@ public:
             ));
         }
 
-        auto [grid, thread] = make_kernel_grid_1d(input1, BlockSize);
+        auto [grid, thread] = make_kernel_grid_2d(input1, BlockSize);
         auto input1_view = flatten<2>(input1);
         auto input2_view = flatten<2>(input2);
         auto output_view = shared_empty_like<T>(input1_view, _m_kernel.allocator());
