@@ -48,7 +48,7 @@ private:
     shared_tensor<T, input_size, hardware_memory_container<T>> _m_cache_k;
     shared_tensor<T, input_size, hardware_memory_container<T>> _m_cache_v;
 
-    cpy<T> _m_cpy;
+    kernel::cpy<T> _m_cpy;
     device& _m_device;
 
     template <immutable_tensor_t<T> Input>
@@ -157,13 +157,13 @@ public:
         keys = keys.transpose({0, 2, 3, 1});
         values = values.transpose({0, 2, 1, 3});
 
-        auto scores = fn::mul(fn::matmul(queries, keys, _m_device), m_scale, _m_device);
+        auto scores = mul(matmul(queries, keys, _m_device), m_scale, _m_device);
         if (mask.has_value()) {
-            scores = fn::add2(scores, mask.value(), _m_device);
+            scores = add2(scores, mask.value(), _m_device);
         }
-        scores = fn::softmax(scores, _m_device);
+        scores = softmax(scores, _m_device);
 
-        auto output = fn::matmul(scores, values, _m_device).transpose({0, 2, 1, 3});
+        auto output = matmul(scores, values, _m_device).transpose({0, 2, 1, 3});
         output = contiguous(output, /*dim=*/1);
 
         return m_wo(output.view({bs, len, -1}));

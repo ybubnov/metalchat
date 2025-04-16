@@ -39,9 +39,9 @@ public:
     operator()(Input input)
     {
         auto input2 = _m_w3(input);
-        auto input1 = fn::silu(_m_w1(input), _m_device);
+        auto input1 = silu(_m_w1(input), _m_device);
 
-        return _m_w2(fn::hadamard(input1, input2, _m_device));
+        return _m_w2(hadamard(input1, input2, _m_device));
     }
 
     friend std::ostream&

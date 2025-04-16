@@ -13,6 +13,7 @@
 
 
 namespace metalchat {
+namespace kernel {
 
 
 template <typename T, std::size_t BlockSize = 16, std::size_t EmbeddingBlockSize = 64>
@@ -111,4 +112,5 @@ public:
 };
 
 
+} // namespace kernel
 } // namespace metalchat

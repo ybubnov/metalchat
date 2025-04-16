@@ -15,7 +15,7 @@ using namespace metalchat::dtype;
 TEST_CASE("Test sorting", "[kernel::sort]")
 {
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::sort<float, 32> sort(gpu0);
+    kernel::sort<float, 32> sort(gpu0);
 
     auto input = shared_tensor(rand<float>({1, 1, 2000}));
     auto [values_future, indices_future] = sort(input);
@@ -53,7 +53,7 @@ TEST_CASE("Test sorting", "[kernel::sort]")
 TEST_CASE("Sorting benchmark", "[kernel::sort]")
 {
     metalchat::device gpu0("metalchat.metallib", 1);
-    metalchat::sort<float, 128> sort(gpu0);
+    kernel::sort<float, 128> sort(gpu0);
 
     auto input_cpu = rand<float>({1, 1, 128256});
     auto input = shared_tensor(empty<float>({1, 1, 128256}, gpu0));

@@ -34,7 +34,7 @@ TEST_CASE("Test make model", "[llama]")
 
     auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));
     auto logit0 = m(input0, 0);
-    auto id = fn::top_p(logit0.flatten<2>(), bf16(0.6f), bf16(0.9), gpu0); //.get();
+    auto id = top_p(logit0.flatten<2>(), bf16(0.6f), bf16(0.9), gpu0); //.get();
 
     std::cout << input_text;
     // std::cout << bpe.decode(id[0, 0]);
@@ -45,7 +45,7 @@ TEST_CASE("Test make model", "[llama]")
         // const auto start{std::chrono::steady_clock::now()};
 
         auto logits = m(id, i).flatten<2>();
-        id = fn::top_p(logits, bf16(0.6f), bf16(0.9f), gpu0); //.get();
+        id = top_p(logits, bf16(0.6f), bf16(0.9f), gpu0); //.get();
 
         // const auto finish{std::chrono::steady_clock::now()};
         // const std::chrono::duration<double> elapsed_seconds{finish - start};

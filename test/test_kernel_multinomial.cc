@@ -14,7 +14,7 @@ using namespace metalchat;
 TEST_CASE("Multinomial generator", "[kernel::multinomial]")
 {
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::multinomial<float> m(gpu0);
+    kernel::multinomial<float> m(gpu0);
 
     auto input = shared_tensor(empty<float>({4, 5}));
 
