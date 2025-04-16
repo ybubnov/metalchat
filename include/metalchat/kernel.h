@@ -43,6 +43,15 @@ make_buffer(device& device, const tensor_base<T, 0, value_ref<T>>& t)
 }
 
 
+template <std::size_t N>
+kernel_traits::buffer_type
+make_buffer(device& device, const tensor_base<tensor_layout<N>, 0, value_ref<tensor_layout<N>>>& t)
+{
+    auto size = sizeof(tensor_layout<N>);
+    return NS::TransferPtr(device->newBuffer(t.data_ptr(), size, MTL::ResourceStorageModeShared));
+}
+
+
 inline std::size_t
 ceil_div(std::size_t a, std::size_t b)
 {
