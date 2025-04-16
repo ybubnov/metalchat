@@ -25,10 +25,6 @@ public:
     auto
     operator()(Input1 input, T value)
     {
-        auto data_size = input.numel();
-        auto dim_size = input.sizes().back();
-        auto num_rows = data_size / dim_size;
-
         auto input_view = flatten<2>(input);
         auto output_view = shared_empty_like<bool>(input_view, _m_kernel.allocator());
 

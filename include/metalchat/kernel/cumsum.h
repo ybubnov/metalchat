@@ -25,10 +25,6 @@ public:
     auto
     operator()(Input input)
     {
-        auto data_size = input.numel();
-        auto dim_size = input.sizes().back();
-        auto num_rows = data_size / dim_size;
-
         auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
 
         auto input_view = flatten<2>(input);
