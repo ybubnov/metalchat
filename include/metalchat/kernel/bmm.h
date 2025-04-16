@@ -113,11 +113,12 @@ public:
         const tensor<T, 3, InputContainer>& input, const tensor<T, 2, WeightContainer>& weight
     )
     {
-        assert((input.size(2) == weight.size(0)));
-        assert((input.size(0) == 1));
+        int weight_size0 = weight.size(0);
+        int weight_size1 = weight.size(1);
 
-        auto output = operator()(input.view({int(input.size(1)), int(input.size(2))}), weight);
-        return output.view({1, int(input.size(1)), int(weight.size(1))});
+        // TODO: does it make sense to call repeat_interleave for the number of batches > 1?
+        auto weight_view = weight.view({1, weight_size0, weight_size1});
+        return operator()(input, weight_view);
     }
 };
 
