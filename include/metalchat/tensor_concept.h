@@ -92,15 +92,17 @@ concept immutable_tensor4_t = immutable_tensor_t<Tensor, T> && Tensor::dim() == 
 
 
 template <typename Tensor, typename T>
-concept immutable_device_tensor_t
-    = immutable_tensor_t<Tensor, T>
-      && std::same_as<typename Tensor::container_type, device_ref<typename Tensor::value_type>>;
+concept immutable_hardware_tensor_t = immutable_tensor_t<Tensor, T>
+                                      && std::same_as<
+                                          typename Tensor::container_type,
+                                          hardware_memory_container<typename Tensor::value_type>>;
 
 
 template <typename Tensor, typename T>
-concept immutable_device_tensor4_t
-    = immutable_tensor4_t<Tensor, T>
-      && std::same_as<typename Tensor::container_type, device_ref<typename Tensor::value_type>>;
+concept immutable_hardware_tensor4_t = immutable_tensor4_t<Tensor, T>
+                                       && std::same_as<
+                                           typename Tensor::container_type,
+                                           hardware_memory_container<typename Tensor::value_type>>;
 
 
 } // namespace metalchat

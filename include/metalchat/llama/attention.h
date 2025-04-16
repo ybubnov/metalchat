@@ -45,8 +45,8 @@ private:
     attention_options m_options;
     T m_scale;
 
-    shared_tensor<T, input_size, device_ref<T>> _m_cache_k;
-    shared_tensor<T, input_size, device_ref<T>> _m_cache_v;
+    shared_tensor<T, input_size, hardware_memory_container<T>> _m_cache_k;
+    shared_tensor<T, input_size, hardware_memory_container<T>> _m_cache_v;
 
     cpy<T> _m_cpy;
     device& _m_device;
@@ -65,7 +65,7 @@ private:
         return output;
     }
 
-    template <immutable_tensor4_t<T> Input, immutable_device_tensor4_t<T> Cache>
+    template <immutable_tensor4_t<T> Input, immutable_hardware_tensor4_t<T> Cache>
     auto
     cache_copy(Input input, Cache cache, std::size_t bs, std::size_t start_pos, std::size_t size)
     {

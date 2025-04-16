@@ -32,7 +32,7 @@ public:
     using pointer = T*;
     using const_pointer = const pointer;
     using size_type = std::size_t;
-    using container_type = device_ref<T>;
+    using container_type = hardware_memory_container<T>;
     using container_pointer = std::shared_ptr<container_type>;
 
     hardware_memory_allocator(MTL::Device* device)
@@ -68,7 +68,7 @@ template <typename T> struct random_memory_allocator {
     using pointer = T*;
     using const_pointer = const pointer;
     using size_type = std::size_t;
-    using container_type = owning_ref<T>;
+    using container_type = random_memory_container<T>;
     using container_pointer = std::shared_ptr<container_type>;
 
     random_memory_allocator() {}
@@ -94,7 +94,7 @@ template <typename T> struct scalar_memory_allocator {
     using pointer = T*;
     using const_pointer = const pointer;
     using size_type = std::size_t;
-    using container_type = value_ref<T>;
+    using container_type = scalar_memory_container<T>;
     using container_pointer = std::shared_ptr<container_type>;
 
     scalar_memory_allocator() {}
@@ -115,7 +115,7 @@ template <typename T> struct scalar_memory_allocator {
             );
         }
 
-        return std::make_shared<value_ref<T>>(*ptr);
+        return std::make_shared<scalar_memory_container<T>>(*ptr);
     }
 };
 

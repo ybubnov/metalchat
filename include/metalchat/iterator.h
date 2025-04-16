@@ -34,10 +34,10 @@ public:
     using difference_type = std::ptrdiff_t;
 
     tensor_iterator(
-        array_ref<T>& data,
-        array_ref<std::size_t>& sizes,
-        array_ref<std::size_t>& strides,
-        array_ref<std::size_t>& offsets,
+        memory_container<T>& data,
+        memory_container<std::size_t>& sizes,
+        memory_container<std::size_t>& strides,
+        memory_container<std::size_t>& offsets,
         std::optional<std::size_t> start = std::nullopt
     )
     : m_data(data),
@@ -113,10 +113,10 @@ public:
     }
 
 private:
-    std::reference_wrapper<array_ref<T>> m_data;
-    std::reference_wrapper<array_ref<std::size_t>> m_sizes;
-    std::reference_wrapper<array_ref<std::size_t>> m_strides;
-    std::reference_wrapper<array_ref<std::size_t>> m_offsets;
+    std::reference_wrapper<memory_container<T>> m_data;
+    std::reference_wrapper<memory_container<std::size_t>> m_sizes;
+    std::reference_wrapper<memory_container<std::size_t>> m_strides;
+    std::reference_wrapper<memory_container<std::size_t>> m_offsets;
 
     std::size_t m_index;
     std::size_t m_num;

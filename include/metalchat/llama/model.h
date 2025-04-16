@@ -18,16 +18,16 @@ namespace llama {
 
 template <typename T, contiguous_container Container> class model {
 private:
-    nn::embedding<T, device_ref<T>> _m_embedding;
+    nn::embedding<T, hardware_memory_container<T>> _m_embedding;
     nn::rmsnorm<T, Container> _m_norm;
-    nn::linear<T, device_ref<T>> _m_output;
+    nn::linear<T, hardware_memory_container<T>> _m_output;
 
     std::vector<transformer<T, Container>> _m_layers;
 
     auto
     create_additive_causal_mask(const std::size_t size) const
     {
-        std::optional<shared_tensor<T, 2, owning_ref<T>>> mask;
+        std::optional<shared_tensor<T, 2, random_memory_container<T>>> mask;
 
         if (size > 1) {
             const T infinity = T(std::numeric_limits<float>::infinity());
@@ -44,9 +44,9 @@ public:
     model(model&&) = default;
 
     model(
-        nn::embedding<T, device_ref<T>>&& embedding,
+        nn::embedding<T, hardware_memory_container<T>>&& embedding,
         nn::rmsnorm<T, Container>&& norm,
-        nn::linear<T, device_ref<T>>&& output,
+        nn::linear<T, hardware_memory_container<T>>&& output,
         std::vector<transformer<T, Container>>&& layers
     )
     : _m_embedding(std::move(embedding)),

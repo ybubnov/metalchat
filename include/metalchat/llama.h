@@ -15,7 +15,7 @@ template <typename T>
 auto
 make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_t nlayers = 16)
 {
-    using container_type = device_ref<T>;
+    using container_type = hardware_memory_container<T>;
 
     auto input = shared_tensor(tensors["tok_embeddings.weight"].as<T, 2>(device));
     nn::embedding embedding(input, device);
