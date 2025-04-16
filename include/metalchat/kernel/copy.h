@@ -21,29 +21,22 @@ private:
     auto
     copy(shared_tensor<T, 2, InputContainer> input, shared_tensor<T, 2, OutputContainer> output)
     {
+        if (auto dim_size = output.sizes().back(); dim_size != input.sizes().back()) {
+            throw std::invalid_argument(std::format(
+                "kernel::copy: last dimension should be the same for both tensors {} != {}",
+                input.sizes().back(), dim_size
+            ));
+        }
+
+        if (auto data_size = output.numel(); data_size != input.numel()) {
+            throw std::invalid_argument(std::format(
+                "kernel::copy: data size should be the same for both tensors {} != {}",
+                input.sizes().back(), data_size
+            ));
+        }
+
         constexpr std::size_t block_size = 32;
-
-        auto data_size = input.numel();
-        auto dim_size = input.sizes().back();
-        auto num_rows = data_size / dim_size;
-
-        if (auto dim_size2 = output.sizes().back(); dim_size != dim_size2) {
-            throw std::invalid_argument(std::format(
-                "kernel::cpy: last dimension should be the same for both tensors {} != {}",
-                dim_size, dim_size2
-            ));
-        }
-
-        if (auto data_size2 = output.numel(); data_size != data_size2) {
-            throw std::invalid_argument(std::format(
-                "kernel::cpy: data size should be the same for both tensors {} != {}", data_size,
-                data_size2
-            ));
-        }
-
-        auto thread_size = ceil_div(dim_size, block_size);
-        auto thread = dim3(thread_size);
-        auto grid = dim3(thread_size * num_rows);
+        auto [grid, thread] = make_kernel_grid_1d(input, block_size);
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto fn = task.bind_front(output, input);

@@ -5,19 +5,23 @@
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
+#include <metalchat/kernel_task.h>
 #include <metalchat/tensor.h>
+#include <metalchat/tensor_future.h>
 
 
 namespace metalchat {
 
 
-template <typename T> class sum : public base_kernel {
+template <typename T> class sum {
 private:
     inline static const std::string operation_name = "sum";
 
+    kernel_base _m_kernel;
+
 public:
     sum(device& device)
-    : base_kernel(operation_name, type_traits<T>::name(), device)
+    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
     template <
@@ -27,11 +31,9 @@ public:
         ContiguousContainer Input2Container>
     auto
     operator()(
-        const tensor<T, M, Input1Container>& input1, const tensor<T, N, Input2Container>& input2
+        shared_tensor<T, M, Input1Container> input1, shared_tensor<T, N, Input2Container> input2
     )
     {
-        constexpr std::size_t block_size = 32;
-
         auto data_size = input1.numel();
         auto dim_size = input1.sizes().back();
         auto num_rows = data_size / dim_size;
@@ -49,14 +51,22 @@ public:
             ));
         }
 
-        auto output = empty_like(input1, m_device);
+        constexpr std::size_t block_size = 32;
+        auto [grid, thread] = make_kernel_grid_1d(input1, block_size);
 
-        auto thread_size = ceil_div(dim_size, block_size);
-        auto thread = dim3(thread_size);
-        auto threads = dim3(thread_size * num_rows);
+        auto input1_view = input1.view({-1, int(dim_size)});
+        auto input2_view = input2.view({-1, int(dim_size)});
 
-        blocking(threads, thread)(scalar<int32_t>(dim_size), input1, input2, output);
-        return output;
+        auto task = kernel_task(_m_kernel, grid, thread);
+        auto fn = task.bind_back(input1_view, input2_view);
+
+        auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
+        int output_sizes[N];
+        for (auto i = 0; i < N; i++) {
+            output_sizes[i] = input1.size(i);
+        }
+
+        return output.view(std::move(output_sizes));
     }
 };
 

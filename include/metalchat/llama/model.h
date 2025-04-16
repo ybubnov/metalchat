@@ -62,13 +62,13 @@ public:
     operator()(const tensor<IndexType, 2, InputContainer>& input, std::size_t start_pos = 0)
     {
         const auto mask = create_additive_causal_mask(input.size(1));
-        auto x = _m_embedding(input);
+        auto x = shared_tensor(_m_embedding(input));
 
         for (auto& layer : _m_layers) {
-            x = layer(x, mask, start_pos);
+            x = layer(x, mask, start_pos).get();
         }
 
-        auto output = _m_norm(x);
+        auto output = _m_norm(*x);
 
         using s = indexing::slice;
         auto seqlen = output.size(1);
