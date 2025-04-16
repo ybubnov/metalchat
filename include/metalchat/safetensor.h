@@ -36,35 +36,14 @@ public:
         return _m_shape.size();
     }
 
-    template <typename T, std::size_t N>
+    template <typename T, std::size_t N, allocator Allocator>
     auto
-    as() const
+    as(Allocator alloc) const
     {
-        assert((N == _m_shape.size()));
+        using container_type = Allocator::container_type;
+        auto data_ptr = static_cast<T*>(_m_data);
 
-        auto data = std::make_shared<reference_memory_container<T>>(static_cast<T*>(_m_data));
-        return tensor<T, N, reference_memory_container<T>>(
-            _m_shape.cbegin(), _m_shape.cend(), data
-        );
-    }
-
-    template <typename T, std::size_t N>
-    auto
-    as(device& device) const
-    {
-        assert((N == _m_shape.size()));
-
-        std::size_t numel = 1;
-        for (const auto s : _m_shape) {
-            numel *= s;
-        }
-
-        auto buf_size = numel * sizeof(T);
-        auto buf
-            = NS::TransferPtr(device->newBuffer(_m_data, buf_size, MTL::ResourceStorageModeShared));
-
-        auto data = std::make_shared<hardware_memory_container<T>>(buf);
-        return tensor<T, N, hardware_memory_container<T>>(_m_shape.cbegin(), _m_shape.cend(), data);
+        return tensor<T, N, container_type>(_m_shape.cbegin(), _m_shape.cend(), data_ptr, alloc);
     }
 
     friend std::ostream&

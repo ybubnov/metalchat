@@ -15,11 +15,14 @@ template <typename T>
 auto
 make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_t nlayers = 16)
 {
-    using container_type = hardware_memory_container<T>;
+    using allocator_type = hardware_memory_allocator<T>;
+    using container_type = allocator_type::container_type;
 
-    auto input = shared_tensor(tensors["tok_embeddings.weight"].as<T, 2>(device));
+    auto alloc = allocator_type(*device);
+
+    auto input = shared_tensor(tensors["tok_embeddings.weight"].as<T, 2>(alloc));
     nn::embedding embedding(input, device);
-    nn::rmsnorm norm(tensors["norm.weight"].as<T, 1>(device), device);
+    nn::rmsnorm norm(tensors["norm.weight"].as<T, 1>(alloc), device);
 
     auto options = llama::attention_options{
         .head_dim = 64,
@@ -34,22 +37,22 @@ make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_
         const std::string layer_name = std::format("layers.{}.", i);
 
         llama::feed_forward ff(
-            tensors[layer_name + "feed_forward.w1.weight"].as<T, 2>(device),
-            tensors[layer_name + "feed_forward.w2.weight"].as<T, 2>(device),
-            tensors[layer_name + "feed_forward.w3.weight"].as<T, 2>(device), device
+            tensors[layer_name + "feed_forward.w1.weight"].as<T, 2>(alloc),
+            tensors[layer_name + "feed_forward.w2.weight"].as<T, 2>(alloc),
+            tensors[layer_name + "feed_forward.w3.weight"].as<T, 2>(alloc), device
         );
 
         llama::attention attention(
-            tensors[layer_name + "attention.wq.weight"].as<T, 2>(device),
-            tensors[layer_name + "attention.wk.weight"].as<T, 2>(device),
-            tensors[layer_name + "attention.wv.weight"].as<T, 2>(device),
-            tensors[layer_name + "attention.wo.weight"].as<T, 2>(device), options, device
+            tensors[layer_name + "attention.wq.weight"].as<T, 2>(alloc),
+            tensors[layer_name + "attention.wk.weight"].as<T, 2>(alloc),
+            tensors[layer_name + "attention.wv.weight"].as<T, 2>(alloc),
+            tensors[layer_name + "attention.wo.weight"].as<T, 2>(alloc), options, device
         );
 
         nn::rmsnorm attention_norm(
-            tensors[layer_name + "attention_norm.weight"].as<T, 1>(device), device
+            tensors[layer_name + "attention_norm.weight"].as<T, 1>(alloc), device
         );
-        nn::rmsnorm ff_norm(tensors[layer_name + "ffn_norm.weight"].as<T, 1>(device), device);
+        nn::rmsnorm ff_norm(tensors[layer_name + "ffn_norm.weight"].as<T, 1>(alloc), device);
 
         llama::transformer<T, container_type> transformer(
             std::move(attention), std::move(attention_norm), std::move(ff), std::move(ff_norm),

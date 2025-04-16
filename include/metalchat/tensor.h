@@ -42,16 +42,12 @@ public:
 
     using traits_type = tensor_traits<T, container_type>;
 
-    /// Tensor move constructor
-    ///
-    /// The newly-created tensor contains the exact contents of the moved instance.
-    /// The contents of the moved instance are a valid, but unspecified tensor.
     tensor(tensor&& t) noexcept = default;
 
     tensor(const tensor& t) noexcept = delete;
 
-    template <allocator Allocator>
-    tensor(const T& value, Allocator alloc)
+    template <allocator Allocator = scalar_memory_allocator<T>>
+    tensor(const T& value, Allocator alloc = Allocator())
     : m_data(alloc.allocate(1)),
       m_shape(make_value<std::size_t>(0)),
       m_strides(make_value<std::size_t>(0)),
@@ -60,15 +56,18 @@ public:
         *data_ptr() = value;
     }
 
-    tensor(const T& value)
-    : tensor(value, scalar_memory_allocator<T>())
-    {}
-
     template <std::forward_iterator ForwardIt, allocator Allocator>
     tensor(ForwardIt first, ForwardIt last, Allocator alloc) requires(N > 0)
     {
         _m_initialize(first, last);
         m_data = alloc.allocate(numel());
+    }
+
+    template <std::forward_iterator ForwardIt, allocator Allocator = random_memory_allocator<T>>
+    tensor(ForwardIt first, ForwardIt last, T* data, Allocator alloc = Allocator())
+    {
+        _m_initialize(first, last);
+        m_data = alloc.allocate(data, numel());
     }
 
     template <std::forward_iterator ForwardIt>
@@ -78,27 +77,17 @@ public:
         m_data = data;
     }
 
-    template <allocator Allocator>
-    tensor(const std::span<std::size_t, N> sizes, Allocator alloc)
+    template <allocator Allocator = random_memory_allocator<T>>
+    tensor(const std::span<std::size_t, N> sizes, Allocator alloc = Allocator())
     : tensor(sizes.begin(), sizes.end(), alloc)
     {}
 
-    tensor(const std::span<std::size_t, N> sizes)
-    : tensor(sizes.begin(), sizes.end(), random_memory_allocator<T>())
-    {}
-
     tensor(const std::span<std::size_t, N> sizes, const container_pointer& data)
-    {
-        _m_initialize(sizes);
-        m_data = data;
-    }
-
-    tensor(std::size_t (&&sizes)[N])
-    : tensor(std::span<std::size_t, N>(sizes, N))
+    : tensor(sizes.begin(), sizes.end(), data)
     {}
 
-    template <allocator Allocator>
-    tensor(std::size_t (&&sizes)[N], Allocator alloc)
+    template <allocator Allocator = random_memory_allocator<T>>
+    tensor(std::size_t (&&sizes)[N], Allocator alloc = Allocator())
     : tensor(std::span<std::size_t, N>(sizes, N), alloc)
     {}
 
