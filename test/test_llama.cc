@@ -19,7 +19,7 @@ TEST_CASE("Test make model", "[llama]")
     metalchat::device gpu0("metalchat.metallib");
 
     auto m = make_llama<bf16>(tensors, gpu0);
-    auto input = bpe.encode("Are you alive?").reshape({1, -1});
+    auto input = bpe.encode("Capital of Germany is ").reshape({1, -1});
 
     auto output = m(input);
     std::cout << output << std::endl;

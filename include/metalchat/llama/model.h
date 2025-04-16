@@ -44,7 +44,7 @@ public:
     auto
     operator()(const tensor<IndexType, 2, InputContainer>& input)
     {
-        auto mask = full<T>({input.size(1), input.size(1)}, -1e9);
+        auto mask = full<T>({input.size(1), input.size(1)}, T(-1e9));
         triu(mask);
 
         auto x = _m_embedding(input);

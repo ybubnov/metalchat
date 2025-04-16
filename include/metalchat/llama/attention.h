@@ -23,7 +23,7 @@ struct attention_options {
     std::size_t n_kv_heads;
     float base;
 
-    inline int
+    inline std::size_t
     repeats()
     {
         return n_heads / n_kv_heads;
@@ -41,7 +41,7 @@ private:
     rope<T> m_rope;
     scalar_mul<T> m_mul;
     bmm<T> m_matmul;
-    sum<T> m_sum;
+    sum2<T> m_sum;
     softmax<T> m_softmax;
 
     attention_options m_options;
@@ -69,7 +69,7 @@ public:
       m_sum(device),
       m_softmax(device),
       m_options(options),
-      m_scale(std::pow(options.head_dim, -0.5))
+      m_scale(1.0 / std::sqrt(float(options.head_dim)))
     {}
 
 
@@ -81,28 +81,28 @@ public:
         int len = input.size(1);
         int n_heads = m_options.n_heads;
         int n_kv_heads = m_options.n_kv_heads;
+        auto n_reps = m_options.repeats();
 
-        auto queries = m_wq(input).reshape({bs, len, n_heads, -1}).transpose({0, 2, 1, 3});
-        auto keys = m_wk(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
-        auto values = m_wv(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
+        auto q = m_wq(input).reshape({bs, len, n_heads, -1}).transpose({0, 2, 1, 3});
+        auto k = m_wk(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
+        auto v = m_wv(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
 
         // TODO: cache queries and keys.
-        //
-        // TODO: does it even make sense to make the repetition, would it be better
-        // to adjust the implementation of the "rope", so it uses the same memory?
-        auto keys_rep = repeat_interleave(std::move(keys), m_options.repeats(), /*dim=*/2);
-        auto K = keys_rep.reshape({bs, n_heads, len, -1});
+        auto keys = repeat_interleave(std::move(k), n_reps, /*dim=*/2);
+        auto K = keys.reshape({bs, n_heads, len, -1});
+
+        auto values = repeat_interleave(std::move(v), n_reps, /*dim=*/2);
+        auto V = values.reshape({bs, n_heads, len, -1});
+
+        auto Q_ = m_rope(q);
         auto K_ = m_rope(K);
 
-        auto values_rep = repeat_interleave(std::move(values), m_options.repeats(), /*dim=*/2);
-        auto V = values_rep.reshape({bs, n_heads, len, -1});
-        auto V_ = m_rope(V);
+        auto scores = m_matmul(m_mul(Q_, m_scale), K_.transpose({0, 1, 3, 2}));
+        auto scores_ = m_sum(scores, mask);
 
-        auto scores = m_matmul(m_mul(queries, m_scale), K_.transpose({0, 1, 3, 2}));
-        // auto scores_ = m_sum(scores, mask);
-
-        auto scores_ = m_softmax(scores);
-        auto output = m_matmul(scores_, V_).transpose({0, 2, 1, 3}).reshape({bs, len, -1});
+        std::cout << "SCORES sizes = " << scores.sizes() << std::endl;
+        scores_ = m_softmax(scores_);
+        auto output = m_matmul(scores_, V).transpose({0, 2, 1, 3}).reshape({bs, len, -1});
 
         return m_wo(output);
     }
