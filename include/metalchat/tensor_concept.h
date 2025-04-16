@@ -30,7 +30,7 @@ template <uint32_t N> struct tensor_layout {
 
 
 template <typename Tensor>
-concept is_tensor = requires(Tensor t) {
+concept is_tensor = requires(std::remove_reference_t<Tensor> const t) {
     // typename Tensor::dimensions;
     typename Tensor::value_type;
     typename Tensor::pointer_type;

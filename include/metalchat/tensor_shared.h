@@ -22,8 +22,6 @@ public:
 
     shared_tensor(const shared_tensor& t) noexcept = default;
 
-    shared_tensor(shared_tensor&& t) noexcept = default;
-
     shared_tensor(tensor_type&& t)
     : _m_value(std::make_shared<tensor_type>(std::move(t)))
     {}
@@ -101,7 +99,7 @@ public:
     }
 
     const std::span<std::size_t>
-    offsets()
+    offsets() const
     {
         return _m_value->offsets();
     }
@@ -113,10 +111,37 @@ public:
         return shared_tensor<T, M, Container>(_m_value->view(std::move(dims)));
     }
 
+    shared_tensor
+    narrow(std::size_t dim, std::size_t start, std::size_t length) const
+    {
+        return shared_tensor(_m_value->narrow(dim, start, length));
+    }
+
     tensor_layout<N>
     layout()
     {
         return _m_value->layout();
+    }
+
+    template <indexing::size_convertible... S>
+    T&
+    operator[](const S&... sizes) requires(sizeof...(sizes) == N)
+    {
+        return _m_value->value_select(sizes...);
+    }
+
+    template <indexing::size_convertible... S>
+    const T&
+    operator[](const S&... sizes) const requires(sizeof...(sizes) == N)
+    {
+        return _m_value->value_select(sizes...);
+    }
+
+    template <indexing::slice_convertible... S>
+    auto
+    operator[](const S&... slices) requires(sizeof...(slices) == N)
+    {
+        return shared_tensor(_m_value->index_select(slices...));
     }
 
 private:

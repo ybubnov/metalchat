@@ -54,38 +54,46 @@ private:
     attention_options m_options;
     float m_scale;
 
-    tensor<T, input_size, device_ref<T>> _m_cache_k;
-    tensor<T, input_size, device_ref<T>> _m_cache_v;
+    shared_tensor<T, input_size, device_ref<T>> _m_cache_k;
+    shared_tensor<T, input_size, device_ref<T>> _m_cache_v;
 
     cpy<T> _m_cpy;
     device& _m_device;
 
     template <std::size_t M, ContiguousContainer InputContainer>
     auto
-    contiguous(const tensor<T, M, InputContainer>& input, std::size_t dim)
+    contiguous(shared_tensor<T, M, InputContainer> input, std::size_t dim)
     {
-        auto output = empty_like(input, _m_device);
+        auto output = shared_tensor(empty_like(*input, _m_device));
+
+        using argument_type = shared_tensor<T, 2, InputContainer>;
+        using future_type = future_tensor<T, 2, argument_type, argument_type>;
+        std::vector<future_type> futures;
 
         for (std::size_t offset = 0; offset < output.size(dim); offset++) {
-            _m_cpy(input.narrow(dim, offset, 1), output.narrow(dim, offset, 1));
+            auto future = _m_cpy(input.narrow(dim, offset, 1), output.narrow(dim, offset, 1));
+            futures.push_back(std::move(future));
         }
 
+        for (const auto& f : futures) {
+            f.wait();
+        }
         return output;
     }
 
     template <ContiguousContainer InputContainer, ContiguousContainer CacheContainer>
     auto
     cache_copy(
-        const tensor<T, input_size, InputContainer>& input,
-        tensor<T, input_size, CacheContainer>& cache,
+        shared_tensor<T, input_size, InputContainer> input,
+        shared_tensor<T, input_size, CacheContainer> cache,
         std::size_t bs,
         std::size_t start_pos,
         std::size_t size
     )
     {
         using s = indexing::slice;
-        auto target = cache[s(0, bs), s(start_pos, start_pos + size), s(), s()];
-        auto output = _m_cpy.maybe_compute(input, target);
+        auto target = shared_tensor(cache[s(0, bs), s(start_pos, start_pos + size), s(), s()]);
+        auto output = _m_cpy(input, target);
 
         return std::make_tuple(
             std::move(cache[s(0, bs), s(0, start_pos + size), s(), s()]), std::move(output)
@@ -95,7 +103,7 @@ private:
     template <ContiguousContainer InputContainer>
     inline auto
     cache_keys(
-        const tensor<T, input_size, InputContainer>& input,
+        shared_tensor<T, input_size, InputContainer> input,
         std::size_t bs,
         std::size_t begin,
         std::size_t size
@@ -107,7 +115,7 @@ private:
     template <ContiguousContainer InputContainer>
     inline auto
     cache_values(
-        const tensor<T, input_size, InputContainer>& input,
+        shared_tensor<T, input_size, InputContainer> input,
         std::size_t bs,
         std::size_t begin,
         std::size_t size
@@ -165,20 +173,17 @@ public:
         auto n_reps = m_options.repeats();
         const int head_dim = m_options.head_dim;
 
-        auto fq = m_wq(input);
-        auto fk = m_wk(input);
-        auto fv = m_wv(input);
-        auto q = fq.get().view({bs, len, n_heads, head_dim});
-        auto k = fk.get().view({bs, len, n_kv_heads, head_dim});
-        auto v = fv.get().view({bs, len, n_kv_heads, head_dim});
+        auto q = m_wq(input).view({bs, len, n_heads, head_dim});
+        auto k = m_wk(input).view({bs, len, n_kv_heads, head_dim});
+        auto v = m_wv(input).view({bs, len, n_kv_heads, head_dim});
 
-        auto queries = m_rope(q, /*start_pos=*/start_pos);
-        k = m_rope(k, /*start_pos=*/start_pos);
+        auto queries = m_rope(*q.get(), /*start_pos=*/start_pos);
+        auto k_rot = m_rope(*k.get(), /*start_pos=*/start_pos);
 
-        auto [kk, k_promise] = cache_keys(k, bs, start_pos, len);
-        auto [vv, v_promise] = cache_values(v, bs, start_pos, len);
-        k_promise.wait();
-        v_promise.wait();
+        auto [kk, kk_future] = cache_keys(shared_tensor(std::move(k_rot)), bs, start_pos, len);
+        auto [vv, vv_future] = cache_values(v.get(), bs, start_pos, len);
+        kk_future.wait();
+        vv_future.wait();
 
         auto repeat_kv
             = [&]<ContiguousContainer TensorContainer>(tensor<T, 4, TensorContainer>&& t) -> auto {
@@ -188,8 +193,8 @@ public:
         };
 
         // shape: bs, cache + len, n_heads, head_dim.
-        auto keys = repeat_kv(std::move(kk));
-        auto values = repeat_kv(std::move(vv));
+        auto keys = repeat_kv(std::move(*kk));
+        auto values = repeat_kv(std::move(*vv));
 
         queries = queries.transpose({0, 2, 1, 3});
         keys = keys.transpose({0, 2, 1, 3});
@@ -203,9 +208,9 @@ public:
         scores = m_softmax(scores);
 
         auto output = m_matmul(scores, values).transpose({0, 2, 1, 3});
-        output = contiguous(output, /*dim=*/1);
+        auto output_ = contiguous(shared_tensor(std::move(output)), /*dim=*/1);
 
-        return m_wo(output.view({bs, len, -1}));
+        return m_wo((*output_).view({bs, len, -1}));
     }
 
     friend std::ostream&
