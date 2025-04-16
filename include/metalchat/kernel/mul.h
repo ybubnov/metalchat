@@ -10,13 +10,13 @@
 namespace metalchat {
 
 
-template <typename T> class hadamard : public kernel {
+template <typename T> class hadamard : public base_kernel {
 private:
     inline static const std::string operation_name = "hadamard";
 
 public:
     hadamard(device& device)
-    : kernel(operation_name, type_traits<T>::name(), device)
+    : base_kernel(operation_name, type_traits<T>::name(), device)
     {}
 
     template <
@@ -61,13 +61,13 @@ public:
 };
 
 
-template <typename T> class scalar_mul : public kernel {
+template <typename T> class scalar_mul : public base_kernel {
 private:
     inline static const std::string operation_name = "scalar_mul";
 
 public:
     scalar_mul(device& device)
-    : kernel(operation_name, type_traits<T>::name(), device)
+    : base_kernel(operation_name, type_traits<T>::name(), device)
     {}
 
     template <

@@ -36,7 +36,7 @@ struct attention_options {
 
 template <typename T, ContiguousContainer Container> class attention {
 private:
-    static constexpr std::size_t max_batch_size = 4;
+    static constexpr std::size_t input_size = 4;
 
     nn::linear<T, Container> m_wq;
     nn::linear<T, Container> m_wk;
@@ -53,8 +53,8 @@ private:
     attention_options m_options;
     float m_scale;
 
-    tensor<T, max_batch_size, device_ref<T>> _m_cache_k;
-    tensor<T, max_batch_size, device_ref<T>> _m_cache_v;
+    tensor<T, input_size, device_ref<T>> _m_cache_k;
+    tensor<T, input_size, device_ref<T>> _m_cache_v;
 
     cpy<T> _m_cpy;
     device& _m_device;
@@ -72,6 +72,47 @@ private:
         return output;
     }
 
+    template <ContiguousContainer InputContainer, ContiguousContainer CacheContainer>
+    auto
+    cache_copy(
+        const tensor<T, input_size, InputContainer>& input,
+        tensor<T, input_size, CacheContainer>& cache,
+        std::size_t bs,
+        std::size_t start_pos,
+        std::size_t size
+    )
+    {
+        using s = indexing::slice;
+        auto target = cache[s(0, bs), s(start_pos, start_pos + size), s(), s()];
+        _m_cpy(input, target);
+
+        return cache[s(0, bs), s(0, start_pos + size), s(), s()];
+    }
+
+    template <ContiguousContainer InputContainer>
+    inline auto
+    cache_keys(
+        const tensor<T, input_size, InputContainer>& input,
+        std::size_t bs,
+        std::size_t begin,
+        std::size_t size
+    )
+    {
+        return cache_copy(input, _m_cache_k, bs, begin, size);
+    }
+
+    template <ContiguousContainer InputContainer>
+    inline auto
+    cache_values(
+        const tensor<T, input_size, InputContainer>& input,
+        std::size_t bs,
+        std::size_t begin,
+        std::size_t size
+    )
+    {
+        return cache_copy(input, _m_cache_v, bs, begin, size);
+    }
+
 public:
     attention(attention&&) = default;
     attention(const attention&) = default;
@@ -82,7 +123,8 @@ public:
         tensor<T, 2, Container>&& wv,
         tensor<T, 2, Container>&& wo,
         attention_options& options,
-        device& device
+        device& device,
+        std::size_t max_batch_size = 1
     )
     : m_wq(std::move(wq), device),
       m_wk(std::move(wk), device),
@@ -95,8 +137,12 @@ public:
       m_softmax(device),
       m_options(options),
       m_scale(1.0 / std::sqrt(float(options.head_dim))),
-      _m_cache_k(empty<T>({1, options.max_seq_len, options.n_kv_heads, options.head_dim}, device)),
-      _m_cache_v(empty<T>({1, options.max_seq_len, options.n_kv_heads, options.head_dim}, device)),
+      _m_cache_k(empty<T>(
+          {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim}, device
+      )),
+      _m_cache_v(empty<T>(
+          {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim}, device
+      )),
       _m_cpy(device),
       _m_device(device)
     {}
@@ -121,17 +167,10 @@ public:
         auto v = m_wv(input).view({bs, len, n_kv_heads, head_dim});
 
         auto queries = m_rope(q, /*start_pos=*/start_pos);
-        auto k_rot = m_rope(k, /*start_pos=*/start_pos);
+        k = m_rope(k, /*start_pos=*/start_pos);
 
-        using s = indexing::slice;
-        auto k_target = _m_cache_k[s(0, bs), s(start_pos, start_pos + len), s(), s()];
-        _m_cpy(k_rot, k_target);
-
-        auto v_target = _m_cache_v[s(0, bs), s(start_pos, start_pos + len), s(), s()];
-        _m_cpy(v, v_target);
-
-        auto k_cache = _m_cache_k[s(0, bs), s(0, start_pos + len), s(), s()];
-        auto v_cache = _m_cache_v[s(0, bs), s(0, start_pos + len), s(), s()];
+        k = cache_keys(k, bs, start_pos, len);
+        v = cache_values(v, bs, start_pos, len);
 
         auto repeat_kv
             = [&]<ContiguousContainer TensorContainer>(tensor<T, 4, TensorContainer>&& t) -> auto {
@@ -141,8 +180,8 @@ public:
         };
 
         // shape: bs, cache + len, n_heads, head_dim.
-        auto values = repeat_kv(std::move(v_cache));
-        auto keys = repeat_kv(std::move(k_cache));
+        auto values = repeat_kv(std::move(v));
+        auto keys = repeat_kv(std::move(k));
 
         queries = queries.transpose({0, 2, 1, 3});
         keys = keys.transpose({0, 2, 1, 3});
@@ -158,8 +197,7 @@ public:
         auto output = m_matmul(scores, values).transpose({0, 2, 1, 3});
         output = contiguous(output, /*dim=*/1);
 
-        auto output__ = output.view({bs, len, -1});
-        return m_wo(output__);
+        return m_wo(output.view({bs, len, -1}));
     }
 
     friend std::ostream&
