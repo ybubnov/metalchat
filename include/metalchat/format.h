@@ -50,6 +50,20 @@ operator<<(std::ostream& os, const std::vector<T>& vec)
 }
 
 
+template <typename T>
+std::ostream&
+operator<<(std::ostream& os, const std::span<T>& arr)
+{
+    for (auto it = arr.begin(); it != arr.end(); ++it) {
+        os << *it;
+        if (it != arr.end() - 1) {
+            os << ", ";
+        }
+    }
+    return os;
+}
+
+
 std::ostream&
 operator<<(std::ostream& os, const std::vector<__fp16>& vec)
 {
