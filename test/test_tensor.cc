@@ -51,3 +51,22 @@ TEST_CASE("Tensor slice transpose", "[tensor::transpose]")
         }
     }
 }
+
+
+TEST_CASE("Tensor transpose in scope", "[tensor::transpose]")
+{
+    auto x = []() {
+        auto x = full<float>({3, 4, 2, 2}, 7.0);
+        return x.transpose(0, 2, 3, 1);
+    }();
+
+    REQUIRE(x.dim() == 4);
+    REQUIRE(x.size(0) == 3);
+    REQUIRE(x.size(1) == 2);
+    REQUIRE(x.size(2) == 2);
+    REQUIRE(x.size(3) == 4);
+
+    for (const auto& v : x) {
+        REQUIRE(v == 7.0);
+    }
+}
