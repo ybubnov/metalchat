@@ -17,8 +17,8 @@ TEST_CASE("Copy 2-dimensional tensors", "[kernel::copy]")
 
     copy(input, output).wait();
 
-    for (auto i = 0; i < input.size(0); i++) {
-        for (auto j = 0; j < input.size(1); j++) {
+    for (std::size_t i = 0; i < input.size(0); i++) {
+        for (std::size_t j = 0; j < input.size(1); j++) {
             REQUIRE((input[i, j]) == (output[i, j]));
         }
     }
@@ -36,10 +36,10 @@ TEST_CASE("Copy into slice", "[kernel::copy]")
     auto target = output.narrow(/*dim=*/3, /*offset=*/2, /*length=*/1);
     cpy(input.view({-1, 64}), target.view({-1, 64})).wait();
 
-    for (auto i0 = 0; i0 < input.size(0); i0++) {
-        for (auto i1 = 0; i1 < input.size(1); i1++) {
-            for (auto i2 = 0; i2 < input.size(1); i2++) {
-                for (auto i4 = 0; i4 < input.size(1); i4++) {
+    for (std::size_t i0 = 0; i0 < input.size(0); i0++) {
+        for (std::size_t i1 = 0; i1 < input.size(1); i1++) {
+            for (std::size_t i2 = 0; i2 < input.size(1); i2++) {
+                for (std::size_t i4 = 0; i4 < input.size(1); i4++) {
                     REQUIRE((input[i0, i1, i2, 0, i4]) == (output[i0, i1, i2, 2, i4]));
                 }
             }

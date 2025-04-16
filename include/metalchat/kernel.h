@@ -45,8 +45,6 @@ private:
     std::reference_wrapper<shared_kernel_thread> _m_kernel_thread;
 
 public:
-    kernel_base(const kernel_base& k) noexcept = default;
-
     kernel_base(
         const std::string& name,
         NS::SharedPtr<MTL::Library> library,

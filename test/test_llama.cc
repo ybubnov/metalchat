@@ -19,7 +19,7 @@ argmax_(shared_tensor<T, 3, Container> t)
     auto last = t.size(1) - 1;
     T max = t[0, last, 0];
 
-    for (auto i = 0; i < t.size(2); i++) {
+    for (std::size_t i = 0; i < t.size(2); i++) {
         if (t[0, last, i] > max) {
             id = i;
             max = t[0, last, i];
@@ -52,7 +52,7 @@ TEST_CASE("Test make model", "[llama]")
     std::cout << input_text;
     std::cout << bpe.decode(id);
 
-    for (auto i = input0.size(1); i < 52; i++) {
+    for (std::size_t i = input0.size(1); i < 52; i++) {
         auto input = shared_tensor(full<int32_t>({1, 1}, id));
         auto output = m(input, i);
         id = argmax_(output.get());

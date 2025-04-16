@@ -106,10 +106,9 @@ concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, device& device)
     size0[dim] = 0;
 
     for (auto first = begin; first != end; ++first) {
-        // assert((*first).is_contiguous());
-
         auto sizes = (*first).sizes();
-        for (auto i = 0; i < tensor_type::dim(); i++) {
+
+        for (std::size_t i = 0; i < tensor_type::dim(); i++) {
             if (i != dim && sizes[i] != size0[i]) {
                 throw std::invalid_argument("unable to concatenate tensor of various shapes");
             }
@@ -162,8 +161,8 @@ template <typename T, ContiguousContainer Container>
 void
 triu(tensor<T, 2, Container>& t)
 {
-    for (auto i = 0; i < t.size(0); i++) {
-        for (auto j = 0; j <= i; j++) {
+    for (std::size_t i = 0; i < t.size(0); i++) {
+        for (std::size_t j = 0; j <= i; j++) {
             t[i][j] = T(0);
         }
     }

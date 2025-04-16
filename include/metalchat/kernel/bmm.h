@@ -86,9 +86,6 @@ public:
     {
         constexpr std::size_t N = Input::dim();
 
-        int input_size0 = input.size(N - 2);
-        int weight_size1 = weight.size(N - 1);
-
         int output_sizes[N];
         std::copy(input.sizes().begin(), input.sizes().end(), output_sizes);
         output_sizes[N - 2] = input.size(N - 2);

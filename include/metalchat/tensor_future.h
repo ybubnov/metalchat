@@ -41,8 +41,6 @@ public:
 
     using const_iterator = result_type::const_iterator;
 
-    future_tensor(const future_tensor& t) noexcept = default;
-
     template <asynchronously_invocable Task>
     future_tensor(result_type result, Task&& task)
     : _m_result(result),
@@ -109,8 +107,8 @@ public:
     future_tensor(result_type result)
     : _m_result(result),
       _m_future_mutex(std::make_shared<std::mutex>()),
-      _m_future_wait(nullptr),
-      _m_future(nullptr)
+      _m_future(nullptr),
+      _m_future_wait(nullptr)
     {}
 
     future_tensor(result_type::tensor_type&& result)
@@ -324,8 +322,8 @@ private:
 
     result_type _m_result;
     future_mutex_type _m_future_mutex;
-    future_wait_type _m_future_wait;
     future_type _m_future;
+    future_wait_type _m_future_wait;
 
     // Make all specialization of the future tensor friends to the current specialization.
     template <typename FriendT, std::size_t FriendN> friend class future_tensor;
@@ -339,14 +337,6 @@ future_tensor(shared_tensor<T, N, device_ref<T>> t, Task&& task) -> future_tenso
 
 template <typename T, std::size_t N>
 future_tensor(tensor<T, N, device_ref<T>>&& t) -> future_tensor<T, N>;
-
-
-template <typename T, std::size_t N>
-std::shared_ptr<future_tensor<T, N>>
-make_shared(future_tensor<T, N>&& tensor)
-{
-    return std::make_shared<future_tensor<T, N>>(std::move(tensor));
-}
 
 
 template <typename T, std::size_t N, asynchronously_invocable Task>

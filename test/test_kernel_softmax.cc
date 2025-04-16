@@ -58,9 +58,9 @@ TEST_CASE("Softmax for 4-dimensional tensor", "[kernel::softmax]")
     auto input = shared_tensor(rand<float>({1, 32, 4, 4}));
     auto output = softmax(input).get();
 
-    for (auto i = 0; i < input.size(0); i++) {
-        for (auto j = 0; j < input.size(1); j++) {
-            for (auto k = 0; k < input.size(2); k++) {
+    for (std::size_t i = 0; i < input.size(0); i++) {
+        for (std::size_t j = 0; j < input.size(1); j++) {
+            for (std::size_t k = 0; k < input.size(2); k++) {
                 auto tensor = output[i][j][k];
                 auto sum = std::reduce(tensor.data_ptr(), tensor.data_ptr() + input.size(3));
                 REQUIRE_THAT(sum, Catch::Matchers::WithinAbs(1.0, 0.00001));

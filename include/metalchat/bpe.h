@@ -235,7 +235,7 @@ public:
     static constexpr index_type pad = -1;
 
     /// Number of special tokens used to prepare the input for the model.
-    static constexpr const std::size_t nspecial = 256;
+    static constexpr const index_type nspecial = 256;
 
     bpe(const std::filesystem::path& p)
     : _m_fmap(),

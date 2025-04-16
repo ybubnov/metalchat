@@ -44,11 +44,11 @@ TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
     REQUIRE(output.size(1) == 5);
     REQUIRE(output.size(2) == 8192);
 
-    for (auto batch = 0; batch < input1.size(0); batch++) {
-        for (auto i = 0; i < input1.size(1); i++) {
-            for (auto k = 0; k < input2.size(1); k++) {
+    for (std::size_t batch = 0; batch < input1.size(0); batch++) {
+        for (std::size_t i = 0; i < input1.size(1); i++) {
+            for (std::size_t k = 0; k < input2.size(1); k++) {
                 float result_ik = 0;
-                for (auto j = 0; j < input1.size(2); j++) {
+                for (std::size_t j = 0; j < input1.size(2); j++) {
                     result_ik += (input1[batch, i, j] * input2[j, k]);
                 }
 
