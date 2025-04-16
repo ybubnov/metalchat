@@ -139,7 +139,7 @@ public:
         m_strides->data()[dim] = i;
     }
 
-    inline auto
+    inline const auto
     strides() const noexcept
     {
         return std::span<std::size_t, N>(m_strides->data(), N);
@@ -156,7 +156,7 @@ public:
         return m_shape->data()[dim];
     }
 
-    inline auto
+    inline const auto
     sizes() const noexcept
     {
         return std::span<std::size_t, N>(m_shape->data(), N);
@@ -179,7 +179,7 @@ public:
         m_offsets->data()[dim] = i;
     }
 
-    inline auto
+    inline const auto
     offsets() const noexcept
     {
         return std::span<std::size_t, N>(m_offsets->data(), N);

@@ -47,8 +47,13 @@ concept immutable_tensor = requires(std::remove_reference_t<Tensor> const t) {
     { Tensor::dim() } -> std::convertible_to<std::size_t>;
     typename requires_constexpr<Tensor::dim()>;
 
+    { t.size(std::size_t()) } -> std::same_as<std::size_t>;
     { t.sizes() } -> std::same_as<const std::span<std::size_t, Tensor::dim()>>;
+
+    { t.stride(std::size_t()) } -> std::same_as<std::size_t>;
     { t.strides() } -> std::same_as<const std::span<std::size_t, Tensor::dim()>>;
+
+    { t.offset(std::size_t()) } -> std::same_as<std::size_t>;
     { t.offsets() } -> std::same_as<const std::span<std::size_t, Tensor::dim()>>;
     { t.numel() } -> std::same_as<std::size_t>;
 
