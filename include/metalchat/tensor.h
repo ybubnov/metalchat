@@ -282,8 +282,7 @@ public:
 
     template <indexing::SliceConvertible... S>
     auto
-    operator[](const S&... slices)
-        requires(sizeof...(slices) <= N)
+    operator[](const S&... slices) requires(sizeof...(slices) <= N)
     {
         constexpr auto slices_size = sizeof...(slices);
         std::array<indexing::slice, slices_size> slices_array
@@ -322,8 +321,7 @@ public:
 
     template <indexing::SizeConvertible... Dimensions>
     auto
-    transpose(const Dimensions... dims)
-        requires(sizeof...(dims) == N)
+    transpose(const Dimensions... dims) requires(sizeof...(dims) == N)
     {
         auto shape = new std::size_t[N]{this->size(static_cast<std::size_t>(dims))...};
         auto strides = new std::size_t[N]{this->stride(static_cast<std::size_t>(dims))...};
@@ -336,8 +334,7 @@ public:
     }
 
     auto
-    t()
-        requires(N == 2)
+    t() requires(N == 2)
     {
         return std::move(transpose(0, 1));
     }
@@ -510,8 +507,7 @@ public:
 };
 
 
-template <typename T, std::size_t N>
-    requires(N > 0)
+template <typename T, std::size_t N> requires(N > 0)
 auto
 empty(std::size_t (&&sizes)[N])
 {
@@ -548,8 +544,7 @@ scalar(const T& value)
 }
 
 
-template <typename T, std::size_t N>
-    requires(N > 0)
+template <typename T, std::size_t N> requires(N > 0)
 auto
 empty(std::size_t (&&sizes)[N], device& device)
 {
@@ -578,8 +573,7 @@ empty(std::size_t (&&sizes)[N], device& device)
     );
 }
 
-template <typename T, std::size_t N, class InputIt>
-    requires(N > 0)
+template <typename T, std::size_t N, class InputIt> requires(N > 0)
 auto
 empty(InputIt begin, InputIt end, device& device)
 {
@@ -595,8 +589,7 @@ empty(InputIt begin, InputIt end, device& device)
 }
 
 
-template <typename T, std::size_t N, ContiguousContainer Container>
-    requires(N > 0)
+template <typename T, std::size_t N, ContiguousContainer Container> requires(N > 0)
 auto
 empty_like(const tensor<T, N, Container>& like, device& device)
 {
@@ -605,8 +598,7 @@ empty_like(const tensor<T, N, Container>& like, device& device)
 }
 
 
-template <typename T, std::size_t N>
-    requires(N > 0)
+template <typename T, std::size_t N> requires(N > 0)
 auto
 full(std::size_t (&&sizes)[N], const T& fill_value)
 {
@@ -616,8 +608,7 @@ full(std::size_t (&&sizes)[N], const T& fill_value)
 }
 
 
-template <typename T, std::size_t N>
-    requires(N > 0)
+template <typename T, std::size_t N> requires(N > 0)
 auto
 full(std::size_t (&&sizes)[N], const T& fill_value, device& device)
 {
@@ -627,8 +618,7 @@ full(std::size_t (&&sizes)[N], const T& fill_value, device& device)
 }
 
 
-template <typename T, std::size_t N>
-    requires(N > 0)
+template <typename T, std::size_t N> requires(N > 0)
 auto
 zeros(std::size_t (&&sizes)[N])
 {
@@ -640,8 +630,7 @@ zeros(std::size_t (&&sizes)[N])
 /// interval [0, 1).
 ///
 /// The shape of the tensor is defined by the variable argument `sizes`.
-template <typename T, std::size_t N>
-    requires(N > 0)
+template <typename T, std::size_t N> requires(N > 0)
 auto
 rand(std::size_t (&&sizes)[N])
 {

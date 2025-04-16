@@ -23,3 +23,5 @@ BreakBeforeBraces: Custom
 BraceWrapping:
   AfterFunction: true
   SplitEmptyFunction: false
+
+RequiresClausePosition: WithPreceding
