@@ -127,14 +127,14 @@ public:
     }
 
     void
-    encode(hardware_function_encoder<> encoder)
+    encode(hardware_function_encoder encoder)
     {
         return encode(encoder, std::index_sequence_for<Args...>{});
     }
 
     template <std::size_t... Indices>
     void
-    encode(hardware_function_encoder<> encoder, std::index_sequence<Indices...>)
+    encode(hardware_function_encoder encoder, std::index_sequence<Indices...>)
     {
         encoder.initialize(_m_kernel.name(), _m_kernel.pipeline());
         // std::cout << _m_kernel.name() << "(" << sizeof...(Indices) << ")" << std::endl;

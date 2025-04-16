@@ -22,6 +22,8 @@ private:
     std::reference_wrapper<shared_kernel_thread> _m_kernel_thread;
 
 public:
+    using allocator_type = polymorphic_hardware_memory_allocator<void>;
+
     kernel_base(
         const std::string& name,
         NS::SharedPtr<MTL::Library> library,
@@ -70,7 +72,7 @@ public:
         return _m_name;
     }
 
-    hardware_heap_allocator<void>
+    allocator_type
     allocator()
     {
         return _m_kernel_thread.get().allocator();
