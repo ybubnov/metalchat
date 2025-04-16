@@ -7,6 +7,7 @@
 
 
 #include <metalchat/tensor.h>
+#include <metalchat/tensor_future.h>
 #include <metalchat/tensor_shared.h>
 
 
@@ -171,6 +172,15 @@ std::ostream&
 operator<<(std::ostream& os, const shared_tensor<T, N, Container>& t)
 {
     os << (*t) << ", shared=true";
+    return os;
+}
+
+
+template <typename T, std::size_t N>
+std::ostream&
+operator<<(std::ostream& os, const future_tensor<T, N>& t)
+{
+    os << t.get() << ", future=true";
     return os;
 }
 

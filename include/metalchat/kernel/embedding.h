@@ -68,14 +68,12 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <ContiguousContainer InputContainer, ContiguousContainer FrequenciesContainer>
+    template <
+        immutable_tensor4d InputTensor,
+        immutable_tensor2d CosTensor,
+        immutable_tensor2d SinTensor>
     auto
-    operator()(
-        shared_tensor<T, 4, InputContainer> input,
-        shared_tensor<float, 2, FrequenciesContainer> freqs_cos,
-        shared_tensor<float, 2, FrequenciesContainer> freqs_sin,
-        std::size_t start_pos
-    )
+    operator()(InputTensor input, CosTensor freqs_cos, SinTensor freqs_sin, std::size_t start_pos)
     {
         constexpr std::size_t block_size = 32;
 

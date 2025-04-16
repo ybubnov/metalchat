@@ -45,10 +45,20 @@ public:
 
     using promise_type = std::promise<void>;
 
-    future_tensor(const future_tensor& t) noexcept = default;
-    // future_tensor(future_tensor&& t) noexcept = default;
+    using value_type = result_type::value_type;
 
-    template <is_tensor... Args>
+    using pointer_type = result_type::pointer_type;
+
+    using container_type = result_type::container_type;
+
+    using iterator = result_type::iterator;
+
+    using const_iterator = result_type::const_iterator;
+
+
+    future_tensor(const future_tensor& t) noexcept = default;
+
+    template <immutable_tensor... Args>
     future_tensor(result_type t, kernel_task<Args...>&& task)
     : _m_result(std::move(t)),
       _m_kernel_task(std::make_shared<kernel_task<Args...>>(std::move(task))),
@@ -58,7 +68,6 @@ public:
         // command buffers calls a callback that sets a value to the promise, so
         // all waiting routines will be unblocked.
         _m_future = std::shared_future(_m_promise->get_future());
-        //(*_m_kernel_task)(_m_promise);
         task(_m_promise);
     }
 
@@ -82,6 +91,30 @@ public:
     }
 
     std::size_t
+    numel() const
+    {
+        return _m_result.numel();
+    }
+
+    container_type&
+    container() const
+    {
+        return _m_result.container();
+    }
+
+    NS::SharedPtr<MTL::Buffer>
+    memory_move(MTL::Device* device)
+    {
+        return _m_result.memory_move(device);
+    }
+
+    pointer_type
+    data_ptr() const
+    {
+        return _m_result.data_ptr();
+    }
+
+    std::size_t
     size(std::size_t dim) const
     {
         return _m_result.size(dim);
@@ -91,6 +124,62 @@ public:
     sizes() const
     {
         return _m_result.sizes();
+    }
+
+    std::size_t
+    stride(std::size_t dim) const
+    {
+        return _m_result.stride(dim);
+    }
+
+    const std::span<std::size_t, N>
+    strides() const
+    {
+        return _m_result.strides();
+    }
+
+    std::size_t
+    offset(std::size_t dim)
+    {
+        return _m_result.offset(dim);
+    }
+
+    const std::span<std::size_t, N>
+    offsets() const
+    {
+        return _m_result.offsets();
+    }
+
+    iterator
+    begin()
+    {
+        return _m_result.begin();
+    }
+
+    iterator
+    end()
+    {
+        return _m_result.end();
+    }
+
+    const_iterator
+    begin() const
+    {
+        return _m_result.begin();
+    }
+
+    const_iterator
+    end() const
+    {
+        return _m_result.end();
+    }
+
+    future_tensor<T, N + 1>
+    expand_dims(std::size_t dim) const
+    {
+        return future_tensor<T, N + 1>(
+            _m_result.expand_dims(dim), _m_kernel_task, _m_promise, _m_future
+        );
     }
 
     template <std::size_t M>
@@ -117,11 +206,25 @@ public:
     }
 
     future_tensor
+    narrow(std::size_t dim, std::size_t start, std::size_t length) const
+    {
+        return future_tensor(
+            _m_result.narrow(dim, start, length), _m_kernel_task, _m_promise, _m_future
+        );
+    }
+
+    future_tensor
     transpose(const std::size_t (&&dims)[N]) const
     {
         return future_tensor(
             _m_result.transpose(std::move(dims)), _m_kernel_task, _m_promise, _m_future
         );
+    }
+
+    tensor_layout<N>
+    layout() const
+    {
+        return _m_result.layout();
     }
 
     template <indexing::slice_convertible... S>
@@ -157,7 +260,7 @@ private:
 
 
 /// Deduction guide for the future tensor type.
-template <typename T, std::size_t N, is_tensor... Args>
+template <typename T, std::size_t N, immutable_tensor... Args>
 future_tensor(shared_tensor<T, N, device_ref<T>> t, kernel_task<Args...>&& task)
     -> future_tensor<T, N>;
 
@@ -170,7 +273,7 @@ make_shared(future_tensor<T, N>&& tensor)
 }
 
 
-template <typename T, std::size_t N, is_tensor... Args>
+template <typename T, std::size_t N, immutable_tensor... Args>
 auto
 empty_future(std::size_t (&&sizes)[N], kernel_task<Args...>&& task)
 {

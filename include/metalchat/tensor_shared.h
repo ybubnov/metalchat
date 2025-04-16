@@ -54,6 +54,18 @@ public:
         return _m_value->numel();
     }
 
+    container_type&
+    container() const
+    {
+        return _m_value->container();
+    }
+
+    NS::SharedPtr<MTL::Buffer>
+    memory_move(MTL::Device* device)
+    {
+        return _m_value->memory_move(device);
+    }
+
     pointer_type
     data_ptr()
     {
@@ -64,12 +76,6 @@ public:
     data_ptr() const
     {
         return _m_value->data_ptr();
-    }
-
-    container_type&
-    container() const
-    {
-        return _m_value->container();
     }
 
     std::size_t
