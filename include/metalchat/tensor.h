@@ -416,6 +416,12 @@ public:
         return this->at(i);
     }
 
+    const auto
+    operator[](std::size_t i) const
+    {
+        return this->at(i);
+    }
+
     template <indexing::SliceConvertible... S>
     tensor
     operator[](const S&... slices)
