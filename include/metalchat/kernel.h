@@ -70,7 +70,7 @@ public:
         return _m_name;
     }
 
-    hardware_memory_allocator<void>
+    hardware_heap_allocator<void>
     allocator()
     {
         return _m_kernel_thread.get().allocator();

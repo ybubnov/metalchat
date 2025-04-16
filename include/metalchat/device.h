@@ -12,6 +12,9 @@ namespace metalchat {
 
 
 class device {
+public:
+    using allocator_type = hardware_heap_allocator<void>;
+
 private:
     NS::SharedPtr<MTL::Device> _m_device;
     NS::SharedPtr<MTL::Library> _m_library;
@@ -32,14 +35,20 @@ private:
         auto label = NS::TransferPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
         queue->setLabel(label.get());
 
-        return shared_kernel_thread(
-            queue, thread_capacity, hardware_memory_allocator<void>(_m_device)
-        );
+        auto heap_options_ptr = MTL::HeapDescriptor::alloc();
+        auto heap_options = NS::TransferPtr(heap_options_ptr->init());
+        heap_options->setType(MTL::HeapTypeAutomatic);
+        heap_options->setStorageMode(MTL::StorageModeShared);
+        heap_options->setResourceOptions(MTL::ResourceStorageModeShared);
+        heap_options->setSize(NS::UInteger(3 * 1024 * 1024) * 1024);
+        heap_options->setHazardTrackingMode(MTL::HazardTrackingModeTracked);
+        heap_options->setCpuCacheMode(MTL::CPUCacheModeDefaultCache);
+
+        auto heap = NS::TransferPtr(_m_device->newHeap(heap_options.get()));
+        return shared_kernel_thread(queue, thread_capacity, allocator_type(heap));
     }
 
 public:
-    using allocator_type = hardware_memory_allocator<void>;
-
     device(device&&) noexcept = default;
     device(const device&) = delete;
 
@@ -72,16 +81,16 @@ public:
         return std::string(device_name->utf8String());
     }
 
-    inline MTL::Device*
-    operator->()
-    {
-        return _m_device.get();
-    }
+    // inline MTL::Device*
+    // operator->()
+    //{
+    //     return _m_device.get();
+    // }
 
-    inline MTL::Device*
-    operator*()
+    inline NS::SharedPtr<MTL::Device>
+    get_hardware_device()
     {
-        return _m_device.get();
+        return _m_device;
     }
 
     allocator_type

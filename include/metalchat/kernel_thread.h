@@ -38,23 +38,26 @@ struct dim3 {
 };
 
 
-template <hardware_allocator_t<void> Allocator = hardware_memory_allocator<void>>
+template <hardware_allocator_t<void> Allocator = hardware_heap_allocator<void>>
 class hardware_function_encoder {
 private:
-    MTL::ComputeCommandEncoder* _m_encoder;
+    NS::SharedPtr<MTL::ComputeCommandEncoder> _m_encoder;
     Allocator _m_allocator;
     std::size_t _m_buffer;
+    std::string _m_name;
 
 public:
-    hardware_function_encoder(MTL::ComputeCommandEncoder* encoder, Allocator alloc)
+    hardware_function_encoder(NS::SharedPtr<MTL::ComputeCommandEncoder> encoder, Allocator alloc)
     : _m_encoder(encoder),
       _m_allocator(alloc),
-      _m_buffer(0)
+      _m_buffer(0),
+      _m_name()
     {}
 
     void
-    initialize(MTL::ComputePipelineState* pipeline)
+    initialize(std::string name, MTL::ComputePipelineState* pipeline)
     {
+        _m_name = name;
         _m_encoder->setComputePipelineState(pipeline);
     }
 
@@ -91,6 +94,14 @@ public:
     void
     dispatch(dim3 grid, dim3 group)
     {
+        std::stringstream command_name_stream;
+        command_name_stream << _m_name << "<" << grid << "," << group << ">" << std::endl;
+
+        auto command_name = command_name_stream.str();
+        auto command_name_ptr
+            = NS::TransferPtr(NS::String::string(command_name.c_str(), NS::UTF8StringEncoding));
+        _m_encoder->setLabel(command_name_ptr.get());
+
         MTL::Size threads_per_grid(grid.x, grid.y, grid.z);
         MTL::Size threads_per_group(group.x, group.y, group.z);
         _m_encoder->dispatchThreads(threads_per_grid, threads_per_group);
@@ -105,13 +116,14 @@ concept hardware_encodable_function
       };
 
 
-// template <hardware_allocator_t<void> Allocator = hardware_memory_allocator<void>>
+// template <hardware_allocator_t<void> Allocator = hardware_heap_allocator<void>>
 class kernel_thread {
 private:
     using promise_type = std::promise<void>;
 
     NS::SharedPtr<MTL::CommandBuffer> _m_commands;
-    hardware_memory_allocator<void> _m_allocator;
+    // NS::SharedPtr<MTL::ComputeCommandEncoder> _m_encoder;
+    hardware_heap_allocator<void> _m_allocator;
 
     std::shared_ptr<promise_type> _m_promise;
     std::shared_future<void> _m_future;
@@ -120,7 +132,6 @@ private:
     std::size_t _m_capacity;
 
     bool _m_committed;
-    int _m_id = std::rand();
 
 public:
     using callback_type = std::function<void()>;
@@ -130,9 +141,10 @@ public:
     kernel_thread(
         NS::SharedPtr<MTL::CommandQueue> queue,
         std::size_t capacity,
-        hardware_memory_allocator<void> alloc
+        hardware_heap_allocator<void> alloc
     )
     : _m_commands(NS::TransferPtr(queue->commandBuffer())),
+      //_m_encoder(NS::TransferPtr(_m_commands->computeCommandEncoder(MTL::DispatchTypeSerial))),
       _m_allocator(alloc),
       _m_promise(std::make_shared<promise_type>()),
       _m_future(_m_promise->get_future()),
@@ -142,8 +154,14 @@ public:
     {
         // After the completion of the kernel execution, release the promise and all blocks
         // waiting for the completion of this kernel.
-        _m_commands->addCompletedHandler([promise = _m_promise](const MTL::CommandBuffer*) {
-            // TODO: handle the error.
+        _m_commands->addCompletedHandler([promise = _m_promise,
+                                          size = &_m_size](const MTL::CommandBuffer* buffer) {
+            if (buffer->error() != nullptr) {
+                std::cout << "command error!" << std::endl;
+            }
+            // std::cout << "kernel = " << (buffer->GPUEndTime() - buffer->GPUStartTime()) * 1000.0
+            // << "ms" << std::endl; std::cout << "size=" << (*size) << std::endl;
+            //  TODO: handle the error.
             promise->set_value();
         });
     }
@@ -184,12 +202,15 @@ public:
         }
         if (callback.has_value()) {
             _m_commands->addCompletedHandler([callback = callback.value(
-                                              )](const MTL::CommandBuffer*) { callback(); });
+                                              )](const MTL::CommandBuffer* buf) { callback(); });
         }
 
-        auto encoder = _m_commands->computeCommandEncoder(MTL::DispatchTypeSerial);
+        auto encoder = NS::TransferPtr(_m_commands->computeCommandEncoder(MTL::DispatchTypeSerial));
+        //_m_commands->pushDebugGroup(command_name.get());
         f.encode(hardware_function_encoder(encoder, _m_allocator));
+        // f.encode(hardware_function_encoder(_m_encoder, _m_allocator));
         encoder->endEncoding();
+        //_m_commands->popDebugGroup();
 
         _m_size++;
 
@@ -203,10 +224,12 @@ public:
     make_ready_at_thread_exit()
     {
         if (!_m_committed) {
+            // std::cout << "-- commit size=" << _m_size << "" << std::endl;
             auto label = std::format("metalchat commands (size={})", _m_size);
             auto commands_label
                 = NS::TransferPtr(NS::String::string(label.c_str(), NS::UTF8StringEncoding));
             _m_commands->setLabel(commands_label.get());
+            //_m_encoder->endEncoding();
 
             _m_commands->commit();
             _m_committed = true;
@@ -217,7 +240,7 @@ public:
 
 class shared_kernel_thread {
 private:
-    using allocator_type = hardware_memory_allocator<void>;
+    using allocator_type = hardware_heap_allocator<void>;
 
     NS::SharedPtr<MTL::CommandQueue> _m_queue;
     std::shared_ptr<kernel_thread> _m_this_thread;
@@ -230,7 +253,7 @@ public:
     shared_kernel_thread(
         NS::SharedPtr<MTL::CommandQueue> queue,
         std::size_t thread_capacity,
-        hardware_memory_allocator<void> alloc
+        hardware_heap_allocator<void> alloc
     )
     : _m_queue(queue),
       _m_this_thread(std::make_shared<kernel_thread>(queue, thread_capacity, alloc)),

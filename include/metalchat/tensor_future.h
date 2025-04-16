@@ -72,6 +72,7 @@ public:
         // memory will be released as a result of calling this callback.
         auto future = task([ft = std::make_shared<future_tensor<T, N>>(*this)] {
             const std::scoped_lock __lock(*(ft->_m_future_mutex));
+
             ft->_m_future_wait = nullptr;
             ft->_m_future = nullptr;
         });
