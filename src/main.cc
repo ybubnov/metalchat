@@ -2,6 +2,7 @@
 
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
+#include <metalchat/llama.h>
 #include <metalchat/nn.h>
 #include <metalchat/safetensor.h>
 
@@ -57,15 +58,17 @@ main()
 
     {
         auto input = metalchat::full<bf16>({128, 2048}, 2.0);
-        auto weight = model_file["model.layers.0.mlp.gate_proj.weight"].as<bf16, 2>();
+        auto up = model_file["model.layers.0.mlp.up_proj.weight"].as<bf16, 2>();
+        auto down = model_file["model.layers.0.mlp.down_proj.weight"].as<bf16, 2>();
+        auto gate = model_file["model.layers.0.mlp.gate_proj.weight"].as<bf16, 2>();
 
-        std::cout << input.size(0) << "x" << input.size(1) << " * ";
-        std::cout << weight.size(0) << "x" << weight.size(1) << std::endl;
         std::cout << input << std::endl;
-        std::cout << weight << std::endl;
+        std::cout << gate << std::endl;
+        std::cout << up << std::endl;
+        std::cout << down << std::endl;
 
-        metalchat::nn::linear linear(gpu0, weight);
-        auto result = linear(input);
+        metalchat::llama::mlp mlp(gate, up, down, gpu0);
+        auto result = mlp(input);
 
         std::cout << "result=" << result << std::endl;
     }

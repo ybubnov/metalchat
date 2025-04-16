@@ -14,7 +14,7 @@ private:
     sgemm<T> m_sgemm;
 
 public:
-    linear(device& device, const tensor<T, 2, WeightContainer>& weight)
+    linear(const tensor<T, 2, WeightContainer>& weight, device& device)
     : m_weight(weight),
       m_sgemm(device)
     {}
