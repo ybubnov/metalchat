@@ -22,8 +22,8 @@ template <typename T, uint N> struct tensor {
     at(uint i, uint j)
     {
         auto ptr_offset = 0;
-        ptr_offset += layout.strides[0] * (layout.offsets[0] + i);
-        ptr_offset += layout.strides[1] * (layout.offsets[1] + j);
+        ptr_offset += layout.strides[0] * i + layout.offsets[0];
+        ptr_offset += layout.strides[1] * j + layout.offsets[1];
         return *(data + ptr_offset);
     }
 

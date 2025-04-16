@@ -129,6 +129,12 @@ public:
         return m_strides->data()[dim];
     }
 
+    inline void
+    set_stride(std::size_t dim, std::size_t i)
+    {
+        m_strides->data()[dim] = i;
+    }
+
     inline const auto
     strides() const noexcept
     {
@@ -157,6 +163,12 @@ public:
             throw std::out_of_range("tensor");
         }
         return m_offsets->data()[dim];
+    }
+
+    inline void
+    set_offset(std::size_t dim, std::size_t i)
+    {
+        m_offsets->data()[dim] = i;
     }
 
     inline const auto
@@ -190,6 +202,16 @@ public:
     container() const
     {
         return *m_data;
+    }
+
+    std::size_t
+    container_offset() const
+    {
+        std::size_t off = 0;
+        for (std::size_t dim = 0; dim < N; dim++) {
+            off += offset(dim);
+        }
+        return off;
     }
 
     tensor_layout<N>
@@ -231,17 +253,17 @@ public:
     index_select(const S&... slices) requires(sizeof...(slices) == N)
     {
         tensor_base t(m_data);
-        std::size_t i = 0;
+        std::size_t dim = 0;
 
         ([&] {
             indexing::slice slice(slices);
-            auto stop = std::min(slice.stop.value_or(size(i)), size(i));
+            auto stop = std::min(slice.stop.value_or(size(dim)), size(dim));
             auto start = std::min(slice.start.value_or(0), stop);
 
-            t.set_size(i, stop - start);
-            t.set_stride(i, stride(i));
-            t.set_offset(i, start);
-            i++;
+            t.set_size(dim, stop - start);
+            t.set_stride(dim, stride(dim));
+            t.set_offset(dim, start * t.stride(dim));
+            dim++;
         }(), ...);
 
         return t;
@@ -263,7 +285,7 @@ public:
                 ));
             }
 
-            ptr_offset += stride(dim) * (offset(dim) + i);
+            ptr_offset += stride(dim) * i + offset(dim);
             dim++;
         }(), ...);
 
@@ -279,7 +301,7 @@ public:
 
         ([&] {
             auto i = static_cast<std::size_t>(sizes);
-            ptr_offset += stride(dim) * (offset(dim) + i);
+            ptr_offset += stride(dim) * i + offset(dim);
             dim++;
         }(), ...);
 
@@ -295,7 +317,7 @@ public:
             t.set_stride(i, stride(i));
             t.set_offset(i, offset(i));
         }
-        t.set_offset(dim, start);
+        t.set_offset(dim, t.stride(dim) * start);
         t.set_size(dim, length);
         return t;
     }
@@ -358,43 +380,85 @@ public:
 
     template <std::size_t M>
     tensor_base<T, M, Container>
-    reshape(const int (&&dims)[M]) const requires(M > 0)
+    view(const int (&&dims)[M]) const requires(M > 0)
     {
-        // So far only reshaping of contiguous tensors is supported.
-        assert(is_contiguous());
+        auto tensor_numel = numel();
+        auto view_numel = 1;
 
-        auto size = numel();
-        auto new_size = 1;
-
-        auto inferred_size = size;
+        auto inferred_size = tensor_numel;
         auto inferred_dim = -1;
 
-        std::size_t sizes[M];
+        std::size_t view_sizes[M];
+        std::size_t view_strides[M];
 
         for (auto i = 0; i < M; i++) {
             if (dims[i] == -1) {
                 if (inferred_dim >= 0) {
-                    throw std::invalid_argument("only one position can be inferred");
+                    throw std::invalid_argument("tensor::view: only one position can be inferred");
                 }
                 inferred_dim = i;
             } else {
-                sizes[i] = std::size_t(dims[i]);
-                new_size *= std::size_t(dims[i]);
+                view_sizes[i] = std::size_t(dims[i]);
+                view_numel *= std::size_t(dims[i]);
                 inferred_size = inferred_size / dims[i];
             }
         }
         if (inferred_dim >= 0) {
-            sizes[inferred_dim] = inferred_size;
-            new_size *= inferred_size;
+            view_sizes[inferred_dim] = inferred_size;
+            view_numel *= inferred_size;
         }
 
-        if (new_size != size) {
-            throw std::invalid_argument(
-                std::format("tensor::reshape: shape is invalid for input size {}", size)
-            );
+        if (view_numel != tensor_numel) {
+            throw std::invalid_argument(std::format(
+                "tensor::view: view numel is not the same as tensor numel {} != {}", view_numel,
+                tensor_numel
+            ));
         }
 
-        return tensor_base<T, M, Container>(std::move(sizes), m_data);
+        tensor_numel = 1;
+        view_numel = 1;
+        int view_i = M - 1;
+        auto base_stride = stride(N - 1);
+
+        for (int i = N - 1; i >= 0; i--) {
+            tensor_numel *= size(i);
+
+            // When tensor stride is not equal to the "default" stride (which could happen
+            // in case of slicing or narrowing a tensor), try computing new strides according
+            // to the layout of the original tensor.
+            //
+            // A new shape of a view might break the contiguous layout of memory, in this
+            // case throw an `invalid_argument` exception to the caller.
+            if (i == 0 || stride(i - 1) != tensor_numel * base_stride) {
+                while (view_i >= 0 && (view_numel < tensor_numel || view_sizes[view_i] == 1)) {
+                    view_strides[view_i] = view_numel * base_stride;
+                    view_numel *= view_sizes[view_i];
+                    view_i--;
+                }
+
+                if (view_numel != tensor_numel) {
+                    throw std::invalid_argument(std::format(
+                        ("tensor::view: shape is invalid for input of size {}, "
+                         "considering copying the tensor"),
+                        numel()
+                    ));
+                }
+
+                if (i > 0) {
+                    base_stride = stride(i - 1);
+                    tensor_numel = 1;
+                    view_numel = 1;
+                }
+            }
+        }
+
+        auto t = tensor_base<T, M, Container>(std::move(view_sizes), m_data);
+        t.set_offset(0, container_offset());
+        for (std::size_t dim = 0; dim < M; dim++) {
+            t.set_stride(dim, view_strides[dim]);
+        }
+
+        return t;
     }
 
 protected:
@@ -407,18 +471,6 @@ protected:
     set_size(std::size_t dim, std::size_t i)
     {
         m_shape->data()[dim] = i;
-    }
-
-    inline void
-    set_stride(std::size_t dim, std::size_t i)
-    {
-        m_strides->data()[dim] = i;
-    }
-
-    inline void
-    set_offset(std::size_t dim, std::size_t i)
-    {
-        m_offsets->data()[dim] = i;
     }
 
     void
@@ -499,7 +551,7 @@ public:
     auto
     at(std::size_t i)
     {
-        auto new_data = this->data_ptr() + this->stride(0) * (this->offset(0) + i);
+        auto new_data = this->data_ptr() + this->stride(0) * i + this->offset(0);
         auto new_shape = this->m_shape->data() + 1;
         auto new_strides = this->m_strides->data() + 1;
         auto new_offsets = this->m_offsets->data() + 1;
@@ -509,7 +561,7 @@ public:
     const auto
     at(std::size_t i) const
     {
-        auto new_data = this->data_ptr() + this->stride(0) * (this->offset(0) + i);
+        auto new_data = this->data_ptr() + this->stride(0) * i + this->offset(0);
         auto new_shape = this->m_shape->data() + 1;
         auto new_strides = this->m_strides->data() + 1;
         auto new_offsets = this->m_offsets->data() + 1;
@@ -565,9 +617,9 @@ public:
 
     template <std::size_t M>
     tensor<T, M, Container>
-    reshape(const int (&&dims)[M]) const requires(M > 0)
+    view(const int (&&dims)[M]) const requires(M > 0)
     {
-        return tensor<T, M, Container>(_Base::reshape(std::move(dims)));
+        return tensor<T, M, Container>(_Base::view(std::move(dims)));
     }
 };
 
@@ -596,9 +648,9 @@ public:
     at(std::size_t i)
     {
         if (i >= this->size(0)) {
-            throw std::out_of_range("tensor");
+            throw std::out_of_range("tensor::at");
         }
-        const auto n = this->stride(0) * (i + this->offset(0));
+        const auto n = this->stride(0) * i + this->offset(0);
         return *(this->data_ptr() + n);
     }
 
@@ -606,9 +658,9 @@ public:
     at(std::size_t i) const
     {
         if (i >= this->size(0)) {
-            throw std::out_of_range("tensor");
+            throw std::out_of_range("tensor::at");
         }
-        const auto n = this->stride(0) * (i + this->offset(0));
+        const auto n = this->stride(0) * i + this->offset(0);
         return *(this->data_ptr() + n);
     }
 
@@ -639,9 +691,9 @@ public:
 
     template <std::size_t M>
     tensor<T, M, Container>
-    reshape(const int (&&dims)[M]) const
+    view(const int (&&dims)[M]) const
     {
-        return tensor<T, M, Container>(_Base::reshape(std::move(dims)));
+        return tensor<T, M, Container>(_Base::view(std::move(dims)));
     }
 };
 

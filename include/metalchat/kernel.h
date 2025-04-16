@@ -22,7 +22,7 @@ struct kernel_traits {
 
 template <typename T, std::size_t N, ContiguousContainer Container>
 kernel_traits::buffer_type
-make_buffer(device& device, const tensor<T, N, Container>& t)
+make_buffer(device& device, const tensor_base<T, N, Container>& t)
 {
     auto size = t.numel() * sizeof(T);
     return NS::TransferPtr(device->newBuffer(t.data_ptr(), size, MTL::ResourceStorageModeShared));
@@ -30,14 +30,14 @@ make_buffer(device& device, const tensor<T, N, Container>& t)
 
 template <typename T, std::size_t N>
 kernel_traits::buffer_type
-make_buffer(device& device, const tensor<T, N, device_ref<T>>& t)
+make_buffer(device& device, const tensor_base<T, N, device_ref<T>>& t)
 {
     return t.container().storage();
 }
 
 template <typename T>
 kernel_traits::buffer_type
-make_buffer(device& device, const tensor<T, 0, value_ref<T>>& t)
+make_buffer(device& device, const tensor_base<T, 0, value_ref<T>>& t)
 {
     return kernel_traits::buffer_type();
 }
@@ -94,7 +94,7 @@ public:
 
     template <typename... T, std::size_t... N, ContiguousContainer... Container>
     void
-    operator()(const tensor<T, N, Container>&... args)
+    operator()(const tensor_base<T, N, Container>&... args)
     {
         // std::cout << "blocking_kernel<" << m_threads << ", " << m_thread << ">"
         //           << "(" << m_op << ", args[" << sizeof...(args) << "])" << std::endl;

@@ -98,11 +98,11 @@ TEST_CASE("Tensor format", "[tensor::ostream]")
 }
 
 
-TEST_CASE("Tensor reshape", "[tensor::reshape]")
+TEST_CASE("Tensor view", "[tensor::view]")
 {
     auto t = rand<float>({3, 4, 2});
 
-    auto t0 = t.reshape({24});
+    auto t0 = t.view({24});
     REQUIRE(t0.dim() == 1);
     REQUIRE(t0.size(0) == 24);
 
@@ -111,10 +111,10 @@ TEST_CASE("Tensor reshape", "[tensor::reshape]")
 }
 
 
-TEST_CASE("Tensor reshape unsqueeze", "[tensor::reshape]")
+TEST_CASE("Tensor reshape unsqueeze", "[tensor::view]")
 {
     auto t = rand<float>({4, 5, 2});
-    auto t0 = t.reshape({4, 5, 2, -1});
+    auto t0 = t.view({4, 5, 2, -1});
 
     REQUIRE(t0.dim() == 4);
     REQUIRE(t0.size(0) == 4);

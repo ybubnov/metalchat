@@ -138,7 +138,7 @@ private:
     {
         std::size_t index = 0;
         for (std::size_t i = 0; i < N; i++) {
-            index = index + stride(i) * (offset(i) + m_indices[i]);
+            index = index + stride(i) * m_indices[i] + offset(i);
         }
 
         // Update indices in the array.

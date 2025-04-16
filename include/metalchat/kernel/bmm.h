@@ -88,8 +88,8 @@ public:
         assert((input.size(2) == weight.size(0)));
         assert((input.size(0) == 1));
 
-        auto output = operator()(input.reshape({int(input.size(1)), int(input.size(2))}), weight);
-        return output.reshape({1, int(input.size(1)), int(weight.size(1))});
+        auto output = operator()(input.view({int(input.size(1)), int(input.size(2))}), weight);
+        return output.view({1, int(input.size(1)), int(weight.size(1))});
     }
 };
 
