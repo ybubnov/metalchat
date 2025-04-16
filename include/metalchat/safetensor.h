@@ -43,6 +43,7 @@ public:
     tensor<T, N>
     as()
     {
+        assert(N == shape.size());
         return tensor<T, N>(static_cast<T*>(data), shape.data(), strides.data());
     }
 
