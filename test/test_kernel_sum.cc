@@ -17,25 +17,24 @@ using namespace metalchat::dtype;
 TEST_CASE("Sum of 4-dimensional tensors", "[kernel::sum]")
 {
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::sum<bf16> sum(gpu0);
+    metalchat::sum<float> sum(gpu0);
 
-    auto input1 = rand<bf16>({4, 4, 4, 128});
-    auto input2 = rand<bf16>({4, 4, 4, 128});
+    auto input1 = rand<float>({1, 4, 2048});
+    auto input2 = rand<float>({1, 4, 2048});
     auto output = sum(input1, input2);
 
-    REQUIRE(output.dim() == 4);
-    REQUIRE(output.numel() == input1.numel());
-    REQUIRE(output.numel() == input2.numel());
+    REQUIRE(output.dim() == 3);
+    REQUIRE(output.size(0) == 1);
+    REQUIRE(output.size(1) == 4);
+    REQUIRE(output.size(2) == 2048);
 
     for (auto i = 0; i < output.size(0); i++) {
         for (auto j = 0; j < output.size(1); j++) {
             for (auto k = 0; k < output.size(2); k++) {
-                for (auto l = 0; l < output.size(3); l++) {
-                    REQUIRE_THAT(
-                        output[i][j][k][l],
-                        Catch::Matchers::WithinAbs(input1[i][j][k][l] + input2[i][j][k][l], 0.01)
-                    );
-                }
+                REQUIRE_THAT(
+                    (output[i, j, k]),
+                    Catch::Matchers::WithinAbs(input1[i, j, k] + input2[i, j, k], 0.00001)
+                );
             }
         }
     }

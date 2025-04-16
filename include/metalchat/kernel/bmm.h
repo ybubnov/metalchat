@@ -58,9 +58,10 @@ public:
         assert((input.size(0) == weight.size(0)));
         assert((input.size(1) == weight.size(1)));
         assert((input.size(3) == weight.size(2)));
+        std::cout << "bmm (4x4): {" << input.sizes() << "} x {" << weight.sizes() << "}"
+                  << std::endl;
 
-        auto output
-            = full<T>({input.size(0), input.size(1), input.size(2), weight.size(3)}, 0.0, m_device);
+        auto output = full<T>({input.size(0), input.size(1), input.size(2), weight.size(3)}, 0.0);
 
         for (auto b0 = 0; b0 < input.size(0); b0++) {
             for (auto b1 = 0; b1 < input.size(1); b1++) {

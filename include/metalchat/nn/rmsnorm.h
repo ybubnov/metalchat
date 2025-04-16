@@ -15,6 +15,7 @@ private:
 
 public:
     rmsnorm(rmsnorm&&) = default;
+    rmsnorm(const rmsnorm&) = delete;
 
     rmsnorm(tensor<T, 1, Container>&& weight, device& device)
     : _m_weight(std::move(weight)),
@@ -25,7 +26,6 @@ public:
     auto
     operator()(const tensor<T, N, InputContainer>& input, float eps = 1e-5)
     {
-        std::cout << "RMSNorm input size = " << input.sizes() << std::endl;
         return _m_norm(input, _m_weight, eps);
     }
 

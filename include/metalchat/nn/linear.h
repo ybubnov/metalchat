@@ -15,6 +15,9 @@ private:
     bmm<T> _m_bmm;
 
 public:
+    linear(linear&&) = default;
+    linear(const linear&) = delete;
+
     linear(tensor<T, 2, WeightContainer>&& weight, device& device)
     : _m_weight(std::move(weight.t())),
       _m_bmm(device)
