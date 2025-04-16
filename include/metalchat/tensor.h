@@ -222,31 +222,6 @@ public:
         return off;
     }
 
-    // TODO: move these methods to the container implementations!
-    NS::SharedPtr<MTL::Buffer>
-    memory_move(MTL::Device*) const
-        requires(std::same_as<container_type, hardware_memory_container<T>>)
-    {
-        return container().storage();
-    }
-
-    NS::SharedPtr<MTL::Buffer>
-    memory_move(MTL::Device*) const
-        requires(std::same_as<container_type, scalar_memory_container<T>>)
-    {
-        return NS::SharedPtr<MTL::Buffer>();
-    }
-
-    NS::SharedPtr<MTL::Buffer>
-    memory_move(MTL::Device* device) const
-        requires(std::same_as<container_type, random_memory_container<T>>)
-    {
-        auto buf_size = numel() * sizeof(T);
-        return NS::TransferPtr(
-            device->newBuffer(data_ptr(), buf_size, MTL::ResourceStorageModeShared)
-        );
-    }
-
     tensor_layout<N>
     layout() const
     {

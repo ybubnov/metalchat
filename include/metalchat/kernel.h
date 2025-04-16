@@ -12,30 +12,6 @@
 namespace metalchat {
 
 
-struct dim3 {
-    const std::size_t x, y, z;
-
-    constexpr dim3(std::size_t x_, std::size_t y_ = 1, std::size_t z_ = 1)
-    : x(x_),
-      y(y_),
-      z(z_)
-    {}
-
-    friend std::ostream&
-    operator<<(std::ostream& os, const dim3& d)
-    {
-        os << "<" << d.x << "," << d.y << "," << d.z << ">";
-        return os;
-    }
-
-    std::size_t
-    numel() const
-    {
-        return x * y * z;
-    }
-};
-
-
 class kernel_base {
 private:
     std::string _m_name;

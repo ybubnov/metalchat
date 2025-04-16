@@ -6,24 +6,112 @@
 #include <future>
 #include <memory>
 
+#include <metalchat/allocator.h>
 #include <metalchat/metal.h>
+#include <metalchat/tensor_concept.h>
 
 
 namespace metalchat {
 
 
+struct dim3 {
+    const std::size_t x, y, z;
+
+    constexpr dim3(std::size_t x_, std::size_t y_ = 1, std::size_t z_ = 1)
+    : x(x_),
+      y(y_),
+      z(z_)
+    {}
+
+    friend std::ostream&
+    operator<<(std::ostream& os, const dim3& d)
+    {
+        os << "<" << d.x << "," << d.y << "," << d.z << ">";
+        return os;
+    }
+
+    std::size_t
+    numel() const
+    {
+        return x * y * z;
+    }
+};
+
+
+template <hardware_allocator_t<void> Allocator = hardware_memory_allocator<void>>
+class hardware_function_encoder {
+private:
+    MTL::ComputeCommandEncoder* _m_encoder;
+    Allocator _m_allocator;
+    std::size_t _m_buffer;
+
+public:
+    hardware_function_encoder(MTL::ComputeCommandEncoder* encoder, Allocator alloc)
+    : _m_encoder(encoder),
+      _m_allocator(alloc),
+      _m_buffer(0)
+    {}
+
+    void
+    initialize(MTL::ComputePipelineState* pipeline)
+    {
+        _m_encoder->setComputePipelineState(pipeline);
+    }
+
+    template <typename T, immutable_scalar_t<T> Scalar>
+    void
+    encode(const Scalar& scalar)
+    {
+        const void* data_ptr = scalar.data_ptr();
+        std::size_t data_size = sizeof(typename Scalar::value_type);
+        _m_encoder->setBytes(data_ptr, data_size, _m_buffer++);
+    }
+
+    template <typename T, immutable_hardware_tensor_t<T> Tensor>
+    void
+    encode(const Tensor& tensor)
+    {
+        auto layout = tensor.layout();
+        _m_encoder->setBytes(&layout, sizeof(layout), _m_buffer++);
+        _m_encoder->setBuffer(tensor.container().storage().get(), 0, _m_buffer++);
+    }
+
+    template <typename T, immutable_tensor_t<T> Tensor>
+    void
+    encode(const Tensor& tensor)
+    {
+        auto alloc = rebind_hardware_allocator<T, Allocator>(_m_allocator);
+        auto container = alloc.allocate(tensor.data_ptr(), tensor.numel());
+
+        auto layout = tensor.layout();
+        _m_encoder->setBytes(&layout, sizeof(layout), _m_buffer++);
+        _m_encoder->setBuffer(container->storage().get(), 0, _m_buffer++);
+    }
+
+    void
+    dispatch(dim3 grid, dim3 group)
+    {
+        MTL::Size threads_per_grid(grid.x, grid.y, grid.z);
+        MTL::Size threads_per_group(group.x, group.y, group.z);
+        _m_encoder->dispatchThreads(threads_per_grid, threads_per_group);
+    }
+};
+
+
 template <typename T>
 concept hardware_encodable_function
-    = requires(std::remove_reference_t<T> t, MTL::ComputeCommandEncoder* encoder) {
+    = requires(std::remove_reference_t<T> t, hardware_function_encoder<> encoder) {
           { t.encode(encoder) } -> std::same_as<void>;
       };
 
 
+// template <hardware_allocator_t<void> Allocator = hardware_memory_allocator<void>>
 class kernel_thread {
 private:
     using promise_type = std::promise<void>;
 
     NS::SharedPtr<MTL::CommandBuffer> _m_commands;
+    hardware_memory_allocator<void> _m_allocator;
 
     std::shared_ptr<promise_type> _m_promise;
     std::shared_future<void> _m_future;
@@ -41,6 +129,7 @@ public:
 
     kernel_thread(NS::SharedPtr<MTL::CommandQueue> queue, std::size_t capacity)
     : _m_commands(NS::TransferPtr(queue->commandBuffer())),
+      _m_allocator(queue->device()),
       _m_promise(std::make_shared<promise_type>()),
       _m_future(_m_promise->get_future()),
       _m_size(0),
@@ -95,7 +184,8 @@ public:
         }
 
         auto encoder = _m_commands->computeCommandEncoder(MTL::DispatchTypeSerial);
-        f.encode(encoder);
+        // f.encode(encoder);
+        f.encode(hardware_function_encoder(encoder, _m_allocator));
         encoder->endEncoding();
 
         _m_size++;
