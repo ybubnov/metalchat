@@ -23,7 +23,7 @@ find_package(PCRE2 CONFIG REQUIRED)
 
 
 set(metalchat_METALLIB metalchat.metallib)
-set(metalchat_SOURCES src/main.cc)
+aux_source_directory(src metalchat_SOURCES)
 
 
 add_library(metalchat SHARED ${metalchat_SOURCES})
