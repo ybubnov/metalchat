@@ -9,7 +9,6 @@ main()
     safetensor_file model_file("../Llama-3.2-1B/model.safetensors");
     for (auto [name, tensor] : model_file) {
         std::cout << tensor << std::endl;
-        // std::cout << "  strides=[" << tensor.strides << "]" << std::endl;
 
         if (tensor.dim() == 1) {
             bfloat_tensor1d t = tensor.as<__fp16, 1>();

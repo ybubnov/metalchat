@@ -5,7 +5,7 @@
 #include <sstream>
 
 
-#include <metalama/stream.h>
+#include <metalama/format.h>
 
 
 template <typename T, std::size_t N>
@@ -28,26 +28,53 @@ public:
         return data;
     }
 
+    std::vector<std::size_t>
+    shape() const
+    {
+        return std::vector(sizes, sizes + N);
+    }
+
     std::size_t
     size(std::size_t dim)
     {
         return sizes[dim];
     }
 
-    virtual std::string
-    repr() const
+    virtual void
+    data_repr(std::ostream& os, int w) const
     {
-        return "[...]";
+        os << std::setw(w) << "" << "[...]";
     }
+};
+
+
+template <typename T, std::size_t N>
+struct tensor_format {
+    const tensor_base<T, N>& tensor;
+    const int w;
+
+    tensor_format(const tensor_base<T, N>& tensor_, const int w_ = 0)
+    : tensor(tensor_),
+      w(w_)
+    {}
 
     friend std::ostream&
-    operator<<(std::ostream& os, const tensor_base& t)
+    operator<<(std::ostream& os, const tensor_format<T, N>& tf)
     {
-        auto sizes = std::vector<std::size_t>(t.sizes, t.sizes + N);
-        os << "tensor(" << t.repr() << ", shape=[" << sizes << "])";
+        os << std::setw(tf.w) << "";
+        tf.tensor.data_repr(os, tf.w);
         return os;
     }
 };
+
+
+template <typename T, std::size_t N>
+std::ostream&
+operator<<(std::ostream& os, const tensor_base<T, N>& t)
+{
+    os << tensor_format<T, N>(t, 0) << ", shape=(" << t.shape() << ")";
+    return os;
+}
 
 
 template <typename T, std::size_t N>
@@ -57,10 +84,55 @@ public:
     : tensor_base<T, N>(data_, sizes_, strides_)
     {}
 
+    tensor<T, 1>
+    at(std::size_t i)
+    {
+        return tensor<T, 1>(this->data + this->strides[0] * i, this->sizes + 1, this->strides + 1);
+    }
+
+    const tensor<T, 1>
+    at(std::size_t i) const
+    {
+        return tensor<T, 1>(this->data + this->strides[0] * i, this->sizes + 1, this->strides + 1);
+    }
+
     tensor<T, N - 1>
     operator[](std::size_t i)
     {
-        return tensor(this->data + this->strides[0] * i, this->sizes + 1, this->strides + 1);
+        return at(i);
+    }
+
+    void
+    data_repr(std::ostream& os, int w) const override
+    {
+        auto size = this->sizes[0];
+        auto max_size = fmt::edgeitems * 2 + 1;
+        w += 1;
+
+        os << "[";
+        if (size > max_size) {
+            for (std::size_t i = 0; i < fmt::edgeitems; i++) {
+                auto W = i > 0 ? w : 0;
+                os << tensor_format(at(i), W) << fmt::comma(i, size) << std::endl;
+            }
+
+            os << std::setw(w) << "" << "..., " << std::endl;
+
+            for (std::size_t i = size - fmt::edgeitems; i < size; i++) {
+                os << tensor_format(at(i), w) << fmt::comma(i, size);
+                if (i < size - 1) {
+                    os << std::endl;
+                }
+            }
+        } else {
+            for (std::size_t i = 0; i < size; i++) {
+                os << tensor_format(at(i), w) << fmt::comma(i, size);
+                if (i < size - 1) {
+                    os << std::endl;
+                }
+            }
+        }
+        os << "]";
     }
 };
 
@@ -78,83 +150,22 @@ public:
         return this->data[i];
     }
 
-    std::string
-    repr() const override
-    {
-        std::stringstream ss;
-        ss << "[";
-
-        auto size = this->sizes[0];
-        if (size > 10) {
-            ss << std::vector<T>(this->data, this->data + 3);
-            ss << ", ..., ";
-            ss << std::vector<T>(this->data + size - 3, this->data + size);
-        } else {
-            ss << std::vector<T>(this->data, this->data + size);
-        }
-
-        ss << "]";
-        return ss.str();
-    }
-};
-
-
-template <typename T>
-class tensor<T, 2> : public tensor_base<T, 2> {
-public:
-    tensor(T* data_, const std::size_t* sizes_, const std::size_t* strides_)
-    : tensor_base<T, 2>(data_, sizes_, strides_)
-    {}
-
-    tensor<T, 1>
-    operator[](std::size_t i)
-    {
-        return tensor<T, 1>(this->data + this->strides[0] * i, this->sizes + 1, this->strides + 1);
-    }
-
-    const tensor<T, 1>
-    operator[](std::size_t i) const
-    {
-        return tensor<T, 1>(this->data + this->strides[0] * i, this->sizes + 1, this->strides + 1);
-    }
-
-    std::string
-    repr() const override
+    void
+    data_repr(std::ostream& os, int w) const override
     {
         auto size = this->sizes[0];
+        auto max_size = fmt::edgeitems * 2 + 1;
 
-        std::stringstream ss;
-        ss << "[";
-        if (size > 10) {
-            for (std::size_t i = 0; i < 3; i++) {
-                if (i > 0) {
-                    ss << std::setw(8) << "";
-                }
-                ss << this->operator[](i).repr() << "," << std::endl;
-            }
-
-            ss << std::setw(8) << "" << "..., " << std::endl;
-
-            for (std::size_t j = size - 3; j < size; j++) {
-                ss << std::setw(8) << "";
-                ss << this->operator[](j).repr();
-                if (j < size - 1) {
-                    ss << ", " << std::endl;
-                }
-            }
+        os << "[";
+        if (size > max_size) {
+            os << std::vector<T>(this->data, this->data + fmt::edgeitems);
+            os << ", ..., ";
+            os << std::vector<T>(this->data + size - fmt::edgeitems, this->data + size);
         } else {
-            for (std::size_t i = 0; i < size; i++) {
-                if (i > 0) {
-                    ss << std::setw(8) << "";
-                }
-                ss << this->operator[](i).repr();
-                if (i < size - 1) {
-                    ss << ", " << std::endl;
-                }
-            }
+            os << std::vector<T>(this->data, this->data + size);
         }
-        ss << "]";
-        return ss.str();
+
+        os << "]";
     }
 };
 
