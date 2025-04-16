@@ -105,18 +105,20 @@ struct tensor_format<T, 1, Container> : public tensor_format_base<T, 1, Containe
         auto size = tf.t.size(0);
         auto max_size = fmt::edgeitems * 2 + 1;
 
+        using format_type = tensor_format<T, 0, weak_ref<T>>;
+
         os << "[";
         if (size > max_size) {
             for (std::size_t i = 0; i < fmt::edgeitems; i++) {
-                os << tf.t.at(i) << fmt::comma(i, size);
+                os << format_type(tf.t.at(i)) << fmt::comma(i, size);
             }
             os << " ..., ";
             for (std::size_t i = size - fmt::edgeitems; i < size; i++) {
-                os << tf.t.at(i) << fmt::comma(i, size);
+                os << format_type(tf.t.at(i)) << fmt::comma(i, size);
             }
         } else {
             for (std::size_t i = 0; i < size; i++) {
-                os << tf.t.at(i) << fmt::comma(i, size);
+                os << format_type(tf.t.at(i)) << fmt::comma(i, size);
             }
         }
         os << "]";

@@ -14,6 +14,7 @@ namespace metalchat {
 
 
 struct kernel_traits {
+    using device_type = NS::SharedPtr<MTL::Device>;
     using pipeline_type = NS::SharedPtr<MTL::ComputePipelineState>;
     using queue_type = NS::SharedPtr<MTL::CommandQueue>;
     using kernel_type = NS::SharedPtr<MTL::Function>;
@@ -24,7 +25,7 @@ struct kernel_traits {
 
 template <typename T, std::size_t N, ContiguousContainer Container>
 kernel_traits::buffer_type
-make_buffer(device& device, const tensor<T, N, Container>& t)
+make_buffer(MTL::Device* device, const tensor<T, N, Container>& t)
 {
     auto size = t.numel() * sizeof(T);
     return NS::TransferPtr(device->newBuffer(t.data_ptr(), size, MTL::ResourceStorageModeShared));
@@ -32,14 +33,14 @@ make_buffer(device& device, const tensor<T, N, Container>& t)
 
 template <typename T, std::size_t N>
 kernel_traits::buffer_type
-make_buffer(device& device, const tensor<T, N, device_ref<T>>& t)
+make_buffer(MTL::Device* device, const tensor<T, N, device_ref<T>>& t)
 {
     return t.container().storage();
 }
 
 template <typename T>
 kernel_traits::buffer_type
-make_buffer(device& device, const tensor<T, 0, value_ref<T>>& t)
+make_buffer(MTL::Device* device, const tensor<T, 0, value_ref<T>>& t)
 {
     return kernel_traits::buffer_type();
 }
@@ -47,7 +48,7 @@ make_buffer(device& device, const tensor<T, 0, value_ref<T>>& t)
 
 template <std::size_t N>
 kernel_traits::buffer_type
-make_buffer(device& device, const tensor<tensor_layout<N>, 0, value_ref<tensor_layout<N>>>& t)
+make_buffer(MTL::Device* device, const tensor<tensor_layout<N>, 0, value_ref<tensor_layout<N>>>& t)
 {
     auto size = sizeof(tensor_layout<N>);
     return NS::TransferPtr(device->newBuffer(t.data_ptr(), size, MTL::ResourceStorageModeShared));
@@ -112,7 +113,7 @@ public:
         std::vector<NS::SharedPtr<MTL::Buffer>> buffers;
 
         ([&] {
-            if (auto buf = make_buffer(_m_device, args); buf) {
+            if (auto buf = make_buffer(*_m_device, args); buf) {
                 buffers.push_back(buf);
                 command_encoder->setBuffer(buf.get(), 0, i);
             } else {

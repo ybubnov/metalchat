@@ -143,6 +143,8 @@ template <typename T> struct device_ref : public array_ref<T> {
     : m_buf(buf)
     {}
 
+    ~device_ref() {}
+
     T*
     data() override
     {

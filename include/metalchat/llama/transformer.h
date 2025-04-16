@@ -52,7 +52,7 @@ public:
     {
         auto norm = _m_attention_norm(input);
 
-        auto r = _m_attention(norm, mask, start_pos);
+        auto r = _m_attention(shared_tensor(std::move(norm)), mask, start_pos);
         auto h = _m_sum(input, r);
 
         r = _m_ff(_m_ff_norm(h));

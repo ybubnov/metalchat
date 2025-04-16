@@ -1,6 +1,5 @@
 #pragma once
 
-#include <concepts>
 #include <cstring>
 #include <format>
 #include <functional>
@@ -10,22 +9,10 @@
 
 #include <metalchat/container.h>
 #include <metalchat/tensor.h>
+#include <metalchat/tensor_concept.h>
 
 
 namespace metalchat {
-
-
-template <typename Tensor>
-concept is_tensor = requires(Tensor t) {
-    typename Tensor::value_type;
-    typename Tensor::pointer_type;
-    typename Tensor::container_type;
-
-    { Tensor::dim() } -> std::convertible_to<std::size_t>;
-    { t.sizes() } -> std::same_as<const std::span<std::size_t>>;
-    { t.numel() } -> std::same_as<std::size_t>;
-    { t.data_ptr() } -> std::same_as<typename Tensor::pointer_type>;
-};
 
 
 template <typename It>
