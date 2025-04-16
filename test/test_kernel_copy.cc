@@ -1,5 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <metalchat/format.h>
 #include <metalchat/kernel/copy.h>
 #include <metalchat/tensor_shared.h>
 
@@ -42,6 +44,37 @@ TEST_CASE("Copy into slice", "[kernel::copy]")
                 for (std::size_t i4 = 0; i4 < input.size(1); i4++) {
                     REQUIRE((input[i0, i1, i2, 0, i4]) == (output[i0, i1, i2, 2, i4]));
                 }
+            }
+        }
+    }
+}
+
+
+TEST_CASE("Inplace index set", "[kernel::inplace_index_set]")
+{
+    metalchat::device gpu0("metalchat.metallib");
+    metalchat::inplace_index_set<float> index_set(gpu0);
+
+    auto input = shared_tensor(empty<float>({16, 128}, gpu0));
+    auto mask = shared_tensor(empty<bool>({16, 128}));
+
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    std::uniform_real_distribution<float> distribution(0.0, 1.0);
+
+    std::generate_n(mask.data_ptr(), mask.numel(), [&]() -> bool {
+        return distribution(generator) > 0.5 ? true : false;
+    });
+
+    auto output = index_set(input, mask, 9.0f).get();
+    REQUIRE(output.dim() == 2);
+    REQUIRE(output.size(0) == input.size(0));
+    REQUIRE(output.size(1) == input.size(1));
+
+    for (std::size_t i = 0; i < input.size(0); i++) {
+        for (std::size_t j = 0; j < input.size(1); j++) {
+            if (mask[i, j]) {
+                REQUIRE_THAT((input[i, j]), Catch::Matchers::WithinAbs(9.0f, 0.0001));
             }
         }
     }

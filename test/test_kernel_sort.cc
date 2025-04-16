@@ -13,10 +13,11 @@ using namespace metalchat;
 TEST_CASE("Test sorting", "[kernel::sort]")
 {
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::sort<float, 1024> sort(gpu0);
+    metalchat::sort<float, 2048> sort(gpu0);
 
-    auto input = shared_tensor(rand<float>({1, 1, 9000}));
+    auto input = shared_tensor(rand<float>({1, 1, 128256}));
     auto [values_future, indices_future] = sort(input);
+
     auto values = values_future.get();
     auto indices = indices_future.get();
 
