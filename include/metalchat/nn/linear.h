@@ -36,22 +36,7 @@ public:
     {
         // A(MxK) @ B(KxN) -> C(MxN)
         assert((input.size(2) == _m_weight.size(0)));
-
-        auto output = empty<T>({input.size(0), input.size(1), _m_weight.size(1)});
-
-        for (auto b0 = 0; b0 < input.size(0); b0++) {
-            for (auto i = 0; i < input.size(1); i++) {
-                for (auto k = 0; k < _m_weight.size(1); k++) {
-                    float partial_sum = 0;
-                    for (auto j = 0; j < input.size(2); j++) {
-                        partial_sum += input[b0, i, j] * _m_weight[j, k];
-                    }
-                    output[b0, i, k] = T(partial_sum);
-                }
-            }
-        }
-
-        return output;
+        return _m_bmm(input, _m_weight);
     }
 
     friend std::ostream&
