@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <functional>
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -30,4 +33,18 @@ TEST_CASE("Softmax predefined array", "[functional::softmax]")
     for (std::size_t i = 0; i < 5; i++) {
         REQUIRE_THAT(output[i], Catch::Matchers::WithinAbs(expect[i], 0.00001));
     }
+}
+
+
+TEST_CASE("Softmax sum should be 1.0", "[functional::softmax]")
+{
+    auto input = rand<bf16>({30});
+
+    metalchat::device gpu0("metalchat.metallib");
+    metalchat::softmax<bf16> softmax(gpu0);
+
+    auto output = softmax(input);
+
+    auto sum = std::reduce(output.data_ptr(), output.data_ptr() + output.numel());
+    REQUIRE_THAT(sum, Catch::Matchers::WithinAbs(1.0, 0.01));
 }
