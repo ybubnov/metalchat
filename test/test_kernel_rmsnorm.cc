@@ -37,8 +37,8 @@ TEST_CASE("RMSNorm array of ones", "[kernel::rmsnorm]")
 
 TEST_CASE("RMSNorm array of random numbers", "[kernel::rmsnorm]")
 {
-    auto input = full<bf16>({4, 3, 5, 7}, 1.0);
-    auto weight = full<bf16>({7}, 3.0);
+    auto input = full<bf16>({4, 3, 5, 1024}, 1.0);
+    auto weight = full<bf16>({1024}, 3.0);
 
     metalchat::device device("metalchat.metallib");
     metalchat::rmsnorm<bf16> rms(device);
@@ -54,14 +54,14 @@ TEST_CASE("RMSNorm array of random numbers", "[kernel::rmsnorm]")
     for (auto b0 = 0; b0 < input.size(0); b0++) {
         for (auto b1 = 0; b1 < input.size(1); b1++) {
             for (auto b2 = 0; b2 < input.size(2); b2++) {
-                bf16 rms = 0.0;
+                float rms = 0.0;
                 for (auto i = 0; i < input.size(3); i++) {
-                    rms += input[b0][b1][b2][i] * input[b0][b1][b2][i];
+                    rms += (input[b0][b1][b2][i] * input[b0][b1][b2][i]);
                 }
 
-                bf16 inv_mean = std::sqrt(rms / weight.size(0) + 1e-5);
+                float mean = std::sqrt(rms / weight.size(0) + 1e-5);
                 for (auto i = 0; i < input.size(3); i++) {
-                    bf16 result = weight[i] * input[b0][b1][b2][i] * inv_mean;
+                    bf16 result = weight[i] * input[b0][b1][b2][i] / mean;
                     REQUIRE(output[b0][b1][b2][i] == result);
                 }
             }
