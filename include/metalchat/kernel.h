@@ -80,8 +80,8 @@ public:
         auto max_threadgroup_size = pipeline->maxTotalThreadsPerThreadgroup();
         if (thread.numel() > max_threadgroup_size) {
             throw std::invalid_argument(std::format(
-                "<{}, {}, {}> exceeds maximum number of threads per threadgroup {}", threads.x,
-                threads.y, threads.z, max_threadgroup_size
+                "<{}, {}, {}> exceeds maximum number of threads per threadgroup {}",
+                threads.x, threads.y, threads.z, max_threadgroup_size
             ));
         }
 

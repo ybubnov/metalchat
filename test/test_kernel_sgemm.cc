@@ -5,7 +5,7 @@
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
-#include <metalchat/functional/sgemm.h>
+#include <metalchat/kernel/sgemm.h>
 #include <metalchat/tensor.h>
 
 

@@ -7,7 +7,7 @@
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
-#include <metalchat/functional/softmax.h>
+#include <metalchat/kernel/softmax.h>
 #include <metalchat/tensor.h>
 
 
