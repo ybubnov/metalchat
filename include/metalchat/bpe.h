@@ -32,53 +32,20 @@ public:
     using pointer = value_type*;
     using difference_type = std::ptrdiff_t;
 
-    re3_iterator(pcre2_code* re, const std::string& input)
-    : _m_re(re),
-      _m_data(pcre2_match_data_create_from_pattern(re, nullptr)),
-      _m_subject(reinterpret_cast<PCRE2_SPTR>(input.c_str())),
-      _m_subject_length(input.size()),
-      _m_offset(0),
-      _m_end(false)
-    {
-        next();
-    }
+    re3_iterator();
 
-    re3_iterator()
-    : _m_re(nullptr),
-      _m_data(nullptr),
-      _m_subject(nullptr),
-      _m_subject_length(0),
-      _m_offset(0),
-      _m_end(true)
-    {}
+    re3_iterator(pcre2_code* re, const std::string& input);
 
-    ~re3_iterator()
-    {
-        if (_m_data != nullptr) {
-            pcre2_match_data_free(_m_data);
-        }
-    }
+    ~re3_iterator();
 
     iterator&
-    operator++()
-    {
-        if (!_m_end) {
-            next();
-        }
-        return *this;
-    }
+    operator++();
 
     value_type
-    operator*()
-    {
-        return get();
-    }
+    operator*();
 
     bool
-    operator!=(const iterator& rhs)
-    {
-        return _m_end != rhs._m_end;
-    }
+    operator!=(const iterator& rhs);
 
 private:
     pcre2_code* _m_re = nullptr;
@@ -89,34 +56,10 @@ private:
     bool _m_end = false;
 
     value_type
-    get()
-    {
-        if (_m_end) {
-            throw std::runtime_error(
-                std::format("re3_iterator: terminated iterator cannot be accessed")
-            );
-        }
-
-        PCRE2_SIZE* ovector = pcre2_get_ovector_pointer(_m_data);
-        PCRE2_SIZE length = ovector[1] - ovector[0];
-
-        _m_offset = ovector[1];
-
-        value_type result(reinterpret_cast<const char*>(_m_subject + ovector[0]), length);
-        return result;
-    }
+    get();
 
     void
-    next()
-    {
-        auto rc = pcre2_match(_m_re, _m_subject, _m_subject_length, _m_offset, 0, _m_data, NULL);
-        if (rc < 0) {
-            _m_end = true;
-            if (rc != PCRE2_ERROR_NOMATCH) {
-                throw std::runtime_error(std::format("re3_iterator: matching error {}", rc));
-            }
-        }
-    }
+    next();
 };
 
 
@@ -127,43 +70,15 @@ private:
     static constexpr std::size_t error_buffer_size = 256;
 
 public:
-    re3(const std::string& regex)
-    {
-        int error_code;
-        PCRE2_SIZE error_offset;
-
-        _m_re = pcre2_compile(
-            reinterpret_cast<PCRE2_SPTR>(regex.c_str()), PCRE2_ZERO_TERMINATED, 0, &error_code,
-            &error_offset, nullptr
-        );
-
-        if (_m_re == nullptr) {
-            PCRE2_UCHAR message[error_buffer_size];
-            pcre2_get_error_message(error_code, message, sizeof(message));
-
-            throw std::invalid_argument(std::format("re3: invalid regular expression: {}", message)
-            );
-        }
-    }
+    re3(const std::string& regex);
 
     re3_iterator
-    begin(const std::string& input)
-    {
-        return re3_iterator(_m_re, input);
-    }
+    begin(const std::string& input);
 
     re3_iterator
-    end()
-    {
-        return re3_iterator();
-    }
+    end();
 
-    ~re3()
-    {
-        if (_m_re != nullptr) {
-            pcre2_code_free(_m_re);
-        }
-    }
+    ~re3();
 };
 
 
