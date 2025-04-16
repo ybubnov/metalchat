@@ -703,6 +703,14 @@ empty(InputIt begin, InputIt end, device& device)
 }
 
 
+template <typename T, std::size_t N, std::forward_iterator InputIt> requires(N > 0)
+auto
+empty(InputIt begin, InputIt end, MTL::Device* device)
+{
+    return tensor<T, N, device_ref<T>>(begin, end, device);
+}
+
+
 template <immutable_tensor Tensor> requires(Tensor::dim() > 0)
 auto
 empty_like(const Tensor& like)
@@ -717,6 +725,17 @@ empty_like(const Tensor& like)
 template <immutable_tensor Tensor> requires(Tensor::dim() > 0)
 auto
 empty_like(const Tensor& like, device& device)
+{
+    using value_type = Tensor::value_type;
+
+    auto sizes = like.sizes();
+    return empty<value_type, Tensor::dim()>(sizes.begin(), sizes.end(), device);
+}
+
+
+template <immutable_tensor Tensor> requires(Tensor::dim() > 0)
+auto
+empty_like(const Tensor& like, MTL::Device* device)
 {
     using value_type = Tensor::value_type;
 
