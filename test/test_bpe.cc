@@ -21,4 +21,9 @@ TEST_CASE("Test BPE encode and decode", "[bpe]")
 
     auto str = tokenizer.decode(ids.data_ptr(), ids.data_ptr() + ids.size(0));
     REQUIRE(str == "This is a test sentence.");
+
+    std::vector<int32_t> tokens;
+    tokenizer.encode(special_token::begin_text, tokens);
+    REQUIRE(tokens.size() == 1);
+    REQUIRE(tokens[0] == 128000);
 }

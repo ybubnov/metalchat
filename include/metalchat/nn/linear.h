@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 
 #include <metalchat/kernel/sgemm.h>
 
@@ -10,27 +11,28 @@ namespace nn {
 
 template <typename T, ContiguousContainer WeightContainer> class linear {
 private:
-    const tensor<T, 2, WeightContainer>& m_weight;
-    sgemm<T> m_sgemm;
+    tensor<T, 2, WeightContainer> _m_weight;
+    sgemm<T> _m_sgemm;
 
 public:
-    linear(const tensor<T, 2, WeightContainer>& weight, device& device)
-    : m_weight(weight),
-      m_sgemm(device)
+    linear(tensor<T, 2, WeightContainer>&& weight, device& device)
+    : _m_weight(std::move(weight)),
+      _m_sgemm(device)
     {}
 
-    template <ContiguousContainer InputContainer>
+    template <std::size_t N, ContiguousContainer InputContainer> requires(N > 1 && N < 5)
     auto
-    operator()(const tensor<T, 2, InputContainer>& input)
+    operator()(const tensor<T, N, InputContainer>& input)
     {
-        return m_sgemm(input, m_weight.t());
+        return _m_sgemm(input, _m_weight.t());
     }
 
-    template <ContiguousContainer InputContainer>
-    auto
-    operator()(const tensor<T, 4, InputContainer>& input)
+    friend std::ostream&
+    operator<<(std::ostream& os, const linear& l)
     {
-        return m_sgemm(input, m_weight.t());
+        os << "nn::linear<" << type_traits<T>::name() << ">";
+        os << "(" << l._m_weight.size(0) << ", " << l._m_weight.size(1) << ")";
+        return os;
     }
 };
 

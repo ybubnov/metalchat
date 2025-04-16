@@ -3,10 +3,17 @@
 #include <array>
 #include <bit>
 #include <cfloat>
+#include <concepts>
 #include <iostream>
 
 
 namespace metalchat {
+
+
+template <typename T>
+concept integral = std::is_integral_v<T>;
+
+
 namespace dtype {
 
 

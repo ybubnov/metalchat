@@ -10,6 +10,7 @@
 #include <simdjson.h>
 #include <sys/mman.h>
 
+#include <metalchat/container.h>
 #include <metalchat/format.h>
 #include <metalchat/tensor.h>
 
@@ -18,40 +19,36 @@ namespace metalchat {
 
 
 class safetensor {
+private:
+    std::vector<std::size_t> _m_shape;
+    void* _m_data;
+
 public:
-    std::vector<std::size_t> shape;
-    std::vector<std::size_t> strides;
-    void* data;
+    safetensor(const std::vector<std::size_t>& shape, void* data)
+    : _m_shape(shape),
+      _m_data(data)
+    {}
 
-    safetensor(const std::vector<std::size_t>& shape_, void* data_)
-    : shape(shape_),
-      strides(shape_.size(), /*value=*/1),
-      data(data_)
+    inline std::size_t
+    dim() const
     {
-        for (std::size_t i = shape_.size() - 2; i < shape_.size(); --i) {
-            strides[i] = strides[i + 1] * shape_[i + 1];
-        }
-    }
-
-    std::size_t
-    dim()
-    {
-        return shape.size();
+        return _m_shape.size();
     }
 
     template <typename T, std::size_t N>
-    tensor<T, N>
-    as()
+    auto
+    as() const
     {
-        assert(N == shape.size());
-        return tensor<T, N>(static_cast<T*>(data), shape.data(), strides.data());
+        assert(N == _m_shape.size());
+
+        auto data = std::make_shared<weak_ref<T>>(static_cast<T*>(_m_data));
+        return tensor(tensor_base<T, N, weak_ref<T>>(_m_shape.cbegin(), _m_shape.cend(), data));
     }
 
     friend std::ostream&
     operator<<(std::ostream& os, const safetensor& st)
     {
-        os << "safetensor(shape=[" << st.shape << "], ";
-        os << "strides=[" << st.strides << "])";
+        os << "safetensor(shape=[" << st._m_shape << "])";
         return os;
     }
 };
@@ -139,6 +136,8 @@ class safetensor_file {
 public:
     using iterator = std::unordered_map<std::string, safetensor>::iterator;
 
+    using const_iterator = std::unordered_map<std::string, safetensor>::const_iterator;
+
     safetensor_file(const std::filesystem::path& p)
     {
         m_file = std::fopen(p.c_str(), "r");
@@ -189,14 +188,26 @@ public:
         return m_tensors.begin();
     }
 
+    const_iterator
+    begin() const
+    {
+        return m_tensors.begin();
+    }
+
     iterator
     end()
     {
         return m_tensors.end();
     }
 
-    safetensor&
-    operator[](const std::string& tensor_name)
+    const_iterator
+    end() const
+    {
+        return m_tensors.end();
+    }
+
+    const safetensor&
+    operator[](const std::string& tensor_name) const
     {
         return m_tensors.at(tensor_name);
     }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <concepts>
 
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
@@ -20,13 +21,17 @@ public:
     : kernel(operation_name, type_traits<T>::name(), device)
     {}
 
-    template <ContiguousContainer InputContainer, ContiguousContainer WeightContainer>
+    template <
+        integral IndexType,
+        ContiguousContainer InputContainer,
+        ContiguousContainer WeightContainer>
     auto
     operator()(
-        const tensor<int32_t, 1, InputContainer>& input, const tensor<T, 2, WeightContainer>& weight
+        const tensor<IndexType, 1, InputContainer>& input,
+        const tensor<T, 2, WeightContainer>& weight
     )
     {
-        auto stride = scalar<int32_t>(weight.stride(0));
+        auto stride = scalar<IndexType>(weight.stride(0));
         auto output = empty<T>({input.size(0), weight.size(1)}, m_device);
 
         auto threads = dim3(input.size(0), weight.size(1));
@@ -48,7 +53,7 @@ private:
     float m_scale;
 
 public:
-    rope(device& device, std::size_t dim, float base = 10000.0, float scale = 1.0)
+    rope(device& device, std::size_t dim, float base = 500000.0, float scale = 1.0)
     : kernel(operation_name, type_traits<T>::name(), device),
       m_dim(dim),
       m_base(base),
