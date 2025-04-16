@@ -23,20 +23,18 @@ public:
       _m_bmm(device)
     {}
 
-    template <ContiguousContainer InputContainer>
+    template <std::size_t N, ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<T, 4, InputContainer>& input)
+    operator()(const tensor<T, N, InputContainer>& input)
     {
         return _m_bmm(input, _m_weight);
     }
 
     template <ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<T, 3, InputContainer>& input)
+    operator()(std::shared_future<const tensor<T, 3, InputContainer>&>& input)
     {
-        // A(MxK) @ B(KxN) -> C(MxN)
-        assert((input.size(2) == _m_weight.size(0)));
-        return _m_bmm(input, _m_weight);
+        return _m_bmm.maybe_compute(input.get(), _m_weight);
     }
 
     friend std::ostream&

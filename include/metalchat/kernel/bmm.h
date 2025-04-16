@@ -120,6 +120,43 @@ public:
         auto weight_view = weight.view({1, weight_size0, weight_size1});
         return operator()(input, weight_view);
     }
+
+    template <ContiguousContainer InputContainer, ContiguousContainer WeightContainer>
+    auto
+    maybe_compute(
+        const tensor<T, 3, InputContainer>& input, const tensor<T, 2, WeightContainer>& weight
+    )
+    {
+        constexpr std::size_t block_size = 32;
+
+        auto num_batches = input.size(0);
+        int weight_size0 = weight.size(0);
+        int weight_size1 = weight.size(1);
+
+        auto weight_view = weight.view({1, weight_size0, weight_size1});
+
+        // A(MxK) @ B(KxN) -> C(MxN)
+        std::size_t output_sizes[3] = {num_batches, input.size(1), weight_view.size(2)};
+        auto output
+            = std::make_shared<tensor<T, 3, device_ref<T>>>(std::move(output_sizes), m_device);
+        auto cb = unsequenced_policy_callback<T, 3>{
+            .output = output,
+            .promise = std::make_shared<std::promise<bool>>()
+        };
+
+        auto threads = dim3(
+            ceil_div(input.size(1), block_size) * block_size,
+            ceil_div(weight_view.size(2), block_size) * block_size, num_batches
+        );
+        auto thread = dim3(block_size, block_size);
+
+        auto policy = nonblocking(threads, thread, std::move(cb));
+        policy(
+            scalar(input.layout()), scalar(weight_view.layout()), scalar(output->layout()), input,
+            weight_view, *output
+        );
+        return policy;
+    }
 };
 
 

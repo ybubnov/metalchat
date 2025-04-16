@@ -1,6 +1,7 @@
 #pragma once
 
 #include <format>
+#include <future>
 #include <ranges>
 
 #include <Foundation/Foundation.hpp>
@@ -134,15 +135,7 @@ public:
 
 class sequenced_policy : public execution_policy {
 public:
-    sequenced_policy(
-        kernel_traits::pipeline_type pipeline,
-        kernel_traits::queue_type queue,
-        device& device,
-        const dim3& threads,
-        const dim3& thread
-    )
-    : execution_policy(pipeline, queue, device, threads, thread)
-    {}
+    using execution_policy::execution_policy;
 
     template <typename... T, std::size_t... N, ContiguousContainer... Container>
     void
@@ -151,6 +144,55 @@ public:
         auto command_buf = initialize(args...);
         command_buf->commit();
         command_buf->waitUntilCompleted();
+    }
+};
+
+
+template <typename T, std::size_t N> struct unsequenced_policy_callback {
+    std::shared_ptr<tensor<T, N, device_ref<T>>> output;
+    std::shared_ptr<std::promise<bool>> promise;
+};
+
+
+template <typename T, std::size_t N> class unsequenced_policy : public execution_policy {
+private:
+    unsequenced_policy_callback<T, N> _m_callback;
+    std::future<bool> _m_future;
+
+public:
+    unsequenced_policy(
+        kernel_traits::pipeline_type pipeline,
+        kernel_traits::queue_type queue,
+        device& device,
+        const dim3& threads,
+        const dim3& thread,
+        unsequenced_policy_callback<T, N>&& callback
+    )
+    : execution_policy(pipeline, queue, device, threads, thread),
+      _m_callback(std::move(callback))
+    {
+        _m_future = _m_callback.promise->get_future();
+    }
+
+    template <typename... U, std::size_t... M, ContiguousContainer... Container>
+    void
+    operator()(const tensor_base<U, M, Container>&... args)
+    {
+        auto command_buf = initialize(args...);
+        command_buf->addCompletedHandler([promise
+                                          = _m_callback.promise](const MTL::CommandBuffer* buf) {
+            promise->set_value(true);
+        });
+        command_buf->commit();
+    }
+
+    tensor<T, N, device_ref<T>>&
+    get()
+    {
+        if (_m_future.get()) {
+            return *_m_callback.output;
+        }
+        throw std::runtime_error("METAL ERROR");
     }
 };
 
@@ -193,6 +235,13 @@ public:
     blocking(dim3 threads, dim3 thread)
     {
         return sequenced_policy(m_pipeline, m_queue, m_device, threads, thread);
+    }
+
+    template <typename T, std::size_t N>
+    unsequenced_policy<T, N>
+    nonblocking(dim3 threads, dim3 thread, unsequenced_policy_callback<T, N>&& cb)
+    {
+        return unsequenced_policy(m_pipeline, m_queue, m_device, threads, thread, std::move(cb));
     }
 };
 
