@@ -1,15 +1,15 @@
 #include <utility>
 
-#include <metalama/device.h>
-#include <metalama/nn/embedding.h>
-#include <metalama/safetensor.h>
+#include <metalchat/device.h>
+#include <metalchat/nn/embedding.h>
+#include <metalchat/safetensor.h>
 
 
 int
 main()
 {
     {
-        metalama::safetensor_file model_file("../Llama-3.2-1B/model.safetensors");
+        metalchat::safetensor_file model_file("../Llama-3.2-1B/model.safetensors");
         // for (auto [name, tensor] : model_file) {
         //     std::cout << tensor << std::endl;
         //     std::cout << name << ": ";
@@ -23,22 +23,22 @@ main()
         //        std::cout << t << std::endl;
         //    }
         //}
-        metalama::device gpu0("metalama.metallib");
+        metalchat::device gpu0("metalchat.metallib");
         std::cout << "device = " << gpu0.name() << std::endl;
 
         auto weight = model_file["model.embed_tokens.weight"].as<__fp16, 2>();
         std::cout << weight << std::endl;
 
-        auto input = metalama::full<int32_t>({12}, /*fill_value=*/1);
+        auto input = metalchat::full<int32_t>({12}, /*fill_value=*/1);
         std::cout << input << std::endl;
 
-        metalama::nn::embedding embedding("embedding_bf16", gpu0);
+        metalchat::nn::embedding embedding("embedding_bf16", gpu0);
 
         auto result = embedding(input, weight);
         std::cout << result << std::endl;
     }
 
-    auto t = metalama::empty<int32_t>({1, 2, 3});
+    auto t = metalchat::empty<int32_t>({1, 2, 3});
     std::cout << t << std::endl;
     std::cout << "free" << std::endl;
 

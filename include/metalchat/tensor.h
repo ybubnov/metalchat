@@ -8,11 +8,11 @@
 #include <sstream>
 #include <utility>
 
-#include <metalama/device.h>
-#include <metalama/format.h>
+#include <metalchat/device.h>
+#include <metalchat/format.h>
 
 
-namespace metalama {
+namespace metalchat {
 
 
 template <typename T>
@@ -486,4 +486,4 @@ using int32_tensor1d = tensor<int32_t, 1>;
 using int32_tensor2d = tensor<int32_t, 2>;
 
 
-} //  namespace metalama
+} //  namespace metalchat

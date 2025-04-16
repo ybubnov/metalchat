@@ -12,7 +12,7 @@ int
 main()
 {
     auto filepath
-        = NS::TransferPtr(NS::String::string("metalama.metallib", NS::UTF8StringEncoding));
+        = NS::TransferPtr(NS::String::string("metalchat.metallib", NS::UTF8StringEncoding));
 
     auto url = NS::TransferPtr(NS::URL::fileURLWithPath(filepath.get()));
     std::cout << "kernel=" << url->fileSystemRepresentation() << std::endl;

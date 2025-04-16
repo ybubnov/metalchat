@@ -1,12 +1,12 @@
 #pragma once
 
 
-#include <metalama/device.h>
-#include <metalama/nn/operation.h>
-#include <metalama/tensor.h>
+#include <metalchat/device.h>
+#include <metalchat/nn/operation.h>
+#include <metalchat/tensor.h>
 
 
-namespace metalama {
+namespace metalchat {
 namespace nn {
 
 
@@ -66,4 +66,4 @@ public:
 
 
 } // namespace nn
-} // namespace metalama
+} // namespace metalchat
