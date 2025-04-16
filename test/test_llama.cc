@@ -32,7 +32,7 @@ argmax_(shared_tensor<T, 3, Container> t)
 TEST_CASE("Test make model", "[llama]")
 {
     metalchat::bpe bpe("../Llama-3.2-1B/original/tokenizer.model");
-    metalchat::device gpu0("metalchat.metallib", 128);
+    metalchat::device gpu0("metalchat.metallib", 256);
 
     // Load tensors in lambda, so that all resources are cleaned up after the load.
     auto m = [&] -> auto {

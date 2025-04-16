@@ -15,9 +15,11 @@
 namespace metalchat {
 
 
-template <typename T> class embedding {
+template <typename T, std::size_t BlockSize = 16, std::size_t EmbeddingBlockSize = 64>
+class embedding {
 private:
-    inline static const std::string operation_name = "embedding";
+    inline static const std::string operation_name
+        = "embedding" + std::to_string(BlockSize) + "x" + std::to_string(EmbeddingBlockSize);
 
     kernel_base _m_kernel;
 
@@ -36,11 +38,8 @@ public:
         auto dim_size = input.sizes().back();
         auto num_rows = data_size / dim_size;
 
-        constexpr std::size_t block_size = 4;
-        constexpr std::size_t eblock_size = 128;
-
-        auto thread_size_x = ceil_div(dim_size, block_size);
-        auto thread_size_y = ceil_div(emb_size, eblock_size);
+        auto thread_size_x = ceil_div(dim_size, BlockSize);
+        auto thread_size_y = ceil_div(emb_size, EmbeddingBlockSize);
         auto thread = dim3(thread_size_x, thread_size_y);
         auto grid = dim3(thread_size_x * num_rows, thread_size_y);
 
@@ -52,9 +51,9 @@ public:
 };
 
 
-template <typename T> class rope {
+template <typename T, std::size_t BlockSize = 16> class rope {
 private:
-    inline static const std::string operation_name = "rope";
+    inline static const std::string operation_name = "rope" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 
@@ -80,8 +79,6 @@ public:
     auto
     operator()(InputTensor input, CosTensor freqs_cos, SinTensor freqs_sin, std::size_t start_pos)
     {
-        constexpr std::size_t block_size = 32;
-
         auto bs = input.size(0);
         auto n_head = input.size(2);
 
@@ -96,7 +93,7 @@ public:
             ));
         }
 
-        auto [grid, thread] = make_kernel_grid_1d(input, block_size);
+        auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto fn = task.bind_front(

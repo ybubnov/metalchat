@@ -11,9 +11,9 @@
 namespace metalchat {
 
 
-template <typename T> class cpy {
+template <typename T, std::size_t BlockSize = 16> class cpy {
 private:
-    inline static const std::string operation_name = "copy";
+    inline static const std::string operation_name = "copy" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 
@@ -35,8 +35,7 @@ private:
             ));
         }
 
-        constexpr std::size_t block_size = 32;
-        auto [grid, thread] = make_kernel_grid_1d(input, block_size);
+        auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto fn = task.bind_front(output, input);

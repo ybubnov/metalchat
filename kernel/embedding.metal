@@ -33,14 +33,10 @@ using namespace metal;
 ///
 ///     output[i][j][k] <- weight[input[i][j]][k]
 ///
-template <typename T>
+template <typename T, uint BlockSize, uint EmbeddingBlockSize>
 kernel void
 embedding(__embedding_parameters(T))
 {
-    // TODO: move these parameters to a template.
-    constexpr uint BLOCK_SIZE = 4;
-    constexpr uint EMBEDDING_SIZE = 128;
-
     tensor<const int32_t, 2> in{input, input_layout};
     tensor<const T, 2> w{weight, weight_layout};
     tensor<T, 3> out{output, output_layout};
@@ -49,11 +45,11 @@ embedding(__embedding_parameters(T))
     const uint emb_size = w.size(1);
     const uint i = gid.x;
 
-    const uint begin = tid.x * BLOCK_SIZE;
-    const uint end = begin + BLOCK_SIZE;
+    const uint begin = tid.x * BlockSize;
+    const uint end = begin + BlockSize;
 
-    const uint emb_begin = tid.y * EMBEDDING_SIZE;
-    const uint emb_end = emb_begin + EMBEDDING_SIZE;
+    const uint emb_begin = tid.y * EmbeddingBlockSize;
+    const uint emb_end = emb_begin + EmbeddingBlockSize;
 
     for (uint j = begin; j < end && j < dim_size; j++) {
         for (uint k = emb_begin; k < emb_end && k < emb_size; k++) {
@@ -63,9 +59,27 @@ embedding(__embedding_parameters(T))
 }
 
 
-template [[host_name("embedding_bf16")]]
-kernel void embedding<bfloat>(__embedding_parameters(bfloat));
+template [[host_name("embedding4x64_bf16")]]
+kernel void embedding<bfloat, 4, 64>(__embedding_parameters(bfloat));
+
+template [[host_name("embedding4x128_bf16")]]
+kernel void embedding<bfloat, 4, 128>(__embedding_parameters(bfloat));
+
+template [[host_name("embedding16x64_bf16")]]
+kernel void embedding<bfloat, 16, 64>(__embedding_parameters(bfloat));
+
+template [[host_name("embedding16x128_bf16")]]
+kernel void embedding<bfloat, 16, 128>(__embedding_parameters(bfloat));
 
 
-template [[host_name("embedding_float")]]
-kernel void embedding<float>(__embedding_parameters(float));
+template [[host_name("embedding4x64_float")]]
+kernel void embedding<float, 4, 64>(__embedding_parameters(float));
+
+template [[host_name("embedding4x128_float")]]
+kernel void embedding<float, 4, 128>(__embedding_parameters(float));
+
+template [[host_name("embedding16x64_float")]]
+kernel void embedding<float, 16, 64>(__embedding_parameters(float));
+
+template [[host_name("embedding16x128_float")]]
+kernel void embedding<float, 16, 128>(__embedding_parameters(float));
