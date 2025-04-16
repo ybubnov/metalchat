@@ -8,8 +8,11 @@
 #include <span>
 
 #include <metalchat/container.h>
+#include <metalchat/kernel/copy.h>
 #include <metalchat/tensor.h>
 #include <metalchat/tensor_concept.h>
+#include <metalchat/tensor_future.h>
+#include <metalchat/tensor_shared.h>
 
 
 namespace metalchat {
@@ -22,24 +25,9 @@ concept forward_tensor_iterator = std::forward_iterator<It> && requires(It it) {
 };
 
 
-struct std_copy {
-    template <
-        typename T,
-        std::size_t N,
-        std::size_t M,
-        ContiguousContainer InputContainer,
-        ContiguousContainer OutputContainer>
-    void
-    operator()(const tensor<T, N, InputContainer>& input, tensor<T, M, OutputContainer>& output)
-    {
-        std::copy(input.begin(), input.end(), output.begin());
-    }
-};
-
-
-template <forward_tensor_iterator ForwardIt, typename CopyOp>
+template <forward_tensor_iterator ForwardIt>
 auto
-concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, CopyOp copy_op, device& device)
+concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, device& device)
 {
     using tensor_type = std::iterator_traits<ForwardIt>::value_type;
     using value_type = tensor_type::value_type;
@@ -72,85 +60,48 @@ concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, CopyOp copy_op, dev
         }
     }
 
-    auto output = empty<value_type>(std::move(size0), device);
+    auto output = shared_tensor(empty<value_type>(std::move(size0), device));
     std::size_t offset = 0;
+
+    std::vector<std::shared_ptr<awaitable>> futures;
+    auto copy_kernel = cpy<value_type>(device);
 
     for (auto first = begin; first != end; ++first) {
         const auto& input = (*first);
         auto n = input.size(dim);
         auto target = output.narrow(dim, offset, n);
 
-        copy_op(input, target);
+        futures.push_back(make_shared(copy_kernel(input, target)));
         offset += n;
     }
 
+    wait_all(futures);
     return output;
-}
-
-
-template <forward_tensor_iterator ForwardIt>
-auto
-concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, device& device)
-{
-    return concatenate(begin, end, dim, std_copy{}, device);
-}
-
-
-template <typename T, std::size_t N, ContiguousContainer Container, typename CopyOp>
-auto
-concatenate(
-    std::initializer_list<std::reference_wrapper<const tensor<T, N, Container>>> tensors,
-    std::size_t dim,
-    CopyOp copy_op,
-    device& device
-)
-{
-    using tensor_type = tensor<T, N, Container>;
-    using tensor_const_ref = std::reference_wrapper<const tensor_type>;
-
-    auto reference_iterator
-        = std::views::transform(tensors, [](tensor_const_ref ref) -> const tensor_type& {
-        return ref.get();
-    });
-
-    return concatenate(reference_iterator.begin(), reference_iterator.end(), dim, copy_op, device);
 }
 
 
 template <typename T, std::size_t N, ContiguousContainer Container>
 auto
 concatenate(
-    std::initializer_list<std::reference_wrapper<const tensor<T, N, Container>>> tensors,
+    const std::initializer_list<shared_tensor<T, N, Container>> tensors,
     std::size_t dim,
     device& device
 )
 {
-    return concatenate(tensors, dim, std_copy{}, device);
+    return concatenate(tensors.begin(), tensors.end(), dim, device);
 }
 
 
-template <typename T, std::size_t N, ContiguousContainer Container, typename CopyOp>
+template <typename T, std::size_t N, ContiguousContainer Container>
 auto
 repeat_interleave(
-    tensor<T, N, Container>&& t,
-    std::size_t repeats,
-    std::size_t dim,
-    CopyOp copy_op,
-    device& device
+    shared_tensor<T, N, Container> t, std::size_t repeats, std::size_t dim, device& device
 )
 {
-    auto exp_tensor = tensor(t.expand_dims(dim + 1));
-    auto rep_tensor = std::views::repeat(std::move(exp_tensor), repeats);
-    auto output = concatenate(rep_tensor.begin(), rep_tensor.end(), dim + 1, copy_op, device);
+    auto expanded_tensor = t.expand_dims(dim + 1);
+    auto rep_tensor = std::views::repeat(expanded_tensor, repeats);
+    auto output = concatenate(rep_tensor.begin(), rep_tensor.end(), dim + 1, device);
     return output;
-}
-
-
-template <typename T, std::size_t N, ContiguousContainer Container>
-auto
-repeat_interleave(tensor<T, N, Container>&& t, std::size_t repeats, std::size_t dim)
-{
-    return repeat_interleave(std::move(t), repeats, dim, std_copy{});
 }
 
 

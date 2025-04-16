@@ -408,7 +408,7 @@ public:
     }
 
     tensor<T, N + 1, Container>
-    expand_dims(const std::size_t dim) const
+    expand_dims(std::size_t dim) const
     {
         assert(dim <= N);
 

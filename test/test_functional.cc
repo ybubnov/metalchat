@@ -13,14 +13,10 @@ using namespace metalchat;
 
 TEST_CASE("Test repeat interleave", "[functional::repeat_interleave]")
 {
-    auto original = rand<float>({1, 6, 8, 64});
-    auto t = empty<float>({1, 6, 8, 64});
-    t = original;
+    auto original = shared_tensor(rand<float>({1, 6, 8, 64}));
 
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::cpy<float> cp(gpu0);
-
-    auto output = repeat_interleave(std::move(original), 4, /*dim=*/2, cp, gpu0);
+    auto output = repeat_interleave(original, 4, /*dim=*/2, gpu0);
 
     REQUIRE(output.dim() == 5);
     REQUIRE(output.size(0) == 1);
@@ -29,14 +25,12 @@ TEST_CASE("Test repeat interleave", "[functional::repeat_interleave]")
     REQUIRE(output.size(3) == 4);
     REQUIRE(output.size(4) == 64);
 
-    std::cout << output << std::endl;
-
-    for (auto i = 0; i < t.size(0); i++) {
-        for (auto j = 0; j < t.size(1); j++) {
-            for (auto k = 0; k < t.size(2); k++) {
-                for (auto l = 0; l < t.size(3); l++) {
+    for (auto i = 0; i < original.size(0); i++) {
+        for (auto j = 0; j < original.size(1); j++) {
+            for (auto k = 0; k < original.size(2); k++) {
+                for (auto l = 0; l < original.size(3); l++) {
                     for (auto m = 0; m < output.size(3); m++) {
-                        REQUIRE(t[i, j, k, l] == output[i, j, k, m, l]);
+                        REQUIRE(original[i, j, k, l] == output[i, j, k, m, l]);
                     }
                 }
             }

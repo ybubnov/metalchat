@@ -11,10 +11,10 @@ TEST_CASE("Copy 2-dimensional tensors", "[kernel::copy]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::cpy<float> copy(gpu0);
 
-    auto input = rand<float>({16, 64});
-    auto output = empty<float>({16, 64}, gpu0);
+    auto input = shared_tensor(rand<float>({16, 64}));
+    auto output = shared_tensor(empty<float>({16, 64}, gpu0));
 
-    copy(input, output);
+    copy(input, output).wait();
 
     for (auto i = 0; i < input.size(0); i++) {
         for (auto j = 0; j < input.size(1); j++) {

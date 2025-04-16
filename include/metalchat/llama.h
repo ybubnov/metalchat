@@ -15,10 +15,10 @@ template <typename T>
 auto
 make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_t nlayers = 16)
 {
-    using container_type = weak_ref<T>;
+    using container_type = device_ref<T>;
 
     nn::embedding embedding(tensors["tok_embeddings.weight"].as<T, 2>(device), device);
-    nn::rmsnorm norm(tensors["norm.weight"].as<T, 1>(), device);
+    nn::rmsnorm norm(tensors["norm.weight"].as<T, 1>(device), device);
 
     auto options = llama::attention_options{
         .head_dim = 64,
@@ -46,9 +46,9 @@ make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_
         );
 
         nn::rmsnorm attention_norm(
-            tensors[layer_name + "attention_norm.weight"].as<T, 1>(), device
+            tensors[layer_name + "attention_norm.weight"].as<T, 1>(device), device
         );
-        nn::rmsnorm ff_norm(tensors[layer_name + "ffn_norm.weight"].as<T, 1>(), device);
+        nn::rmsnorm ff_norm(tensors[layer_name + "ffn_norm.weight"].as<T, 1>(device), device);
 
         llama::transformer<T, container_type> transformer(
             std::move(attention), std::move(attention_norm), std::move(ff), std::move(ff_norm),

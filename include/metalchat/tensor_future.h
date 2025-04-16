@@ -12,7 +12,32 @@
 namespace metalchat {
 
 
-template <typename T, std::size_t N, is_tensor... Args> class future_tensor {
+template <typename T>
+concept is_waitable = requires(std::remove_reference_t<T> const t) {
+    { t.wait() } -> std::same_as<void>;
+};
+
+
+class awaitable {
+public:
+    virtual void
+    wait() const
+        = 0;
+
+    virtual ~awaitable() {}
+};
+
+
+void
+wait_all(const std::vector<std::shared_ptr<awaitable>>& awaitables)
+{
+    for (const auto a : awaitables) {
+        a->wait();
+    }
+}
+
+
+template <typename T, std::size_t N, is_tensor... Args> class future_tensor : public awaitable {
 public:
     using result_type = shared_tensor<T, N, device_ref<T>>;
 
@@ -43,7 +68,7 @@ public:
     }
 
     void
-    wait() const
+    wait() const override
     {
         _m_future.wait();
     }
@@ -85,6 +110,14 @@ private:
 template <typename T, std::size_t N, is_tensor... Args>
 future_tensor(shared_tensor<T, N, device_ref<T>> t, kernel_task<Args...>&& task)
     -> future_tensor<T, N, Args...>;
+
+
+template <typename T, std::size_t N, is_tensor... Args>
+std::shared_ptr<future_tensor<T, N, Args...>>
+make_shared(future_tensor<T, N, Args...>&& tensor)
+{
+    return std::make_shared<future_tensor<T, N, Args...>>(std::move(tensor));
+}
 
 
 template <typename T, std::size_t N, is_tensor... Args>

@@ -65,19 +65,14 @@ private:
     contiguous(shared_tensor<T, M, InputContainer> input, std::size_t dim)
     {
         auto output = shared_tensor(empty_like(*input, _m_device));
-
-        using argument_type = shared_tensor<T, 2, InputContainer>;
-        using future_type = future_tensor<T, 2, argument_type, argument_type>;
-        std::vector<future_type> futures;
+        std::vector<std::shared_ptr<awaitable>> futures;
 
         for (std::size_t offset = 0; offset < output.size(dim); offset++) {
             auto future = _m_cpy(input.narrow(dim, offset, 1), output.narrow(dim, offset, 1));
-            futures.push_back(std::move(future));
+            futures.push_back(make_shared(std::move(future)));
         }
 
-        for (const auto& f : futures) {
-            f.wait();
-        }
+        wait_all(futures);
         return output;
     }
 
@@ -186,28 +181,33 @@ public:
         vv_future.wait();
 
         auto repeat_kv
-            = [&]<ContiguousContainer TensorContainer>(tensor<T, 4, TensorContainer>&& t) -> auto {
+            = [&]<ContiguousContainer TensorContainer>(shared_tensor<T, 4, TensorContainer>&& t
+              ) -> auto {
             int slen = t.size(1);
-            auto reps = repeat_interleave(std::move(t), n_reps, /*dim=*/2, _m_cpy, _m_device);
+            auto reps = repeat_interleave(t, n_reps, /*dim=*/2, _m_device);
             return reps.view({bs, slen, n_heads, head_dim});
         };
 
         // shape: bs, cache + len, n_heads, head_dim.
-        auto keys = repeat_kv(std::move(*kk));
-        auto values = repeat_kv(std::move(*vv));
+        auto keys = repeat_kv(std::move(kk));
+        auto values = repeat_kv(std::move(vv));
 
         queries = queries.transpose({0, 2, 1, 3});
-        keys = keys.transpose({0, 2, 1, 3});
+        // bs, len, n_heads, head_dim <- original keys
+        // bs, n_heads, len, head_dim <- keys.transpose({0, 2, 1, 3})
+        // bs, n_heads, head_dim, len <- keys.transpose({0, 1, 3, 2})
+        // keys = keys.transpose({0, 2, 1, 3});
+        keys = keys.transpose({0, 2, 3, 1});
         values = values.transpose({0, 2, 1, 3});
 
-        auto scores = m_mul(m_matmul(queries, keys.transpose({0, 1, 3, 2})), m_scale);
+        auto scores = m_mul(m_matmul(queries, *keys), m_scale);
 
         if (mask.has_value()) {
             scores = m_sum(scores, mask.value());
         }
         scores = m_softmax(scores);
 
-        auto output = m_matmul(scores, values).transpose({0, 2, 1, 3});
+        auto output = m_matmul(scores, *values).transpose({0, 2, 1, 3});
         auto output_ = contiguous(shared_tensor(std::move(output)), /*dim=*/1);
 
         return m_wo((*output_).view({bs, len, -1}));
