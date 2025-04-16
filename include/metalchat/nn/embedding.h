@@ -14,7 +14,7 @@ namespace nn {
 
 template <typename T, ContiguousContainer Container> class embedding {
 private:
-    tensor<T, 2, Container> _m_weight;
+    shared_tensor<T, 2, Container> _m_weight;
     metalchat::embedding<T> _m_embedding;
 
 public:
@@ -27,7 +27,7 @@ public:
 
     template <integral IndexType, ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<IndexType, 2, InputContainer>& input)
+    operator()(shared_tensor<IndexType, 2, InputContainer>& input)
     {
         return _m_embedding(input, _m_weight);
     }

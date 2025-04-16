@@ -132,6 +132,13 @@ public:
         return _m_value->end();
     }
 
+    template <indexing::slice_convertible... S>
+    auto
+    index_select(const S&... slices) requires(sizeof...(slices) == N)
+    {
+        return shared_tensor(_m_value->index_select(slices...));
+    }
+
     shared_tensor<T, N + 1, Container>
     expand_dims(std::size_t dim) const
     {

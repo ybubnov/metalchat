@@ -59,22 +59,22 @@ public:
 
     template <integral IndexType, ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<IndexType, 2, InputContainer>& input, std::size_t start_pos = 0)
+    operator()(shared_tensor<IndexType, 2, InputContainer> input, std::size_t start_pos = 0)
     {
         const auto mask = create_additive_causal_mask(input.size(1));
-        auto x = shared_tensor(_m_embedding(input));
+        auto x = _m_embedding(input).get();
 
         for (auto& layer : _m_layers) {
             x = layer(x, mask, start_pos).get();
         }
 
-        auto output = _m_norm(*x);
+        auto output = _m_norm(x);
 
         using s = indexing::slice;
         auto seqlen = output.size(1);
         output = output[s(), s(seqlen - 1, seqlen), s()];
 
-        return _m_output(shared_tensor(std::move(output)));
+        return _m_output(output.get());
     }
 };
 

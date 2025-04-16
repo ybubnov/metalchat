@@ -109,7 +109,7 @@ public:
 
         auto device_ptr = device();
         auto command_buf = _m_kernel.make_buffer();
-        auto command_encoder = command_buf->computeCommandEncoder();
+        auto command_encoder = command_buf->computeCommandEncoder(MTL::DispatchTypeConcurrent);
 
         command_encoder->setComputePipelineState(_m_kernel.pipeline());
 

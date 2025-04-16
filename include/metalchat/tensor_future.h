@@ -81,6 +81,18 @@ public:
         return N;
     }
 
+    std::size_t
+    size(std::size_t dim) const
+    {
+        return _m_result.size(dim);
+    }
+
+    const std::span<std::size_t, N>
+    sizes() const
+    {
+        return _m_result.sizes();
+    }
+
     template <std::size_t M>
     future_tensor<T, M>
     view(int (&&dims)[M]) const requires(M > 0)
@@ -109,6 +121,15 @@ public:
     {
         return future_tensor(
             _m_result.transpose(std::move(dims)), _m_kernel_task, _m_promise, _m_future
+        );
+    }
+
+    template <indexing::slice_convertible... S>
+    auto
+    operator[](const S&... slices) requires(sizeof...(slices) == N)
+    {
+        return future_tensor(
+            _m_result.index_select(slices...), _m_kernel_task, _m_promise, _m_future
         );
     }
 

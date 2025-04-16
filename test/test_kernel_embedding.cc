@@ -70,7 +70,7 @@ TEST_CASE("Embedding batched", "[kernel::embedding]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::embedding<float> emb(gpu0);
 
-    auto input = full<int32_t>({3, 4}, 0.0);
+    auto input = shared_tensor(full<int32_t>({3, 4}, 0.0));
     input[0, 0] = 0;
     input[0, 1] = 1;
     input[0, 2] = 2;
@@ -84,8 +84,8 @@ TEST_CASE("Embedding batched", "[kernel::embedding]")
     input[2, 2] = 3;
     input[2, 3] = 2;
 
-    auto weight = rand<float>({5, 128256});
-    auto output = emb(input, weight);
+    auto weight = shared_tensor(rand<float>({5, 128256}));
+    auto output = emb(input, weight).get();
 
     REQUIRE(output.dim() == 3);
     REQUIRE(output.size(0) == 3);
