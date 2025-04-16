@@ -50,39 +50,36 @@ concatenate(ForwardIt begin, ForwardIt end, std::size_t dim)
         throw std::invalid_argument("expected non-empty list of tensors");
     }
 
-    // Ensure that sizes of all concatenated tensors are the same (TODO: with exception
-    // to a concatenating dimension).
-    auto size0 = (*begin).sizes();
-    std::size_t num_tensors = 0;
+    // Ensure that sizes of all concatenated tensors are the same.
+    std::size_t size0[tensor_type::dim()];
+    std::copy((*begin).sizes().begin(), (*begin).sizes().end(), size0);
+    size0[dim] = 0;
 
-    for (auto first = begin; first != end; ++first, ++num_tensors) {
+    for (auto first = begin; first != end; ++first) {
         assert((*first).is_contiguous());
 
         auto sizes = (*first).sizes();
-        for (auto i = 0; i < size0.size(); i++) {
-            if (sizes[i] != size0[i]) {
+        for (auto i = 0; i < tensor_type::dim(); i++) {
+            if (i != dim && sizes[i] != size0[i]) {
                 throw std::invalid_argument("unable to concatenate tensor of various shapes");
+            }
+            if (i == dim) {
+                size0[dim] += sizes[dim];
             }
         }
     }
 
-    std::size_t sizes[tensor_type::dim() + 1];
-    sizes[dim] = num_tensors;
-
-    for (auto i = 0; i < dim; i++) {
-        sizes[i] = size0[i];
-    }
-    for (auto i = dim; i < tensor_type::dim(); i++) {
-        sizes[i + 1] = size0[i];
-    }
-
-    auto output = empty<value_type>(std::move(sizes));
+    auto output = empty<value_type>(std::move(size0));
+    auto output_ptr = output.data_ptr();
     std::size_t offset = 0;
 
     for (auto first = begin; first != end; ++first) {
-        auto numel = (*first).numel();
-        std::memcpy(output.data_ptr() + offset, (*first).data_ptr(), numel * sizeof(value_type));
-        offset += numel;
+        const auto& input = (*first);
+        auto n = input.size(dim);
+        auto target = output.narrow(dim, offset, n);
+
+        std::copy(input.begin(), input.end(), target.begin());
+        offset += n;
     }
 
     return output;

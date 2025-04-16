@@ -223,6 +223,20 @@ public:
         return t;
     }
 
+    auto
+    narrow(std::size_t dim, std::size_t start, std::size_t length)
+    {
+        tensor_base t(m_data);
+        for (auto i = 0; i < N; i++) {
+            t.set_size(i, size(i));
+            t.set_stride(i, stride(i));
+            t.set_offset(i, offset(i));
+        }
+        t.set_offset(dim, start);
+        t.set_size(dim, length);
+        return t;
+    }
+
     tensor_base&
     operator=(const tensor_base& other)
     {
