@@ -5,7 +5,7 @@
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
-#include <metalchat/kernel/sgemm.h>
+#include <metalchat/kernel/bmm.h>
 #include <metalchat/tensor.h>
 
 
@@ -13,10 +13,10 @@ using namespace metalchat;
 using namespace metalchat::dtype;
 
 
-TEST_CASE("Matmul 4d predefined", "[kernel::sgemm]")
+TEST_CASE("Matmul 4d predefined", "[kernel::bmm]")
 {
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::sgemm<bf16> mm(gpu0);
+    metalchat::bmm<bf16> mm(gpu0);
 
     auto input1 = rand<bf16>({3, 3, 3, 5});
     auto input2 = rand<bf16>({3, 3, 5, 7});
@@ -27,4 +27,21 @@ TEST_CASE("Matmul 4d predefined", "[kernel::sgemm]")
     REQUIRE(output.size(1) == 3);
     REQUIRE(output.size(2) == 3);
     REQUIRE(output.size(3) == 7);
+}
+
+
+TEST_CASE("Matmul large 2d", "[kernel::bmm]")
+{
+    metalchat::device gpu0("metalchat.metallib");
+    metalchat::bmm<float> mm(gpu0);
+
+    auto input1 = full<float>({8, 2048}, 2.0);
+    auto input2 = full<float>({2048, 128256}, 1.0);
+    auto output = mm(input1, input2);
+
+    REQUIRE(output.dim() == 2);
+    REQUIRE(output.size(0) == 8);
+    REQUIRE(output.size(1) == 128256);
+
+    std::cout << output << std::endl;
 }

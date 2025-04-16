@@ -36,3 +36,12 @@ TEST_CASE("RoPE array of ones", "[kernel::rope]")
 
     REQUIRE_THAT(total_sum, Catch::Matchers::WithinAbs(46.0, 0.1));
 }
+
+
+// TEST_CASE("RoPE for Llama", "[kernel::rope]")
+// {
+//     auto input = rand<bf16>({1, 32, 4, 64});
+//
+//     metalchat::device gpu0("metalchat.metallib");
+//     metalchat::rope<bf16> rope(gpu0, 64);
+// }

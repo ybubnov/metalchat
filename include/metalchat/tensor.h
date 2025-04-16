@@ -279,6 +279,7 @@ public:
     tensor_base&
     operator=(const tensor_base& other)
     {
+        throw std::runtime_error("no copy assignment");
         if (this == &other) {
             return *this;
         }
@@ -334,7 +335,7 @@ public:
 
     template <std::size_t M>
     tensor_base<T, M, Container>
-    reshape(const int (&&dims)[M]) requires(M > 0)
+    reshape(const int (&&dims)[M]) const requires(M > 0)
     {
         // So far only reshaping of contiguous tensors is supported.
         assert(is_contiguous());
@@ -539,7 +540,7 @@ public:
 
     template <std::size_t M>
     tensor<T, M, Container>
-    reshape(const int (&&dims)[M]) requires(M > 0)
+    reshape(const int (&&dims)[M]) const requires(M > 0)
     {
         return tensor<T, M, Container>(_Base::reshape(std::move(dims)));
     }
@@ -764,7 +765,13 @@ to_tensor(const std::size_t (&&sizes)[N], ForwardIt first, ForwardIt last)
     auto t = empty<T>(std::move(sizes));
     auto distance = std::distance(first, last);
 
-    assert(distance == t.numel());
+    if (distance != t.numel()) {
+        throw std::invalid_argument(std::format(
+            "tensor: iterators differences ({}) should be equal to tensor numel ({})", distance,
+            t.numel()
+        ));
+    }
+
     std::copy(first, last, t.data_ptr());
     return t;
 }

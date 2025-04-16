@@ -147,12 +147,14 @@ public:
 
             std::string key;
             match.toUTF8String(key);
+            std::cout << "KEY(" << key << ")" << std::endl;
 
             if (auto it = _m_fmap.find(key); it != _m_fmap.end()) {
                 ids.push_back(it->second);
             }
             // TODO: else, concatenate byte pairs.
         }
+        std::cout << "ENCODE (size)" << ids.size() << std::endl;
     }
 
     template <push_back_container PushBackContainer>

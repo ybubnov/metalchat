@@ -8,11 +8,14 @@
 using namespace metal;
 
 
-#define __softmax_parameters(T)                                                                    \
-    constant uint &dim_size [[buffer(0)]], device const T *input [[buffer(1)]],                    \
-        device T *output [[buffer(2)]], uint gid [[threadgroup_position_in_grid]],                 \
-        uint tid [[thread_index_in_threadgroup]], uint simd_tid [[thread_index_in_simdgroup]],     \
-        uint simd_gid [[simdgroup_index_in_threadgroup]]
+#define __softmax_parameters(T)                      \
+    constant uint& dim_size [[buffer(0)]],           \
+    device const T* input [[buffer(1)]],             \
+    device T* output [[buffer(2)]],                  \
+    uint gid [[threadgroup_position_in_grid]],       \
+    uint tid [[thread_index_in_threadgroup]],        \
+    uint simd_tid [[thread_index_in_simdgroup]],     \
+    uint simd_gid [[simdgroup_index_in_threadgroup]]
 
 
 template <typename T>

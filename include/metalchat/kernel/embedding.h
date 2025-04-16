@@ -5,6 +5,7 @@
 
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
+#include <metalchat/format.h>
 #include <metalchat/kernel.h>
 #include <metalchat/tensor.h>
 
@@ -74,8 +75,15 @@ public:
         const tensor<int32_t, 0, MultiplierContainer>& offset
     )
     {
-        assert(input.is_contiguous());
-        assert(input.size(3) % 2 == 0);
+        assert((input.is_contiguous()));
+        assert((input.size(3) % 2 == 0));
+
+        if (input.size(3) != m_dim) {
+            throw std::invalid_argument(std::format(
+                "kernel::rope: the last dimension of the input should be {}, but received {}",
+                m_dim, input.size(3)
+            ));
+        }
 
         auto input_strides = empty<uint32_t>({3});
         auto output_strides = empty<uint32_t>({3});
@@ -100,7 +108,6 @@ public:
         auto threads = dim3(dim0, dim1, dim2);
         auto thread = dim3(1, 1, 4);
 
-        std::cout << "CALLING ROPE" << std::endl;
         blocking(threads, thread)(
             input, input_strides, output, output_strides, offset, scalar<float>(m_scale),
             scalar<float>(std::log2(m_base)), scalar<uint32_t>(n_batch)
