@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <format>
 #include <iomanip>
 #include <random>
 #include <span>
@@ -20,19 +21,6 @@ namespace metalchat {
 
 
 template <typename T, ContiguousContainer Container> struct tensor_traits {
-    // Here is the twist with the transposition operation: if this method returns a weak
-    // reference, then this object cannot outlive the original one (for example, in case
-    // of a return from the function), but in case of owning reference, the object should
-    // outlive the original tensor, moreover, original tensor should not wipe out the
-    // memory it holds, since it could be use by another tensor.
-    //
-    // All this drama could be solved by forbidding returning transposed tensors, but RVO
-    // (return value optimization) erases the control of what is possible to return from
-    // a function.
-    //
-    // So exactly this function dictates the implementation of the tensor: data polymorphism
-    // is implemented using a shared pointer (and so could be shared across multiple tensors),
-    // while tensor info (shape, strides, offsets) are always unique reference.
     using data_type = std::shared_ptr<Container>;
 
     using size_type = std::unique_ptr<array_ref<std::size_t>>;
@@ -55,13 +43,20 @@ public:
 
     tensor_base(const tensor_base& t) = delete;
 
-    tensor_base(std::size_t (&&sizes)[N]) requires(std::same_as<Container, owning_ref<T>> && N > 0)
+    tensor_base(const std::size_t (&&sizes)[N])
+        requires(std::same_as<Container, owning_ref<T>> && N > 0)
     {
         _m_initialize(std::move(sizes));
         m_data = std::make_shared<owning_ref<T>>(new T[numel()]);
     }
 
-    tensor_base(std::size_t (&&sizes)[N], device& device)
+    tensor_base(const std::size_t (&&sizes)[N], const traits::data_type& data)
+    : m_data(data)
+    {
+        _m_initialize(std::move(sizes));
+    }
+
+    tensor_base(const std::size_t (&&sizes)[N], device& device)
         requires(std::same_as<Container, device_ref<T>> && N > 0)
     {
         _m_initialize(std::move(sizes));
@@ -236,21 +231,68 @@ public:
     }
 
     /// Returns a tensor with dimensions transposed.
-    template <indexing::SizeConvertible... Dimensions>
     auto
-    transpose(const Dimensions... dims) requires(sizeof...(dims) == N)
+    transpose(const std::size_t (&&dims)[N])
     {
+        // Here is the twist with the transposition operation: if this method returns a weak
+        // reference, then this object cannot outlive the original one (for example, in case
+        // of a return from the function), but in case of owning reference, the object should
+        // outlive the original tensor, moreover, original tensor should not wipe out the
+        // memory it holds, since it could be used by another (transposed) tensor.
+        //
+        // All this drama could be solved by forbidding returning transposed tensors, but RVO
+        // (return value optimization) erases the control of what is possible to return from
+        // a function.
+        //
+        // So exactly this function dictates the implementation of the tensor: data polymorphism
+        // is implemented using a shared pointer (and so could be shared across multiple tensors),
+        // while tensor info (shape, strides, offsets) are always unique reference.
         tensor_base t(m_data);
-        std::size_t i = 0;
-
-        ([&] {
-            t.set_size(i, size(dims));
-            t.set_stride(i, stride(dims));
-            t.set_offset(i, offset(dims));
-            i++;
-        }(), ...);
-
+        for (auto i = 0; i < N; i++) {
+            t.set_size(i, size(dims[i]));
+            t.set_stride(i, stride(dims[i]));
+            t.set_offset(i, offset(dims[i]));
+        }
         return t;
+    }
+
+    template <std::size_t M>
+    tensor_base<T, M, Container>
+    reshape(const int (&&dims)[M]) requires(M > 0)
+    {
+        // So far only reshaping of contiguous tensors is supported.
+        assert(is_contiguous());
+
+        auto size = numel();
+        auto new_size = 1;
+
+        auto inferred_size = size;
+        auto inferred_dim = -1;
+
+        std::size_t sizes[M];
+
+        for (auto i = 0; i < M; i++) {
+            if (dims[i] == -1) {
+                if (inferred_dim >= 0) {
+                    throw std::invalid_argument("only one position can be inferred");
+                }
+                inferred_dim = i;
+            } else {
+                sizes[i] = std::size_t(dims[i]);
+                new_size *= std::size_t(dims[i]);
+                inferred_size = inferred_size / dims[i];
+            }
+        }
+        if (inferred_dim >= 0) {
+            sizes[inferred_dim] = inferred_size;
+            new_size *= inferred_size;
+        }
+
+        if (new_size != size) {
+            throw std::invalid_argument(std::format("shape is invalid for input size {}", size));
+        }
+
+        return tensor_base<T, M, Container>(std::move(sizes), m_data);
     }
 
 protected:
@@ -280,25 +322,26 @@ protected:
     void
     _m_initialize()
     {
-        auto shape = new std::size_t[N]();
-        auto strides = new std::size_t[N]();
-        auto offsets = new std::size_t[N]();
-
-        m_shape = make_owning(shape);
-        m_strides = make_owning(strides);
-        m_offsets = make_owning(offsets);
+        m_shape = make_owning(new std::size_t[N]());
+        m_strides = make_owning(new std::size_t[N]());
+        m_offsets = make_owning(new std::size_t[N]());
     }
 
     void
-    _m_initialize(std::size_t (&&sizes)[N])
+    _m_initialize_strides()
     {
-        _m_initialize();
-
         m_strides->data()[N - 1] = 1;
         for (auto i = N - 2; i < N; --i) {
-            m_strides->data()[i] = m_strides->data()[i + 1] * sizes[i + 1];
+            m_strides->data()[i] = m_strides->data()[i + 1] * m_shape->data()[i + 1];
         }
+    }
+
+    void
+    _m_initialize(const std::size_t (&&sizes)[N])
+    {
+        _m_initialize();
         std::copy_n(sizes, N, m_shape->data());
+        _m_initialize_strides();
     }
 
     tensor_base(const traits::data_type& data)
@@ -333,7 +376,7 @@ public:
     : _Base(std::move(t))
     {}
 
-    tensor(std::size_t (&&sizes)[N], device& device)
+    tensor(const std::size_t (&&sizes)[N], device& device)
     : _Base(std::move(sizes), device)
     {}
 
@@ -376,17 +419,23 @@ public:
         return tensor(_Base::index_select(slices...));
     }
 
-    template <indexing::SizeConvertible... Dimensions>
     auto
-    transpose(const Dimensions... dims)
+    transpose(const std::size_t (&&dims)[N])
     {
-        return tensor(_Base::transpose(dims...));
+        return tensor(_Base::transpose(std::move(dims)));
     }
 
     auto
     t() requires(N == 2)
     {
-        return transpose(0, 1);
+        return transpose({0, 1});
+    }
+
+    template <std::size_t M>
+    tensor<T, M, Container>
+    reshape(const int (&&dims)[M]) requires(M > 0)
+    {
+        return tensor<T, M, Container>(_Base::reshape(std::move(dims)));
     }
 };
 
@@ -403,7 +452,7 @@ public:
     : _Base(std::move(t))
     {}
 
-    tensor(std::size_t (&&sizes)[1], device& device)
+    tensor(const std::size_t (&&sizes)[1], device& device)
     : _Base(std::move(sizes), device)
     {}
 
@@ -483,7 +532,7 @@ public:
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-empty(std::size_t (&&sizes)[N])
+empty(const std::size_t (&&sizes)[N])
 {
     return tensor<T, N, owning_ref<T>>(std::move(sizes));
 }
@@ -499,7 +548,7 @@ scalar(const T& value)
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-empty(std::size_t (&&sizes)[N], device& device)
+empty(const std::size_t (&&sizes)[N], device& device)
 {
     return tensor<T, N, device_ref<T>>(std::move(sizes), device);
 }
@@ -531,7 +580,7 @@ empty_like(const tensor<T, N, Container>& like, device& device)
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-full(std::size_t (&&sizes)[N], const T& fill_value)
+full(const std::size_t (&&sizes)[N], const T& fill_value)
 {
     auto t = empty<T>(std::move(sizes));
     std::fill_n(t.data_ptr(), t.numel(), fill_value);
@@ -541,7 +590,7 @@ full(std::size_t (&&sizes)[N], const T& fill_value)
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-full(std::size_t (&&sizes)[N], const T& fill_value, device& device)
+full(const std::size_t (&&sizes)[N], const T& fill_value, device& device)
 {
     auto t = empty<T>(std::move(sizes), device);
     std::fill_n(t.data_ptr(), t.numel(), fill_value);
@@ -551,7 +600,7 @@ full(std::size_t (&&sizes)[N], const T& fill_value, device& device)
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-zeros(std::size_t (&&sizes)[N])
+zeros(const std::size_t (&&sizes)[N])
 {
     return full<T>(std::move(sizes), 0);
 }
@@ -563,7 +612,7 @@ zeros(std::size_t (&&sizes)[N])
 /// The shape of the tensor is defined by the variable argument `sizes`.
 template <typename T, std::size_t N> requires(N > 0)
 auto
-rand(std::size_t (&&sizes)[N])
+rand(const std::size_t (&&sizes)[N])
 {
     std::random_device rd;
     std::mt19937 generator(rd());
