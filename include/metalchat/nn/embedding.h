@@ -25,25 +25,9 @@ public:
 
     template <integral IndexType, ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<IndexType, 1, InputContainer>& input)
-    {
-        return _m_embedding(input, _m_weight);
-    }
-
-    template <integral IndexType, ContiguousContainer InputContainer>
-    auto
     operator()(const tensor<IndexType, 2, InputContainer>& input)
     {
-        // TODO: rework it to use a single kernel.
-        using tensor_type = tensor<T, 2, device_ref<T>>;
-
-        std::vector<tensor_type> outputs;
-        for (auto batch = 0; batch < input.size(0); batch++) {
-            outputs.push_back(_m_embedding(input[batch], _m_weight));
-        }
-
-        auto output = concatenate(outputs.begin(), outputs.end(), 0);
-        return output.reshape({int(input.size(0)), int(input.size(1)), -1});
+        return _m_embedding(input, _m_weight);
     }
 
     friend std::ostream&

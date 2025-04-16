@@ -51,7 +51,7 @@ public:
         std::cout << "EMBED =" << x << std::endl;
 
         for (auto& layer : _m_layers) {
-            x = to_tensor(layer(x, mask));
+            x = layer(x, mask);
         }
 
         auto output = _m_norm(x);
