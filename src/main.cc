@@ -48,18 +48,27 @@ main()
         */
     }
 
+    // {
+    //     auto input = metalchat::full<bf16>({128, 2048}, bf16(0.5));
+    //     auto up = model_file["model.layers.0.mlp.up_proj.weight"].as<bf16, 2>();
+    //     auto down = model_file["model.layers.0.mlp.down_proj.weight"].as<bf16, 2>();
+    //     auto gate = model_file["model.layers.0.mlp.gate_proj.weight"].as<bf16, 2>();
+
+    //     metalchat::llama::mlp mlp(gate, up, down, gpu0);
+    //     auto result = mlp(input);
+
+    //     std::cout << "result=" << result << std::endl;
+    // }
+
     {
-        auto input = metalchat::full<bf16>({128, 2048}, bf16(0.5));
-        auto up = model_file["model.layers.0.mlp.up_proj.weight"].as<bf16, 2>();
-        auto down = model_file["model.layers.0.mlp.down_proj.weight"].as<bf16, 2>();
-        auto gate = model_file["model.layers.0.mlp.gate_proj.weight"].as<bf16, 2>();
+        auto input1 = metalchat::full<bf16>({4, 4}, 25.0);
+        auto input2 = metalchat::full<bf16>({4, 4}, 10.0);
 
-        metalchat::llama::mlp mlp(gate, up, down, gpu0);
-        auto result = mlp(input);
+        metalchat::sum<bf16> sum(gpu0);
 
-        std::cout << "result=" << result << std::endl;
+        auto result = sum(input1, input2);
+        std::cout << result << std::endl;
     }
-
 
     return 0;
 }
