@@ -32,6 +32,10 @@ public:
                 input.size(0), input.size(1), weight.size(0), weight.size(1)
             ));
         }
+        std::cout << "BMM BEGIN" << std::endl;
+        std::cout << input << std::endl;
+        std::cout << weight << std::endl;
+
         // A(MxK) @ B(KxN) -> C(MxN)
         auto output = empty<T>({input.size(0), weight.size(1)}, m_device);
 
@@ -56,17 +60,17 @@ public:
         assert((input.size(1) == weight.size(1)));
         assert((input.size(3) == weight.size(2)));
 
-        auto output = full<T>({input.size(0), input.size(1), input.size(2), weight.size(3)}, 0.0);
+        auto output = empty<T>({input.size(0), input.size(1), input.size(2), weight.size(3)});
 
         for (auto b0 = 0; b0 < input.size(0); b0++) {
             for (auto b1 = 0; b1 < input.size(1); b1++) {
                 for (auto i = 0; i < input.size(2); i++) {
                     for (auto k = 0; k < weight.size(3); k++) {
-                        T partial_sum = 0;
+                        float partial_sum = 0;
                         for (auto j = 0; j < input.size(3); j++) {
                             partial_sum += input[b0, b1, i, j] * weight[b0, b1, j, k];
                         }
-                        output[b0, b1, i, k] = partial_sum;
+                        output[b0, b1, i, k] = T(partial_sum);
                     }
                 }
             }

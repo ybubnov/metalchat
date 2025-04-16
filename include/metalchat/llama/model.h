@@ -44,7 +44,9 @@ public:
     auto
     operator()(const tensor<IndexType, 2, InputContainer>& input)
     {
-        auto mask = full<T>({input.size(1), input.size(1)}, T(-1e9));
+        const T infinity = T(std::numeric_limits<float>::infinity());
+
+        auto mask = full<T>({input.size(1), input.size(1)}, -infinity);
         triu(mask);
 
         auto x = _m_embedding(input);
@@ -54,7 +56,6 @@ public:
         }
 
         auto output = _m_norm(x);
-        // output (bs, len, 128256).
         return _m_output(output); // _m_output(input[:, -1]) - take only the last dimension;
     }
 };

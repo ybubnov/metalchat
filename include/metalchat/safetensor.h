@@ -39,7 +39,7 @@ public:
     auto
     as() const
     {
-        assert(N == _m_shape.size());
+        assert((N == _m_shape.size()));
 
         auto data = std::make_shared<weak_ref<T>>(static_cast<T*>(_m_data));
         return tensor(tensor_base<T, N, weak_ref<T>>(_m_shape.cbegin(), _m_shape.cend(), data));

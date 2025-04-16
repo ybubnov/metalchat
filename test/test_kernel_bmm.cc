@@ -35,8 +35,8 @@ TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::bmm<float> mm(gpu0);
 
-    auto input1 = rand<float>({1, 5, 2048}); // b, i, j
-    auto input2 = rand<float>({2048, 8192}); // j, k
+    auto input1 = rand<float>({1, 5, 2048});     // b, i, j
+    auto input2 = rand<float>({8192, 2048}).t(); // j, k
 
     auto output = mm(input1, input2);
 

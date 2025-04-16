@@ -108,11 +108,12 @@ concatenate(
 
 template <typename T, std::size_t N, ContiguousContainer Container>
 auto
-repeat_interleave(tensor<T, N, Container>&& tensor, std::size_t repeats, std::size_t dim)
+repeat_interleave(tensor<T, N, Container>&& t, std::size_t repeats, std::size_t dim)
 {
-    auto exp_tensor = tensor.expand_dims(dim);
+    auto exp_tensor = tensor(t.expand_dims(dim + 1));
     auto rep_tensor = std::views::repeat(std::move(exp_tensor), repeats);
-    return concatenate(rep_tensor.begin(), rep_tensor.end(), dim);
+    auto output = concatenate(rep_tensor.begin(), rep_tensor.end(), dim + 1);
+    return output;
 }
 
 

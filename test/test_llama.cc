@@ -14,7 +14,7 @@ using namespace metalchat::dtype;
 
 TEST_CASE("Test make model", "[llama]")
 {
-    safetensor_file tensors("../Llama-3.2-1B/model.safetensors");
+    safetensor_file tensors("../llama32.safetensors");
     metalchat::bpe bpe("../Llama-3.2-1B/original/tokenizer.model");
     metalchat::device gpu0("metalchat.metallib");
 
@@ -22,12 +22,13 @@ TEST_CASE("Test make model", "[llama]")
 
     std::vector<int32_t> ids;
     bpe.encode(special_token::begin_text, ids);
-    bpe.encode("The capital of Germany is ", ids);
+    bpe.encode("I have a dog called", ids);
 
     auto input = to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end());
 
     auto output = m(input);
     std::cout << output << std::endl;
+    std::cout << input << std::endl;
 
     REQUIRE(output.dim() == 3);
 
@@ -42,5 +43,6 @@ TEST_CASE("Test make model", "[llama]")
         }
     }
 
+    std::cout << id << std::endl;
     std::cout << bpe.decode(id) << std::endl;
 }
