@@ -57,6 +57,8 @@ make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_
             std::move(attention), std::move(attention_norm), std::move(ff), std::move(ff_norm),
             device
         );
+
+        layers.push_back(std::move(transformer));
     }
 
     return llama::model(

@@ -97,4 +97,13 @@ template <> struct type_traits<dtype::bf16> {
 };
 
 
+template <> struct type_traits<float> {
+    static std::string
+    name()
+    {
+        return "float";
+    }
+};
+
+
 } // namespace metalchat

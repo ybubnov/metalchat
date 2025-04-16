@@ -48,6 +48,7 @@ public:
         triu(mask);
 
         auto x = _m_embedding(input);
+        std::cout << "calling layers=" << _m_layers.size() << std::endl;
         for (auto& layer : _m_layers) {
             x = to_tensor(layer(x, mask));
         }

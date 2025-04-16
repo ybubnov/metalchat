@@ -43,6 +43,7 @@ public:
     auto
     operator()(const tensor<T, 3, InputContainer>& input, const tensor<T, 2, MaskContainer>& mask)
     {
+        std::cout << "calling transformer" << std::endl;
         auto r = _m_attention(_m_attention_norm(input), mask);
         auto h = _m_sum(input, r);
 

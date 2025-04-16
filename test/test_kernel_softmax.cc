@@ -54,9 +54,9 @@ TEST_CASE("Softmax sum should be 1.0", "[kernel::softmax]")
 TEST_CASE("Softmax for 4-dimensional tensor", "[kernel::softmax]")
 {
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::softmax<bf16> softmax(gpu0);
+    metalchat::softmax<float> softmax(gpu0);
 
-    auto input = rand<bf16>({4, 4, 4, 64});
+    auto input = rand<float>({1, 32, 4, 4});
     auto output = softmax(input);
 
     for (auto i = 0; i < input.size(0); i++) {
@@ -64,7 +64,7 @@ TEST_CASE("Softmax for 4-dimensional tensor", "[kernel::softmax]")
             for (auto k = 0; k < input.size(2); k++) {
                 auto tensor = output[i][j][k];
                 auto sum = std::reduce(tensor.data_ptr(), tensor.data_ptr() + input.size(3));
-                REQUIRE_THAT(sum, Catch::Matchers::WithinAbs(1.0, 0.1));
+                REQUIRE_THAT(sum, Catch::Matchers::WithinAbs(1.0, 0.00001));
             }
         }
     }

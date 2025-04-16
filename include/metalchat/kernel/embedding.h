@@ -100,6 +100,7 @@ public:
         auto threads = dim3(dim0, dim1, dim2);
         auto thread = dim3(1, 1, 4);
 
+        std::cout << "CALLING ROPE" << std::endl;
         blocking(threads, thread)(
             input, input_strides, output, output_strides, offset, scalar<float>(m_scale),
             scalar<float>(std::log2(m_base)), scalar<uint32_t>(n_batch)
