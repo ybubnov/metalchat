@@ -12,9 +12,9 @@
 template <typename T> struct __rope_parameters {
     tensor2<T> output;
     tensor2<const T> input;
-    constant tensor_layout<2>& freqs_cos_layout;
+    constant layout2& freqs_cos_layout;
     device const float* freqs_cos;
-    constant tensor_layout<2>& freqs_sin_layout;
+    constant layout2& freqs_sin_layout;
     device const float* freqs_sin;
     constant uint& batch_size;
     constant uint& n_head;
@@ -31,8 +31,8 @@ rope(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    tensor<const float, 2> f_cos{params.freqs_cos, params.freqs_cos_layout};
-    tensor<const float, 2> f_sin{params.freqs_sin, params.freqs_sin_layout};
+    tensor2<const float> f_cos(params.freqs_cos_layout, params.freqs_cos);
+    tensor2<const float> f_sin(params.freqs_sin_layout, params.freqs_sin);
 
     const uint head_dim = f_cos.size(1);
     const uint i = gid.x;

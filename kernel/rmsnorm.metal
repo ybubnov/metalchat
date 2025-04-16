@@ -9,9 +9,9 @@
 
 
 #define __rmsnorm_parameters(T)                             \
-    constant tensor_layout<2>& output_layout [[buffer(0)]], \
+    constant layout2& output_layout          [[buffer(0)]], \
     device T* output                         [[buffer(1)]], \
-    constant tensor_layout<2>& input_layout  [[buffer(2)]], \
+    constant layout2& input_layout           [[buffer(2)]], \
     device const T* input                    [[buffer(3)]], \
     constant tensor_layout<1>& weight_layout [[buffer(4)]], \
     device const T* weight                   [[buffer(5)]], \
@@ -29,9 +29,9 @@ rmsnorm(__rmsnorm_parameters(T))
 {
     constexpr int SIMD_SIZE = 32;
 
-    tensor<const T, 2> in{input, input_layout};
+    tensor2<const T> in(input_layout, input);
     tensor<const T, 1> w{weight, weight_layout};
-    tensor<T, 2> out{output, output_layout};
+    tensor2<T> out(output_layout, output);
 
     float threadlocal_sum = 0.0f;
 
