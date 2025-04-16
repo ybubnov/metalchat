@@ -130,6 +130,13 @@ private:
 ///
 /// The implementation only allows cast from incomplete allocator type, since the parent
 /// allocator might exploit different memory alignment depending from the underlying type.
+///
+/// Example:
+/// ```cpp
+/// auto gpu = device("metalchat.metallib");
+/// auto alloc = rebind_hardware_allocator<float>(gpu.get_allocator());
+/// auto floats_container_ptr = alloc.allocate(10);
+/// ```
 template <typename T, hardware_allocator_t<void> Allocator>
 class rebind_hardware_allocator : public basic_hardware_memory_allocator<T> {
 public:
@@ -144,6 +151,10 @@ public:
     : _m_alloc(alloc)
     {}
 
+    /// Allocates `size * sizeof(T)` bytes of uninitialized memory by calling an underlying
+    /// hardware allocator.
+    ///
+    /// Use of this function is ill-formed if `T` is incomplete type.
     container_pointer
     allocate(size_type size) override
     {
@@ -153,6 +164,7 @@ public:
         return std::reinterpret_pointer_cast<container_type>(_m_alloc.allocate(sizeof(T) * size));
     }
 
+    /// Allocates `size * sizeof(T)` bytes and initializes them with the data stored at `ptr`.
     container_pointer
     allocate(const_pointer ptr, size_type size) override
     {
