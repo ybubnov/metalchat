@@ -30,21 +30,32 @@ public:
         const tensor<T, M, Input1Container>& input1, const tensor<T, N, Input2Container>& input2
     )
     {
-        if (input1.numel() != input2.numel()) {
+        constexpr std::size_t block_size = 32;
+
+        auto data_size = input1.numel();
+        auto dim_size = input1.sizes().back();
+        auto num_rows = data_size / dim_size;
+
+        if (auto dim_size2 = input2.sizes().back(); dim_size != dim_size2) {
             throw std::invalid_argument(std::format(
-                "kernel::sum: tensor1 {} and tensor2 {} cannot be broadcasted", input1.sizes(),
-                input2.sizes()
+                "sum: last dimension size should be the same for both tensors {} != {}", dim_size,
+                dim_size2
+            ));
+        }
+
+        if (auto data_size2 = input2.numel(); data_size != data_size2) {
+            throw std::invalid_argument(std::format(
+                "sum: data size should be the same for both tensors {} != {}", data_size, data_size2
             ));
         }
 
         auto output = empty_like(input1, m_device);
-        auto n = scalar<int32_t>(input1.numel());
 
-        auto threads = dim3(input1.numel());
-        // TODO: change the size of a threadgroup to the maximum.
-        auto thread = dim3(32);
+        auto thread_size = ceil_div(dim_size, block_size);
+        auto thread = dim3(thread_size);
+        auto threads = dim3(thread_size * num_rows);
 
-        blocking(threads, thread)(n, input1, input2, output);
+        blocking(threads, thread)(scalar<int32_t>(dim_size), input1, input2, output);
         return output;
     }
 };

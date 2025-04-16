@@ -28,16 +28,14 @@ public:
         auto dim_size = input.sizes().back();
         auto num_rows = data_size / dim_size;
 
-        constexpr std::size_t simd_size = 32;
         constexpr std::size_t block_size = 4;
 
         assert((dim_size <= block_size * 1024)); // 1024 = max total threads per tg.
 
         auto thread_size = ceil_div(dim_size, block_size);
-        auto thread_simd_size = ceil_div(thread_size, simd_size);
 
-        auto thread = dim3(thread_size * thread_simd_size);
-        auto threads = dim3(thread_size * thread_simd_size * num_rows);
+        auto thread = dim3(thread_size);
+        auto threads = dim3(thread_size * num_rows);
 
         auto output = empty_like(input, m_device);
 

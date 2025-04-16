@@ -46,7 +46,6 @@ public:
     {
         std::cout << ">>>transformer" << std::endl;
         auto norm = _m_attention_norm(input);
-        std::cout << "ATTENTION NORM size=" << norm.sizes() << std::endl;
         auto r = _m_attention(norm, mask);
         auto h = _m_sum(input, r);
 
