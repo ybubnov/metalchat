@@ -87,36 +87,29 @@ template <typename T, uint BlockSize>
 kernel void
 multinomial(
     __multinomial_parameters<T> params,
-    uint gid [[threadgroup_position_in_grid]],
-    uint tid [[thread_position_in_threadgroup]]
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    pcg32 generator(params.init_state + gid, params.init_seq + tid);
-
     const uint dim_size = params.output.size(1);
-    const uint i = gid;
+    const uint i = gid.x;
 
-    const uint begin = tid * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint k = tid.x + gid.y * threadgroup_size.x;
 
-    int32_t local_samples[BlockSize];
-#pragma unroll
-    for (uint k = begin, j = 0; k < end && k < dim_size; k++, j++) {
+    pcg32 generator(params.init_state + i, params.init_seq + k);
+
+    if (k < dim_size) {
         T random = T(generator.uniform());
-        local_samples[j] = __binary_search(params.input, i, random);
-    }
-
-#pragma unroll
-    for (uint k = begin, j = 0; k < end && k < dim_size; k++, j++) {
-        params.output.at(i, k) = local_samples[j];
+        params.output.at(i, k) = __binary_search(params.input, i, random);
     }
 }
 
 
-__lib_metalchat_kernel(multinomial, bfloat, 8);
-__lib_metalchat_kernel(multinomial, bfloat, 16);
-__lib_metalchat_kernel(multinomial, bfloat, 32);
+__lib_metalchat_kernel2x(multinomial, bfloat, 8);
+__lib_metalchat_kernel2x(multinomial, bfloat, 16);
+__lib_metalchat_kernel2x(multinomial, bfloat, 32);
 
-__lib_metalchat_kernel(multinomial, float, 8);
-__lib_metalchat_kernel(multinomial, float, 16);
-__lib_metalchat_kernel(multinomial, float, 32);
+__lib_metalchat_kernel2x(multinomial, float, 8);
+__lib_metalchat_kernel2x(multinomial, float, 16);
+__lib_metalchat_kernel2x(multinomial, float, 32);

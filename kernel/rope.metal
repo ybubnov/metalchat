@@ -26,23 +26,23 @@ template <typename T, uint BlockSize>
 kernel void
 rope(
     __rope_parameters<T> params,
-    uint gid [[threadgroup_position_in_grid]],
-    uint tid [[thread_position_in_threadgroup]]
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
     tensor<const float, 2> f_cos{params.freqs_cos, params.freqs_cos_layout};
     tensor<const float, 2> f_sin{params.freqs_sin, params.freqs_sin_layout};
 
     const uint head_dim = f_cos.size(1);
-    const uint i = gid;
+    const uint i = gid.x;
 
-    const uint begin = tid * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint k = tid.x + gid.y * threadgroup_size.x;
 
     // numel = bs * seq_len * n_head * head_dim
     const uint pos = i / (params.batch_size * params.n_head);
 
-    for (uint k = begin; k < end && k < head_dim; k++) {
+    if (k < head_dim) {
         float x1 = params.input.at(i, 2 * k);
         float x2 = params.input.at(i, 2 * k + 1);
 
@@ -55,10 +55,10 @@ rope(
 }
 
 
-__lib_metalchat_kernel(rope, bfloat, 8);
-__lib_metalchat_kernel(rope, bfloat, 16);
-__lib_metalchat_kernel(rope, bfloat, 32);
+__lib_metalchat_kernel2x(rope, bfloat, 8);
+__lib_metalchat_kernel2x(rope, bfloat, 16);
+__lib_metalchat_kernel2x(rope, bfloat, 32);
 
-__lib_metalchat_kernel(rope, float, 8);
-__lib_metalchat_kernel(rope, float, 16);
-__lib_metalchat_kernel(rope, float, 32);
+__lib_metalchat_kernel2x(rope, float, 8);
+__lib_metalchat_kernel2x(rope, float, 16);
+__lib_metalchat_kernel2x(rope, float, 32);

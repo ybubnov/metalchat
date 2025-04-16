@@ -42,7 +42,7 @@ public:
         auto thread_size_x = ceil_div(dim_size, BlockSize);
         auto thread_size_y = ceil_div(emb_size, EmbeddingBlockSize);
         auto thread = dim3(thread_size_x, thread_size_y);
-        auto grid = dim3(thread_size_x * num_rows, thread_size_y);
+        auto grid = dim3(thread_size_x * num_rows, thread_size_y, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto task_future = task.bind_front(output, input, weight);
@@ -97,7 +97,7 @@ public:
         auto input_view = flatten<2>(input);
         auto output_view = shared_empty_like<T>(input_view, _m_kernel.allocator());
 
-        auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
+        auto [grid, thread] = make_kernel_grid_2d(input, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto task_future = task.bind_front(
