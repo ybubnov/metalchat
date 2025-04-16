@@ -13,7 +13,7 @@ namespace metalchat {
 namespace kernel {
 
 
-template <typename T, std::size_t BlockSize = 16> class bmm {
+template <typename T, std::size_t BlockSize = 8> class bmm {
 private:
     inline static const std::string operation_name = "bmm_" + std::to_string(BlockSize);
 

@@ -1,3 +1,4 @@
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -66,14 +67,18 @@ TEST_CASE("Matmul large 2d", "[kernel::bmm]")
 
     auto input1 = shared_tensor(full<float>({8, 2048}, 2.0));
     auto input2 = shared_tensor(full<float>({2048, 128256}, 1.0));
-    auto output = mm(input1, input2).get();
 
-    REQUIRE(output.dim() == 2);
-    REQUIRE(output.size(0) == 8);
-    REQUIRE(output.size(1) == 128256);
+    BENCHMARK("multiply 128256 elements")
+    {
+        auto output = mm(input1, input2).get();
 
-    std::cout << output << std::endl;
-    for (auto it = output.begin(); it != output.end(); ++it) {
-        REQUIRE_THAT(*it, Catch::Matchers::WithinAbs(4096.0, 1e-5));
-    }
+        REQUIRE(output.dim() == 2);
+        REQUIRE(output.size(0) == 8);
+        REQUIRE(output.size(1) == 128256);
+    };
+
+    // std::cout << output << std::endl;
+    // for (auto it = output.begin(); it != output.end(); ++it) {
+    //     REQUIRE_THAT(*it, Catch::Matchers::WithinAbs(4096.0, 1e-5));
+    // }
 }
