@@ -59,13 +59,13 @@ public:
 
     template <integral IndexType, ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<IndexType, 2, InputContainer>& input)
+    operator()(const tensor<IndexType, 2, InputContainer>& input, std::size_t start_pos = 0)
     {
         const auto mask = create_additive_causal_mask(input.size(1));
         auto x = _m_embedding(input);
 
         for (auto& layer : _m_layers) {
-            x = layer(x, mask);
+            x = layer(x, mask, start_pos);
         }
 
         auto output = _m_norm(x);

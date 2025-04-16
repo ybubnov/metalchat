@@ -11,6 +11,23 @@
 using namespace metalchat;
 using namespace metalchat::dtype;
 
+template <typename T, ContiguousContainer Container>
+std::size_t
+argmax_(const tensor<T, 3, Container>& t)
+{
+    std::size_t id = 0;
+    auto last = t.size(1) - 1;
+    T max = t[0, last, 0];
+
+    for (auto i = 0; i < t.size(2); i++) {
+        if (t[0, last, i] > max) {
+            id = i;
+            max = t[0, last, i];
+        }
+    }
+    return id;
+}
+
 
 TEST_CASE("Test make model", "[llama]")
 {
@@ -24,25 +41,16 @@ TEST_CASE("Test make model", "[llama]")
     bpe.encode(special_token::begin_text, ids);
     bpe.encode("I have a dog called", ids);
 
-    auto input = to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end());
+    auto input0 = to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end());
+    auto output0 = m(input0, 0);
+    auto id = argmax_(output0);
+    std::cout << bpe.decode(id);
 
-    auto output = m(input);
-    std::cout << output << std::endl;
-    std::cout << input << std::endl;
-
-    REQUIRE(output.dim() == 3);
-
-    std::size_t id = 0;
-    auto last = input.size(1) - 1;
-    bf16 max = output[0, last, 0];
-
-    for (auto i = 0; i < output.size(2); i++) {
-        if (output[0, last, i] > max) {
-            id = i;
-            max = output[0, last, i];
-        }
+    for (auto i = 1; i < 10; i++) {
+        auto input = full<int32_t>({1, 1}, id);
+        auto output = m(input, i);
+        id = argmax_(output);
+        std::cout << bpe.decode(id);
     }
-
-    std::cout << id << std::endl;
-    std::cout << bpe.decode(id) << std::endl;
+    std::cout << std::endl;
 }

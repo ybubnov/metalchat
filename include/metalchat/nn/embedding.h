@@ -106,7 +106,7 @@ public:
 
     template <ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<T, 4, InputContainer>& input)
+    operator()(const tensor<T, 4, InputContainer>& input, std::size_t start_pos = 0)
     {
         if (_m_dim != input.sizes().back()) {
             throw std::invalid_argument(std::format(
@@ -123,8 +123,8 @@ public:
                     for (auto k = 0; k < _m_dim / 2; k++) {
                         auto x1 = input[bs, i, j, 2 * k];
                         auto x2 = input[bs, i, j, 2 * k + 1];
-                        auto cos = _m_freqs_cos[i, k];
-                        auto sin = _m_freqs_sin[i, k];
+                        auto cos = _m_freqs_cos[start_pos + i, k];
+                        auto sin = _m_freqs_sin[start_pos + i, k];
 
                         output[bs, i, j, 2 * k] = cos * x1 - sin * x2;
                         output[bs, i, j, 2 * k + 1] = sin * x1 + cos * x2;
