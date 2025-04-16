@@ -25,9 +25,9 @@ TEST_CASE("Hadamard product", "[kernel::hadamard]")
     REQUIRE(output.size(1) == 5);
     REQUIRE(output.size(2) == 8192);
 
-    for (auto i = 0; i < output.size(0); i++) {
-        for (auto j = 0; j < output.size(1); j++) {
-            for (auto k = 0; k < output.size(2); k++) {
+    for (std::size_t i = 0; i < output.size(0); i++) {
+        for (std::size_t j = 0; j < output.size(1); j++) {
+            for (std::size_t k = 0; k < output.size(2); k++) {
                 auto result = input1[i, j, k] * input2[i, j, k];
                 REQUIRE_THAT((output[i, j, k]), Catch::Matchers::WithinAbs(result, 0.00001));
             }
@@ -45,14 +45,14 @@ TEST_CASE("Scalar multiplication", "[kernel::scalar_mul]")
     auto output = m(input, 8.0f).get();
 
     REQUIRE(output.dim() == 4);
-    for (auto i = 0; i < output.dim(); i++) {
+    for (std::size_t i = 0; i < output.dim(); i++) {
         REQUIRE(output.size(i) == input.size(i));
     }
 
-    for (auto i = 0; i < output.size(0); i++) {
-        for (auto j = 0; j < output.size(1); j++) {
-            for (auto m = 0; m < output.size(2); m++) {
-                for (auto n = 0; n < output.size(2); n++) {
+    for (std::size_t i = 0; i < output.size(0); i++) {
+        for (std::size_t j = 0; j < output.size(1); j++) {
+            for (std::size_t m = 0; m < output.size(2); m++) {
+                for (std::size_t n = 0; n < output.size(2); n++) {
                     REQUIRE_THAT(
                         (output[i, j, m, n]),
                         Catch::Matchers::WithinAbs(input[i, j, m, n] * 8.0f, 0.00001)

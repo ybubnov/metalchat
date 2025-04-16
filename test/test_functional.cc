@@ -25,11 +25,11 @@ TEST_CASE("Test repeat interleave", "[functional::repeat_interleave]")
     REQUIRE(output.size(3) == 4);
     REQUIRE(output.size(4) == 64);
 
-    for (auto i = 0; i < original.size(0); i++) {
-        for (auto j = 0; j < original.size(1); j++) {
-            for (auto k = 0; k < original.size(2); k++) {
-                for (auto l = 0; l < original.size(3); l++) {
-                    for (auto m = 0; m < output.size(3); m++) {
+    for (std::size_t i = 0; i < original.size(0); i++) {
+        for (std::size_t j = 0; j < original.size(1); j++) {
+            for (std::size_t k = 0; k < original.size(2); k++) {
+                for (std::size_t l = 0; l < original.size(3); l++) {
+                    for (std::size_t m = 0; m < output.size(3); m++) {
                         REQUIRE(original[i, j, k, l] == output[i, j, k, m, l]);
                     }
                 }

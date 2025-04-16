@@ -14,8 +14,8 @@ using namespace metalchat::indexing;
 TEST_CASE("Read-write 2d tensor slicing", "[tensor::operator]")
 {
     auto t = full<bf16>({4, 5}, 5.0);
-    for (auto i = 0; i < t.size(0); i++) {
-        for (auto j = 0; j < t.size(1); j++) {
+    for (std::size_t i = 0; i < t.size(0); i++) {
+        for (std::size_t j = 0; j < t.size(1); j++) {
             REQUIRE(t[i, j] == 5.0);
             t[i, j] = bf16((i + 1) * 10 + j);
         }
@@ -29,16 +29,16 @@ TEST_CASE("Read-write 2d tensor slicing", "[tensor::operator]")
     REQUIRE(s.stride(1) == 1);
     REQUIRE(!s.is_contiguous());
 
-    for (auto i = 0; i < s.size(0); i++) {
-        for (auto j = 0; j < s.size(1); j++) {
+    for (std::size_t i = 0; i < s.size(0); i++) {
+        for (std::size_t j = 0; j < s.size(1); j++) {
             s[i, j] = 0.0;
         }
     }
 
     // Ensure that writing through the tensor view updates values in the
     // underlying storage.
-    for (auto i = 1; i < 3; i++) {
-        for (auto j = 1; j < 4; j++) {
+    for (std::size_t i = 1; i < 3; i++) {
+        for (std::size_t j = 1; j < 4; j++) {
             REQUIRE(t[i, j] == 0.0);
         }
     }
@@ -54,11 +54,11 @@ TEST_CASE("Read-write 1d tensor slicing", "[tensor::operator]")
     REQUIRE(s.stride(0) == 1);
     REQUIRE(!s.is_contiguous());
 
-    for (auto i = 0; i < s.size(0); i++) {
+    for (std::size_t i = 0; i < s.size(0); i++) {
         s[i] = 0.0;
     }
 
-    for (auto i = 3; i < 10; i++) {
+    for (std::size_t i = 3; i < 10; i++) {
         REQUIRE(t[i] == 0.0);
     }
 }

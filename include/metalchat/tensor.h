@@ -96,7 +96,7 @@ public:
     : tensor(std::span<std::size_t, N>(sizes, N))
     {}
 
-    tensor(std::size_t (&&sizes)[N], const traits_type::data_type& data)
+    tensor(std::size_t (&&sizes)[N], const traits_type::data_type& data) requires(N > 0)
     : tensor(std::span<std::size_t, N>(sizes, N), data)
     {}
 
@@ -165,7 +165,7 @@ public:
         m_strides->data()[dim] = i;
     }
 
-    inline const auto
+    inline auto
     strides() const noexcept
     {
         return std::span<std::size_t, N>(m_strides->data(), N);
@@ -182,7 +182,7 @@ public:
         return m_shape->data()[dim];
     }
 
-    inline const auto
+    inline auto
     sizes() const noexcept
     {
         return std::span<std::size_t, N>(m_shape->data(), N);
@@ -205,7 +205,7 @@ public:
         m_offsets->data()[dim] = i;
     }
 
-    inline const auto
+    inline auto
     offsets() const noexcept
     {
         return std::span<std::size_t, N>(m_offsets->data(), N);
@@ -250,13 +250,13 @@ public:
 
     // TODO: move these methods to the container implementations!
     NS::SharedPtr<MTL::Buffer>
-    memory_move(MTL::Device* device) const requires(std::same_as<Container, device_ref<T>>)
+    memory_move(MTL::Device*) const requires(std::same_as<Container, device_ref<T>>)
     {
         return container().storage();
     }
 
     NS::SharedPtr<MTL::Buffer>
-    memory_move(MTL::Device* device) const requires(std::same_as<Container, value_ref<T>>)
+    memory_move(MTL::Device*) const requires(std::same_as<Container, value_ref<T>>)
     {
         return NS::SharedPtr<MTL::Buffer>();
     }
@@ -322,7 +322,6 @@ public:
     auto
     at(std::size_t i)
     {
-        using tensor_type = tensor<T, N - 1, weak_ref<T>>;
         return const_cast<tensor const&>(*this).at(i);
     }
 
@@ -381,7 +380,7 @@ public:
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
         tensor t(m_data);
-        for (auto i = 0; i < N; i++) {
+        for (std::size_t i = 0; i < N; i++) {
             t.set_size(i, size(i));
             t.set_stride(i, stride(i));
             t.set_offset(i, offset(i));
@@ -437,10 +436,10 @@ public:
 
     /// Returns a tensor with dimensions transposed.
     auto
-    transpose(const std::size_t (&&dims)[N]) const
+    transpose(const std::size_t (&&dims)[N]) const requires(N > 0)
     {
         tensor t(m_data);
-        for (auto i = 0; i < N; i++) {
+        for (std::size_t i = 0; i < N; i++) {
             t.set_size(i, size(dims[i]));
             t.set_stride(i, stride(dims[i]));
             t.set_offset(i, offset(dims[i]));
@@ -462,10 +461,10 @@ public:
         int sizes[N + 1];
         sizes[dim] = 1;
 
-        for (auto i = 0; i < dim; i++) {
+        for (std::size_t i = 0; i < dim; i++) {
             sizes[i] = size(i);
         }
-        for (auto i = dim; i < N; i++) {
+        for (std::size_t i = dim; i < N; i++) {
             sizes[i + 1] = size(i);
         }
 
@@ -484,15 +483,15 @@ public:
     tensor<T, M, Container>
     view(const std::span<int, M> dims) const requires(M > 0)
     {
-        auto tensor_numel = numel();
-        auto view_numel = 1;
+        std::size_t tensor_numel = numel();
+        std::size_t view_numel = 1;
 
         auto inferred_size = tensor_numel;
         auto inferred_dim = -1;
 
         std::size_t view_sizes[M];
 
-        for (auto i = 0; i < M; i++) {
+        for (std::size_t i = 0; i < M; i++) {
             if (dims[i] == -1) {
                 if (inferred_dim >= 0) {
                     throw std::invalid_argument("tensor::view: only one position can be inferred");
@@ -576,7 +575,7 @@ public:
     flatten() const requires(M <= N)
     {
         std::size_t sizes[M]{numel()};
-        for (auto i = 1; i <= M - 1; i++) {
+        for (std::size_t i = 1; i <= M - 1; i++) {
             sizes[M - i] = size(N - i);
             sizes[0] /= sizes[M - i];
         }
@@ -607,7 +606,7 @@ protected:
     _m_initialize_strides()
     {
         m_strides->data()[N - 1] = 1;
-        for (auto i = N - 2; i < N; --i) {
+        for (std::size_t i = N - 2; i < N; --i) {
             m_strides->data()[i] = m_strides->data()[i + 1] * m_shape->data()[i + 1];
         }
     }
@@ -780,7 +779,7 @@ to_tensor(std::size_t (&&sizes)[N], ForwardIt first, ForwardIt last)
     auto t = empty<T>(std::move(sizes));
     auto distance = std::distance(first, last);
 
-    if (distance != t.numel()) {
+    if (std::size_t(distance) != t.numel()) {
         throw std::invalid_argument(std::format(
             "tensor: iterators differences ({}) should be equal to tensor numel ({})", distance,
             t.numel()

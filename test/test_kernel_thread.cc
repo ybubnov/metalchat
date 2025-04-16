@@ -26,9 +26,9 @@ TEST_CASE("Kernel thread", "[kernel::thread]")
     REQUIRE(result.size(1) == 4);
     REQUIRE(result.size(2) == 5);
 
-    for (auto i = 0; i < result.size(0); i++) {
-        for (auto j = 0; j < result.size(1); j++) {
-            for (auto k = 0; k < result.size(2); k++) {
+    for (std::size_t i = 0; i < result.size(0); i++) {
+        for (std::size_t j = 0; j < result.size(1); j++) {
+            for (std::size_t k = 0; k < result.size(2); k++) {
                 REQUIRE((result[i, j, k]) == 8.0f);
             }
         }

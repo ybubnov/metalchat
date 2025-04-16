@@ -66,7 +66,7 @@ private:
         auto low_wavelen = context_length / low_scale;
         auto high_wavelen = context_length / high_scale;
 
-        for (auto i = 0; i < freqs.size(); i++) {
+        for (std::size_t i = 0; i < freqs.size(); i++) {
             auto wavelen = 2 * std::numbers::pi / freqs[i];
 
             if (wavelen < high_wavelen) {
@@ -98,8 +98,8 @@ public:
 
         // scale_freqs(freqs);
 
-        for (auto i = 0; i < _m_max_seq_len * 2; i++) {
-            for (auto j = 0; j < _m_dim / 2; j++) {
+        for (std::size_t i = 0; i < _m_max_seq_len * 2; i++) {
+            for (std::size_t j = 0; j < _m_dim / 2; j++) {
                 float angle = float(i) * freqs[j];
                 _m_freqs_cos[i, j] = std::cos(angle);
                 _m_freqs_sin[i, j] = std::sin(angle);

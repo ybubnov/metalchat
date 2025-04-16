@@ -24,8 +24,6 @@ public:
 
     using const_iterator = const iterator;
 
-    shared_tensor(const shared_tensor& t) noexcept = default;
-
     shared_tensor(tensor_type&& t)
     : _m_value(std::make_shared<tensor_type>(std::move(t)))
     {}

@@ -54,7 +54,7 @@ public:
     }
 
     friend std::ostream&
-    operator<<(std::ostream& os, const transformer& t)
+    operator<<(std::ostream& os, const transformer&)
     {
         os << "llama::transformer<" << type_traits<T>::name() << ">()";
         return os;

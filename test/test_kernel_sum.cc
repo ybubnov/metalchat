@@ -28,9 +28,9 @@ TEST_CASE("Sum of 3-dimensional tensors", "[kernel::sum]")
     REQUIRE(output.size(1) == 4);
     REQUIRE(output.size(2) == 2048);
 
-    for (auto i = 0; i < output.size(0); i++) {
-        for (auto j = 0; j < output.size(1); j++) {
-            for (auto k = 0; k < output.size(2); k++) {
+    for (std::size_t i = 0; i < output.size(0); i++) {
+        for (std::size_t j = 0; j < output.size(1); j++) {
+            for (std::size_t k = 0; k < output.size(2); k++) {
                 REQUIRE_THAT(
                     (output[i, j, k]),
                     Catch::Matchers::WithinAbs(input1[i, j, k] + input2[i, j, k], 0.00001)
@@ -56,10 +56,10 @@ TEST_CASE("2-dimensional sum of tensors", "[kernel::sum2]")
     REQUIRE(output.size(2) == 16);
     REQUIRE(output.size(3) == 16);
 
-    for (auto i = 0; i < output.size(0); i++) {
-        for (auto j = 0; j < output.size(1); j++) {
-            for (auto m = 0; m < output.size(2); m++) {
-                for (auto n = 0; n < output.size(3); n++) {
+    for (std::size_t i = 0; i < output.size(0); i++) {
+        for (std::size_t j = 0; j < output.size(1); j++) {
+            for (std::size_t m = 0; m < output.size(2); m++) {
+                for (std::size_t n = 0; n < output.size(3); n++) {
                     REQUIRE_THAT(
                         (output[i, j, m, n]),
                         Catch::Matchers::WithinAbs(input1[i, j, m, n] + input2[m, n], 0.00001)

@@ -39,9 +39,9 @@ TEST_CASE("Embedding batched", "[kernel::embedding]")
     REQUIRE(output.size(1) == 4);
     REQUIRE(output.size(2) == 128256);
 
-    for (auto i = 0; i < output.size(0); i++) {
-        for (auto j = 0; j < output.size(1); j++) {
-            for (auto k = 0; k < output.size(2); k++) {
+    for (std::size_t i = 0; i < output.size(0); i++) {
+        for (std::size_t j = 0; j < output.size(1); j++) {
+            for (std::size_t k = 0; k < output.size(2); k++) {
                 REQUIRE(output[i, j, k] == weight[input[i, j], k]);
             }
         }

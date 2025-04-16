@@ -53,10 +53,10 @@ TEST_CASE("Tensor slice transpose", "[tensor::transpose]")
 
     std::fill(y_t.begin(), y_t.end(), 0.0);
 
-    for (auto i = 0; i < 1; i++) {
-        for (auto j = 1; j < 3; j++) {
-            for (auto k = 0; k < 2; k++) {
-                for (auto l = 1; l < 2; l++) {
+    for (std::size_t i = 0; i < 1; i++) {
+        for (std::size_t j = 1; j < 3; j++) {
+            for (std::size_t k = 0; k < 2; k++) {
+                for (std::size_t l = 1; l < 2; l++) {
                     REQUIRE(x[i][j][k][l] == 0.0);
                 }
             }

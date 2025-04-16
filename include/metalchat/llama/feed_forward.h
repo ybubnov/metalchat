@@ -45,7 +45,7 @@ public:
     }
 
     friend std::ostream&
-    operator<<(std::ostream& os, const feed_forward& ff)
+    operator<<(std::ostream& os, const feed_forward&)
     {
         os << "llama::feed_forward<" << type_traits<T>::name() << ">()";
         return os;

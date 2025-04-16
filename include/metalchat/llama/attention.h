@@ -168,7 +168,7 @@ public:
     }
 
     friend std::ostream&
-    operator<<(std::ostream& os, const attention& a)
+    operator<<(std::ostream& os, const attention&)
     {
         os << "llama::attention<" << type_traits<T>::name() << ">()";
         return os;
