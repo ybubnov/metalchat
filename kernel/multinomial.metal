@@ -65,7 +65,7 @@ __binary_search(thread tensor2<const T> data, uint batch, T value)
         }
     }
 
-    return low-1;
+    return metal::max(low, 1) - 1;
 }
 
 

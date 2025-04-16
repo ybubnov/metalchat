@@ -110,6 +110,7 @@ public:
     make_ready_at_thread_exit()
     {
         if (!_m_committed) {
+            // std::cout << "------ commit -----" << std::endl;
             _m_commands->commit();
             _m_committed = true;
         }
