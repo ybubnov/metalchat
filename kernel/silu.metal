@@ -8,17 +8,13 @@ using namespace metal;
 
 kernel void
 silu_bf16(
-    constant uint& M [[buffer(0)]],
-    constant uint& N [[buffer(1)]],
-    device const bfloat* input [[buffer(2)]],
-    device bfloat* output [[buffer(3)]],
-    uint2 gid [[thread_position_in_grid]]
+    constant uint& N [[buffer(0)]],
+    device const bfloat* input [[buffer(1)]],
+    device bfloat* output [[buffer(2)]],
+    uint gid [[thread_position_in_grid]]
 )
 {
-    const uint i = gid.x;
-    const uint j = gid.y;
-
-    if (i < M && j < N) {
-        output[i * N + j] = input[i * N + j] / (bfloat(1.0) + bfloat(exp(-input[i * N + j])));
+    if (gid < N) {
+        output[gid] = input[gid] / (bfloat(1.0) + bfloat(exp(-input[gid])));
     }
 }

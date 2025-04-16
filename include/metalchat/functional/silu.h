@@ -25,16 +25,15 @@ public:
     : kernel(operation_name, type_traits<T>::name(), device)
     {}
 
-    template <ContiguousContainer InputContainer>
+    template <std::size_t N, ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<T, 2, InputContainer>& input)
+    operator()(const tensor<T, N, InputContainer>& input)
     {
-        auto output = empty<T>({input.size(0), input.size(1)}, m_device);
-        auto n = scalar<int32_t>(input.size(0));
-        auto m = scalar<int32_t>(input.size(1));
+        auto output = empty_like(input, m_device);
+        auto n = scalar<int32_t>(input.numel());
 
-        auto groups = dim3(ceil_div(input.size(0), 32), ceil_div(input.size(1), 32), 1);
-        auto threads = dim3(32, 32, 1);
+        auto groups = dim3(ceil_div(input.numel(), 32));
+        auto threads = dim3(32);
 
         blocking(groups, threads)(n, input, output);
         return output;
