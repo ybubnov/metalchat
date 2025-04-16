@@ -63,16 +63,16 @@ cumsum(__cumsum_parameters(T))
 }
 
 
-template [[host_name("cumsum_1_bf16")]]
+template [[host_name("cumsum_1_bfloat")]]
 kernel void cumsum<bfloat, 1>(__cumsum_parameters(bfloat));
 
-template [[host_name("cumsum_4_bf16")]]
+template [[host_name("cumsum_4_bfloat")]]
 kernel void cumsum<bfloat, 4>(__cumsum_parameters(bfloat));
 
-template [[host_name("cumsum_16_bf16")]]
+template [[host_name("cumsum_16_bfloat")]]
 kernel void cumsum<bfloat, 16>(__cumsum_parameters(bfloat));
 
-template [[host_name("cumsum_32_bf16")]]
+template [[host_name("cumsum_32_bfloat")]]
 kernel void cumsum<bfloat, 32>(__cumsum_parameters(bfloat));
 
 

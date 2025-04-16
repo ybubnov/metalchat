@@ -86,31 +86,31 @@ sort(__sort_parameters(T))
 }
 
 
-template [[host_name("sort_1_bf16")]]
+template [[host_name("sort_1_bfloat")]]
 kernel void sort<bfloat, 1>(__sort_parameters(bfloat));
 
-template [[host_name("sort_2_bf16")]]
+template [[host_name("sort_2_bfloat")]]
 kernel void sort<bfloat, 2>(__sort_parameters(bfloat));
 
-template [[host_name("sort_4_bf16")]]
+template [[host_name("sort_4_bfloat")]]
 kernel void sort<bfloat, 4>(__sort_parameters(bfloat));
 
-template [[host_name("sort_8_bf16")]]
+template [[host_name("sort_8_bfloat")]]
 kernel void sort<bfloat, 8>(__sort_parameters(bfloat));
 
-template [[host_name("sort_16_bf16")]]
+template [[host_name("sort_16_bfloat")]]
 kernel void sort<bfloat, 16>(__sort_parameters(bfloat));
 
-template [[host_name("sort_32_bf16")]]
+template [[host_name("sort_32_bfloat")]]
 kernel void sort<bfloat, 32>(__sort_parameters(bfloat));
 
-template [[host_name("sort_512_bf16")]]
+template [[host_name("sort_512_bfloat")]]
 kernel void sort<bfloat, 512>(__sort_parameters(bfloat));
 
-template [[host_name("sort_1024_bf16")]]
+template [[host_name("sort_1024_bfloat")]]
 kernel void sort<bfloat, 1024>(__sort_parameters(bfloat));
 
-template [[host_name("sort_2048_bf16")]]
+template [[host_name("sort_2048_bfloat")]]
 kernel void sort<bfloat, 2048>(__sort_parameters(bfloat));
 
 

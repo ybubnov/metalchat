@@ -37,16 +37,16 @@ copy(__copy_parameters(T))
 }
 
 
-template [[host_name("copy_1_bf16")]]
+template [[host_name("copy_1_bfloat")]]
 kernel void copy<bfloat, 1>(__copy_parameters(bfloat));
 
-template [[host_name("copy_4_bf16")]]
+template [[host_name("copy_4_bfloat")]]
 kernel void copy<bfloat, 4>(__copy_parameters(bfloat));
 
-template [[host_name("copy_16_bf16")]]
+template [[host_name("copy_16_bfloat")]]
 kernel void copy<bfloat, 16>(__copy_parameters(bfloat));
 
-template [[host_name("copy_32_bf16")]]
+template [[host_name("copy_32_bfloat")]]
 kernel void copy<bfloat, 32>(__copy_parameters(bfloat));
 
 

@@ -37,22 +37,22 @@ silu(__silu_parameters(T))
 }
 
 
-template [[host_name("silu_1_bf16")]]
+template [[host_name("silu_1_bfloat")]]
 kernel void silu<bfloat, 1>(__silu_parameters(bfloat));
 
-template [[host_name("silu_2_bf16")]]
+template [[host_name("silu_2_bfloat")]]
 kernel void silu<bfloat, 2>(__silu_parameters(bfloat));
 
-template [[host_name("silu_4_bf16")]]
+template [[host_name("silu_4_bfloat")]]
 kernel void silu<bfloat, 4>(__silu_parameters(bfloat));
 
-template [[host_name("silu_8_bf16")]]
+template [[host_name("silu_8_bfloat")]]
 kernel void silu<bfloat, 8>(__silu_parameters(bfloat));
 
-template [[host_name("silu_16_bf16")]]
+template [[host_name("silu_16_bfloat")]]
 kernel void silu<bfloat, 16>(__silu_parameters(bfloat));
 
-template [[host_name("silu_32_bf16")]]
+template [[host_name("silu_32_bfloat")]]
 kernel void silu<bfloat, 32>(__silu_parameters(bfloat));
 
 
