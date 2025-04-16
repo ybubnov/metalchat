@@ -46,11 +46,11 @@ TEST_CASE("Test make model", "[llama]")
     auto id = argmax_(output0);
     std::cout << bpe.decode(id);
 
-    for (auto i = 1; i < 10; i++) {
+    for (auto i = input0.size(1); i < 16; i++) {
         auto input = full<int32_t>({1, 1}, id);
         auto output = m(input, i);
         id = argmax_(output);
-        std::cout << bpe.decode(id);
+        std::cout << bpe.decode(id) << std::flush;
     }
     std::cout << std::endl;
 }

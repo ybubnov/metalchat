@@ -11,6 +11,7 @@
 #include <sys/mman.h>
 
 #include <metalchat/container.h>
+#include <metalchat/device.h>
 #include <metalchat/format.h>
 #include <metalchat/tensor.h>
 
@@ -43,6 +44,25 @@ public:
 
         auto data = std::make_shared<weak_ref<T>>(static_cast<T*>(_m_data));
         return tensor(tensor_base<T, N, weak_ref<T>>(_m_shape.cbegin(), _m_shape.cend(), data));
+    }
+
+    template <typename T, std::size_t N>
+    auto
+    as(device& device) const
+    {
+        assert((N == _m_shape.size()));
+
+        std::size_t numel = 1;
+        for (const auto s : _m_shape) {
+            numel *= s;
+        }
+
+        auto buf_size = numel * sizeof(T);
+        auto buf
+            = NS::TransferPtr(device->newBuffer(_m_data, buf_size, MTL::ResourceStorageModeShared));
+
+        auto data = std::make_shared<device_ref<T>>(buf);
+        return tensor(tensor_base<T, N, device_ref<T>>(_m_shape.cbegin(), _m_shape.cend(), data));
     }
 
     friend std::ostream&

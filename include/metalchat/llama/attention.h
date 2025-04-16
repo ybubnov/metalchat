@@ -50,6 +50,9 @@ private:
     attention_options m_options;
     float m_scale;
 
+    tensor<T, 4, owning_ref<T>> _m_cache_k;
+    tensor<T, 4, device_ref<T>> _m_cache_v;
+
 public:
     attention(attention&&) = default;
     attention(const attention&) = default;
@@ -72,7 +75,9 @@ public:
       m_sum(device),
       m_softmax(device),
       m_options(options),
-      m_scale(1.0 / std::sqrt(float(options.head_dim)))
+      m_scale(1.0 / std::sqrt(float(options.head_dim))),
+      _m_cache_k(empty<T>({1, options.max_seq_len, options.n_kv_heads, options.head_dim})),
+      _m_cache_v(empty<T>({1, options.max_seq_len, options.n_kv_heads, options.head_dim}, device))
     {}
 
     template <ContiguousContainer InputContainer, ContiguousContainer MaskContainer>
@@ -97,14 +102,21 @@ public:
         auto queries = m_rope(q, /*start_pos=*/start_pos);
         auto k_rot = m_rope(k, /*start_pos=*/start_pos);
 
-        // TODO: cache queries and keys.
+        using s = indexing::slice;
+        _m_cache_k[s(0, bs), s(start_pos, start_pos + len), s(), s()] = k_rot;
+        _m_cache_v[s(0, bs), s(start_pos, start_pos + len), s(), s()] = v;
+
+        k_rot = _m_cache_k[s(0, bs), s(0, start_pos + len), s(), s()];
+        v = _m_cache_v[s(0, bs), s(0, start_pos + len), s(), s()];
+
         auto repeat_kv
             = [&]<ContiguousContainer TensorContainer>(tensor<T, 4, TensorContainer>&& t) -> auto {
+            int slen = t.size(1);
             auto reps = repeat_interleave(std::move(t), n_reps, /*dim=*/2);
-            return reps.reshape({bs, len, n_heads, head_dim});
+            return reps.reshape({bs, slen, n_heads, head_dim});
         };
 
-        // shape: bs, len, n_heads, head_dim.
+        // shape: bs, cache + len, n_heads, head_dim.
         auto keys = repeat_kv(std::move(k_rot));
         auto values = repeat_kv(std::move(v));
 

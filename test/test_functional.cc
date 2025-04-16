@@ -16,7 +16,7 @@ TEST_CASE("Test repeat interleave", "[functional::repeat_interleave]")
     auto t = empty<float>({1, 8, 7, 64});
     t = original;
 
-    auto output = repeat_interleave(std::move(original), 4, /*dim=*/2);
+    auto output = repeat_interleave(std::move(original), 4, /*dim=*/1);
 
     REQUIRE(output.dim() == 5);
     REQUIRE(output.size(0) == 1);

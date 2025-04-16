@@ -173,7 +173,6 @@ public:
     encode(const std::string& s)
     {
         std::vector<index_type> ids;
-        encode(special_token::begin_text, ids);
         encode(s, ids);
         return to_tensor<index_type>({ids.size()}, ids.cbegin(), ids.cend());
     }
