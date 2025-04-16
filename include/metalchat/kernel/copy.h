@@ -68,6 +68,43 @@ public:
 
         copy(input.view({-1, input_dim}), output.view({-1, output_dim}));
     }
+
+    template <
+        std::size_t N,
+        std::size_t M,
+        ContiguousContainer InputContainer,
+        ContiguousContainer OutputContainer>
+    auto
+    maybe_compute(
+        const tensor<T, N, InputContainer>& input, const tensor<T, M, OutputContainer>& output
+    )
+    {
+        int input_dim = input.sizes().back();
+        int output_dim = output.sizes().back();
+
+        auto input_view = input.view({-1, input_dim});
+        auto output_view = output.view({-1, output_dim});
+
+        constexpr std::size_t block_size = 32;
+
+        auto data_size = input_view.numel();
+        auto dim_size = input_view.sizes().back();
+        auto num_rows = data_size / dim_size;
+
+        auto thread_size = ceil_div(dim_size, block_size);
+        auto thread = dim3(thread_size);
+        auto threads = dim3(thread_size * num_rows);
+
+        auto cb = unsequenced_policy_callback<T, M>{
+            .output = nullptr,
+            .promise = std::make_shared<std::promise<bool>>()
+        };
+
+        auto policy = nonblocking(threads, thread, std::move(cb));
+        policy(scalar(input_view.layout()), scalar(output_view.layout()), input_view, output_view);
+
+        return policy;
+    }
 };
 
 
