@@ -84,21 +84,20 @@ public:
         int n_heads = m_options.n_heads;
         int n_kv_heads = m_options.n_kv_heads;
         auto n_reps = m_options.repeats();
+        const int head_dim = m_options.head_dim;
 
-        auto q = m_wq(input).reshape({bs, len, n_heads, -1});
-        auto k = m_wk(input).reshape({bs, len, n_kv_heads, -1});
-        auto v = m_wv(input).reshape({bs, len, n_kv_heads, -1});
+        auto q = m_wq(input).reshape({bs, len, n_heads, head_dim});
+        auto k = m_wk(input).reshape({bs, len, n_kv_heads, head_dim});
+        auto v = m_wv(input).reshape({bs, len, n_kv_heads, head_dim});
 
-        std::cout << "ROPE (Q) input=" << q.sizes() << std::endl;
         auto queries = m_rope(q);
-        std::cout << "ROPE (K) input=" << k.sizes() << std::endl;
         auto k_rot = m_rope(k);
 
         // TODO: cache queries and keys.
         auto repeat_kv
             = [&]<ContiguousContainer TensorContainer>(tensor<T, 4, TensorContainer>&& t) -> auto {
             auto reps = repeat_interleave(std::move(t), n_reps, /*dim=*/2);
-            return reps.reshape({bs, len, n_heads, -1});
+            return reps.reshape({bs, len, n_heads, head_dim});
         };
 
         // shape: bs, len, n_heads, head_dim.
@@ -109,12 +108,11 @@ public:
         keys = keys.transpose({0, 2, 1, 3});
         values = values.transpose({0, 2, 1, 3});
 
-        auto scores = m_matmul(m_mul(queries, m_scale), keys.transpose({0, 1, 3, 2}));
-        auto scores_ = m_sum(scores, mask);
+        auto scores = m_mul(m_matmul(queries, keys.transpose({0, 1, 3, 2})), m_scale);
+        scores = m_sum(scores, mask);
+        scores = m_softmax(scores);
 
-        scores_ = m_softmax(scores_);
-        auto output = m_matmul(scores_, values).transpose({0, 2, 1, 3}).reshape({bs, len, -1});
-
+        auto output = m_matmul(scores, values).transpose({0, 2, 1, 3}).reshape({bs, len, -1});
         return m_wo(output);
     }
 
