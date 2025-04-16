@@ -20,6 +20,10 @@ public:
 
     using container_type = tensor_type::container_type;
 
+    using iterator = tensor_iterator<T, N>;
+
+    using const_iterator = const iterator;
+
     shared_tensor(const shared_tensor& t) noexcept = default;
 
     shared_tensor(tensor_type&& t)
@@ -104,6 +108,36 @@ public:
         return _m_value->offsets();
     }
 
+    iterator
+    begin()
+    {
+        return _m_value->begin();
+    }
+
+    iterator
+    end()
+    {
+        return _m_value->end();
+    }
+
+    const_iterator
+    begin() const
+    {
+        return _m_value->begin();
+    }
+
+    const_iterator
+    end() const
+    {
+        return _m_value->end();
+    }
+
+    shared_tensor<T, N + 1, Container>
+    expand_dims(std::size_t dim) const
+    {
+        return shared_tensor<T, N + 1, Container>(_m_value->expand_dims(dim));
+    }
+
     template <std::size_t M>
     shared_tensor<T, M, Container>
     view(const int (&&dims)[M]) const requires(M > 0)
@@ -115,6 +149,12 @@ public:
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
         return shared_tensor(_m_value->narrow(dim, start, length));
+    }
+
+    shared_tensor
+    transpose(const std::size_t (&&dims)[N]) const
+    {
+        return shared_tensor(_m_value->transpose(std::move(dims)));
     }
 
     tensor_layout<N>

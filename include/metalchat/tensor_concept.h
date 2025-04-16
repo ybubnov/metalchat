@@ -35,6 +35,8 @@ concept is_tensor = requires(std::remove_reference_t<Tensor> const t) {
     typename Tensor::value_type;
     typename Tensor::pointer_type;
     typename Tensor::container_type;
+    typename Tensor::iterator;
+    typename Tensor::const_iterator;
 
     { Tensor::dim() } -> std::convertible_to<std::size_t>;
     { t.sizes() } -> std::same_as<const std::span<std::size_t>>;
@@ -42,6 +44,8 @@ concept is_tensor = requires(std::remove_reference_t<Tensor> const t) {
     { t.offsets() } -> std::same_as<const std::span<std::size_t>>;
     { t.numel() } -> std::same_as<std::size_t>;
     { t.data_ptr() } -> std::same_as<typename Tensor::pointer_type>;
+    { t.begin() } -> std::same_as<typename Tensor::const_iterator>;
+    { t.end() } -> std::same_as<typename Tensor::const_iterator>;
     //{ t.layout() } -> std::same_as<tensor_layout<Tensor::dimensions>>;
 };
 
