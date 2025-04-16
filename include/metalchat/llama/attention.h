@@ -2,7 +2,9 @@
 
 #include <cmath>
 #include <optional>
+#include <ranges>
 
+#include <metalchat/functional.h>
 #include <metalchat/kernel/embedding.h>
 #include <metalchat/kernel/sgemm.h>
 #include <metalchat/kernel/sum.h>
@@ -18,6 +20,12 @@ struct attention_options {
     std::size_t n_heads;
     std::size_t n_kv_heads;
     float base;
+
+    inline std::size_t
+    repeats()
+    {
+        return n_heads / n_kv_heads;
+    }
 };
 
 
@@ -73,7 +81,14 @@ public:
         values = values.reshape({bs, len, m_options.n_kv_heads, -1}).transpose({0, 2, 1, 3});
 
         // TODO: cache queries and keys.
-        // TODO: repeat + concatenate queries and keys.
+        queries = queries.expand_dims(queries, 2);
+        auto n_queries = std::views::repeat(std::move(queries), m_options.repeats());
+        queries = concatenate(n_queries, 2).reshape({bs, m_options.n_heads, len, -1});
+
+        keys = keys.expand_dims(keys, 2);
+        auto n_keys = std::views::repeat(std::move(keys), m_options.repeats());
+        keys = concatenate(n_keys, 2).reshape({bs, m_options.n_heads, len, -1});
+
         queries = m_rope(queries);
         keys = m_rope(keys);
 
