@@ -35,10 +35,12 @@ make_kernel_grid_1d(const Tensor& t, std::size_t block_size)
 
 template <immutable_tensor... Args> class kernel_task {
 private:
+    using arguments_type = std::tuple<Args...>;
+
     kernel_base _m_kernel;
     std::shared_ptr<kernel_thread> _m_this_thread_ptr;
 
-    std::tuple<Args...> _m_args;
+    arguments_type _m_args;
 
     /// Configuration of the Metal grid to invoke this particular kernel. Grid specifies
     /// the total number of threads in a grid, while thread defines a number of threads
@@ -108,42 +110,26 @@ public:
     }
 
     void
-    encode(MTL::ComputeCommandEncoder* encoder)
+    encode(hardware_function_encoder<> encoder)
     {
         return encode(encoder, std::index_sequence_for<Args...>{});
     }
 
     template <std::size_t... Indices>
     void
-    encode(MTL::ComputeCommandEncoder* encoder, std::index_sequence<Indices...>)
+    encode(hardware_function_encoder<> encoder, std::index_sequence<Indices...>)
     {
-        auto device_ptr = device();
-        encoder->setComputePipelineState(_m_kernel.pipeline());
-
-        // Move the tensors to a command encoder one-by-one. Prepend each non-scalar tensor
-        // (regular multi-dimensional tensors) with a layout: offsets, strides, sizes. This
-        // operation is automatic therefore kernels should be prepared to accept layout
-        // followed by a pointer to the tensor's data.
-        std::size_t i = 0;
+        encoder.initialize(_m_kernel.pipeline());
 
         ([&] {
-            auto& arg = std::get<Indices>(_m_args);
-            if (auto buf = arg.memory_move(device_ptr); buf) {
-                auto layout = arg.layout();
-                encoder->setBytes(&layout, sizeof(layout), i++);
+            using tensor_type = std::tuple_element<Indices, arguments_type>::type;
+            using value_type = tensor_type::value_type;
 
-                encoder->setBuffer(buf.get(), 0, i);
-            } else {
-                const void* data_ptr = arg.data_ptr();
-                std::size_t data_size = sizeof(typename Args::value_type);
-                encoder->setBytes(data_ptr, data_size, i);
-            }
-            i++;
+            const auto& arg = std::get<Indices>(_m_args);
+            encoder.encode<value_type>(arg);
         }(), ...);
 
-        MTL::Size threads_per_grid(_m_grid.x, _m_grid.y, _m_grid.z);
-        MTL::Size threads_per_group(_m_thread.x, _m_thread.y, _m_thread.z);
-        encoder->dispatchThreads(threads_per_grid, threads_per_group);
+        encoder.dispatch(_m_grid, _m_thread);
     }
 
     void

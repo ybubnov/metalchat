@@ -58,12 +58,6 @@ public:
         return _m_value->container();
     }
 
-    NS::SharedPtr<MTL::Buffer>
-    memory_move(MTL::Device* device)
-    {
-        return _m_value->memory_move(device);
-    }
-
     pointer_type
     data_ptr()
     {
