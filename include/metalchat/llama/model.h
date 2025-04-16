@@ -65,7 +65,7 @@ public:
         auto x = _m_embedding(input);
 
         for (auto& layer : _m_layers) {
-            x = layer(x.get(), mask, start_pos);
+            x = layer(x, mask, start_pos);
         }
 
         auto output = _m_norm(x);

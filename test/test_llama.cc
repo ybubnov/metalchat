@@ -16,6 +16,7 @@ std::size_t
 argmax_(shared_tensor<T, 3, Container> t)
 {
     std::size_t id = 0;
+    // return id;
     auto last = t.size(1) - 1;
     T max = t[0, last, 0];
 
