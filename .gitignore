@@ -3,7 +3,7 @@ build/
 lib/
 
 # Doxygen output
-docs/_xml
+documentation/_xml
 
 # Libraries
 *.zip
