@@ -12,7 +12,7 @@ using namespace metalchat;
 TEST_CASE("Greater-than for 3-dimensional tensors", "[kernel::gt]")
 {
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::gt<float> gt(gpu0);
+    kernel::gt<float> gt(gpu0);
 
     auto input = shared_tensor(rand<float>({1, 4, 2048}));
     auto output = gt(input, 0.5f).get();

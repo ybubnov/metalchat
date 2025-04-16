@@ -11,6 +11,7 @@
 
 
 using namespace metalchat;
+using namespace metalchat::kernel;
 
 
 TEST_CASE("Tensor concatenate", "[concatenate]")

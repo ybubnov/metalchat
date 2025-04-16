@@ -33,7 +33,7 @@ public:
     auto
     operator()(Input input)
     {
-        return fn::matmul(input, _m_weight, _m_device);
+        return matmul(input, _m_weight, _m_device);
     }
 
     friend std::ostream&

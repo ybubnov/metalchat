@@ -8,6 +8,7 @@
 
 
 namespace metalchat {
+namespace kernel {
 
 
 inline std::size_t
@@ -75,4 +76,5 @@ public:
 };
 
 
+} // namespace kernel
 } // namespace metalchat

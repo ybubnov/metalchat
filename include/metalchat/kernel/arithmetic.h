@@ -10,6 +10,7 @@
 
 
 namespace metalchat {
+namespace kernel {
 
 
 template <typename T, std::size_t BlockSize = 32> class add {
@@ -98,4 +99,5 @@ public:
     }
 };
 
+} // namespace kernel
 } // namespace metalchat

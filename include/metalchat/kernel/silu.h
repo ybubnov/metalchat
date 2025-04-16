@@ -8,6 +8,7 @@
 
 
 namespace metalchat {
+namespace kernel {
 
 
 template <typename T, std::size_t BlockSize = 16> class silu {
@@ -39,4 +40,5 @@ public:
 };
 
 
+} // namespace kernel
 } // namespace metalchat

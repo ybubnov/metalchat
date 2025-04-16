@@ -15,7 +15,7 @@ namespace nn {
 template <typename T, contiguous_container Container> class embedding {
 private:
     shared_tensor<T, 2, Container> _m_weight;
-    metalchat::embedding<T> _m_embedding;
+    kernel::embedding<T> _m_embedding;
 
 public:
     embedding(shared_tensor<T, 2, Container> weight, device& device)
@@ -54,7 +54,7 @@ private:
     shared_tensor<float, 2, hardware_memory_container<float>> _m_freqs_cos;
     shared_tensor<float, 2, hardware_memory_container<float>> _m_freqs_sin;
 
-    metalchat::rope<T> _m_rope;
+    kernel::rope<T> _m_rope;
 
     void
     scale_freqs(
