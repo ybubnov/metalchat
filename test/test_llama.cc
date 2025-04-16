@@ -15,6 +15,16 @@ using namespace metalchat;
 using namespace metalchat::dtype;
 
 
+template <typename T, immutable_tensor2_t<T> Tensor>
+auto
+argmax(Tensor logits, hardware_accelerator& gpu)
+{
+    auto [probs_sort, probs_idx] = sort(logits, gpu);
+    using s = metalchat::indexing::slice;
+    return probs_idx[s(0, 1), s(0, 1)];
+}
+
+
 TEST_CASE("Test make model", "[llama]")
 {
     metalchat::bpe bpe("../Llama-3.2-1B/original/tokenizer.model");
@@ -38,9 +48,12 @@ TEST_CASE("Test make model", "[llama]")
     bpe.encode(special_token::begin_text, ids);
     bpe.encode(input_text, ids);
 
+    std::cout << "------------ INFERENCE ------------" << std::endl;
     auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));
     auto logit0 = m(input0, 0);
-    auto id = top_p(logit0.flatten<2>(), bf16(0.6f), bf16(0.9), gpu0); //.get();
+
+    // auto id = top_p(logit0.flatten<2>(), bf16(0.6f), bf16(0.9), gpu0);
+    auto id = argmax<bf16>(logit0.flatten<2>(), gpu0);
 
     std::cout << input_text;
     // std::cout << bpe.decode(id[0, 0]);
@@ -51,13 +64,14 @@ TEST_CASE("Test make model", "[llama]")
         // const auto start{std::chrono::steady_clock::now()};
 
         auto logits = m(id, i).flatten<2>();
-        id = top_p(logits, bf16(0.6f), bf16(0.9f), gpu0); //.get();
+        // id = top_p(logits, bf16(0.6f), bf16(0.9f), gpu0);
+        id = argmax<bf16>(logits, gpu0);
 
         // const auto finish{std::chrono::steady_clock::now()};
         // const std::chrono::duration<double> elapsed_seconds{finish - start};
         // std::cout << "t=" << elapsed_seconds << std::endl;
 
-        // std::cout << bpe.decode(id[0, 0]) << std::flush;
+        // std::cout << bpe.decode(id.get()[0, 0]) << std::flush;
         outputs.push_back(id);
     }
     for (auto& id : outputs) {

@@ -108,6 +108,7 @@ public:
         command_name_stream << _m_name << "<" << grid << "," << group << ">" << std::endl;
 
         auto command_name = command_name_stream.str();
+        // std::cout << command_name << std::endl;
         auto command_name_ptr
             = NS::TransferPtr(NS::String::string(command_name.c_str(), NS::UTF8StringEncoding));
         _m_encoder->setLabel(command_name_ptr.get());
@@ -193,8 +194,8 @@ public:
 
     ~kernel_thread()
     {
-        //  If thread was completed, the code below does absolutely nothing, otherwise,
-        //  on object deletion all commands are committed to the device.
+        // If thread was completed, the code below does absolutely nothing, otherwise,
+        // on object deletion all commands are committed to the device.
         make_ready_at_thread_exit();
     }
 
