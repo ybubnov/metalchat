@@ -33,10 +33,10 @@ public:
         auto k = scalar<int32_t>(input.size(1));
         auto n = scalar<int32_t>(weight.size(1));
 
-        auto groups = dim3(ceil_div(input.size(0), 32), ceil_div(weight.size(1), 32), 1);
-        auto threads = dim3(32, 32, 1);
+        auto threads = dim3(input.size(0), weight.size(1));
+        auto thread = dim3(32, 32);
 
-        blocking(groups, threads)(m, n, k, input, weight, output);
+        blocking(threads, thread)(m, n, k, input, weight, output);
         return output;
     }
 };

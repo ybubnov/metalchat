@@ -34,10 +34,10 @@ public:
         auto output = empty_like(input1, m_device);
         auto n = scalar<int32_t>(input1.numel());
 
-        auto groups = dim3(ceil_div(input1.numel(), 32));
-        auto threads = dim3(32);
+        auto threads = dim3(input1.numel());
+        auto thread = dim3(32);
 
-        blocking(groups, threads)(n, input1, input2, output);
+        blocking(threads, thread)(n, input1, input2, output);
         return output;
     }
 };

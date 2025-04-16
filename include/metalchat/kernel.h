@@ -58,8 +58,8 @@ private:
     kernel_traits::pipeline_type m_pipeline;
     kernel_traits::queue_type m_queue;
 
-    const dim3 m_blocks;
     const dim3 m_threads;
+    const dim3 m_thread;
 
 public:
     blocking_kernel(
@@ -67,21 +67,28 @@ public:
         device& device,
         kernel_traits::pipeline_type pipeline,
         kernel_traits::queue_type queue,
-        const dim3& blocks,
-        const dim3& threads
+        const dim3& threads,
+        const dim3& thread
     )
     : m_op(op),
       m_device(device),
       m_pipeline(pipeline),
       m_queue(queue),
-      m_blocks(blocks),
-      m_threads(threads)
+      m_threads(threads),
+      m_thread(thread)
     {
         auto max_threadgroup_size = pipeline->maxTotalThreadsPerThreadgroup();
-        if (threads.numel() > max_threadgroup_size) {
+        if (thread.numel() > max_threadgroup_size) {
             throw std::invalid_argument(std::format(
-                "<{}> exceeds maximum number of threads per threadgroup {}", threads.x, threads.y,
-                threads.z, max_threadgroup_size
+                "<{}, {}, {}> exceeds maximum number of threads per threadgroup {}", threads.x,
+                threads.y, threads.z, max_threadgroup_size
+            ));
+        }
+
+        if (threads.numel() < thread.numel()) {
+            throw std::invalid_argument(std::format(
+                "threads per grid <{}, {}, {}> are lesser than threads per group <{}, {}, {}>",
+                threads.x, threads.y, threads.z, thread.x, thread.y, thread.z
             ));
         }
     }
@@ -90,7 +97,7 @@ public:
     void
     operator()(const tensor<T, N, Container>&... args)
     {
-        std::cout << "blocking_kernel<" << m_blocks << ", " << m_threads << ">"
+        std::cout << "blocking_kernel<" << m_threads << ", " << m_thread << ">"
                   << "(" << m_op << ", args[" << sizeof...(args) << "])" << std::endl;
         std::cout << "max threads per threadgroup=" << m_pipeline->maxTotalThreadsPerThreadgroup()
                   << std::endl;
@@ -114,9 +121,9 @@ public:
             }
         }
 
-        MTL::Size grid_blocks(m_blocks.x, m_blocks.y, m_blocks.z);
-        MTL::Size grid_threads(m_threads.x, m_threads.y, m_threads.z);
-        command_encoder->dispatchThreadgroups(grid_blocks, grid_threads);
+        MTL::Size threads_per_grid(m_threads.x, m_threads.y, m_threads.z);
+        MTL::Size threads_per_group(m_thread.x, m_thread.y, m_thread.z);
+        command_encoder->dispatchThreads(threads_per_grid, threads_per_group);
 
         command_encoder->endEncoding();
         command_buf->commit();
@@ -161,9 +168,9 @@ public:
     }
 
     blocking_kernel
-    blocking(dim3 blocks, dim3 threads)
+    blocking(dim3 threads, dim3 thread)
     {
-        return blocking_kernel(m_op, m_device, m_pipeline, m_queue, blocks, threads);
+        return blocking_kernel(m_op, m_device, m_pipeline, m_queue, threads, thread);
     }
 };
 
