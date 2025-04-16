@@ -45,18 +45,18 @@ public:
     template <ContiguousContainer InputContainer, ContiguousContainer MaskContainer>
     auto
     operator()(
-        const tensor<T, 3, InputContainer>& input,
+        shared_tensor<T, 3, InputContainer> input,
         const std::optional<tensor<T, 2, MaskContainer>>& mask,
         std::size_t start_pos = 0
     )
     {
-        auto norm = _m_attention_norm(input);
+        auto norm = _m_attention_norm(*input);
 
         auto res0 = _m_attention(shared_tensor(std::move(norm)), mask, start_pos);
-        auto h = _m_sum(input, *res0.get());
+        auto h = _m_sum(input, res0.get());
 
-        auto res1 = _m_ff(_m_ff_norm(h));
-        auto output = _m_sum(h, res1);
+        auto res1 = _m_ff(_m_ff_norm((*h.get())));
+        auto output = _m_sum(h.get(), shared_tensor(std::move(res1)));
         return output;
     }
 
