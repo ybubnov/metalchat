@@ -9,17 +9,17 @@
 
 
 #define __rope_parameters(T)                                    \
-    constant uint& batch_size [[buffer(0)]],                    \
-    constant uint& n_head [[buffer(1)]],                        \
-    constant uint& start_pos [[buffer(2)]],                     \
-    constant tensor_layout<2>& freqs_cos_layout [[buffer(3)]],  \
-    constant tensor_layout<2>& freqs_sin_layout [[buffer(4)]],  \
-    constant tensor_layout<2>& input_layout [[buffer(5)]],      \
-    constant tensor_layout<2>& output_layout [[buffer(6)]],     \
-    device const float* freqs_cos [[buffer(7)]],                \
-    device const float* freqs_sin [[buffer(8)]],                \
-    device const T* input [[buffer(9)]],                        \
-    device T* output [[buffer(10)]],                            \
+    constant tensor_layout<2>& output_layout    [[buffer(0)]],  \
+    device T* output                            [[buffer(1)]], \
+    constant tensor_layout<2>& input_layout     [[buffer(2)]],  \
+    device const T* input                       [[buffer(3)]],  \
+    constant tensor_layout<2>& freqs_cos_layout [[buffer(4)]],  \
+    device const float* freqs_cos               [[buffer(5)]],  \
+    constant tensor_layout<2>& freqs_sin_layout [[buffer(6)]],  \
+    device const float* freqs_sin               [[buffer(7)]],  \
+    constant uint& batch_size                   [[buffer(8)]],  \
+    constant uint& n_head                       [[buffer(9)]],  \
+    constant uint& start_pos                    [[buffer(10)]], \
     uint gid [[threadgroup_position_in_grid]],                  \
     uint tid [[thread_position_in_threadgroup]]
 
