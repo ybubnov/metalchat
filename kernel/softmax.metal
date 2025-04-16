@@ -33,7 +33,7 @@ softmax_bf16(
 
     for (uint j = 0; j < block_size; j++) {
         bfloat xj = input[i + j];
-        threadlocal_sum += exp(xj);
+        threadlocal_sum += metal::fast::exp(xj);
     }
 
     float acc = threadlocal_sum;

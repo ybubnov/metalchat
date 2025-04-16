@@ -12,7 +12,7 @@ using namespace metalchat::dtype;
 
 
 int
-main()
+some()
 {
     metalchat::safetensor_file model_file("../Llama-3.2-1B/model.safetensors");
     metalchat::device gpu0("metalchat.metallib");

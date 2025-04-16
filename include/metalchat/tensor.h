@@ -11,6 +11,7 @@
 
 #include <metalchat/container.h>
 #include <metalchat/device.h>
+#include <metalchat/indexing.h>
 #include <metalchat/format.h>
 
 
@@ -46,22 +47,39 @@ template <typename T, std::size_t N, ContiguousContainer Container> class tensor
 public:
     using traits = tensor_traits<T, Container>;
 
-    tensor_base(T* data, std::size_t* shape, std::size_t* strides)
+    tensor_base(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
     : m_data(traits::weak_move(data)),
       m_shape(traits::weak_move(shape)),
-      m_strides(traits::weak_move(strides))
+      m_strides(traits::weak_move(strides)),
+      m_offsets(traits::weak_move(offsets))
     {}
 
     tensor_base(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
     : m_data(std::move(data)),
       m_shape(std::move(shape)),
       m_strides(std::move(strides))
+    {
+        auto offsets = new std::size_t[N]();
+        m_offsets = std::make_unique<owned_ref<std::size_t>>(offsets);
+    }
+
+    tensor_base(
+        traits::data_type&& data,
+        traits::size_type&& shape,
+        traits::size_type&& strides,
+        traits::size_type&& offsets
+    )
+    : m_data(std::move(data)),
+      m_shape(std::move(shape)),
+      m_strides(std::move(strides)),
+      m_offsets(std::move(offsets))
     {}
 
     tensor_base(tensor_base<T, N, Container>&& t)
     : m_data(std::move(t.m_data)),
       m_shape(std::move(t.m_shape)),
-      m_strides(std::move(t.m_strides))
+      m_strides(std::move(t.m_strides)),
+      m_offsets(std::move(t.m_offsets))
     {}
 
     inline T*
@@ -112,6 +130,32 @@ public:
         return std::span(m_shape->data(), N);
     }
 
+    inline constexpr const auto
+    offsets() const noexcept
+    {
+        return std::span(m_offsets->data(), N);
+    }
+
+    inline std::size_t
+    offset(std::size_t dim) const
+    {
+        if (dim >= N) {
+            throw std::out_of_range("tensor");
+        }
+        return m_offsets->data()[dim];
+    }
+
+    bool
+    is_contiguous() const
+    {
+        for (size_t i = 0; i < N; i++) {
+            if (m_offsets->data()[i] != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     std::size_t
     numel() const
     {
@@ -142,6 +186,7 @@ protected:
     traits::data_type m_data = nullptr;
     traits::size_type m_shape = nullptr;
     traits::size_type m_strides = nullptr;
+    traits::size_type m_offsets = nullptr;
 };
 
 
@@ -178,36 +223,70 @@ class tensor : public tensor_base<T, N, Container> {
 public:
     using traits = tensor_traits<T, Container>;
 
-    tensor(T* data, std::size_t* shape, std::size_t* strides)
-    : tensor_base<T, N, Container>(data, shape, strides)
+    tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
+    : tensor_base<T, N, Container>(data, shape, strides, offsets)
     {}
 
     tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
     : tensor_base<T, N, Container>(std::move(data), std::move(shape), std::move(strides))
     {}
 
+    tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides, traits::size_type&& offsets)
+    : tensor_base<T, N, Container>(std::move(data), std::move(shape), std::move(strides), std::move(offsets))
+    {}
+
     tensor<T, N - 1>
     at(std::size_t i)
     {
-        auto new_data = this->data_ptr() + this->m_strides->data()[0] * i;
+        auto new_data = this->data_ptr() + this->stride(0) * (this->offset(0) + i);
         auto new_shape = this->m_shape->data() + 1;
         auto new_strides = this->m_strides->data() + 1;
-        return tensor<T, N - 1>(new_data, new_shape, new_strides);
+        auto new_offsets = this->m_offsets->data() + 1;
+        return tensor<T, N - 1>(new_data, new_shape, new_strides, new_offsets);
     }
 
     const tensor<const T, N - 1>
     at(std::size_t i) const
     {
-        auto new_data = this->data_ptr() + this->m_strides->data()[0] * i;
+        auto new_data = this->data_ptr() + this->stride(0) * (this->offset(0) + i);
         auto new_shape = this->m_shape->data() + 1;
         auto new_strides = this->m_strides->data() + 1;
-        return tensor<const T, N - 1>(new_data, new_shape, new_strides);
+        auto new_offsets = this->m_offsets->data() + 1;
+        return tensor<const T, N - 1>(new_data, new_shape, new_strides, new_offsets);
     }
 
     tensor<T, N - 1>
     operator[](std::size_t i)
     {
         return at(i);
+    }
+
+    template <indexing::SliceConvertible... S>
+    auto
+    operator[](const S&... slices) requires (sizeof...(slices) <= N)
+    {
+        constexpr auto slices_size = sizeof...(slices);
+        std::array<indexing::slice, slices_size> slices_array = {(slices)...};
+
+        auto shape = new std::size_t[N];
+        auto offsets = new std::size_t[N];
+
+        for (std::size_t i = 0; i < slices_size; i++) {
+            auto slice = slices_array[i];
+
+            auto stop = std::min(slice.stop.value_or(this->size(i)), this->size(i));
+            auto start = std::min(slice.start.value_or(0), stop);
+
+            shape[i] = stop - start;
+            offsets[i] = start;
+        }
+
+        return tensor<T, N, weak_ref<T>>(
+            std::make_unique<weak_ref<T>>(this->m_data->data()),
+            std::make_unique<owned_ref<std::size_t>>(shape),
+            std::make_unique<weak_ref<std::size_t>>(this->m_strides->data()),
+            std::make_unique<owned_ref<std::size_t>>(offsets)
+        );
     }
 
     template <typename = void>
@@ -217,14 +296,17 @@ public:
     {
         auto shape = new std::size_t[N];
         auto strides = new std::size_t[N];
+        auto offsets = new std::size_t[N];
 
         reverse_copy(*this->m_shape, N, shape);
         reverse_copy(*this->m_strides, N, strides);
+        reverse_copy(*this->m_offsets, N, offsets);
 
         return tensor(
             std::move(std::make_unique<weak_ref<T>>(this->m_data->data())),
             std::move(std::make_unique<owned_ref<std::size_t>>(shape)),
-            std::move(std::make_unique<owned_ref<std::size_t>>(strides))
+            std::move(std::make_unique<owned_ref<std::size_t>>(strides)),
+            std::move(std::make_unique<owned_ref<std::size_t>>(offsets))
         );
     }
 
@@ -267,31 +349,35 @@ class tensor<T, 1, Container> : public tensor_base<T, 1, Container> {
 public:
     using traits = tensor_traits<T, Container>;
 
-    tensor(T* data, std::size_t* shape, std::size_t* strides)
-    : tensor_base<T, 1, Container>(data, shape, strides)
+    tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
+    : tensor_base<T, 1, Container>(data, shape, strides, offsets)
     {}
 
     tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
     : tensor_base<T, 1, Container>(std::move(data), std::move(shape), std::move(strides))
     {}
 
+    tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides, traits::size_type&& offsets)
+    : tensor_base<T, 1, Container>(std::move(data), std::move(shape), std::move(strides), std::move(offsets))
+    {}
+
     T&
     at(std::size_t i)
     {
-        const auto n = this->stride(0) * i;
-        if (n >= this->size(0)) {
+        if (i >= this->size(0)) {
             throw std::out_of_range("tensor");
         }
+        const auto n = this->stride(0) * (i + this->offset(0));
         return *(this->data_ptr() + n);
     }
 
     const T&
     at(std::size_t i) const
     {
-        const auto n = this->stride(0) * i;
-        if (n >= this->size(0)) {
+        if (i >= this->size(0)) {
             throw std::out_of_range("tensor");
         }
+        const auto n = this->stride(0) * (i + this->offset(0));
         return *(this->data_ptr() + n);
     }
 
@@ -347,6 +433,10 @@ public:
     : tensor_base<T, 0, Container>(std::move(data), std::move(shape), std::move(strides))
     {}
 
+    tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides, traits::size_type&& offsets)
+    : tensor_base<T, 0, Container>(std::move(data), std::move(shape), std::move(strides), std::move(offsets))
+    {}
+
     void
     data_repr(std::ostream& os, int w) const override
     {
@@ -380,9 +470,9 @@ empty(std::size_t (&&sizes)[N])
     using tensor_type = tensor<T, N, owned_ref<T>>;
 
     return tensor_type(
-        std::move(std::make_unique<owned_ref<T>>(data)),
-        std::move(std::make_unique<owned_ref<std::size_t>>(shape)),
-        std::move(std::make_unique<owned_ref<std::size_t>>(strides))
+        std::make_unique<owned_ref<T>>(data),
+        std::make_unique<owned_ref<std::size_t>>(shape),
+        std::make_unique<owned_ref<std::size_t>>(strides)
     );
 }
 
@@ -394,9 +484,10 @@ scalar(const T& value)
     using tensor_type = tensor<T, 0, value_ref<T>>;
 
     return tensor_type(
-        std::move(std::make_unique<value_ref<T>>(value)),
-        std::move(std::make_unique<value_ref<std::size_t>>(0)),
-        std::move(std::make_unique<value_ref<std::size_t>>(0))
+        std::make_unique<value_ref<T>>(value),
+        std::make_unique<value_ref<std::size_t>>(0),
+        std::make_unique<value_ref<std::size_t>>(0),
+        std::make_unique<value_ref<std::size_t>>(0)
     );
 }
 
@@ -427,9 +518,9 @@ empty(std::size_t (&&sizes)[N], device& device)
     using tensor_type = tensor<T, N, device_ref<T>>;
 
     return tensor_type(
-        std::move(std::make_unique<device_ref<T>>(data)),
-        std::move(std::make_unique<owned_ref<std::size_t>>(shape)),
-        std::move(std::make_unique<owned_ref<std::size_t>>(strides))
+        std::make_unique<device_ref<T>>(data),
+        std::make_unique<owned_ref<std::size_t>>(shape),
+        std::make_unique<owned_ref<std::size_t>>(strides)
     );
 }
 
