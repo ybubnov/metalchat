@@ -4,6 +4,7 @@
 
 #include <metalchat/functional/embedding.h>
 #include <metalchat/functional/sgemm.h>
+#include <metalchat/functional/sum.h>
 #include <metalchat/nn/linear.h>
 
 
@@ -29,6 +30,7 @@ private:
     rope<T> m_rope;
     scalar_mul<T> m_mul;
     sgemm<T> m_matmul;
+    sum<T> m_sum;
 
     attention_options m_options;
     float m_scale;
@@ -48,6 +50,8 @@ public:
       m_wo(wo, device),
       m_rope(device, options.head_dim, /*base=*/options.base, /*scale=?*/),
       m_mul(device),
+      m_matmul(device),
+      m_sum(device),
       m_options(options),
       m_scale(std::pow(options.head_dim, -0.5))
     {}
@@ -74,8 +78,7 @@ public:
         auto scores = m_matmul(m_mul(queries, m_scale), keys.transpose({0, 1, 3, 2}));
         // scores = m_sum(scores, mask);
 
-        // TODO: implement softmax over -1 dimension.
-        scores = m_softmax(scores, /*dim=-1*/);
+        scores = m_softmax(scores);
         auto output = m_matmul(scores, values).transpose({0, 2, 1, 3}).reshape({bs, len, -1});
         output = m_wo(output);
 

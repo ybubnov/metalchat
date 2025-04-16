@@ -35,6 +35,7 @@ public:
         auto n = scalar<int32_t>(input1.numel());
 
         auto threads = dim3(input1.numel());
+        // TODO: change the size of a threadgroup to the maximum.
         auto thread = dim3(32);
 
         blocking(threads, thread)(n, input1, input2, output);
