@@ -19,7 +19,7 @@ private:
     attention<T, Container> _m_attention;
     nn::rmsnorm<T, Container> _m_attention_norm;
 
-    feed_forward<T, Container> _m_ff;
+    feed_forward<T, device_ref<T>> _m_ff;
     nn::rmsnorm<T, Container> _m_ff_norm;
 
     sum<T> _m_sum;
@@ -31,7 +31,7 @@ public:
     transformer(
         attention<T, Container>&& attention,
         nn::rmsnorm<T, Container>&& attention_norm,
-        feed_forward<T, Container>&& ff,
+        feed_forward<T, device_ref<T>>&& ff,
         nn::rmsnorm<T, Container>&& ff_norm,
         device& device
     )

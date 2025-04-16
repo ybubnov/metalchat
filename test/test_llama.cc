@@ -36,14 +36,16 @@ TEST_CASE("Test make model", "[llama]")
     metalchat::device gpu0("metalchat.metallib");
 
     auto m = make_llama<bf16>(tensors, gpu0);
+    auto input_text = std::string("I have a dog called");
 
     std::vector<int32_t> ids;
     bpe.encode(special_token::begin_text, ids);
-    bpe.encode("I have a dog called", ids);
+    bpe.encode(input_text, ids);
 
     auto input0 = to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end());
     auto output0 = m(input0, 0);
     auto id = argmax_(output0);
+    std::cout << input_text;
     std::cout << bpe.decode(id);
 
     for (auto i = input0.size(1); i < 16; i++) {
