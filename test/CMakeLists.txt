@@ -24,5 +24,9 @@ foreach(metalchat_TEST_SOURCE ${metalchat_TEST_SOURCES})
     target_link_libraries(${metalchat_TEST} metalchat)
 
     # Define a new test from the source file.
-    add_test(NAME ${metalchat_TEST} COMMAND ${metalchat_TEST})
+    add_test(
+        NAME ${metalchat_TEST}
+        COMMAND ${metalchat_TEST}
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    )
 endforeach(metalchat_TEST_SOURCE)

@@ -62,6 +62,12 @@ public:
       m_offsets(std::move(t.m_offsets))
     {}
 
+    inline std::size_t
+    dim() const noexcept
+    {
+        return N;
+    }
+
     inline T*
     data_ptr()
     {
