@@ -29,12 +29,15 @@ public:
         auto dim_size = input.sizes().back();
         auto num_rows = data_size / dim_size;
 
+        auto input_view = flatten<2>(input);
+        auto output_view = shared_empty_like<bool>(input_view, _m_kernel.allocator());
+
         auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_back(input.template flatten<2>(), shared_tensor(scalar(value)));
+        auto task_future = task.bind_front(output_view, input_view, shared_tensor(scalar(value)));
 
-        auto output = empty_future<bool>({num_rows, dim_size}, std::move(fn));
+        auto output = future_tensor(output_view, std::move(task_future));
         return output.view(input.sizes());
     }
 };

@@ -89,8 +89,8 @@ public:
     : _m_dim(dim),
       _m_max_seq_len(max_seq_len),
       _m_theta(theta),
-      _m_freqs_cos(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, device)),
-      _m_freqs_sin(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, device)),
+      _m_freqs_cos(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, device.allocator())),
+      _m_freqs_sin(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, device.allocator())),
       _m_rope(device)
     {
         std::vector<float> freqs(_m_dim / 2);

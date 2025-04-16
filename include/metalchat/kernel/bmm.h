@@ -47,6 +47,9 @@ public:
             ));
         }
 
+        auto output
+            = shared_empty<T>({num_batches, input_size1, weight_size2}, _m_kernel.allocator());
+
         auto grid = dim3(
             ceil_div(input_size1, BlockSize) * BlockSize,
             ceil_div(weight_size2, BlockSize) * BlockSize, num_batches
@@ -54,10 +57,10 @@ public:
         auto thread = dim3(BlockSize, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto task_future = task.bind_back(input, weight);
+        auto task_future = task.bind_front(output, input, weight);
 
         // A(MxK) @ B(KxN) -> C(MxN)
-        return empty_future<T>({num_batches, input_size1, weight_size2}, std::move(task_future));
+        return future_tensor(output, std::move(task_future));
     }
 
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Weight>

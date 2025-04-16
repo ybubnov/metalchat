@@ -37,15 +37,17 @@ public:
         auto dim_size = input.sizes().back();
         auto num_rows = data_size / dim_size;
 
+        auto output = shared_empty<T>({input.size(0), dim_size, emb_size}, _m_kernel.allocator());
+
         auto thread_size_x = ceil_div(dim_size, BlockSize);
         auto thread_size_y = ceil_div(emb_size, EmbeddingBlockSize);
         auto thread = dim3(thread_size_x, thread_size_y);
         auto grid = dim3(thread_size_x * num_rows, thread_size_y);
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_back(input, weight);
+        auto task_future = task.bind_front(output, input, weight);
 
-        return empty_future<T>({input.size(0), dim_size, emb_size}, std::move(fn));
+        return future_tensor(output, std::move(task_future));
     }
 };
 
@@ -92,16 +94,18 @@ public:
             ));
         }
 
+        auto input_view = flatten<2>(input);
+        auto output_view = shared_empty_like<T>(input_view, _m_kernel.allocator());
+
         auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_front(
-            input.view({-1, int(dim_size)}), freqs_cos, freqs_sin,
-            shared_tensor(scalar<int32_t>(bs)), shared_tensor(scalar<int32_t>(n_head)),
-            shared_tensor(scalar<int32_t>(start_pos))
+        auto task_future = task.bind_front(
+            output_view, input_view, freqs_cos, freqs_sin, shared_tensor(scalar<int32_t>(bs)),
+            shared_tensor(scalar<int32_t>(n_head)), shared_tensor(scalar<int32_t>(start_pos))
         );
 
-        auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
+        auto output = future_tensor(output_view, std::move(task_future));
         return output.view(input.sizes());
     }
 };

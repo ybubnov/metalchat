@@ -233,4 +233,12 @@ shared_empty_like(const Tensor& t, Allocator alloc)
 }
 
 
+template <typename T, std::size_t N, allocator Allocator>
+auto
+shared_empty(std::size_t (&&sizes)[N], Allocator alloc)
+{
+    return shared_tensor(empty<T>(std::move(sizes), alloc));
+}
+
+
 } // namespace metalchat

@@ -42,12 +42,14 @@ public:
         auto init_state = _m_seed(_m_generator);
         auto init_seq = _m_seed(_m_generator);
 
+        auto output = shared_empty<int32_t>({num_rows, sample_size}, _m_kernel.allocator());
+
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_back(
-            input, shared_tensor(scalar(init_state)), shared_tensor(scalar(init_seq))
+        auto task_future = task.bind_front(
+            output, input, shared_tensor(scalar(init_state)), shared_tensor(scalar(init_seq))
         );
 
-        return empty_future<int32_t>({num_rows, sample_size}, std::move(fn));
+        return future_tensor(output, std::move(task_future));
     }
 };
 

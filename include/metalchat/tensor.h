@@ -645,6 +645,15 @@ empty(std::size_t (&&sizes)[N], Allocator alloc)
 }
 
 
+template <typename T, std::size_t N, hardware_allocator_t<void> Allocator>
+auto
+empty(std::size_t (&&sizes)[N], Allocator alloc)
+{
+    auto rebind_alloc = rebind_hardware_allocator<T, Allocator>(alloc);
+    return empty<T>(std::move(sizes), rebind_alloc);
+}
+
+
 template <typename T, std::size_t N> requires(N > 0)
 auto
 empty(std::size_t (&&sizes)[N])
@@ -654,6 +663,7 @@ empty(std::size_t (&&sizes)[N])
 
 
 template <typename T, std::size_t N> requires(N > 0)
+[[deprecated("Use `empty` with an allocator parameter instead.")]]
 auto
 empty(std::size_t (&&sizes)[N], device& device)
 {
@@ -662,6 +672,7 @@ empty(std::size_t (&&sizes)[N], device& device)
 
 
 template <typename T, std::size_t N> requires(N > 0)
+[[deprecated("Use `empty` with an allocator parameter instead.")]]
 auto
 empty(std::size_t (&&sizes)[N], MTL::Device* device)
 {
@@ -670,6 +681,7 @@ empty(std::size_t (&&sizes)[N], MTL::Device* device)
 
 
 template <typename T, std::size_t N> requires(N > 0)
+[[deprecated("Use `empty` with an allocator parameter instead.")]]
 auto
 empty(const std::span<std::size_t, N> sizes, MTL::Device* device)
 {
@@ -686,6 +698,7 @@ empty(InputIt begin, InputIt end)
 
 
 template <typename T, std::size_t N, std::forward_iterator InputIt> requires(N > 0)
+[[deprecated("Use `empty` with an allocator parameter instead.")]]
 auto
 empty(InputIt begin, InputIt end, device& device)
 {
@@ -696,6 +709,7 @@ empty(InputIt begin, InputIt end, device& device)
 
 
 template <typename T, std::size_t N, std::forward_iterator InputIt> requires(N > 0)
+[[deprecated("Use `empty` with an allocator parameter instead.")]]
 auto
 empty(InputIt begin, InputIt end, MTL::Device* device)
 {
@@ -737,6 +751,7 @@ empty_like(const Tensor& like)
 
 
 template <immutable_tensor Tensor> requires(Tensor::dim() > 0)
+[[deprecated("Use `empty_like` with an allocator parameter instead.")]]
 auto
 empty_like(const Tensor& like, device& device)
 {
@@ -748,6 +763,7 @@ empty_like(const Tensor& like, device& device)
 
 
 template <immutable_tensor Tensor> requires(Tensor::dim() > 0)
+[[deprecated("Use `empty_like` with an allocator parameter instead.")]]
 auto
 empty_like(const Tensor& like, MTL::Device* device)
 {

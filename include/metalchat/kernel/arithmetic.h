@@ -63,6 +63,7 @@ public:
         }
 
         auto input1_view = input1.view({-1, int(dim0_size), int(dim1_size)});
+        auto output_view = shared_empty_like<T>(input1_view, _m_kernel.allocator());
 
         auto thread_size_x = ceil_div(dim0_size, BlockSize);
         auto thread_size_y = ceil_div(dim1_size, BlockSize);
@@ -70,9 +71,9 @@ public:
         auto grid = dim3(thread_size_x * num_rows, thread_size_y);
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_back(input1_view, input2);
+        auto task_future = task.bind_front(output_view, input1_view, input2);
 
-        auto output = empty_future<T>({num_rows, dim0_size, dim1_size}, std::move(fn));
+        auto output = future_tensor(output_view, std::move(task_future));
         return output.view(input1.sizes());
     }
 };
