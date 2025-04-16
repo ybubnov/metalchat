@@ -41,7 +41,10 @@ public:
     auto
     operator()(const tensor<T, 3, InputContainer>& input)
     {
-        return m_w2(m_hadamard(m_silu(m_w1(input)), m_w3(input)));
+        auto input1 = shared_tensor(m_silu(m_w1(input)));
+        auto input2 = shared_tensor(m_w3(input));
+
+        return m_w2(m_hadamard(input1, input2).get());
     }
 
     friend std::ostream&

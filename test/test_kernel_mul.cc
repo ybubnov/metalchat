@@ -16,10 +16,10 @@ TEST_CASE("Hadamard product", "[kernel::hadamard]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::hadamard<float> m(gpu0);
 
-    auto input1 = rand<float>({3, 5, 8192});
-    auto input2 = rand<float>({3, 5, 8192});
+    auto input1 = shared_tensor(rand<float>({3, 5, 8192}));
+    auto input2 = shared_tensor(rand<float>({3, 5, 8192}));
 
-    auto output = m(input1, input2);
+    auto output = m(input1, input2).get();
     REQUIRE(output.dim() == 3);
     REQUIRE(output.size(0) == 3);
     REQUIRE(output.size(1) == 5);
