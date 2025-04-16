@@ -8,23 +8,22 @@
 using namespace metal;
 
 
+#define __softmax_parameters(T)                                                                    \
+    constant uint &dim_size [[buffer(0)]], device const T *input [[buffer(1)]],                    \
+        device T *output [[buffer(2)]], uint gid [[threadgroup_position_in_grid]],                 \
+        uint tid [[thread_index_in_threadgroup]], uint simd_tid [[thread_index_in_simdgroup]],     \
+        uint simd_gid [[simdgroup_index_in_threadgroup]]
+
+
+template <typename T>
 kernel void
-softmax_bf16(
-    constant uint& dim_size [[buffer(0)]],
-    device const bfloat* input [[buffer(1)]],
-    device bfloat* output [[buffer(2)]],
-    uint gid [[threadgroup_position_in_grid]],
-    uint tid [[thread_index_in_threadgroup]],
-    uint threadgroup_size [[threads_per_threadgroup]],
-    uint simd_tid [[thread_index_in_simdgroup]],
-    uint simd_gid [[simdgroup_index_in_threadgroup]]
-)
+softmax(__softmax_parameters(T))
 {
     constexpr uint SIMD_SIZE = 32;
     constexpr uint BLOCK_SIZE = 4;
 
-    device const bfloat* in = input + gid * dim_size;
-    device bfloat* out = output + gid * dim_size;
+    device const T* in = input + gid * dim_size;
+    device T* out = output + gid * dim_size;
 
     float threadlocal_sum = 0.0f;
 
@@ -33,7 +32,7 @@ softmax_bf16(
     uint block_size = i + BLOCK_SIZE > dim_size ? remainder_size : BLOCK_SIZE;
 
     for (uint j = 0; j < block_size; j++) {
-        bfloat xj = in[i + j];
+        T xj = in[i + j];
         threadlocal_sum += metal::fast::exp(xj);
     }
 
@@ -64,8 +63,16 @@ softmax_bf16(
     threadgroup_barrier(mem_flags::mem_threadgroup);
 
     // Write the outputs
-    bfloat exp_sum = bfloat(threadgroup_exp_sum[0]);
+    T exp_sum = T(threadgroup_exp_sum[0]);
     for (uint j = 0; j < block_size; j++) {
-        out[i + j] = bfloat(exp(in[i + j])) * exp_sum;
+        out[i + j] = T(exp(in[i + j])) * exp_sum;
     }
 }
+
+
+template [[host_name("softmax_bf16")]]
+kernel void softmax<bfloat>(__softmax_parameters(bfloat));
+
+
+template [[host_name("softmax_float")]]
+kernel void softmax<float>(__softmax_parameters(float));

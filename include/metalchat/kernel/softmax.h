@@ -3,6 +3,7 @@
 
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
+#include <metalchat/format.h>
 #include <metalchat/kernel.h>
 #include <metalchat/tensor.h>
 
@@ -30,6 +31,7 @@ public:
         constexpr std::size_t simd_size = 32;
         constexpr std::size_t block_size = 4;
 
+        std::cout << "SOFTMAX INPUT SIZE = {" << input.sizes() << "}" << std::endl;
         assert(dim_size <= block_size * 1024); // 1024 = max total threads per tg.
 
         auto thread_size = ceil_div(dim_size, block_size);
