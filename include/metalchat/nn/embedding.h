@@ -23,7 +23,7 @@ public:
     auto
     operator()(const tensor<int32_t, 1, InputRef>& input, const tensor<T, 2, WeightRef>& weight)
     {
-        auto stride = full<int64_t>({1}, /*fill_value=*/weight.stride(0));
+        auto stride = scalar<int32_t>(weight.stride(0));
         auto output = empty<T>({input.size(0), weight.size(1)}, m_device);
 
         auto blocks = dim3(input.size(0), weight.size(1));

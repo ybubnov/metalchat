@@ -36,6 +36,13 @@ make_buffer(device& device, const tensor<T, N, device_ref>& t)
     return t.storage()->m_buf;
 }
 
+template <typename T>
+kernel_traits::buffer_type
+make_buffer(device& device, const tensor<T, 0, value_ref>& t)
+{
+    return kernel_traits::buffer_type();
+}
+
 
 class blocking_kernel {
 private:
@@ -88,9 +95,16 @@ public:
         std::array<kernel_traits::buffer_type, args_size> buffers
             = {(make_buffer(m_device, args))...};
 
+        std::array<const void*, args_size> data_ptrs = {(args.data_ptr())...};
+        std::array<std::size_t, args_size> data_sizes = {(sizeof(T))...};
+
         command_encoder->setComputePipelineState(m_pipeline.get());
         for (std::size_t i = 0; i < args_size; i++) {
-            command_encoder->setBuffer(buffers[i].get(), 0, i);
+            if (buffers[i]) {
+                command_encoder->setBuffer(buffers[i].get(), 0, i);
+            } else {
+                command_encoder->setBytes(data_ptrs[i], data_sizes[i], 0, i);
+            }
         }
 
         MTL::Size grid_blocks(m_blocks.x, m_blocks.y, m_blocks.z);

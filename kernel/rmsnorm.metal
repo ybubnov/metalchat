@@ -13,8 +13,8 @@ kernel void
 rmsnorm_f16(
     device const bfloat* input [[buffer(0)]],
     device const bfloat* weight [[buffer(1)]],
-    device const bfloat* eps [[buffer(2)]],
-    device const int32_t* input_size_ [[buffer(3)]],
+    constant bfloat& eps [[buffer(2)]],
+    constant uint& input_size [[buffer(3)]],
     device bfloat* output [[buffer(4)]],
     uint tid [[thread_index_in_threadgroup]],
     uint threadgroup_size [[threads_per_threadgroup]],
@@ -28,7 +28,6 @@ rmsnorm_f16(
     threadgroup float threadgroup_inv_mean[1];
     threadgroup float threadgroup_sum[SIMD_SIZE];
 
-    uint input_size = uint(input_size_[0]);
     bfloat threadlocal_sum = bfloat(0.0f);
 
     uint i = tid * BLOCK_SIZE;
@@ -59,7 +58,7 @@ rmsnorm_f16(
     if (simd_gid == 0) {
         acc = simd_sum(threadgroup_sum[simd_tid]);
         if (simd_tid == 0) {
-            threadgroup_inv_mean[0] = metal::fast::rsqrt(acc / input_size + eps[0]);
+            threadgroup_inv_mean[0] = metal::fast::rsqrt(acc / input_size + eps);
         }
     }
     threadgroup_barrier(mem_flags::mem_threadgroup);
