@@ -14,7 +14,7 @@ namespace metalchat {
 namespace fmt {
 
 constexpr std::size_t precision = 3;
-constexpr std::size_t edgeitems = 4;
+constexpr std::size_t edgeitems = 40;
 
 
 struct comma {
