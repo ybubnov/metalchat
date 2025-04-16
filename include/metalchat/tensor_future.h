@@ -398,7 +398,7 @@ template <
     typename T,
     std::size_t N,
     asynchronously_invocable Task,
-    incomplete_hardware_allocator Allocator>
+    hardware_allocator_t<void> Allocator>
 auto
 empty_future(std::size_t (&&sizes)[N], Task&& task, Allocator alloc)
 {
