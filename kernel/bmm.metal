@@ -22,7 +22,8 @@ template <typename T, uint BlockSize>
 kernel void
 bmm(__bmm_parameters<T> params,
     uint3 group_id [[threadgroup_position_in_grid]],
-    uint3 thread_id [[thread_position_in_threadgroup]])
+    uint3 thread_id [[thread_position_in_threadgroup]],
+    uint3 threadgroup_size [[threads_per_threadgroup]])
 {
     tensor<const T, 3> m1{params.mat1, params.mat1_layout};
     tensor<const T, 3> m2{params.mat2, params.mat2_layout};

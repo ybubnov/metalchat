@@ -43,7 +43,7 @@ public:
         auto thread_size_x = ceil_div(dim_size, BlockSize);
         auto thread_size_y = ceil_div(emb_size, EmbeddingBlockSize);
         auto thread = dim3(thread_size_x, thread_size_y);
-        auto grid = dim3(thread_size_x * num_rows, thread_size_y, BlockSize);
+        auto grid = dim3(thread_size_x * num_rows, thread_size_y, EmbeddingBlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto task_future = task.bind_front(output, input, weight);

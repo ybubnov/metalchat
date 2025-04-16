@@ -43,13 +43,13 @@ embedding(__embedding_parameters(T))
     const uint emb_size = w.size(1);
     const uint i = gid.x;
 
-    const uint j = tid.x + gid.z * threadgroup_size.z;
+    const uint begin = tid.x * BlockSize;
+    const uint end = begin + BlockSize;
 
-    const uint emb_begin = tid.y * EmbeddingBlockSize;
-    const uint emb_end = emb_begin + EmbeddingBlockSize;
+    const uint k = tid.y + gid.z * threadgroup_size.y;
 
-    if (j < dim_size) {
-        for (uint k = emb_begin; k < emb_end && k < emb_size; k++) {
+    if (k < emb_size) {
+        for (uint j = begin; j < end && j < dim_size; j++) {
             out.at(i, j, k) = w.at(in.at(i, j), k);
         }
     }
