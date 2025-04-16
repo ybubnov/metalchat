@@ -19,11 +19,11 @@ foreach(metalchat_TEST_SOURCE ${metalchat_TEST_SOURCES})
     get_filename_component(metalchat_TEST ${metalchat_TEST_SOURCE} NAME_WE)
 
     add_executable(${metalchat_TEST} ${metalchat_TEST_SOURCE})
-    target_link_libraries(${metalchat_TEST} metal-cpp::metal-cpp)
+    #target_link_libraries(${metalchat_TEST} metal-cpp::metal-cpp)
     #target_link_libraries(${metalchat_TEST} ${FOUNDATION})
     #target_link_libraries(${metalchat_TEST} ${METAL})
     #target_link_libraries(${metalchat_TEST} ${QUARTZCORE})
-    target_link_libraries(${metalchat_TEST} simdjson::simdjson)
+    #target_link_libraries(${metalchat_TEST} simdjson::simdjson)
     target_link_libraries(${metalchat_TEST} Catch2::Catch2WithMain)
     target_link_libraries(${metalchat_TEST} metalchat)
 

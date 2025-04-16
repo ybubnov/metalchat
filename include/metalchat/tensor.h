@@ -10,6 +10,7 @@
 #include <sstream>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include <metalchat/container.h>
 #include <metalchat/device.h>
@@ -71,6 +72,12 @@ public:
         auto buf = NS::TransferPtr(device->newBuffer(buf_size, MTL::ResourceStorageModeShared));
 
         m_data = std::make_shared<device_ref<T>>(buf);
+    }
+
+    tensor_base(std::vector<T>&& data) requires(std::same_as<Container, owning_ref<T>> && N == 1)
+    : tensor_base({data.size()})
+    {
+        std::copy(data.cbegin(), data.cend(), data_ptr());
     }
 
     tensor_base(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)

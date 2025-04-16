@@ -1,6 +1,9 @@
 #pragma once
 
 
+#include <metalchat/device.h>
+
+
 namespace metalchat {
 
 
