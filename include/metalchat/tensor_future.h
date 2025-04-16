@@ -37,27 +37,29 @@ wait_all(const std::vector<std::shared_ptr<awaitable>>& awaitables)
 }
 
 
-template <typename T, std::size_t N, is_tensor... Args> class future_tensor : public awaitable {
+template <typename T, std::size_t N> class future_tensor : public awaitable {
 public:
     using result_type = shared_tensor<T, N, device_ref<T>>;
 
-    using kernel_type = kernel_task<Args...>;
+    using kernel_type = void;
 
     using promise_type = std::promise<void>;
 
     future_tensor(const future_tensor& t) noexcept = default;
-    future_tensor(future_tensor&& t) noexcept = default;
+    // future_tensor(future_tensor&& t) noexcept = default;
 
-    future_tensor(shared_tensor<T, N, device_ref<T>> t, kernel_task<Args...>&& task)
+    template <is_tensor... Args>
+    future_tensor(result_type t, kernel_task<Args...>&& task)
     : _m_result(std::move(t)),
-      _m_kernel_task(std::make_shared<kernel_type>(std::move(task))),
+      _m_kernel_task(std::make_shared<kernel_task<Args...>>(std::move(task))),
       _m_promise(std::make_shared<promise_type>())
     {
         // Enqueue the calculations to compute the tensor, upon the completion,
         // command buffers calls a callback that sets a value to the promise, so
         // all waiting routines will be unblocked.
         _m_future = std::shared_future(_m_promise->get_future());
-        (*_m_kernel_task)(_m_promise);
+        //(*_m_kernel_task)(_m_promise);
+        task(_m_promise);
     }
 
     result_type
@@ -74,10 +76,10 @@ public:
     }
 
     template <std::size_t M>
-    future_tensor<T, M, Args...>
+    future_tensor<T, M>
     view(const int (&&dims)[M]) const requires(M > 0)
     {
-        return future_tensor<T, M, Args...>(
+        return future_tensor<T, M>(
             _m_result.view(std::move(dims)), _m_kernel_task, _m_promise, _m_future
         );
     }
@@ -109,22 +111,21 @@ private:
     std::shared_future<void> _m_future;
 
     // Make all specialization of the future tensor friends to the current specialization.
-    template <typename FriendT, std::size_t FriendN, is_tensor... FriendArgs>
-    friend class future_tensor;
+    template <typename FriendT, std::size_t FriendN> friend class future_tensor;
 };
 
 
 /// Deduction guide for the future tensor type.
 template <typename T, std::size_t N, is_tensor... Args>
 future_tensor(shared_tensor<T, N, device_ref<T>> t, kernel_task<Args...>&& task)
-    -> future_tensor<T, N, Args...>;
+    -> future_tensor<T, N>;
 
 
-template <typename T, std::size_t N, is_tensor... Args>
-std::shared_ptr<future_tensor<T, N, Args...>>
-make_shared(future_tensor<T, N, Args...>&& tensor)
+template <typename T, std::size_t N>
+std::shared_ptr<future_tensor<T, N>>
+make_shared(future_tensor<T, N>&& tensor)
 {
-    return std::make_shared<future_tensor<T, N, Args...>>(std::move(tensor));
+    return std::make_shared<future_tensor<T, N>>(std::move(tensor));
 }
 
 
@@ -132,12 +133,10 @@ template <typename T, std::size_t N, is_tensor... Args>
 auto
 empty_future(const std::size_t (&&sizes)[N], kernel_task<Args...>&& task)
 {
-    using Result = shared_tensor<T, N, device_ref<T>>;
-
     auto result = shared_tensor(empty<T>(std::move(sizes), task.device()));
     auto fn = task.bind_front(result);
 
-    return future_tensor<T, N, Result, Args...>(result, std::move(fn));
+    return future_tensor<T, N>(result, std::move(fn));
 }
 
 

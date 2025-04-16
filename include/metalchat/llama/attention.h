@@ -172,10 +172,10 @@ public:
         auto k = m_wk(input).view({bs, len, n_kv_heads, head_dim});
         auto v = m_wv(input).view({bs, len, n_kv_heads, head_dim});
 
-        auto queries = m_rope(q.get(), /*start_pos=*/start_pos);
-        auto k_rot = m_rope(k.get(), /*start_pos=*/start_pos);
+        q = m_rope(q.get(), /*start_pos=*/start_pos);
+        k = m_rope(k.get(), /*start_pos=*/start_pos);
 
-        auto [kk, kk_future] = cache_keys(k_rot.get(), bs, start_pos, len);
+        auto [kk, kk_future] = cache_keys(k.get(), bs, start_pos, len);
         auto [vv, vv_future] = cache_values(v.get(), bs, start_pos, len);
         kk_future.wait();
         vv_future.wait();
@@ -192,11 +192,11 @@ public:
         auto keys = repeat_kv(std::move(kk));
         auto values = repeat_kv(std::move(vv));
 
-        auto queries_ = queries.transpose({0, 2, 1, 3});
+        auto queries = q.transpose({0, 2, 1, 3});
         keys = keys.transpose({0, 2, 3, 1});
         values = values.transpose({0, 2, 1, 3});
 
-        auto scores = m_mul(m_matmul(*queries_.get(), *keys), m_scale);
+        auto scores = m_mul(m_matmul(*queries.get(), *keys), m_scale);
 
         if (mask.has_value()) {
             scores = m_sum(scores, mask.value());
@@ -206,7 +206,7 @@ public:
         auto output = m_matmul(scores, *values).transpose({0, 2, 1, 3});
         auto output_ = contiguous(shared_tensor(std::move(output)), /*dim=*/1);
 
-        return m_wo((*output_).view({bs, len, -1}));
+        return m_wo(output_.view({bs, len, -1}));
     }
 
     friend std::ostream&
