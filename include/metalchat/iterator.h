@@ -1,6 +1,7 @@
 #pragma once
 
 
+#include <iterator>
 #include <optional>
 
 
@@ -12,6 +13,8 @@ namespace metalchat {
 
 template <typename T, std::size_t N> class tensor_iterator {
 public:
+    using iterator_category = std::forward_iterator_tag;
+
     using iterator = tensor_iterator<T, N>;
 
     using value_type = T;
@@ -19,6 +22,8 @@ public:
     using reference = value_type&;
 
     using pointer = value_type*;
+
+    using difference_type = std::ptrdiff_t;
 
     tensor_iterator(
         array_ref<T>& data,

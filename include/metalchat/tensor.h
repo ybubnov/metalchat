@@ -286,7 +286,8 @@ public:
         requires(sizeof...(slices) <= N)
     {
         constexpr auto slices_size = sizeof...(slices);
-        std::array<indexing::slice, slices_size> slices_array = {(slices)...};
+        std::array<indexing::slice, slices_size> slices_array
+            = {(static_cast<indexing::slice>(slices))...};
 
         auto shape = new std::size_t[N];
         auto offsets = new std::size_t[N];
@@ -316,27 +317,29 @@ public:
         }
 
         std::copy(other.begin(), other.end(), this->begin());
-
         return *this;
     }
 
-    template <typename = void>
-        requires(N == 2)
+    template <indexing::SizeConvertible... Dimensions>
     auto
-    t() const
+    transpose(const Dimensions... dims)
+        requires(sizeof...(dims) == N)
     {
-        auto shape = new std::size_t[N];
-        auto strides = new std::size_t[N];
-        auto offsets = new std::size_t[N];
+        auto shape = new std::size_t[N]{this->size(static_cast<std::size_t>(dims))...};
+        auto strides = new std::size_t[N]{this->stride(static_cast<std::size_t>(dims))...};
+        auto offsets = new std::size_t[N]{this->offset(static_cast<std::size_t>(dims))...};
 
-        reverse_copy(*this->m_shape, N, shape);
-        reverse_copy(*this->m_strides, N, strides);
-        reverse_copy(*this->m_offsets, N, offsets);
-
-        return tensor(
+        return tensor<T, N, weak_ref<T>>(
             make_weak(this->data_ptr()), make_owning(shape), make_owning(strides),
             make_owning(offsets)
         );
+    }
+
+    auto
+    t()
+        requires(N == 2)
+    {
+        return std::move(transpose(0, 1));
     }
 
     void
