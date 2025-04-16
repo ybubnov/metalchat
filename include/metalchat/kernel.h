@@ -60,7 +60,7 @@ ceil_div(std::size_t a, std::size_t b)
 }
 
 
-class base_kernel_runtime {
+class execution_policy {
 private:
     kernel_traits::pipeline_type _m_pipeline;
     kernel_traits::queue_type _m_queue;
@@ -70,7 +70,7 @@ private:
     const dim3 _m_thread;
 
 public:
-    base_kernel_runtime(
+    execution_policy(
         kernel_traits::pipeline_type pipeline,
         kernel_traits::queue_type queue,
         device& device,
@@ -132,16 +132,16 @@ public:
 };
 
 
-class blocking_kernel_runtime : public base_kernel_runtime {
+class sequenced_policy : public execution_policy {
 public:
-    blocking_kernel_runtime(
+    sequenced_policy(
         kernel_traits::pipeline_type pipeline,
         kernel_traits::queue_type queue,
         device& device,
         const dim3& threads,
         const dim3& thread
     )
-    : base_kernel_runtime(pipeline, queue, device, threads, thread)
+    : execution_policy(pipeline, queue, device, threads, thread)
     {}
 
     template <typename... T, std::size_t... N, ContiguousContainer... Container>
@@ -189,10 +189,10 @@ public:
         return m_op;
     }
 
-    blocking_kernel_runtime
+    sequenced_policy
     blocking(dim3 threads, dim3 thread)
     {
-        return blocking_kernel_runtime(m_pipeline, m_queue, m_device, threads, thread);
+        return sequenced_policy(m_pipeline, m_queue, m_device, threads, thread);
     }
 };
 

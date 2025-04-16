@@ -36,7 +36,7 @@ template <uint32_t N> struct tensor_layout {
 
 template <typename T, std::size_t N, ContiguousContainer Container> class tensor_base {
 public:
-    using traits = tensor_traits<T, Container>;
+    using traits_type = tensor_traits<T, Container>;
 
     using value_type = T;
 
@@ -63,14 +63,14 @@ public:
         m_data = std::make_shared<owning_ref<T>>(new T[numel()]);
     }
 
-    tensor_base(const std::size_t (&&sizes)[N], const traits::data_type& data)
+    tensor_base(const std::size_t (&&sizes)[N], const traits_type::data_type& data)
     : m_data(data)
     {
         _m_initialize(std::move(sizes));
     }
 
     template <std::forward_iterator ForwardIt>
-    tensor_base(ForwardIt first, ForwardIt last, const traits::data_type& data)
+    tensor_base(ForwardIt first, ForwardIt last, const traits_type::data_type& data)
     : m_data(data)
     {
         _m_initialize(first, last);
@@ -198,7 +198,7 @@ public:
         return n;
     }
 
-    inline traits::data_type::element_type&
+    inline traits_type::data_type::element_type&
     container() const
     {
         return *m_data;
@@ -461,10 +461,10 @@ public:
     }
 
 protected:
-    traits::data_type m_data = nullptr;
-    traits::size_type m_shape = nullptr;
-    traits::size_type m_strides = nullptr;
-    traits::size_type m_offsets = nullptr;
+    traits_type::data_type m_data = nullptr;
+    traits_type::size_type m_shape = nullptr;
+    traits_type::size_type m_strides = nullptr;
+    traits_type::size_type m_offsets = nullptr;
 
     inline void
     set_size(std::size_t dim, std::size_t i)
@@ -507,17 +507,17 @@ protected:
         _m_initialize_strides();
     }
 
-    tensor_base(const traits::data_type& data)
+    tensor_base(const traits_type::data_type& data)
     : m_data(data)
     {
         _m_initialize();
     }
 
     tensor_base(
-        const traits::data_type& data,
-        traits::size_type&& shape,
-        traits::size_type&& strides,
-        traits::size_type&& offsets
+        const traits_type::data_type& data,
+        traits_type::size_type&& shape,
+        traits_type::size_type&& strides,
+        traits_type::size_type&& offsets
     )
     : m_data(data),
       m_shape(std::move(shape)),
@@ -533,18 +533,12 @@ private:
     using _Base = tensor_base<T, N, Container>;
 
 public:
-    using traits = tensor_traits<T, Container>;
+    using traits_type = tensor_traits<T, Container>;
+
+    using tensor_base<T, N, Container>::tensor_base;
 
     tensor(_Base&& t)
     : _Base(std::move(t))
-    {}
-
-    tensor(const std::size_t (&&sizes)[N], device& device)
-    : _Base(std::move(sizes), device)
-    {}
-
-    tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
-    : _Base(data, shape, strides, offsets)
     {}
 
     auto
@@ -629,18 +623,12 @@ private:
     using _Base = tensor_base<T, 1, Container>;
 
 public:
-    using traits = tensor_traits<T, Container>;
+    using traits_type = tensor_traits<T, Container>;
+
+    using tensor_base<T, 1, Container>::tensor_base;
 
     tensor(_Base&& t)
     : _Base(std::move(t))
-    {}
-
-    tensor(const std::size_t (&&sizes)[1], device& device)
-    : _Base(std::move(sizes), device)
-    {}
-
-    tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
-    : _Base(data, shape, strides, offsets)
     {}
 
     T&
@@ -703,7 +691,9 @@ private:
     using _Base = tensor_base<T, 0, Container>;
 
 public:
-    using traits = tensor_traits<T, Container>;
+    // using traits_type = tensor_traits<T, Container>;
+
+    using tensor_base<T, 0, Container>::tensor_base;
 
     tensor(_Base&& t)
     : _Base(std::move(t))
