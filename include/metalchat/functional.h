@@ -207,7 +207,7 @@ concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, device& device)
         }
     }
 
-    auto output = future_tensor(empty<T>(std::move(size0), device));
+    auto output = future_tensor(empty<T>(std::move(size0), device.allocator()));
     std::size_t offset = 0;
 
     auto copy_kernel = cpy<T>(device);

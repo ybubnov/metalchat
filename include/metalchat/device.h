@@ -80,6 +80,12 @@ public:
         return _m_device.get();
     }
 
+    hardware_memory_allocator<void>
+    allocator()
+    {
+        return hardware_memory_allocator<void>(_m_device.get());
+    }
+
     kernel_base
     load(const std::string& name)
     {
