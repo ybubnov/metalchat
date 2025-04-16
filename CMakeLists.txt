@@ -1,16 +1,26 @@
-cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
 project(metalchat, CXX)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
+add_definitions(-std=c++2b)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+set(metalchat_LIBRARY_VERSION "1.0.0")
+set(metalchat_LIBRARY_SOVERSION "1")
+
+enable_testing()
+
 
 add_subdirectory(kernel)
+add_subdirectory(test)
+
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/lib)
+
 
 find_library(FOUNDATION Foundation REQUIRED)
 find_library(METAL Metal REQUIRED)
 find_library(QUARTZCORE QuartzCore REQUIRED)
-
 find_package(simdjson CONFIG REQUIRED)
 
 
@@ -18,10 +28,27 @@ find_package(simdjson CONFIG REQUIRED)
 set(metalchat_METALLIB metalchat.metallib)
 set(metalchat_SOURCES src/main.cc)
 
-add_executable(metalchat_main ${metalchat_SOURCES})
-add_dependencies(metalchat_main ${metalchat_METALLIB})
+#add_executable(metalchat_main ${metalchat_SOURCES})
+#add_dependencies(metalchat_main ${metalchat_METALLIB})
 
-target_link_libraries(metalchat_main simdjson::simdjson)
-target_link_libraries(metalchat_main ${FOUNDATION})
-target_link_libraries(metalchat_main ${METAL})
-target_link_libraries(metalchat_main ${QUARTZCORE})
+#target_link_libraries(metalchat_main simdjson::simdjson)
+#target_link_libraries(metalchat_main ${FOUNDATION})
+#target_link_libraries(metalchat_main ${METAL})
+#target_link_libraries(metalchat_main ${QUARTZCORE})
+
+
+add_library(metalchat SHARED ${metalchat_SOURCES})
+add_dependencies(metalchat ${metalchat_METALLIB})
+set_target_properties(metalchat PROPERTIES CXX_STANDARD 20)
+set_target_properties(metalchat PROPERTIES VERSION ${metalchat_LIBRARY_VERSION})
+set_target_properties(metalchat PROPERTIES SOVERSION ${metalchat_LIBRARY_SOVERSION})
+target_link_libraries(metalchat simdjson::simdjson)
+target_link_libraries(metalchat ${FOUNDATION})
+target_link_libraries(metalchat ${METAL})
+target_link_libraries(metalchat ${QUARTZCORE})
+
+
+# Install the library files.
+install(DIRECTORY include/metalchat DESTINATION metalchat)
+#install(FILES include/metalchat.h DESTINATION include)
+install(TARGETS metalchat DESTINATION lib)

@@ -33,10 +33,23 @@ concept ContiguousContainer = requires { typename T::value_type; }
 
 template <ContiguousContainer Container, class OutputIt>
 OutputIt
-reverse_copy(const Container& first, std::size_t count, OutputIt d_first)
+copy(const Container& container, std::size_t count, OutputIt d_first)
 {
-    auto last = first.data() + count;
-    for (; first.data() != last; ++d_first)
+    auto first = container.data();
+    auto last = container.data() + count;
+    for (; first != last; ++first, ++d_first)
+        *d_first = *first;
+    return d_first;
+}
+
+
+template <ContiguousContainer Container, class OutputIt>
+OutputIt
+reverse_copy(const Container& container, std::size_t count, OutputIt d_first)
+{
+    auto first = container.data();
+    auto last = first + count;
+    for (; first != last; ++d_first)
         *d_first = *(--last);
     return d_first;
 }

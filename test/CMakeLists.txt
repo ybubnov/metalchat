@@ -1,0 +1,28 @@
+include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/lib)
+
+
+find_library(FOUNDATION Foundation REQUIRED)
+find_library(METAL Metal REQUIRED)
+find_library(QUARTZCORE QuartzCore REQUIRED)
+find_package(Boost COMPONENTS unit_test_framework REQUIRED)
+find_package(simdjson CONFIG REQUIRED)
+
+file(GLOB metalchat_TEST_SOURCES *.cc)
+
+
+foreach(metalchat_TEST_SOURCE ${metalchat_TEST_SOURCES})
+    # Extract extension from the file name.
+    get_filename_component(metalchat_TEST ${metalchat_TEST_SOURCE} NAME_WE)
+
+    add_executable(${metalchat_TEST} ${metalchat_TEST_SOURCE})
+    target_link_libraries(${metalchat_TEST} ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+    target_link_libraries(${metalchat_TEST} ${FOUNDATION})
+    target_link_libraries(${metalchat_TEST} ${METAL})
+    target_link_libraries(${metalchat_TEST} ${QUARTZCORE})
+    target_link_libraries(${metalchat_TEST} simdjson::simdjson)
+    target_link_libraries(${metalchat_TEST} metalchat)
+
+    # Define a new test from the source file.
+    add_test(NAME ${metalchat_TEST} COMMAND ${metalchat_TEST})
+endforeach(metalchat_TEST_SOURCE)
