@@ -14,7 +14,7 @@
 #include <metalama/tensor.h>
 
 
-using namespace simdjson;
+namespace metalama {
 
 
 class safetensor {
@@ -74,6 +74,12 @@ struct safetensor_ptr {
 };
 
 
+} // namespace metalama
+
+
+using namespace simdjson;
+
+
 template <>
 simdjson_inline simdjson_result<std::vector<std::size_t>>
 simdjson::ondemand::value::get() noexcept
@@ -99,7 +105,7 @@ simdjson::ondemand::value::get() noexcept
 
 
 template <>
-simdjson_inline simdjson_result<safetensor_ptr>
+simdjson_inline simdjson_result<metalama::safetensor_ptr>
 simdjson::ondemand::value::get() noexcept
 {
     ondemand::object object;
@@ -108,7 +114,7 @@ simdjson::ondemand::value::get() noexcept
         return error;
     }
 
-    safetensor_ptr ptr;
+    metalama::safetensor_ptr ptr;
     if ((error = object["dtype"].get_string(ptr.dtype))) {
         return error;
     }
@@ -121,6 +127,9 @@ simdjson::ondemand::value::get() noexcept
 
     return ptr;
 }
+
+
+namespace metalama {
 
 
 class safetensor_file {
@@ -258,3 +267,6 @@ private:
         m_file_off += size;
     }
 };
+
+
+} // namespace metalama
