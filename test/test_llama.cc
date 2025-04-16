@@ -23,7 +23,7 @@ TEST_CASE("Test make model", "[llama]")
     // Load tensors in lambda, so that all resources are cleaned up after the load.
     auto m = [&] -> auto {
         safetensor_file tensors("../llama32.safetensors");
-        return make_llama<bf16>(tensors, gpu0);
+        return llama::make_model<bf16>(tensors, gpu0);
     }();
 
     auto input_text = std::string("I have a dog called");
