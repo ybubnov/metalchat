@@ -63,12 +63,7 @@ public:
         auto fn = task.bind_back(input1_view, input2_view);
 
         auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
-        int output_sizes[N];
-        for (auto i = 0; i < N; i++) {
-            output_sizes[i] = input1.size(i);
-        }
-
-        return output.view(std::move(output_sizes));
+        return output.view(input1.sizes());
     }
 };
 
@@ -106,12 +101,7 @@ public:
         auto fn = task.bind_back(input_view, multiplier);
 
         auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
-        int output_sizes[N];
-        for (auto i = 0; i < N; i++) {
-            output_sizes[i] = input.size(i);
-        }
-
-        return output.view(std::move(output_sizes));
+        return output.view(input.sizes());
     }
 
     template <std::size_t N, ContiguousContainer InputContainer>

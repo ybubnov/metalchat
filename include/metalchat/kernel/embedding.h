@@ -105,13 +105,7 @@ public:
         );
 
         auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
-        int input_sizes[4] = {
-            int(input.size(0)),
-            int(input.size(1)),
-            int(input.size(2)),
-            int(input.size(3)),
-        };
-        return output.view(std::move(input_sizes));
+        return output.view(input.sizes());
     }
 };
 

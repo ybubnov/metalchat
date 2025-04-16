@@ -31,7 +31,7 @@ template <uint32_t N> struct tensor_layout {
 
 template <typename Tensor>
 concept is_tensor = requires(std::remove_reference_t<Tensor> const t) {
-    // typename Tensor::dimensions;
+    /// The type of the elements.
     typename Tensor::value_type;
     typename Tensor::pointer_type;
     typename Tensor::container_type;
@@ -39,14 +39,15 @@ concept is_tensor = requires(std::remove_reference_t<Tensor> const t) {
     typename Tensor::const_iterator;
 
     { Tensor::dim() } -> std::convertible_to<std::size_t>;
-    { t.sizes() } -> std::same_as<const std::span<std::size_t>>;
-    { t.strides() } -> std::same_as<const std::span<std::size_t>>;
-    { t.offsets() } -> std::same_as<const std::span<std::size_t>>;
+    // Ensure that tensor type returns layout information as a span with a fixed extent.
+    { t.sizes() } -> std::same_as<const std::span<std::size_t, Tensor::dim()>>;
+    { t.strides() } -> std::same_as<const std::span<std::size_t, Tensor::dim()>>;
+    { t.offsets() } -> std::same_as<const std::span<std::size_t, Tensor::dim()>>;
     { t.numel() } -> std::same_as<std::size_t>;
     { t.data_ptr() } -> std::same_as<typename Tensor::pointer_type>;
     { t.begin() } -> std::same_as<typename Tensor::const_iterator>;
     { t.end() } -> std::same_as<typename Tensor::const_iterator>;
-    //{ t.layout() } -> std::same_as<tensor_layout<Tensor::dimensions>>;
+    { t.layout() } -> std::same_as<tensor_layout<Tensor::dim()>>;
 };
 
 

@@ -78,7 +78,7 @@ public:
         return _m_value->size(dim);
     }
 
-    const std::span<std::size_t>
+    const std::span<std::size_t, N>
     sizes() const
     {
         return _m_value->sizes();
@@ -90,7 +90,7 @@ public:
         return _m_value->stride(dim);
     }
 
-    const std::span<std::size_t>
+    const std::span<std::size_t, N>
     strides() const
     {
         return _m_value->strides();
@@ -102,7 +102,7 @@ public:
         return _m_value->offset(dim);
     }
 
-    const std::span<std::size_t>
+    const std::span<std::size_t, N>
     offsets() const
     {
         return _m_value->offsets();
@@ -140,9 +140,23 @@ public:
 
     template <std::size_t M>
     shared_tensor<T, M, Container>
-    view(const int (&&dims)[M]) const requires(M > 0)
+    view(int (&&dims)[M]) const requires(M > 0)
     {
         return shared_tensor<T, M, Container>(_m_value->view(std::move(dims)));
+    }
+
+    template <std::size_t M>
+    shared_tensor<T, M, Container>
+    view(const std::span<int, M> dims) const
+    {
+        return shared_tensor<T, M, Container>(_m_value->view(dims));
+    }
+
+    template <std::size_t M>
+    shared_tensor<T, M, Container>
+    view(const std::span<std::size_t, M> dims) const
+    {
+        return shared_tensor<T, M, Container>(_m_value->view(dims));
     }
 
     shared_tensor
@@ -158,7 +172,7 @@ public:
     }
 
     tensor_layout<N>
-    layout()
+    layout() const
     {
         return _m_value->layout();
     }
