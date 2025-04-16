@@ -309,7 +309,7 @@ public:
     }
 
     auto
-    narrow(std::size_t dim, std::size_t start, std::size_t length)
+    narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
         tensor_base t(m_data);
         for (auto i = 0; i < N; i++) {
