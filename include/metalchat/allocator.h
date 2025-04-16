@@ -138,9 +138,12 @@ public:
             throw std::runtime_error("failed creating a new heap");
         }
 
+        // This residency set is supposed to be used only for the heap, therefore
+        // it make sense to keep the number of allocations only to 1, since we anyway
+        // won't add anything apart from heap to that set.
         auto rset_options_ptr = MTL::ResidencySetDescriptor::alloc();
         auto rset_options = NS::TransferPtr(rset_options_ptr->init());
-        rset_options->setInitialCapacity(8);
+        rset_options->setInitialCapacity(1);
 
         NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
         NS::Error* error_ptr = error.get();
@@ -171,11 +174,12 @@ public:
         return std::make_shared<container_type>(memory_ptr);
     }
 
-    ~hardware_heap_allocator()
-    {
-        _m_rset->endResidency();
-        _m_rset->removeAllAllocations();
-    }
+    // TODO: implement a deleter for std::shared_ptr that will drop residency set from GPU.
+    //~hardware_heap_allocator()
+    //{
+    //    _m_rset->endResidency();
+    //    _m_rset->removeAllAllocations();
+    //}
 
 private:
     NS::SharedPtr<MTL::Heap> _m_heap;
