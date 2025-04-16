@@ -37,9 +37,9 @@ private:
         auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_front(output, input);
+        auto task_future = task.bind_front(output, input);
 
-        return future_tensor(output, std::move(fn));
+        return future_tensor(output, std::move(task_future));
     }
 
 public:
@@ -63,7 +63,7 @@ public:
     auto
     operator()(Input input, Output output)
     {
-        return copy(input.template flatten<2>(), output.template flatten<2>());
+        return copy(flatten<2>(input), flatten<2>(output));
     }
 };
 
@@ -86,13 +86,13 @@ public:
         // TODO: ensure that input is the same shape as mask.
         auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
 
-        auto input_view = input.template flatten<2>();
-        auto mask_view = mask.template flatten<2>();
+        auto input_view = flatten<2>(input);
+        auto mask_view = flatten<2>(mask);
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_front(input_view, mask_view, shared_tensor(scalar(value)));
+        auto task_future = task.bind_front(input_view, mask_view, shared_tensor(scalar(value)));
 
-        auto output = future_tensor(input, std::move(fn));
+        auto output = future_tensor(input, std::move(task_future));
         return output.view(input.sizes());
     }
 };
@@ -120,13 +120,14 @@ public:
         // TODO:: ensure that input has the same dimensions as index.
         auto [grid, thread] = make_kernel_grid_1d(index, BlockSize);
 
-        auto input_view = input.template flatten<2>();
-        auto index_view = index.template flatten<2>();
+        auto input_view = flatten<2>(input);
+        auto index_view = flatten<2>(index);
+        auto output_view = shared_empty_like<T>(index_view, _m_kernel.allocator());
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_front(input_view, index_view);
+        auto task_future = task.bind_front(output_view, input_view, index_view);
 
-        auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
+        auto output = future_tensor(output_view, std::move(task_future));
         return output.view(index.sizes());
     }
 };

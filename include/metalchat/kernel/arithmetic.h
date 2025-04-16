@@ -5,7 +5,7 @@
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
-#include <metalchat/kernel_task.h>
+#include <metalchat/kernel_wrapper.h>
 #include <metalchat/tensor_future.h>
 
 
@@ -16,7 +16,7 @@ template <typename T, std::size_t BlockSize = 32> class add {
 private:
     inline static const std::string operation_name = "add_" + std::to_string(BlockSize);
 
-    kernel_base _m_kernel;
+    binary_kernel_wrapper<T, BlockSize> _m_kernel;
 
 public:
     add(device& device)
@@ -27,32 +27,7 @@ public:
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        auto data_size = input1.numel();
-        auto dim_size = input1.sizes().back();
-        auto num_rows = data_size / dim_size;
-
-        if (auto dim_size2 = input2.sizes().back(); dim_size != dim_size2) {
-            throw std::invalid_argument(std::format(
-                "add: last dimension should be the same for both tensors {} != {}", dim_size,
-                dim_size2
-            ));
-        }
-
-        if (auto data_size2 = input2.numel(); data_size != data_size2) {
-            throw std::invalid_argument(std::format(
-                "add: data size should be the same for both tensors {} != {}", data_size, data_size2
-            ));
-        }
-
-        auto [grid, thread] = make_kernel_grid_1d(input1, BlockSize);
-
-        auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_back(flatten<2>(input1), flatten<2>(input2));
-
-        auto alloc = hardware_memory_allocator<void>(_m_kernel.device());
-        auto output = empty_future<T>({num_rows, dim_size}, std::move(fn), alloc);
-
-        return output.view(input1.sizes());
+        return _m_kernel(input1, input2);
     }
 };
 
@@ -107,7 +82,7 @@ template <typename T, std::size_t BlockSize = 32> class sub {
 private:
     inline static const std::string operation_name = "sub_" + std::to_string(BlockSize);
 
-    kernel_base _m_kernel;
+    binary_kernel_wrapper<T, BlockSize> _m_kernel;
 
 public:
     sub(device& device)
@@ -118,30 +93,7 @@ public:
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        auto data_size = input1.numel();
-        auto dim_size = input1.sizes().back();
-        auto num_rows = data_size / dim_size;
-
-        if (auto dim_size2 = input2.sizes().back(); dim_size != dim_size2) {
-            throw std::invalid_argument(std::format(
-                "sub: last dimension should be the same for both tensors {} != {}", dim_size,
-                dim_size2
-            ));
-        }
-
-        if (auto data_size2 = input2.numel(); data_size != data_size2) {
-            throw std::invalid_argument(std::format(
-                "sub: data size should be the same for both tensors {} != {}", data_size, data_size2
-            ));
-        }
-
-        auto [grid, thread] = make_kernel_grid_1d(input1, BlockSize);
-
-        auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_back(flatten<2>(input1), flatten<2>(input2));
-
-        auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
-        return output.view(input1.sizes());
+        return _m_kernel(input1, input2);
     }
 };
 

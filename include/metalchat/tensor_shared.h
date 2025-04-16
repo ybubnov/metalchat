@@ -225,4 +225,12 @@ template <typename T, std::size_t N, contiguous_container Container>
 shared_tensor(tensor<T, N, Container>&&) -> shared_tensor<T, N, Container>;
 
 
+template <typename T, immutable_tensor Tensor, allocator Allocator>
+auto
+shared_empty_like(const Tensor& t, Allocator alloc)
+{
+    return shared_tensor(empty_like<T>(t, alloc));
+}
+
+
 } // namespace metalchat
