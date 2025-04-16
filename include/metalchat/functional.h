@@ -52,10 +52,9 @@ concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, device& device)
         }
     }
 
-    auto output = shared_tensor(empty<value_type>(std::move(size0), device));
+    auto output = future_tensor(empty<value_type>(std::move(size0), device));
     std::size_t offset = 0;
 
-    std::vector<std::shared_ptr<awaitable>> futures;
     auto copy_kernel = cpy<value_type>(device);
 
     for (auto first = begin; first != end; ++first) {
@@ -63,32 +62,25 @@ concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, device& device)
         auto n = input.size(dim);
         auto target = output.narrow(dim, offset, n);
 
-        futures.push_back(make_shared(copy_kernel(input, target)));
+        output = future_tensor(output, copy_kernel(input, target));
         offset += n;
     }
 
-    wait_all(futures);
     return output;
 }
 
 
-template <typename T, std::size_t N, ContiguousContainer Container>
+template <immutable_tensor Tensor>
 auto
-concatenate(
-    const std::initializer_list<shared_tensor<T, N, Container>> tensors,
-    std::size_t dim,
-    device& device
-)
+concatenate(const std::initializer_list<Tensor> tensors, std::size_t dim, device& device)
 {
     return concatenate(tensors.begin(), tensors.end(), dim, device);
 }
 
 
-template <typename T, std::size_t N, ContiguousContainer Container>
+template <immutable_tensor Tensor>
 auto
-repeat_interleave(
-    shared_tensor<T, N, Container> t, std::size_t repeats, std::size_t dim, device& device
-)
+repeat_interleave(Tensor t, std::size_t repeats, std::size_t dim, device& device)
 {
     auto expanded_tensor = t.expand_dims(dim + 1);
     auto rep_tensor = std::views::repeat(expanded_tensor, repeats);

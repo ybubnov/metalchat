@@ -55,7 +55,6 @@ public:
 
     ~kernel_thread()
     {
-        // std::cout << "kernel_thread::~kernel_thread()" << std::endl;
         //  If thread was completed, the code below does absolutely nothing, otherwise,
         //  on object deletion all commands are committed to the device.
         make_ready_at_thread_exit();
@@ -83,20 +82,14 @@ public:
     std::shared_future<void>
     push(F& f, std::optional<callback_type> callback = std::nullopt)
     {
-        // std::cout << "kernel_thread::push, size=" << _m_size << ", cap=" << _m_capacity <<
-        // std::endl;
-
         if (!joinable()) {
             throw std::runtime_error(
                 std::format("thread: thread is either committed or reached its capacity")
             );
         }
         if (callback.has_value()) {
-            _m_commands->addCompletedHandler([callback
-                                              = callback.value()](const MTL::CommandBuffer*) {
-                // std::cout << "kernel_thread::callback" << std::endl;
-                callback();
-            });
+            _m_commands->addCompletedHandler([callback = callback.value(
+                                              )](const MTL::CommandBuffer*) { callback(); });
         }
 
         auto encoder = _m_commands->computeCommandEncoder(MTL::DispatchTypeSerial);
@@ -115,7 +108,6 @@ public:
     make_ready_at_thread_exit()
     {
         if (!_m_committed) {
-            // std::cout << "kernel_thread::commit" << std::endl;
             _m_commands->commit();
             _m_committed = true;
         }

@@ -16,7 +16,7 @@ TEST_CASE("Test repeat interleave", "[functional::repeat_interleave]")
     auto original = shared_tensor(rand<float>({1, 6, 8, 64}));
 
     metalchat::device gpu0("metalchat.metallib");
-    auto output = repeat_interleave(original, 4, /*dim=*/2, gpu0);
+    auto output = repeat_interleave(original, 4, /*dim=*/2, gpu0).get();
 
     REQUIRE(output.dim() == 5);
     REQUIRE(output.size(0) == 1);

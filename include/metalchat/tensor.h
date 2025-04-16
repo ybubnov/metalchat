@@ -704,21 +704,25 @@ empty(InputIt begin, InputIt end, device& device)
 }
 
 
-template <typename T, std::size_t N, ContiguousContainer Container> requires(N > 0)
+template <immutable_tensor Tensor> requires(Tensor::dim() > 0)
 auto
-empty_like(const tensor<T, N, Container>& like)
+empty_like(const Tensor& like)
 {
-    auto shape = like.shape();
-    return empty<T, N>(shape.begin(), shape.end());
+    using value_type = Tensor::value_type;
+
+    auto sizes = like.sizes();
+    return empty<value_type, Tensor::dim()>(sizes.begin(), sizes.end());
 }
 
 
-template <typename T, std::size_t N, ContiguousContainer Container> requires(N > 0)
+template <immutable_tensor Tensor> requires(Tensor::dim() > 0)
 auto
-empty_like(const tensor<T, N, Container>& like, device& device)
+empty_like(const Tensor& like, device& device)
 {
-    auto shape = like.shape();
-    return empty<T, N>(shape.begin(), shape.end(), device);
+    using value_type = Tensor::value_type;
+
+    auto sizes = like.sizes();
+    return empty<value_type, Tensor::dim()>(sizes.begin(), sizes.end(), device);
 }
 
 
