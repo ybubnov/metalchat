@@ -36,6 +36,7 @@ copy(
 __lib_metalchat_kernel2(copy, bfloat, 8);
 __lib_metalchat_kernel2(copy, bfloat, 16);
 __lib_metalchat_kernel2(copy, bfloat, 32);
+__lib_metalchat_kernel2(copy, bfloat, 128);
 
 __lib_metalchat_kernel2(copy, float, 8);
 __lib_metalchat_kernel2(copy, float, 16);

@@ -35,7 +35,7 @@ private:
         auto label = NS::TransferPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
         queue->setLabel(label.get());
 
-        auto capacity = std::size_t(3 * 1024 * 1024) * 1024;
+        auto capacity = std::size_t(512 * 1024 * 1024);
         return shared_kernel_thread(queue, thread_capacity, allocator_type(_m_device, capacity));
     }
 

@@ -81,6 +81,7 @@ scalar_mul(
 }
 
 
+__lib_metalchat_kernel2(scalar_mul, bfloat, 1);
 __lib_metalchat_kernel2(scalar_mul, bfloat, 8);
 __lib_metalchat_kernel2(scalar_mul, bfloat, 16);
 __lib_metalchat_kernel2(scalar_mul, bfloat, 32);
