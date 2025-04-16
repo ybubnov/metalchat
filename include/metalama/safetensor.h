@@ -10,6 +10,7 @@
 #include <simdjson.h>
 #include <sys/mman.h>
 
+#include <metalama/format.h>
 #include <metalama/tensor.h>
 
 
@@ -28,7 +29,7 @@ public:
       data(data_)
     {
         for (std::size_t i = shape_.size() - 2; i < shape_.size(); --i) {
-            strides[i] *= shape_[i + 1];
+            strides[i] = strides[i + 1] * shape_[i + 1];
         }
     }
 
@@ -49,7 +50,7 @@ public:
     operator<<(std::ostream& os, const safetensor& st)
     {
         os << "safetensor(shape=[" << st.shape << "], ";
-        os << "strides=[" << st.strides << "])" << std::endl;
+        os << "strides=[" << st.strides << "])";
         return os;
     }
 };
@@ -64,23 +65,10 @@ struct safetensor_ptr {
     friend std::ostream&
     operator<<(std::ostream& os, const safetensor_ptr& st)
     {
-        os << "safetensor_ptr(name='" << st.name << "', dtype=" << st.dtype << ", shape=[";
-        for (auto it = st.shape.begin(); it != st.shape.end(); ++it) {
-            os << *it;
-            if (it != st.shape.end() - 1) {
-                os << ",";
-            }
-        }
-
-        os << "], data_offsets=[";
-        for (auto it = st.data_offsets.begin(); it != st.data_offsets.end(); ++it) {
-            os << *it;
-            if (it != st.data_offsets.end() - 1) {
-                os << ",";
-            }
-        }
-        os << "])";
-
+        os << "safetensor_ptr(name='" << st.name << "', dtype=" << st.dtype;
+        os << ", shape=[" << st.shape << "]";
+        os << ", data_offsets=[" << st.data_offsets << "]";
+        os << ")";
         return os;
     }
 };
