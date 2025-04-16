@@ -40,10 +40,10 @@ struct comma {
 
 
 template <typename T, std::size_t N, ContiguousContainer Container> struct tensor_format_base {
-    const tensor<T, N, Container>& t;
+    const tensor_base<T, N, Container>& t;
     const int w;
 
-    tensor_format_base(const tensor<T, N, Container>& t_, const int w_ = 0)
+    tensor_format_base(const tensor_base<T, N, Container>& t_, const int w_ = 0)
     : t(t_),
       w(w_)
     {}
@@ -52,7 +52,7 @@ template <typename T, std::size_t N, ContiguousContainer Container> struct tenso
 
 template <typename T, std::size_t N, ContiguousContainer Container>
 struct tensor_format : public tensor_format_base<T, N, Container> {
-    tensor_format(const tensor<T, N, Container>& tensor, const int w = 0)
+    tensor_format(const tensor_base<T, N, Container>& tensor, const int w = 0)
     : tensor_format_base<T, N, Container>(tensor, w)
     {}
 
@@ -62,7 +62,7 @@ struct tensor_format : public tensor_format_base<T, N, Container> {
         auto size = tf.t.size(0);
         auto max_size = fmt::edgeitems * 2 + 1;
 
-        using format_type = tensor_format<const T, N - 1, weak_ref<const T>>;
+        using format_type = tensor_format<T, N - 1, weak_ref<T>>;
 
         os << "[";
         if (size > max_size) {
@@ -95,7 +95,7 @@ struct tensor_format : public tensor_format_base<T, N, Container> {
 
 template <typename T, ContiguousContainer Container>
 struct tensor_format<T, 1, Container> : public tensor_format_base<T, 1, Container> {
-    tensor_format(const tensor<T, 1, Container>& tensor, const int w = 0)
+    tensor_format(const tensor_base<T, 1, Container>& tensor, const int w = 0)
     : tensor_format_base<T, 1, Container>(tensor, w)
     {}
 
@@ -127,7 +127,7 @@ struct tensor_format<T, 1, Container> : public tensor_format_base<T, 1, Containe
 
 template <typename T, ContiguousContainer Container>
 struct tensor_format<T, 0, Container> : public tensor_format_base<T, 0, Container> {
-    tensor_format(const tensor<T, 0, Container>& tensor, const int w = 0)
+    tensor_format(const tensor_base<T, 0, Container>& tensor, const int w = 0)
     : tensor_format_base<T, 0, Container>(tensor, w)
     {}
 
@@ -156,7 +156,7 @@ operator<<(std::ostream& os, const std::span<T>& arr)
 
 template <typename T, std::size_t N, ContiguousContainer Container>
 std::ostream&
-operator<<(std::ostream& os, const tensor<T, N, Container>& t)
+operator<<(std::ostream& os, const tensor_base<T, N, Container>& t)
 {
     os << tensor_format<T, N, Container>(t, 1) << ", shape=(" << t.shape() << ")";
     return os;

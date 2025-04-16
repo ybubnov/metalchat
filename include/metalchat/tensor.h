@@ -108,7 +108,7 @@ public:
         return m_data->data();
     }
 
-    inline const T*
+    inline T*
     data_ptr() const
     {
         return m_data->data();
@@ -124,7 +124,9 @@ public:
     stride(std::size_t dim) const
     {
         if (dim >= N) {
-            throw std::out_of_range("tensor");
+            throw std::out_of_range(
+                std::format("tensor_base::stride: dim {} exceeds tensor dimensionality {}", dim, N)
+            );
         }
         return m_strides->data()[dim];
     }
@@ -145,7 +147,9 @@ public:
     size(std::size_t dim) const
     {
         if (dim >= N) {
-            throw std::out_of_range("tensor");
+            throw std::out_of_range(
+                std::format("tensor_base::size: dim {} exceeds tensor dimensionality {}", dim, N)
+            );
         }
         return m_shape->data()[dim];
     }
@@ -160,7 +164,9 @@ public:
     offset(std::size_t dim) const
     {
         if (dim >= N) {
-            throw std::out_of_range("tensor");
+            throw std::out_of_range(
+                std::format("tensor_base::offset: dim {} exceed tensor dimensionality {}", dim, N)
+            );
         }
         return m_offsets->data()[dim];
     }
@@ -248,6 +254,29 @@ public:
         return const_iterator(*m_data, *m_shape, *m_strides, *m_offsets, numel());
     }
 
+    auto
+    at(std::size_t i) const
+    {
+        if (auto size0 = size(0); i >= size0) {
+            std::out_of_range(
+                std::format("tensor_base::at: index {} is out of tensor size {}", i, size0)
+            );
+        }
+
+        auto data = data_ptr() + stride(0) * i + offset(0);
+        auto sizes = m_shape->data() + 1;
+        auto strides = m_strides->data() + 1;
+        auto offsets = m_offsets->data() + 1;
+        return tensor_base<T, N - 1, weak_ref<T>>(data, sizes, strides, offsets);
+    }
+
+    auto
+    at(std::size_t i)
+    {
+        using tensor_type = tensor_base<T, N - 1, weak_ref<T>>;
+        return const_cast<tensor_base const&>(*this).at(i);
+    }
+
     template <indexing::SliceConvertible... S>
     auto
     index_select(const S&... slices) requires(sizeof...(slices) == N)
@@ -270,18 +299,18 @@ public:
     }
 
     template <indexing::size_convertible... S>
-    T&
-    value_select(const S&... indices) requires(sizeof...(indices) == N)
+    const T&
+    value_select(const S&... indices) const requires(sizeof...(indices) == N)
     {
         std::size_t ptr_offset = 0;
         std::size_t dim = 0;
 
         ([&] {
             auto i = static_cast<std::size_t>(indices);
-            if (i >= size(dim)) {
+            if (auto size_d = size(dim); i >= size_d) {
                 throw std::out_of_range(std::format(
                     "tensor::value_select index {} for dimension {} is outside of range {}", i, dim,
-                    size(dim)
+                    size_d
                 ));
             }
 
@@ -293,19 +322,10 @@ public:
     }
 
     template <indexing::size_convertible... S>
-    const T&
-    value_select(const S&... sizes) const requires(sizeof...(sizes) == N)
+    T&
+    value_select(const S&... sizes) requires(sizeof...(sizes) == N)
     {
-        std::size_t ptr_offset = 0;
-        std::size_t dim = 0;
-
-        ([&] {
-            auto i = static_cast<std::size_t>(sizes);
-            ptr_offset += stride(dim) * i + offset(dim);
-            dim++;
-        }(), ...);
-
-        return *(data_ptr() + ptr_offset);
+        return const_cast<T&>(const_cast<tensor_base const&>(*this).value_select(sizes...));
     }
 
     auto
@@ -348,7 +368,7 @@ public:
 
     /// Returns a tensor with dimensions transposed.
     auto
-    transpose(const std::size_t (&&dims)[N])
+    transpose(const std::size_t (&&dims)[N]) const
     {
         tensor_base t(m_data);
         for (auto i = 0; i < N; i++) {
@@ -360,7 +380,7 @@ public:
     }
 
     tensor_base<T, N + 1, Container>
-    expand_dims(const std::size_t dim)
+    expand_dims(const std::size_t dim) const
     {
         assert(dim <= N);
 
@@ -526,7 +546,7 @@ protected:
     {}
 };
 
-
+/*
 template <typename T, std::size_t N, ContiguousContainer Container = weak_ref<T>>
 class tensor : public tensor_base<T, N, Container> {
 private:
@@ -540,28 +560,6 @@ public:
     tensor(_Base&& t)
     : _Base(std::move(t))
     {}
-
-    auto
-    at(std::size_t i)
-    {
-        auto new_data = this->data_ptr() + this->stride(0) * i + this->offset(0);
-        auto new_shape = this->m_shape->data() + 1;
-        auto new_strides = this->m_strides->data() + 1;
-        auto new_offsets = this->m_offsets->data() + 1;
-        return tensor<T, N - 1, weak_ref<T>>(new_data, new_shape, new_strides, new_offsets);
-    }
-
-    const auto
-    at(std::size_t i) const
-    {
-        auto new_data = this->data_ptr() + this->stride(0) * i + this->offset(0);
-        auto new_shape = this->m_shape->data() + 1;
-        auto new_strides = this->m_strides->data() + 1;
-        auto new_offsets = this->m_offsets->data() + 1;
-        return tensor<const T, N - 1, weak_ref<const T>>(
-            new_data, new_shape, new_strides, new_offsets
-        );
-    }
 
     tensor<T, N - 1>
     operator[](std::size_t i)
@@ -708,6 +706,7 @@ public:
       )
     {}
 };
+*/
 
 
 template <typename T, std::size_t N> requires(N > 0)
