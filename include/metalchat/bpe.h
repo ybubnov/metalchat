@@ -148,6 +148,14 @@ private:
                                                 R"(\s+(?!\S)|)"
                                                 R"(\s+)");
 
+    /// Encode the specified string by joining byte pairs.
+    ///
+    /// The algorithm works like following:
+    /// 1. Compute for every byte pair encoding (an index from the token map).
+    /// 2. Then iterate through those byte pair encodings in the order from lowest
+    ///    priority to the highest. Where priority is an index in the token map.
+    /// 3. Join to adjacent encodings, only when such encoding exists.
+    /// 4. Then push encodings to the specified container of identifiers.
     template <push_back_container PushBackContainer>
     void
     _m_encode_byte_pairs(const std::string& s, PushBackContainer& ids)
@@ -160,7 +168,7 @@ private:
         std::vector<pair_type> encoding;
 
         // Get the priority from the map, when the key is not resented, return a
-        // limit of the priority.
+        // limit of the priority type.
         auto get_priority = [&](const std::string& key) -> index_type {
             if (auto it = _m_fmap.find(key); it != _m_fmap.end()) {
                 return it->second;
@@ -192,7 +200,7 @@ private:
             encoding[i].first = merged_priority;
             encoding.erase(encoding.begin() + i + 1);
 
-            // Merge elements, then push a merge into the queue for further merges.
+            // Merge elements, then push a merge into the queue for further processing.
             if (merged_priority < priority_limit) {
                 ordering.emplace(merged_priority, i);
             }
