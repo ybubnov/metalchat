@@ -97,12 +97,12 @@ concatenate(
 )
 {
     using tensor_type = tensor<T, N, Container>;
+    using tensor_const_ref = std::reference_wrapper<const tensor_type>;
 
-    auto reference_iterator = tensors
-                              | std::views::transform(
-                                  [](std::reference_wrapper<const tensor_type> ref
-                                  ) -> const tensor_type& { return ref.get(); }
-                              );
+    auto reference_iterator
+        = std::views::transform(tensors, [](tensor_const_ref ref) -> const tensor_type& {
+        return ref.get();
+    });
 
     return concatenate(reference_iterator.begin(), reference_iterator.end(), dim);
 }
