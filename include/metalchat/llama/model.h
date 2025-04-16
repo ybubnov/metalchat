@@ -29,7 +29,7 @@ private:
     auto
     create_additive_causal_mask(const std::size_t size) const
     {
-        std::optional<tensor<T, 2, owning_ref<T>>> mask;
+        std::optional<shared_tensor<T, 2, owning_ref<T>>> mask;
 
         if (size > 1) {
             const T infinity = T(std::numeric_limits<float>::infinity());

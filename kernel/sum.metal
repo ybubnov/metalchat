@@ -49,13 +49,14 @@ template [[host_name("sum_float")]]
 kernel void sum<float>(__sum_parameters(float));
 
 
-#define __sum2_parameters(T)                     \
-    constant uint& dim0_size [[buffer(0)]],      \
-    constant uint& dim1_size [[buffer(1)]],      \
-    device const T* input1 [[buffer(2)]],        \
-    device const T* input2 [[buffer(3)]],        \
-    device T* output [[buffer(4)]],              \
-    uint2 gid [[threadgroup_position_in_grid]],  \
+#define __sum2_parameters(T)                                \
+    constant tensor_layout<3>& output_layout [[buffer(0)]], \
+    device T* output                         [[buffer(1)]], \
+    constant tensor_layout<3>& input1_layout [[buffer(2)]], \
+    device const T* input1                   [[buffer(3)]], \
+    constant tensor_layout<2>& input2_layout [[buffer(4)]], \
+    device const T* input2                   [[buffer(5)]], \
+    uint2 gid [[threadgroup_position_in_grid]],             \
     uint2 tid [[thread_position_in_threadgroup]]
 
 
@@ -66,22 +67,23 @@ sum2(__sum2_parameters(T))
     constexpr uint BLOCK_SIZE_X = 4;
     constexpr uint BLOCK_SIZE_Y = 4;
 
-    device const T* in1 = input1 + gid.x * dim0_size * dim1_size;
-    device T* out = output + gid.x * dim0_size * dim1_size;
+    tensor<const T, 3> in1{input1, input1_layout};
+    tensor<const T, 2> in2{input2, input2_layout};
+    tensor<T, 3> out{output, output_layout};
 
-    uint x = tid.x * BLOCK_SIZE_X;
-    uint remainder_size_x = dim0_size % BLOCK_SIZE_X;
-    uint block_size_x = x + BLOCK_SIZE_X > dim0_size ? remainder_size_x : BLOCK_SIZE_X;
+    const uint dim0_size = in2.size(0);
+    const uint dim1_size = in2.size(1);
+    const uint i = gid.x;
 
-    uint y = tid.y * BLOCK_SIZE_Y;
-    uint remainder_size_y = dim1_size % BLOCK_SIZE_Y;
-    uint block_size_y = y + BLOCK_SIZE_Y > dim1_size ? remainder_size_y : BLOCK_SIZE_Y;
+    const uint begin_x = tid.x * BLOCK_SIZE_X;
+    const uint end_x = begin_x + BLOCK_SIZE_X;
 
-    for (uint j = 0; j < block_size_x; j++) {
-        for (uint k = 0; k < block_size_y; k++) {
-            // out[(x + j) * dim1_size + y + k] = in1[(x + j) * dim1_size + y + k];
-            uint index = (x + j) * dim1_size + y + k;
-            out[index] = in1[index] + input2[index];
+    const uint begin_y = tid.y * BLOCK_SIZE_Y;
+    const uint end_y = begin_y + BLOCK_SIZE_Y;
+
+    for (uint j = begin_x; j < end_x && j < dim0_size; j++) {
+        for (uint k = begin_y; k < end_y && k < dim1_size; k++) {
+            out.at(i, j, k) = in1.at(i, j, k) + in2.at(j, k);
         }
     }
 }

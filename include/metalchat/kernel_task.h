@@ -1,6 +1,6 @@
 #pragma once
 
-#include <metalchat/kernel_base.h>
+#include <metalchat/kernel.h>
 #include <metalchat/tensor.h>
 #include <metalchat/tensor_shared.h>
 
@@ -28,6 +28,13 @@ NS::SharedPtr<MTL::Buffer>
 make_buffer(MTL::Device* device, const shared_tensor<T, 0, value_ref<T>>& t)
 {
     return NS::SharedPtr<MTL::Buffer>();
+}
+
+
+inline std::size_t
+ceil_div(std::size_t a, std::size_t b)
+{
+    return (a + b - 1) / b;
 }
 
 

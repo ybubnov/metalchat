@@ -46,9 +46,9 @@ TEST_CASE("2-dimensional sum of tensors", "[kernel::sum2]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::sum2<float> sum(gpu0);
 
-    auto input1 = rand<float>({5, 32, 16, 16});
-    auto input2 = rand<float>({16, 16});
-    auto output = sum(input1, input2);
+    auto input1 = shared_tensor(rand<float>({5, 32, 16, 16}));
+    auto input2 = shared_tensor(rand<float>({16, 16}));
+    auto output = sum(input1, input2).get();
 
     REQUIRE(output.dim() == 4);
     REQUIRE(output.size(0) == 5);

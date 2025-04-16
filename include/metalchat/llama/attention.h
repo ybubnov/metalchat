@@ -157,7 +157,7 @@ public:
     auto
     operator()(
         shared_tensor<T, 3, InputContainer> input,
-        const std::optional<tensor<T, 2, MaskContainer>>& mask,
+        const std::optional<shared_tensor<T, 2, MaskContainer>> mask,
         std::size_t start_pos = 0
     )
     {
@@ -199,7 +199,7 @@ public:
         auto scores = m_mul(m_matmul(queries.get(), keys).get(), m_scale).get();
 
         if (mask.has_value()) {
-            scores = shared_tensor(m_sum(*scores, mask.value()));
+            scores = m_sum(scores, mask.value()).get();
         }
         scores = m_softmax(scores).get();
 

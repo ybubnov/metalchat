@@ -46,7 +46,7 @@ public:
     auto
     operator()(
         shared_tensor<T, 3, InputContainer> input,
-        const std::optional<tensor<T, 2, MaskContainer>>& mask,
+        const std::optional<shared_tensor<T, 2, MaskContainer>> mask,
         std::size_t start_pos = 0
     )
     {

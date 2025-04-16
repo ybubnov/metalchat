@@ -66,13 +66,15 @@ public:
 };
 
 
-template <typename T> class sum2 : public base_kernel {
+template <typename T> class sum2 {
 private:
     inline static const std::string operation_name = "sum2";
 
+    kernel_base _m_kernel;
+
 public:
     sum2(device& device)
-    : base_kernel(operation_name, type_traits<T>::name(), device)
+    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
     template <
@@ -82,7 +84,7 @@ public:
     requires(M >= 2)
     auto
     operator()(
-        const tensor<T, M, Input1Container>& input1, const tensor<T, 2, Input2Container>& input2
+        shared_tensor<T, M, Input1Container> input1, shared_tensor<T, 2, Input2Container> input2
     )
     {
         constexpr std::size_t block_size_x = 4;
@@ -100,17 +102,18 @@ public:
             ));
         }
 
-        auto output = empty_like(input1, m_device);
+        auto input1_view = input1.view({-1, int(dim0_size), int(dim1_size)});
 
-        auto x_size = ceil_div(dim0_size, block_size_x);
-        auto y_size = ceil_div(dim1_size, block_size_y);
-        auto thread = dim3(x_size, y_size);
-        auto threads = dim3(x_size * num_rows, y_size);
+        auto thread_size_x = ceil_div(dim0_size, block_size_x);
+        auto thread_size_y = ceil_div(dim1_size, block_size_y);
+        auto thread = dim3(thread_size_x, thread_size_y);
+        auto grid = dim3(thread_size_x * num_rows, thread_size_y);
 
-        blocking(threads, thread)(
-            scalar<int32_t>(dim0_size), scalar<int32_t>(dim1_size), input1, input2, output
-        );
-        return output;
+        auto task = kernel_task(_m_kernel, grid, thread);
+        auto fn = task.bind_back(input1_view, input2);
+
+        auto output = empty_future<T>({num_rows, dim0_size, dim1_size}, std::move(fn));
+        return output.view(input1.sizes());
     }
 };
 
