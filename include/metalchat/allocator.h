@@ -65,7 +65,35 @@ concept hardware_allocator_t
 /// inherit allocator implementations that are expected to used within a polymorphic
 /// hardware memory allocator. Essentially, all virtual methods presented in this class
 /// represent all necessary methods that are requested by `allocator` concept, so all
-/// allocators should automatically implement this virtual class.
+/// allocators should automatically implement this virtual class, if inherited from this struct.
+///
+/// Example of usage:
+/// ```cpp
+/// using namespace metalchat;
+///
+/// template <typename T> struct custom_hardware_allocator :
+/// public basic_hardware_memory_allocator<T> {
+///
+///     using value_type = T;
+///     using pointer = value_type*;
+///     using const_pointer = const pointer;
+///     using size_type = std::size_t;
+///     using container_type = hardware_memory_container<value_type>;
+///     using container_pointer = std::shared_ptr<container_type>;
+///
+///     container_pointer
+///     allocate(size_type size) override
+///     {
+///         // allocate a new container.
+///     }
+///
+///     container_pointer
+///     allocate(const_pointer ptr, size_type size) override
+///     {
+///         // allocate a new container and initialize with data from ptr.
+///     }
+/// };
+/// ```
 template <typename T> struct basic_hardware_memory_allocator {
     using value_type = T;
     using pointer = value_type*;
@@ -74,8 +102,13 @@ template <typename T> struct basic_hardware_memory_allocator {
     using container_type = hardware_memory_container<value_type>;
     using container_pointer = std::shared_ptr<container_type>;
 
+    /// Allocates `size * sizeof(T)` bytes of uninitialized memory by calling an outer
+    /// allocator type.
     virtual container_pointer allocate(size_type) = 0;
+
+    /// Allocates `size * sizeof(T)` bytes and initializes them with the data stored at `ptr`.
     virtual container_pointer allocate(const_pointer, size_type) = 0;
+
     virtual ~basic_hardware_memory_allocator() {};
 };
 
@@ -93,6 +126,23 @@ concept basic_hardware_allocator_t
 /// This allocator is used in order to avoid creating separate instances of device and
 /// thread, when kernel of different types (bf16, float, double) are expected to be scheduled
 /// within a single device.
+///
+/// Example:
+/// ```cpp
+/// using namespace metalchat;
+///
+/// // Create a default hardware accelerator, then decorate the default allocator
+/// // with no-copy allocator (keep all CPU allocations shared with GPU), and resident
+/// // allocator (which moves all allocations to a resident set on request).
+/// auto gpu = hardware_accelerator("metalchat.metallib");
+/// auto alloc1 = hardware_nocopy_allocator(alloc0, gpu.get_hardware_device());
+/// auto alloc2 = hardware_resident_allocator(alloc1, gpu.get_hardware_device());
+/// auto alloc3 = polymorphic_hardware_memory_allocator(alloc2);
+///
+/// // Update device allocator with a new implementation of the allocator.
+/// auto alloc_ptr = std::make_shared(std::move(alloc3));
+/// gpu.set_allocator(alloc_ptr);
+/// ```
 template <typename T> class polymorphic_hardware_memory_allocator {
 public:
     using value_type = T;
@@ -103,16 +153,21 @@ public:
     using container_pointer = std::shared_ptr<container_type>;
     using outer_allocator_type = basic_hardware_memory_allocator<T>;
 
+    /// Construct a new allocator instance given an implementation of the
+    /// `basic_hardware_memory_allocator`.
     polymorphic_hardware_memory_allocator(std::shared_ptr<outer_allocator_type> alloc)
     : _m_alloc(alloc)
     {}
 
+    /// Allocates `size * sizeof(T)` bytes of uninitialized memory by calling an outer
+    /// allocator type.
     container_pointer
     allocate(size_type size)
     {
         return _m_alloc->allocate(size);
     }
 
+    /// Allocates `size * sizeof(T)` bytes and initializes them with the data stored at `ptr`.
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
