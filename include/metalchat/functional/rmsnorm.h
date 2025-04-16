@@ -32,10 +32,10 @@ public:
         auto eps_ = scalar<T>(eps);
         auto input_size = scalar<int32_t>(input.size(0));
 
-        auto groups = dim3(1);
-        auto threads = dim3(ceil_div(input.size(0), 4));
+        auto threads = dim3(input.size(0));
+        auto thread = dim3(4);
 
-        blocking(groups, threads)(input, weight, eps_, input_size, output);
+        blocking(threads, thread)(input, weight, eps_, input_size, output);
         return output;
     }
 };

@@ -26,10 +26,10 @@ public:
         auto n = scalar<int32_t>(input.numel());
         auto output = empty_like(input, m_device);
 
-        auto groups = dim3(1);
         auto threads = dim3(ceil_div(input.numel(), 4));
+        auto thread = dim3(ceil_div(input.numel(), 4));
 
-        blocking(groups, threads)(n, input, output);
+        blocking(threads, thread)(n, input, output);
         return output;
     }
 };
