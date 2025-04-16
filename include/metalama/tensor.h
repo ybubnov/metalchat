@@ -9,25 +9,28 @@
 #include <metalama/format.h>
 
 
-template<typename T>
+template <typename T>
 struct unmanaged_ptr_traits {
     using ptr_type = T*;
 
     ptr_type data;
 
-    unmanaged_ptr_traits(T* data_): data(data_) {}
+    unmanaged_ptr_traits(T* data_)
+    : data(data_)
+    {}
 };
 
-template<typename T>
+template <typename T>
 struct managed_ptr_traits {
     using ptr_type = T*;
 
     ptr_type data;
     managed_ptr_traits(T* data_)
     : data(data_)
-    { }
+    {}
 
-    ~managed_ptr_traits() {
+    ~managed_ptr_traits()
+    {
         delete[] data;
         data = nullptr;
     }
@@ -113,7 +116,7 @@ template <typename T, std::size_t N, template <typename U> class ptr_traits = un
 std::ostream&
 operator<<(std::ostream& os, const tensor_base<T, N, ptr_traits>& t)
 {
-    os << tensor_format<T, N, ptr_traits>(t, 8) << ", shape=(" << t.shape() << ")";
+    os << tensor_format<T, N, ptr_traits>(t, 1) << ", shape=(" << t.shape() << ")";
     return os;
 }
 
@@ -125,7 +128,7 @@ public:
     : tensor_base<T, N, ptr_traits>(data, shape, strides)
     {}
 
-    tensor<T, N-1>
+    tensor<T, N - 1>
     at(std::size_t i)
     {
         auto new_data = this->data_ptr() + this->strides_ptr.data[0] * i;
@@ -134,16 +137,16 @@ public:
         return tensor(new_data, new_shape, new_strides);
     }
 
-    const tensor<const T, N-1>
+    const tensor<const T, N - 1>
     at(std::size_t i) const
     {
         auto new_data = this->data_ptr() + this->strides_ptr.data[0] * i;
         auto new_shape = this->shape_ptr.data + 1;
         auto new_strides = this->strides_ptr.data + 1;
-        return tensor<const T, N-1>(new_data, new_shape, new_strides);
+        return tensor<const T, N - 1>(new_data, new_shape, new_strides);
     }
 
-    tensor<T, N-1>
+    tensor<T, N - 1>
     operator[](std::size_t i)
     {
         return at(i);
@@ -158,21 +161,21 @@ public:
         os << "[";
         if (size > max_size) {
             for (std::size_t i = 0; i < fmt::edgeitems; i++) {
-                os << tensor_format(at(i), w+1) << fmt::comma(i, size);
+                os << tensor_format(at(i), w + 1) << fmt::comma(i, size);
                 os << std::endl << std::setw(w) << "";
             }
 
             os << "..., " << std::endl << std::setw(w) << "";
 
             for (std::size_t i = size - fmt::edgeitems; i < size; i++) {
-                os << tensor_format(at(i), w+1) << fmt::comma(i, size);
+                os << tensor_format(at(i), w + 1) << fmt::comma(i, size);
                 if (i < size - 1) {
                     os << std::endl << std::setw(w) << "";
                 }
             }
         } else {
             for (std::size_t i = 0; i < size; i++) {
-                os << tensor_format(at(i), w+1) << fmt::comma(i, size);
+                os << tensor_format(at(i), w + 1) << fmt::comma(i, size);
                 if (i < size - 1) {
                     os << std::endl << std::setw(w) << "";
                 }
@@ -216,13 +219,13 @@ public:
 };
 
 
-template<typename T, std::size_t N>
-requires (N > 0)
+template <typename T, std::size_t N>
+    requires(N > 0)
 tensor<T, N, managed_ptr_traits>
 rand(std::array<std::size_t, N> shape)
 {
     auto strides = new std::size_t[N];
-    strides[N-1] = 1;
+    strides[N - 1] = 1;
 
     for (auto i = N - 2; i < N; --i) {
         strides[i] = strides[i + 1] * shape[i + 1];
@@ -238,7 +241,6 @@ rand(std::array<std::size_t, N> shape)
     T* data = new T[size];
     return tensor<T, N, managed_ptr_traits>(data, sizes, strides);
 }
-
 
 
 using bfloat_tensor1d = tensor<__fp16, 1>;
