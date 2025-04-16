@@ -448,17 +448,16 @@ template <typename T, std::size_t N>
 auto
 empty(std::size_t (&&sizes)[N])
 {
-    auto shape_ = std::to_array(sizes);
     auto shape = new std::size_t[N];
+    auto strides = new std::size_t[N];
 
     std::size_t numel = 1;
     for (auto i = 0; i < N; i++) {
-        numel *= shape_[i];
-        shape[i] = shape_[i];
+        numel *= sizes[i];
+        shape[i] = sizes[i];
     }
 
     auto data = new T[numel];
-    auto strides = new std::size_t[N];
 
     strides[N - 1] = 1;
     for (auto i = N - 2; i < N; --i) {
