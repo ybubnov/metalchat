@@ -83,22 +83,31 @@ public:
     ~weak_ref() { m_data = nullptr; }
 };
 
-template <typename T> struct owned_ref : public array_ref<T> {
+
+template <typename T>
+auto
+make_weak(T* data)
+{
+    return std::make_unique<weak_ref<T>>(data);
+}
+
+
+template <typename T> struct owning_ref : public array_ref<T> {
 private:
     T* m_data = nullptr;
 
 public:
-    owned_ref(T* data)
+    owning_ref(T* data)
     : m_data(data)
     {}
 
-    owned_ref(const owned_ref& ref) = delete;
+    owning_ref(const owning_ref& ref) = delete;
 
-    ~owned_ref()
+    ~owning_ref()
     {
         delete[] m_data;
         m_data = nullptr;
-        std::cout << "owned_ref::~owned_ref()" << std::endl;
+        std::cout << "owning_ref::~owning_ref()" << std::endl;
     }
 
     T*
@@ -113,6 +122,14 @@ public:
         return m_data;
     }
 };
+
+
+template <typename T>
+auto
+make_owning(T* data)
+{
+    return std::make_unique<owning_ref<T>>(data);
+}
 
 
 template <typename T> struct device_ref : public array_ref<T> {
@@ -169,6 +186,14 @@ public:
         return &m_data;
     }
 };
+
+
+template <typename T>
+auto
+make_value(T data)
+{
+    return std::make_unique<value_ref<T>>(data);
+}
 
 
 } // namespace metalchat
