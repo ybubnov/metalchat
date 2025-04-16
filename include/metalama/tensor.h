@@ -395,16 +395,21 @@ public:
 };
 
 
-template <typename T, std::convertible_to<std::size_t>... Ints>
-    requires(sizeof...(Ints) > 0)
+template <typename T, std::size_t N>
+    requires(N > 0)
 auto
-empty(Ints... shape_)
+empty(std::size_t (&&sizes)[N])
 {
-    constexpr std::size_t N = sizeof...(shape_);
-    const std::size_t numel = (1 * ... * shape_);
+    auto shape_ = std::to_array(sizes);
+    auto shape = new std::size_t[N];
+
+    std::size_t numel = 1;
+    for (auto i = 0; i < N; i++) {
+        numel *= shape_[i];
+        shape[i] = shape_[i];
+    }
 
     auto data = new T[numel];
-    auto shape = new std::size_t[N]{static_cast<std::size_t>(shape_)...};
     auto strides = new std::size_t[N];
 
     strides[N - 1] = 1;
@@ -421,18 +426,23 @@ empty(Ints... shape_)
 }
 
 
-template <typename T, std::convertible_to<std::size_t>... Ints>
-    requires(sizeof...(Ints) > 0)
+template <typename T, std::size_t N>
+    requires(N > 0)
 auto
-empty(device& device, Ints... shape_)
+empty(std::size_t (&&sizes)[N], device& device)
 {
-    constexpr std::size_t N = sizeof...(shape_);
-    const std::size_t numel = (1 * ... * shape_);
+    auto shape_ = std::to_array(sizes);
+    auto shape = new std::size_t[N];
+
+    std::size_t numel = 1;
+    for (auto i = 0; i < N; i++) {
+        numel *= shape_[i];
+        shape[i] = shape_[i];
+    }
 
     auto data
         = NS::TransferPtr(device->newBuffer(numel * sizeof(T), MTL::ResourceStorageModeShared));
 
-    auto shape = new std::size_t[N]{static_cast<std::size_t>(shape_)...};
     auto strides = new std::size_t[N];
 
     strides[N - 1] = 1;
@@ -450,23 +460,24 @@ empty(device& device, Ints... shape_)
 }
 
 
-template <typename T, std::convertible_to<std::size_t>... Ints>
-    requires(sizeof...(Ints) > 0)
+template <typename T, std::size_t N>
+    requires(N > 0)
 auto
-full(const T& fill_value, Ints... shape)
+full(std::size_t (&&sizes)[N], const T& fill_value)
 {
-    auto t = empty<T>(shape...);
+    auto t = empty<T>(std::move(sizes));
+    std::cout << "full" << std::endl;
     std::fill_n(t.data_ptr(), t.numel(), fill_value);
     return t;
 }
 
 
-template <typename T, std::convertible_to<std::size_t>... Ints>
-    requires(sizeof...(Ints) > 0)
+template <typename T, std::size_t N>
+    requires(N > 0)
 auto
-zeros(Ints... shape)
+zeros(std::size_t (&&sizes)[N])
 {
-    return full<T>(0, shape...);
+    return full<T>(std::move(sizes), 0);
 }
 
 using bfloat_tensor1d = tensor<__fp16, 1>;

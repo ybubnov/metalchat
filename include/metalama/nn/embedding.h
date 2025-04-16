@@ -36,7 +36,7 @@ public:
 
         auto command_queue = NS::TransferPtr(this->m_device->newCommandQueue());
 
-        auto result = empty<T>(m_device, input.size(0), weight.size(1));
+        auto result = empty<T>({input.size(0), weight.size(1)}, m_device);
 
         auto input_buf = this->make_buf(input);
         auto weight_buf = this->make_buf(weight);
