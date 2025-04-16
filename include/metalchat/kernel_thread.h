@@ -302,6 +302,12 @@ public:
         _m_allocator = allocator_type(alloc);
     }
 
+    void
+    set_allocator(allocator_type alloc)
+    {
+        _m_allocator = alloc;
+    }
+
     template <basic_hardware_allocator_t<void> Allocator>
     void
     set_allocator(Allocator&& alloc)

@@ -159,6 +159,11 @@ public:
     : _m_alloc(alloc)
     {}
 
+    template <basic_hardware_allocator_t<T> Allocator>
+    polymorphic_hardware_memory_allocator(Allocator&& alloc)
+    : _m_alloc(std::make_shared<Allocator>(std::move(alloc)))
+    {}
+
     /// Allocates `size * sizeof(T)` bytes of uninitialized memory by calling an outer
     /// allocator type.
     container_pointer
@@ -236,7 +241,7 @@ private:
 /// The hardware allocator that creates a shallow buffer resource for allocations with memory-move
 /// semantic. All buffers created with that method do not manage the underlying memory (specified
 /// by a `const_pointer`). And caller is responsible for a proper memory management.
-template <hardware_allocator Allocator>
+template <hardware_allocator_t<void> Allocator>
 class hardware_nocopy_allocator
 : public basic_hardware_memory_allocator<typename Allocator::value_type> {
 public:
@@ -262,7 +267,8 @@ public:
     allocate(const_pointer ptr, size_type size) override
     {
         auto options = MTL::ResourceStorageModeManaged | MTL::ResourceHazardTrackingModeUntracked;
-        auto memory_ptr = _m_device->newBuffer(ptr, size * sizeof(value_type), options, nullptr);
+        // TODO: template specialization for non-void types.
+        auto memory_ptr = _m_device->newBuffer(ptr, size, options, nullptr);
 
         if (memory_ptr == nullptr) {
             throw std::runtime_error(std::format(
@@ -319,8 +325,9 @@ template <typename T> struct __hardware_complete_residence_deleter {
 /// All containers produced by this allocator keep pointers to the residency set, so it is
 /// safe to use this class within a scope.
 ///
-/// Users should explicitly call `wire_memory`, when the underlying set is supposed to be
-/// made resident. End of residency will happen automatically, once all allocations are removed.
+/// Users could explicitly call `wire`, when the underlying set is supposed to be made resident.
+/// End of residency will happen automatically, once all allocations are removed. Also, allocator
+/// makes all containers resident on the object destruction.
 template <hardware_allocator Allocator>
 class hardware_resident_allocator
 : public basic_hardware_memory_allocator<typename Allocator::value_type> {
@@ -354,9 +361,16 @@ public:
         }
     }
 
+    ~hardware_resident_allocator()
+    {
+        if ((*_m_allocations) != 0) {
+            wire();
+        }
+    }
+
     /// Commits set and requests residency.
     void
-    wire_memory()
+    wire()
     {
         _m_rset->commit();
         _m_rset->requestResidency();

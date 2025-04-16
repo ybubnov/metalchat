@@ -19,14 +19,18 @@ TEST_CASE("Test make model", "[llama]")
 {
     metalchat::bpe bpe("../Llama-3.2-1B/original/tokenizer.model");
     metalchat::hardware_accelerator gpu0("metalchat.metallib", 16);
+    metalchat::safetensor_file tensors("../llama32.safetensors");
 
-    hardware_heap_allocator<void> heap_alloc(
-        gpu0.get_hardware_device(), std::size_t(512) * 1024 * 1024
-    );
-    gpu0.set_allocator(std::move(heap_alloc));
+    auto alloc1 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_hardware_device());
+    auto alloc2 = hardware_resident_allocator(alloc1, gpu0.get_hardware_device());
 
-    safetensor_file tensors("../llama32.safetensors");
+    gpu0.set_allocator(std::move(alloc2));
     auto m = llama::make_model<bf16>(tensors, gpu0);
+
+    auto heap_size = std::size_t(512) * 1024 * 1024;
+    auto alloc3 = hardware_heap_allocator<void>(gpu0.get_hardware_device(), heap_size);
+    auto alloc4 = hardware_nocopy_allocator(alloc3, gpu0.get_hardware_device());
+    gpu0.set_allocator(std::move(alloc4));
 
     auto input_text = std::string("I have a dog called");
 
