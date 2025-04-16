@@ -14,12 +14,6 @@ template <typename T> class sgemm : public kernel {
 private:
     inline static const std::string operation_name = "sgemm";
 
-    std::size_t
-    ceil_div(std::size_t a, std::size_t b)
-    {
-        return (a + b - 1) / b;
-    }
-
 public:
     sgemm(device& device)
     : kernel(operation_name, type_traits<T>::name(), device)
