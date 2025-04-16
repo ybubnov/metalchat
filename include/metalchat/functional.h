@@ -6,7 +6,7 @@
 #include <ranges>
 #include <span>
 
-#include <metalchat/kernel/add.h>
+#include <metalchat/kernel/arithmetic.h>
 #include <metalchat/kernel/bmm.h>
 #include <metalchat/kernel/copy.h>
 #include <metalchat/kernel/mul.h>

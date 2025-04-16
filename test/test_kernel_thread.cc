@@ -3,7 +3,7 @@
 
 #include <metalchat/device.h>
 #include <metalchat/format.h>
-#include <metalchat/kernel/add.h>
+#include <metalchat/kernel/arithmetic.h>
 #include <metalchat/tensor_shared.h>
 
 
