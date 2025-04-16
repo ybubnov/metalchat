@@ -4,9 +4,9 @@
 
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
+#include <metalchat/format.h>
 #include <metalchat/kernel/rmsnorm.h>
 #include <metalchat/tensor.h>
-#include <metalchat/format.h>
 
 
 using namespace metalchat;

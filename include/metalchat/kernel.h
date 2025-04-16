@@ -81,8 +81,8 @@ public:
         std::cout << "!!!" << threads << " !! " << thread << std::endl;
         if (thread.numel() > max_threadgroup_size) {
             throw std::invalid_argument(std::format(
-                "<{}, {}, {}> exceeds maximum number of threads per threadgroup {}",
-                thread.x, thread.y, thread.z, max_threadgroup_size
+                "<{}, {}, {}> exceeds maximum number of threads per threadgroup {}", thread.x,
+                thread.y, thread.z, max_threadgroup_size
             ));
         }
 

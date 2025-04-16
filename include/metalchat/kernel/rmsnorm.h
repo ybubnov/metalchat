@@ -19,7 +19,10 @@ public:
     : kernel(operation_name, type_traits<T>::name(), device)
     {}
 
-    template <std::size_t N, ContiguousContainer InputContainer, ContiguousContainer WeightContainer>
+    template <
+        std::size_t N,
+        ContiguousContainer InputContainer,
+        ContiguousContainer WeightContainer>
     auto
     operator()(
         const tensor<T, N, InputContainer>& input,
@@ -41,7 +44,7 @@ public:
         auto thread_size = ceil_div(dim_size, block_size);
         auto thread_simd_size = ceil_div(thread_size, simd_size);
 
-        auto thread = dim3(thread_size);// * thread_simd_size);
+        auto thread = dim3(thread_size); // * thread_simd_size);
         auto threads = dim3(thread_size * num_rows);
 
         auto output = empty_like<T>(input, m_device);

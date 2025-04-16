@@ -82,7 +82,7 @@ public:
 
         // TODO: cache queries and keys.
         //
-        // TODO: does it even make sense to make the repetition, whould it be better
+        // TODO: does it even make sense to make the repetition, would it be better
         // to adjust the implementation of the "rope", so it uses the same memory?
         queries = queries.expand_dims(queries, 2);
         auto n_queries = std::views::repeat(std::move(queries), m_options.repeats());
