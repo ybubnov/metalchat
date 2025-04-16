@@ -23,15 +23,9 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <
-        std::size_t M,
-        std::size_t N,
-        ContiguousContainer Input1Container,
-        ContiguousContainer Input2Container>
+    template <immutable_tensor Input1Tensor, immutable_tensor Input2Tensor>
     auto
-    operator()(
-        shared_tensor<T, M, Input1Container> input1, shared_tensor<T, N, Input2Container> input2
-    )
+    operator()(Input1Tensor input1, Input2Tensor input2)
     {
         constexpr std::size_t block_size = 32;
 
@@ -54,13 +48,10 @@ public:
             ));
         }
 
-        auto input1_view = input1.view({-1, int(dim_size)});
-        auto input2_view = input2.view({-1, int(dim_size)});
-
         auto [grid, thread] = make_kernel_grid_1d(input1, block_size);
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_back(input1_view, input2_view);
+        auto fn = task.bind_back(input1.template flatten<2>(), input2.template flatten<2>());
 
         auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
         return output.view(input1.sizes());

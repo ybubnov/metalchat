@@ -66,27 +66,18 @@ public:
     auto
     operator()(InputTensor input, WeightTensor weight)
     {
-        int weight_size0 = weight.size(0);
-        int weight_size1 = weight.size(1);
-
         // TODO: does it make sense to call repeat_interleave for the number of batches > 1?
-        auto weight_view = weight.view({1, weight_size0, weight_size1});
-        return operator()(input, weight_view);
+        return operator()(input, weight.expand_dims(0));
     }
 
     template <immutable_tensor2d InputTensor, immutable_tensor2d WeightTensor>
     auto
     operator()(InputTensor input, WeightTensor weight)
     {
+        auto output = operator()(input.expand_dims(0), weight.expand_dims(0));
+
         int input_size0 = input.size(0);
-        int input_size1 = input.size(1);
-        int weight_size0 = weight.size(0);
         int weight_size1 = weight.size(1);
-
-        auto input_view = input.view({1, input_size0, input_size1});
-        auto weight_view = weight.view({1, weight_size0, weight_size1});
-        auto output = operator()(input_view, weight_view);
-
         return output.view({input_size0, weight_size1});
     }
 
@@ -98,21 +89,14 @@ public:
         constexpr std::size_t N = InputTensor::dim();
 
         int input_size0 = input.size(N - 2);
-        int input_size1 = input.size(N - 1);
-        int weight_size0 = weight.size(N - 2);
         int weight_size1 = weight.size(N - 1);
 
         int output_sizes[N];
-        output_sizes[N - 2] = input_size0;
-        output_sizes[N - 1] = weight_size1;
-        for (std::size_t i = 0; i < N - 2; i++) {
-            output_sizes[i] = input.size(i);
-        }
+        std::copy(input.sizes().begin(), input.sizes().end(), output_sizes);
+        output_sizes[N - 2] = input.size(N - 2);
+        output_sizes[N - 1] = weight.size(N - 1);
 
-        auto input_view = input.view({-1, input_size0, input_size1});
-        auto weight_view = weight.view({-1, weight_size0, weight_size1});
-
-        auto output = operator()(input_view, weight_view);
+        auto output = operator()(input.template flatten<3>(), weight.template flatten<3>());
         return output.view(std::move(output_sizes));
     }
 };
