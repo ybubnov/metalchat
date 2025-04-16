@@ -177,8 +177,6 @@ public:
 
         auto [kk, kk_future] = cache_keys(k.get(), bs, start_pos, len);
         auto [vv, vv_future] = cache_values(v.get(), bs, start_pos, len);
-        kk_future.wait();
-        vv_future.wait();
 
         auto repeat_kv
             = [&]<ContiguousContainer TensorContainer>(shared_tensor<T, 4, TensorContainer>&& t
@@ -188,6 +186,8 @@ public:
             return reps.view({bs, slen, n_heads, head_dim});
         };
 
+        kk_future.wait();
+        vv_future.wait();
         // shape: bs, cache + len, n_heads, head_dim.
         auto keys = repeat_kv(std::move(kk));
         auto values = repeat_kv(std::move(vv));

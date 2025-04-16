@@ -19,9 +19,9 @@ TEST_CASE("Sum of 3-dimensional tensors", "[kernel::sum]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::sum<float> sum(gpu0);
 
-    auto input1 = rand<float>({1, 4, 2048});
-    auto input2 = rand<float>({1, 4, 2048});
-    auto output = sum(input1, input2);
+    auto input1 = shared_tensor(rand<float>({1, 4, 2048}));
+    auto input2 = shared_tensor(rand<float>({1, 4, 2048}));
+    auto output = sum(input1, input2).get();
 
     REQUIRE(output.dim() == 3);
     REQUIRE(output.size(0) == 1);
