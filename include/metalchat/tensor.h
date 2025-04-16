@@ -12,7 +12,6 @@
 
 #include <metalchat/container.h>
 #include <metalchat/device.h>
-#include <metalchat/format.h>
 #include <metalchat/indexing.h>
 #include <metalchat/iterator.h>
 
@@ -179,12 +178,6 @@ public:
         return n;
     }
 
-    virtual void
-    data_repr(std::ostream& os, int w) const
-    {
-        os << "[...]";
-    }
-
     inline traits::data_type::element_type&
     container() const
     {
@@ -224,34 +217,6 @@ protected:
 
 
 template <typename T, std::size_t N, ContiguousContainer Container = weak_ref<T>>
-struct tensor_format {
-    const tensor_base<T, N, Container>& tensor;
-    const int w;
-
-    tensor_format(const tensor_base<T, N, Container>& tensor_, const int w_ = 0)
-    : tensor(tensor_),
-      w(w_)
-    {}
-
-    friend std::ostream&
-    operator<<(std::ostream& os, const tensor_format<T, N, Container>& tf)
-    {
-        tf.tensor.data_repr(os, tf.w);
-        return os;
-    }
-};
-
-
-template <typename T, std::size_t N, ContiguousContainer Container>
-std::ostream&
-operator<<(std::ostream& os, const tensor_base<T, N, Container>& t)
-{
-    os << tensor_format<T, N, Container>(t, 1) << ", shape=(" << t.shape() << ")";
-    return os;
-}
-
-
-template <typename T, std::size_t N, ContiguousContainer Container = weak_ref<T>>
 class tensor : public tensor_base<T, N, Container> {
 public:
     using traits = tensor_traits<T, Container>;
@@ -273,30 +238,32 @@ public:
     : tensor_base<T, N, Container>(data, std::move(shape), std::move(strides), std::move(offsets))
     {}
 
-    tensor<T, N - 1>
+    auto
     at(std::size_t i)
     {
         auto new_data = this->data_ptr() + this->stride(0) * (this->offset(0) + i);
         auto new_shape = this->m_shape->data() + 1;
         auto new_strides = this->m_strides->data() + 1;
         auto new_offsets = this->m_offsets->data() + 1;
-        return tensor<T, N - 1>(new_data, new_shape, new_strides, new_offsets);
+        return tensor<T, N - 1, weak_ref<T>>(new_data, new_shape, new_strides, new_offsets);
     }
 
-    const tensor<const T, N - 1>
+    const auto
     at(std::size_t i) const
     {
         auto new_data = this->data_ptr() + this->stride(0) * (this->offset(0) + i);
         auto new_shape = this->m_shape->data() + 1;
         auto new_strides = this->m_strides->data() + 1;
         auto new_offsets = this->m_offsets->data() + 1;
-        return tensor<const T, N - 1>(new_data, new_shape, new_strides, new_offsets);
+        return tensor<const T, N - 1, weak_ref<const T>>(
+            new_data, new_shape, new_strides, new_offsets
+        );
     }
 
     tensor<T, N - 1>
     operator[](std::size_t i)
     {
-        return at(i);
+        return this->at(i);
     }
 
     template <indexing::SliceConvertible... S>
@@ -355,38 +322,6 @@ public:
     t() requires(N == 2)
     {
         return transpose(0, 1);
-    }
-
-    void
-    data_repr(std::ostream& os, int w) const override
-    {
-        auto size = this->size(0);
-        auto max_size = fmt::edgeitems * 2 + 1;
-
-        os << "[";
-        if (size > max_size) {
-            for (std::size_t i = 0; i < fmt::edgeitems; i++) {
-                os << tensor_format(at(i), w + 1) << fmt::comma(i, size);
-                os << std::endl << std::setw(w) << "";
-            }
-
-            os << "..., " << std::endl << std::setw(w) << "";
-
-            for (std::size_t i = size - fmt::edgeitems; i < size; i++) {
-                os << tensor_format(at(i), w + 1) << fmt::comma(i, size);
-                if (i < size - 1) {
-                    os << std::endl << std::setw(w) << "";
-                }
-            }
-        } else {
-            for (std::size_t i = 0; i < size; i++) {
-                os << tensor_format(at(i), w + 1) << fmt::comma(i, size);
-                if (i < size - 1) {
-                    os << std::endl << std::setw(w) << "";
-                }
-            }
-        }
-        os << "]";
     }
 };
 
@@ -469,29 +404,6 @@ public:
     {
         return tensor(this->m_data->data(), this->m_shape->data(), this->m_strides->data());
     }
-
-    void
-    data_repr(std::ostream& os, int w) const override
-    {
-        auto size = this->size(0);
-        auto max_size = fmt::edgeitems * 2 + 1;
-
-        os << "[";
-        if (size > max_size) {
-            for (std::size_t i = 0; i < fmt::edgeitems; i++) {
-                os << at(i) << fmt::comma(i, size);
-            }
-            os << ", ..., ";
-            for (std::size_t i = size - fmt::edgeitems; i < size; i++) {
-                os << at(i) << fmt::comma(i, size);
-            }
-        } else {
-            for (std::size_t i = 0; i < size; i++) {
-                os << at(i) << fmt::comma(i, size);
-            }
-        }
-        os << "]";
-    }
 };
 
 
@@ -512,12 +424,6 @@ public:
     )
     : tensor_base<T, 0, Container>(data, std::move(shape), std::move(strides), std::move(offsets))
     {}
-
-    void
-    data_repr(std::ostream& os, int w) const override
-    {
-        os << *this->data_ptr();
-    }
 };
 
 
