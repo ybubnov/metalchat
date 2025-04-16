@@ -1,101 +1,75 @@
-#define NS_PRIVATE_IMPLEMENTATION
-#define CA_PRIVATE_IMPLEMENTATION
-#define MTL_PRIVATE_IMPLEMENTATION
-#include <Foundation/Foundation.hpp>
-#include <Metal/Metal.hpp>
-#include <QuartzCore/QuartzCore.hpp>
+#include <utility>
 
-#include <iostream>
+#include <metalchat/device.h>
+#include <metalchat/dtype.h>
+#include <metalchat/nn.h>
+#include <metalchat/safetensor.h>
+
+
+using namespace metalchat::dtype;
 
 
 int
 main()
 {
-    auto filepath
-        = NS::TransferPtr(NS::String::string("metalchat.metallib", NS::UTF8StringEncoding));
+    metalchat::safetensor_file model_file("../Llama-3.2-1B/model.safetensors");
+    metalchat::device gpu0("metalchat.metallib");
+    std::cout << "device = " << gpu0.name() << std::endl;
 
-    auto url = NS::TransferPtr(NS::URL::fileURLWithPath(filepath.get()));
-    std::cout << "kernel=" << url->fileSystemRepresentation() << std::endl;
+    {
+        /*
+        for (auto [name, tensor] : model_file) {
+             std::cout << tensor << std::endl;
+             std::cout << name << ": ";
 
-    auto device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
-    auto device_name = NS::TransferPtr(device->name());
-    std::cout << "name=" << device_name->utf8String() << std::endl;
-
-    NS::Error* error = nullptr;
-    auto library = NS::TransferPtr(device->newLibrary(url.get(), &error));
-    if (!library) {
-        std::cout << "failed to create shader library" << std::endl;
-        return 1;
-    }
-
-    NS::Array* function_names = library->functionNames();
-    for (NS::UInteger i = 0; i < function_names->count(); i++) {
-        NS::String* function_name = (NS::String*)function_names->object(i);
-        std::cout << "registered (" << function_name->utf8String() << ")" << std::endl;
-    }
-
-    auto mul_name = NS::TransferPtr(NS::String::string("mul", NS::UTF8StringEncoding));
-    auto mul_kernel = NS::TransferPtr(library->newFunction(mul_name.get()));
-
-    auto pipeline = NS::TransferPtr(device->newComputePipelineState(mul_kernel.get(), &error));
-    if (error != nullptr) {
-        std::cout << "failed to create compute pipeline" << std::endl;
-        return 1;
-    }
-    std::cout << "created pipeline" << std::endl;
-
-    auto command_queue = NS::TransferPtr(device->newCommandQueue());
-    std::cout << "created queue" << std::endl;
-
-    std::size_t length = 1000;
-    NS::UInteger length_bytes = sizeof(float) * length;
-
-    float* input = new float[length];
-    float* other = new float[length];
-    float* output = new float[length];
-    for (std::size_t i = 0; i < length; i++) {
-        input[i] = i;
-        other[i] = 10 * i;
-        output[i] = 0;
-    }
-
-    auto input_buf
-        = NS::TransferPtr(device->newBuffer(input, length_bytes, MTL::ResourceStorageModeShared));
-    auto other_buf
-        = NS::TransferPtr(device->newBuffer(other, length_bytes, MTL::ResourceStorageModeShared));
-    auto output_buf
-        = NS::TransferPtr(device->newBuffer(output, length_bytes, MTL::ResourceStorageModeShared));
-    std::cout << "created buffers" << std::endl;
-
-    auto command_buf = NS::TransferPtr(command_queue->commandBuffer());
-    auto command_encoder = NS::TransferPtr(command_buf->computeCommandEncoder());
-
-    std::cout << "computing pipeline" << std::endl;
-    command_encoder->setComputePipelineState(pipeline.get());
-    command_encoder->setBuffer(input_buf.get(), 0, 0);
-    command_encoder->setBuffer(other_buf.get(), 0, 1);
-    command_encoder->setBuffer(output_buf.get(), 0, 2);
-
-    MTL::Size grid_size(length, 1, 1);
-    MTL::Size thread_group_size(std::min(length, pipeline->maxTotalThreadsPerThreadgroup()), 1, 1);
-    command_encoder->dispatchThreadgroups(grid_size, thread_group_size);
-
-    command_encoder->endEncoding();
-    command_buf->commit();
-    command_buf->waitUntilCompleted();
-
-    // float* output_content = (float*)output_buf->contents();
-    float* output_content = output;
-    for (std::size_t i = 0; i < length; i++) {
-        std::cout << output_content[i];
-        if (i < length - 1) {
-            std::cout << ", ";
+            if (tensor.dim() == 1) {
+                auto t = tensor.as<bf16, 1>();
+                std::cout << t << std::endl;
+            }
+            if (tensor.dim() == 2) {
+                auto t = tensor.as<bf16, 2>();
+                std::cout << t << std::endl;
+            }
         }
-    }
-    std::cout << std::endl;
+        */
+        /*
+        auto weight = model_file["model.embed_tokens.weight"].as<bf16, 2>();
+        std::cout << weight << std::endl;
 
-    free(input);
-    free(other);
-    free(output);
+        auto input = metalchat::full<int32_t>({12}, 1);
+        std::cout << input << std::endl;
+
+        metalchat::nn::embedding<bf16> embedding(gpu0);
+
+        auto result = embedding(input, weight);
+        std::cout << result << std::endl;
+        */
+    }
+
+    //{
+    //    auto weight = metalchat::full<bf16>({1024}, /*fill_value=*/2.0);
+    //    auto input = metalchat::full<bf16>({1024}, /*fill_value=*/5.0);
+
+    //    metalchat::nn::rmsnorm<bf16> rmsnorm(gpu0);
+    //    auto result = rmsnorm(input, weight);
+    //    std::cout << result << std::endl;
+    //}
+
+    {
+        auto input = metalchat::full<bf16>({128, 2048}, 2.0);
+        auto weight = model_file["model.layers.0.mlp.gate_proj.weight"].as<bf16, 2>();
+
+        std::cout << input.size(0) << "x" << input.size(1) << " * ";
+        std::cout << weight.size(0) << "x" << weight.size(1) << std::endl;
+        std::cout << input << std::endl;
+        std::cout << weight << std::endl;
+
+        metalchat::nn::sgemm<bf16> sgemm(gpu0);
+        auto result = sgemm(input, weight.t());
+
+        std::cout << "result=" << result << std::endl;
+    }
+
+
     return 0;
 }
