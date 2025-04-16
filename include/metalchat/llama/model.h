@@ -69,7 +69,8 @@ public:
         }
 
         auto output = _m_norm(x);
-        return _m_output(output); // _m_output(input[:, -1]) - take only the last dimension;
+        return _m_output(output);
+        // _m_output(input[:, -1]) - take only the last dimension;
     }
 };
 

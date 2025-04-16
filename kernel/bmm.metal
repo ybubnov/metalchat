@@ -9,14 +9,14 @@
 using namespace metal;
 
 
-#define __bmm_parameters(T)                            \
-    constant tensor_layout<2>& l1 [[buffer(0)]],       \
-    constant tensor_layout<2>& l2 [[buffer(1)]],       \
-    constant tensor_layout<2>& lo [[buffer(2)]],       \
-    device const T* mat1 [[buffer(3)]],                \
-    device const T* mat2 [[buffer(4)]],                \
-    device T* output [[buffer(5)]],                    \
-    uint2 group_id [[threadgroup_position_in_grid]],   \
+#define __bmm_parameters(T)                                 \
+    constant tensor_layout<2>& mat1_layout [[buffer(0)]],   \
+    constant tensor_layout<2>& mat2_layout [[buffer(1)]],   \
+    constant tensor_layout<2>& output_layout [[buffer(2)]], \
+    device const T* mat1 [[buffer(3)]],                     \
+    device const T* mat2 [[buffer(4)]],                     \
+    device T* output [[buffer(5)]],                         \
+    uint2 group_id [[threadgroup_position_in_grid]],        \
     uint2 thread_id [[thread_position_in_threadgroup]]
 
 
@@ -27,9 +27,9 @@ bmm(__bmm_parameters(T))
 {
     constexpr uint BLOCK_SIZE = 32;
 
-    tensor<const T, 2> m1{mat1, l1};
-    tensor<const T, 2> m2{mat2, l2};
-    tensor<T, 2> out{output, lo};
+    tensor<const T, 2> m1{mat1, mat1_layout};
+    tensor<const T, 2> m2{mat2, mat2_layout};
+    tensor<T, 2> out{output, output_layout};
 
     const uint M = m1.size(0);
     const uint K = m1.size(1);

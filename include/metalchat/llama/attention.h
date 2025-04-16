@@ -6,6 +6,7 @@
 
 #include <metalchat/functional.h>
 #include <metalchat/kernel/bmm.h>
+#include <metalchat/kernel/copy.h>
 #include <metalchat/kernel/embedding.h>
 #include <metalchat/kernel/mul.h>
 #include <metalchat/kernel/softmax.h>
@@ -53,6 +54,9 @@ private:
     tensor<T, 4, owning_ref<T>> _m_cache_k;
     tensor<T, 4, device_ref<T>> _m_cache_v;
 
+    cpy<T> _m_cpy;
+    device& _m_device;
+
 public:
     attention(attention&&) = default;
     attention(const attention&) = default;
@@ -77,7 +81,9 @@ public:
       m_options(options),
       m_scale(1.0 / std::sqrt(float(options.head_dim))),
       _m_cache_k(empty<T>({1, options.max_seq_len, options.n_kv_heads, options.head_dim})),
-      _m_cache_v(empty<T>({1, options.max_seq_len, options.n_kv_heads, options.head_dim}, device))
+      _m_cache_v(empty<T>({1, options.max_seq_len, options.n_kv_heads, options.head_dim}, device)),
+      _m_cpy(device),
+      _m_device(device)
     {}
 
     template <ContiguousContainer InputContainer, ContiguousContainer MaskContainer>
@@ -95,9 +101,9 @@ public:
         auto n_reps = m_options.repeats();
         const int head_dim = m_options.head_dim;
 
-        auto q = m_wq(input).reshape({bs, len, n_heads, head_dim});
-        auto k = m_wk(input).reshape({bs, len, n_kv_heads, head_dim});
-        auto v = m_wv(input).reshape({bs, len, n_kv_heads, head_dim});
+        auto q = m_wq(input).view({bs, len, n_heads, head_dim});
+        auto k = m_wk(input).view({bs, len, n_kv_heads, head_dim});
+        auto v = m_wv(input).view({bs, len, n_kv_heads, head_dim});
 
         auto queries = m_rope(q, /*start_pos=*/start_pos);
         auto k_rot = m_rope(k, /*start_pos=*/start_pos);
@@ -112,13 +118,13 @@ public:
         auto repeat_kv
             = [&]<ContiguousContainer TensorContainer>(tensor<T, 4, TensorContainer>&& t) -> auto {
             int slen = t.size(1);
-            auto reps = repeat_interleave(std::move(t), n_reps, /*dim=*/2);
-            return reps.reshape({bs, slen, n_heads, head_dim});
+            auto reps = repeat_interleave(std::move(t), n_reps, /*dim=*/2, _m_cpy, _m_device);
+            return reps.view({bs, slen, n_heads, head_dim});
         };
 
         // shape: bs, cache + len, n_heads, head_dim.
-        auto keys = repeat_kv(std::move(k_rot));
         auto values = repeat_kv(std::move(v));
+        auto keys = repeat_kv(std::move(k_rot));
 
         queries = queries.transpose({0, 2, 1, 3});
         keys = keys.transpose({0, 2, 1, 3});
@@ -136,7 +142,7 @@ public:
         auto output_ = empty_like(output);
         std::copy(output.begin(), output.end(), output_.begin());
 
-        auto output__ = output_.reshape({bs, len, -1});
+        auto output__ = output_.view({bs, len, -1});
         return m_wo(output__);
     }
 
