@@ -1,16 +1,58 @@
 #pragma once
 
 #include <cstdio>
-#include <iostream>
 #include <filesystem>
 #include <format>
+#include <iostream>
+#include <unordered_map>
 #include <vector>
 
 #include <simdjson.h>
 #include <sys/mman.h>
 
+#include <metalama/tensor.h>
+
 
 using namespace simdjson;
+
+
+class safetensor {
+public:
+    std::vector<std::size_t> shape;
+    std::vector<std::size_t> strides;
+    void* data;
+
+    safetensor(const std::vector<std::size_t>& shape_, void* data_)
+    : shape(shape_),
+      strides(shape_.size(), /*value=*/1),
+      data(data_)
+    {
+        for (std::size_t i = shape_.size() - 2; i < shape_.size(); --i) {
+            strides[i] *= shape_[i + 1];
+        }
+    }
+
+    std::size_t
+    dim()
+    {
+        return shape.size();
+    }
+
+    template <typename T, std::size_t N>
+    tensor<T, N>
+    as()
+    {
+        return tensor<T, N>(static_cast<T*>(data), shape.data(), strides.data());
+    }
+
+    friend std::ostream&
+    operator<<(std::ostream& os, const safetensor& st)
+    {
+        os << "safetensor(shape=[" << st.shape << "], ";
+        os << "strides=[" << st.strides << "])" << std::endl;
+        return os;
+    }
+};
 
 
 struct safetensor_ptr {
@@ -46,7 +88,8 @@ struct safetensor_ptr {
 
 template <>
 simdjson_inline simdjson_result<std::vector<std::size_t>>
-simdjson::ondemand::value::get() noexcept {
+simdjson::ondemand::value::get() noexcept
+{
     ondemand::array array;
     auto error = get_array().get(array);
 
@@ -58,7 +101,7 @@ simdjson::ondemand::value::get() noexcept {
 
     for (auto v : array) {
         int64_t val;
-        if((error = v.get_int64().get(val))) {
+        if ((error = v.get_int64().get(val))) {
             return error;
         }
         vec.push_back(static_cast<std::size_t>(val));
@@ -67,10 +110,10 @@ simdjson::ondemand::value::get() noexcept {
 }
 
 
-template<>
-simdjson_inline
-simdjson_result<safetensor_ptr>
-simdjson::ondemand::value::get() noexcept {
+template <>
+simdjson_inline simdjson_result<safetensor_ptr>
+simdjson::ondemand::value::get() noexcept
+{
     ondemand::object object;
     auto error = get_object().get(object);
     if (error) {
@@ -94,9 +137,10 @@ simdjson::ondemand::value::get() noexcept {
 
 class safetensor_file {
 public:
-    using iterator = std::vector<safetensor_ptr>::iterator;
+    using iterator = std::unordered_map<std::string, safetensor>::iterator;
 
-    safetensor_file(const std::filesystem::path& p) {
+    safetensor_file(const std::filesystem::path& p)
+    {
         m_file = std::fopen(p.c_str(), "r");
         if (m_file == nullptr) {
             throw std::invalid_argument(std::format("unable to open file '{}'", p.string()));
@@ -110,7 +154,7 @@ public:
             );
         }
 
-        m_map = static_cast<char*>(mmap(nullptr, m_file_size, PROT_READ, MAP_PRIVATE, fd, 0));
+        m_map = static_cast<uint8_t*>(mmap(nullptr, m_file_size, PROT_READ, MAP_PRIVATE, fd, 0));
         if (m_map == MAP_FAILED) {
             throw std::invalid_argument(
                 std::format("unable to memory-map safetensors file '{}'", p.string())
@@ -140,16 +184,19 @@ public:
     }
 
     iterator
-    begin() {
-        return m_ptrs.begin();
+    begin()
+    {
+        return m_tensors.begin();
     }
 
     iterator
-    end() {
-        return m_ptrs.end();
+    end()
+    {
+        return m_tensors.end();
     }
 
-    ~safetensor_file() {
+    ~safetensor_file()
+    {
         if (m_map != MAP_FAILED) {
             munmap(m_map, m_file_size);
         }
@@ -163,9 +210,9 @@ private:
     std::size_t m_file_size = 0;
     std::size_t m_file_off = 0;
 
-    char* m_map = nullptr;
+    uint8_t* m_map = nullptr;
 
-    std::vector<safetensor_ptr> m_ptrs;
+    std::unordered_map<std::string, safetensor> m_tensors;
 
     void
     parse()
@@ -196,8 +243,11 @@ private:
                 throw std::runtime_error(simdjson::error_message(error));
             }
 
-            tensor_ptr.name = std::string(field_name);
-            m_ptrs.push_back(tensor_ptr);
+            auto tensor_name = std::string(field_name);
+            auto data = m_map + m_file_off + tensor_ptr.data_offsets[0];
+            auto tensor = safetensor(tensor_ptr.shape, data);
+
+            m_tensors.insert_or_assign(tensor_name, tensor);
         }
     }
 
