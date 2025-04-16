@@ -277,7 +277,7 @@ public:
         }
 
         return tensor<T, N, weak_ref<T>>(
-            make_weak(this->m_data->data()), make_owning(shape), make_weak(this->m_strides->data()),
+            make_weak(this->data_ptr()), make_owning(shape), make_weak(this->m_strides->data()),
             make_owning(offsets)
         );
     }
@@ -296,7 +296,7 @@ public:
         reverse_copy(*this->m_offsets, N, offsets);
 
         return tensor(
-            make_weak(this->m_data->data()), make_owning(shape), make_owning(strides),
+            make_weak(this->data_ptr()), make_owning(shape), make_owning(strides),
             make_owning(offsets)
         );
     }
@@ -389,6 +389,25 @@ public:
     operator[](std::size_t i) const
     {
         return at(i);
+    }
+
+    template <indexing::SliceConvertible S>
+    auto
+    operator[](const S& slice)
+    {
+        auto shape = new std::size_t[1];
+        auto offsets = new std::size_t[1];
+
+        auto stop = std::min(slice.stop.value_or(this->size(0)), this->size(0));
+        auto start = std::min(slice.start.value_or(0), stop);
+
+        shape[0] = stop - start;
+        offsets[0] = start;
+
+        return tensor<T, 1, weak_ref<T>>(
+            make_weak(this->data_ptr()), make_owning(shape), make_weak(this->m_strides->data()),
+            make_owning(offsets)
+        );
     }
 
     auto

@@ -10,7 +10,7 @@ using namespace metalchat::dtype;
 using namespace metalchat::indexing;
 
 
-TEST_CASE("Read-write tensor slicing", "[tensor::operator]")
+TEST_CASE("Read-write 2d tensor slicing", "[tensor::operator]")
 {
     auto T = full<bf16>({4, 5}, 5.0);
     for (auto i = 0; i < T.size(0); i++) {
@@ -40,5 +40,24 @@ TEST_CASE("Read-write tensor slicing", "[tensor::operator]")
         for (auto j = 1; j < 4; j++) {
             REQUIRE(T[i][j] == 0.0);
         }
+    }
+}
+
+
+TEST_CASE("Read-write 1d tensor slicing", "[tensor::operator]")
+{
+    auto T = full<bf16>({15}, 2.0);
+    auto S = T[slice(3, 10)];
+
+    REQUIRE(S.size(0) == 7);
+    REQUIRE(S.stride(0) == 1);
+    REQUIRE(!S.is_contiguous());
+
+    for (auto i = 0; i < S.size(0); i++) {
+        S[i] = 0.0;
+    }
+
+    for (auto i = 3; i < 10; i++) {
+        REQUIRE(T[i] == 0.0);
     }
 }
