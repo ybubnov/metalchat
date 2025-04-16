@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <iomanip>
 #include <sstream>
+#include <utility>
 
 
 #include <metalama/format.h>
@@ -85,6 +86,18 @@ struct tensor_traits {
     move(V* values)
     {
         return std::move(std::make_unique<ref_type<V>>(values));
+    }
+
+    static inline data_type
+    borrow(T* values)
+    {
+        return move<T, owned_ref>(values);
+    }
+
+    static inline size_type
+    borrow(std::size_t* values)
+    {
+        return move<std::size_t, owned_ref>(values);
     }
 
     static inline data_type
@@ -169,9 +182,9 @@ public:
     }
 
 protected:
-    std::unique_ptr<array_ref<T>> m_data = nullptr;
-    std::unique_ptr<array_ref<std::size_t>> m_shape = nullptr;
-    std::unique_ptr<array_ref<std::size_t>> m_strides = nullptr;
+    traits::data_type m_data = nullptr;
+    traits::size_type m_shape = nullptr;
+    traits::size_type m_strides = nullptr;
 };
 
 
@@ -317,48 +330,49 @@ public:
 };
 
 
-template <typename T, std::size_t N>
-    requires(N > 0)
-tensor<T, N>
-empty(std::array<std::size_t, N> shape)
+template <typename T, std::convertible_to<std::size_t>... Ints>
+    requires(sizeof...(Ints) > 0)
+auto
+empty(Ints... shape_)
 {
-    auto strides = new std::size_t[N];
-    strides[N - 1] = 1;
+    constexpr std::size_t N = sizeof...(shape_);
+    const std::size_t numel = (1 * ... * shape_);
 
+    auto data = new T[numel];
+    auto shape = new std::size_t[N]{static_cast<std::size_t>(shape_)...};
+    auto strides = new std::size_t[N];
+
+    strides[N - 1] = 1;
     for (auto i = N - 2; i < N; --i) {
         strides[i] = strides[i + 1] * shape[i + 1];
     }
 
-    std::size_t size = 1;
-    auto sizes = new std::size_t[N];
-    for (auto i = 0; i < N; i++) {
-        sizes[i] = shape[i];
-        size *= shape[i];
-    }
+    using tensor_type = tensor<T, N>;
 
-    T* data = new T[size];
-    return tensor<T, N>(
-        std::make_unique<owned_ref<T>>(data), std::make_unique<owned_ref<std::size_t>>(sizes),
-        std::make_unique<owned_ref<std::size_t>>(strides)
+    return tensor_type(
+        tensor_type::traits::borrow(data), tensor_type::traits::borrow(shape),
+        tensor_type::traits::borrow(strides)
     );
 }
 
 
-template <typename T, std::size_t N>
-tensor<T, N>
-full(std::array<std::size_t, N> shape, const T& fill_value)
+template <typename T, std::convertible_to<std::size_t>... Ints>
+    requires(sizeof...(Ints) > 0)
+auto
+full(const T& fill_value, Ints... shape)
 {
-    auto t = empty<T, N>(shape);
+    auto t = empty<T>(shape...);
     std::fill_n(t.data_ptr(), t.numel(), fill_value);
     return t;
 }
 
 
-template <typename T, std::size_t N>
-tensor<T, N>
-zeros(std::array<std::size_t, N> shape)
+template <typename T, std::convertible_to<std::size_t>... Ints>
+    requires(sizeof...(Ints) > 0)
+auto
+zeros(Ints... shape)
 {
-    return full<T, N>(shape, 0);
+    return full<T>(0, shape...);
 }
 
 using bfloat_tensor1d = tensor<__fp16, 1>;
