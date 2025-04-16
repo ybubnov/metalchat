@@ -55,7 +55,8 @@ public:
         auto res0 = _m_attention(shared_tensor(std::move(norm)), mask, start_pos);
         auto h = _m_sum(input, res0.get());
 
-        auto res1 = _m_ff(_m_ff_norm((*h.get())));
+        auto ff_norm = shared_tensor(_m_ff_norm(*h.get()));
+        auto res1 = _m_ff(ff_norm);
         auto output = _m_sum(h.get(), res1.get());
         return output;
     }

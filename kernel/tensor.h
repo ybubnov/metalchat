@@ -19,6 +19,14 @@ template <typename T, uint N> struct tensor {
     constant tensor_layout<N>& layout;
 
     inline device T&
+    at(uint i0)
+    {
+        auto ptr_offset = 0;
+        ptr_offset += layout.strides[0] * i0 + layout.offsets[0];
+        return *(data + ptr_offset);
+    }
+
+    inline device T&
     at(uint i0, uint i1)
     {
         auto ptr_offset = 0;

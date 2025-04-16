@@ -2,15 +2,18 @@
 
 #include <metal_stdlib>
 
+#include "tensor.h"
+
 
 using namespace metal;
 
 
-#define __silu_parameters(T)                   \
-    constant uint& dim_size [[buffer(0)]],     \
-    device const T* input [[buffer(1)]],       \
-    device T* output [[buffer(2)]],            \
-    uint gid [[threadgroup_position_in_grid]], \
+#define __silu_parameters(T)                                \
+    constant tensor_layout<2>& output_layout [[buffer(0)]], \
+    device T* output                         [[buffer(1)]], \
+    constant tensor_layout<2>& input_layout  [[buffer(2)]], \
+    device const T* input                    [[buffer(3)]], \
+    uint gid [[threadgroup_position_in_grid]],              \
     uint tid [[thread_index_in_threadgroup]]
 
 
@@ -20,16 +23,18 @@ silu(__silu_parameters(T))
 {
     constexpr uint BLOCK_SIZE = 32;
 
-    device const T* in = input + gid * dim_size;
-    device T* out = output + gid * dim_size;
+    tensor<const T, 2> in{input, input_layout};
+    tensor<T, 2> out{output, output_layout};
 
-    uint i = tid * BLOCK_SIZE;
-    uint remainder_size = dim_size % BLOCK_SIZE;
-    uint block_size = i + BLOCK_SIZE > dim_size ? remainder_size : BLOCK_SIZE;
+    const uint dim_size = in.size(1);
+    const uint i = gid;
 
-    for (uint j = 0; j < block_size; j++) {
-        T x = in[i + j];
-        out[i + j] = x / (T(1.0) + T(exp(-x)));
+    const uint begin = tid * BLOCK_SIZE;
+    const uint end = begin + BLOCK_SIZE;
+
+    for (uint k = begin; k < end && k < dim_size; k++) {
+        T x = in.at(i, k);
+        out.at(i, k) = x / (T(1.0) + T(exp(-x)));
     }
 }
 

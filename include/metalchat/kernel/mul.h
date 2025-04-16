@@ -30,7 +30,7 @@ public:
         ContiguousContainer Input2Container>
     auto
     operator()(
-        shared_tensor<T, M, Input1Container>& input1, shared_tensor<T, N, Input2Container>& input2
+        shared_tensor<T, M, Input1Container> input1, shared_tensor<T, N, Input2Container> input2
     )
     {
         constexpr std::size_t block_size = 32;
