@@ -10,10 +10,10 @@ using namespace metal;
 
 
 #define __copy_parameters(T)                                \
-    constant tensor_layout<2>& input_layout [[buffer(0)]],  \
-    constant tensor_layout<2>& output_layout [[buffer(1)]], \
-    device const T* input [[buffer(2)]],                    \
-    device T* output [[buffer(3)]],                         \
+    constant tensor_layout<2>& output_layout [[buffer(0)]], \
+    device T* output [[buffer(1)]],                         \
+    constant tensor_layout<2>& input_layout [[buffer(2)]],  \
+    device const T* input [[buffer(3)]],                    \
     uint gid [[threadgroup_position_in_grid]],              \
     uint tid [[thread_position_in_threadgroup]]
 

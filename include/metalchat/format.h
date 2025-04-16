@@ -7,6 +7,7 @@
 
 
 #include <metalchat/tensor.h>
+#include <metalchat/tensor_shared.h>
 
 
 namespace metalchat {
@@ -161,6 +162,15 @@ std::ostream&
 operator<<(std::ostream& os, const tensor<T, N, Container>& t)
 {
     os << tensor_format<T, N, Container>(t, 1) << ", shape=(" << t.shape() << ")";
+    return os;
+}
+
+
+template <typename T, std::size_t N, ContiguousContainer Container>
+std::ostream&
+operator<<(std::ostream& os, const shared_tensor<T, N, Container>& t)
+{
+    os << (*t) << ", shared=true";
     return os;
 }
 

@@ -1,10 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <metalchat/device.h>
-#include <metalchat/dtype.h>
-#include <metalchat/format.h>
 #include <metalchat/kernel/copy.h>
-#include <metalchat/tensor.h>
 
 
 using namespace metalchat;
@@ -33,11 +29,11 @@ TEST_CASE("Copy into slice", "[kernel::copy]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::cpy<float> cpy(gpu0);
 
-    auto input = rand<float>({1, 6, 8, 1, 64});
-    auto output = full<float>({1, 6, 8, 4, 64}, 0.0, gpu0);
+    auto input = shared_tensor(rand<float>({1, 6, 8, 1, 64}));
+    auto output = shared_tensor(full<float>({1, 6, 8, 4, 64}, 0.0, gpu0));
 
-    auto target = tensor(output.narrow(/*dim=*/3, /*offset=*/2, /*length=*/1));
-    cpy(input.view({-1, 64}), target.view({-1, 64}));
+    auto target = output.narrow(/*dim=*/3, /*offset=*/2, /*length=*/1);
+    cpy(input.view({-1, 64}), target.view({-1, 64})).wait();
 
     for (auto i0 = 0; i0 < input.size(0); i0++) {
         for (auto i1 = 0; i1 < input.size(1); i1++) {
