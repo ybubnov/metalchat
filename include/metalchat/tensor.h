@@ -238,19 +238,6 @@ public:
     auto
     transpose(const std::size_t (&&dims)[N])
     {
-        // Here is the twist with the transposition operation: if this method returns a weak
-        // reference, then this object cannot outlive the original one (for example, in case
-        // of a return from the function), but in case of owning reference, the object should
-        // outlive the original tensor, moreover, original tensor should not wipe out the
-        // memory it holds, since it could be used by another (transposed) tensor.
-        //
-        // All this drama could be solved by forbidding returning transposed tensors, but RVO
-        // (return value optimization) erases the control of what is possible to return from
-        // a function.
-        //
-        // So exactly this function dictates the implementation of the tensor: data polymorphism
-        // is implemented using a shared pointer (and so could be shared across multiple tensors),
-        // while tensor info (shape, strides, offsets) are always unique reference.
         tensor_base t(m_data);
         for (auto i = 0; i < N; i++) {
             t.set_size(i, size(dims[i]));
@@ -258,6 +245,25 @@ public:
             t.set_offset(i, offset(dims[i]));
         }
         return t;
+    }
+
+    tensor_base<T, N + 1, Container>
+    expand_dims(const std::size_t dim)
+    {
+        assert(dim <= N);
+        assert(is_contiguous());
+
+        std::size_t sizes[N + 1];
+        sizes[dim] = 1;
+
+        for (auto i = 0; i < dim; i++) {
+            sizes[i] = size(i);
+        }
+        for (auto i = dim; i < N; i++) {
+            sizes[i + 1] = size(i);
+        }
+
+        return tensor_base<T, N + 1, Container>(std::move(sizes), m_data);
     }
 
     template <std::size_t M>
