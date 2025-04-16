@@ -22,18 +22,8 @@ set(metalchat_SOURCES src/main.cc)
 add_executable(metalchat_main ${metalchat_SOURCES})
 add_dependencies(metalchat_main ${metalchat_METALLIB})
 
+target_link_libraries(metalchat_main simdjson::simdjson)
 target_link_libraries(metalchat_main ${FOUNDATION})
 target_link_libraries(metalchat_main ${METAL})
 target_link_libraries(metalchat_main ${METALFX})
 target_link_libraries(metalchat_main ${QUARTZCORE})
-
-
-set(metalchat_TENSOR_SOURCES src/safetensor.cc)
-add_executable(metalchat_parse ${metalchat_TENSOR_SOURCES})
-add_dependencies(metalchat_parse ${metalchat_METALLIB})
-
-target_link_libraries(metalchat_parse simdjson::simdjson)
-target_link_libraries(metalchat_parse ${FOUNDATION})
-target_link_libraries(metalchat_parse ${METAL})
-target_link_libraries(metalchat_parse ${METALFX})
-target_link_libraries(metalchat_parse ${QUARTZCORE})

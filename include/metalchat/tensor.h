@@ -419,13 +419,21 @@ public:
     T&
     at(std::size_t i)
     {
-        return *(this->data_ptr() + this->m_strides->data()[0] * i);
+        const auto n = this->m_strides->data()[0] * i;
+        if (n >= this->m_shape->data()[0]) {
+            throw std::out_of_range("tensor");
+        }
+        return *(this->data_ptr() + n);
     }
 
     const T&
     at(std::size_t i) const
     {
-        return *(this->data_ptr() + this->m_strides->data()[0] * i);
+        const auto n = this->m_strides->data()[0] * i;
+        if (n >= this->m_shape->data()[0]) {
+            throw std::out_of_range("tensor");
+        }
+        return *(this->data_ptr() + n);
     }
 
     T&
