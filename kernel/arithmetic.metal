@@ -6,9 +6,6 @@
 #include "tensor.h"
 
 
-using namespace metal;
-
-
 template <typename T> struct __add_parameters {
     constant tensor_layout<2>& output_layout;
     device T* output;

@@ -4,9 +4,6 @@
 #include <metal_stdlib>
 
 
-using namespace metal;
-
-
 template <uint N> struct tensor_layout {
     uint sizes[N];
     uint strides[N];
@@ -65,9 +62,21 @@ template <typename T, uint N> struct tensor {
 };
 
 
+struct layout2 {
+    uint sizes[2];
+    uint strides[2];
+    uint offsets[2];
+};
+
+
 template <typename T> struct tensor2 {
-    constant tensor_layout<2>& layout;
+    constant layout2& layout;
     device T* data;
+
+    tensor2(constant layout2& _layout, device T* _data)
+    : layout(_layout),
+      data(_data)
+    {}
 
     inline device T&
     at(uint i0, uint i1)
@@ -78,20 +87,26 @@ template <typename T> struct tensor2 {
         return *(data + ptr_offset);
     }
 
+    inline const device T&
+    at(uint i0, uint i1) const
+    {
+        return const_cast<thread tensor2&>(*this).at(i0, i1);
+    }
+
     inline uint
-    size(uint dim)
+    size(uint dim) const
     {
         return layout.sizes[dim];
     }
 
     inline uint
-    stride(uint dim)
+    stride(uint dim) const
     {
         return layout.strides[dim];
     }
 
     inline uint
-    offset(uint dim)
+    offset(uint dim) const
     {
         return layout.offsets[dim];
     }

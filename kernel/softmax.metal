@@ -43,7 +43,7 @@ softmax(__softmax_parameters(T))
         threadlocal_sum += metal::fast::exp(xj);
     }
 
-    float acc = simd_sum(threadlocal_sum);
+    float acc = metal::simd_sum(threadlocal_sum);
 
     threadgroup float threadgroup_exp_sum[1];
     threadgroup float threadgroup_sum[SIMD_SIZE];
@@ -52,22 +52,22 @@ softmax(__softmax_parameters(T))
     if (simd_gid == 0) {
         threadgroup_sum[simd_tid] = 0;
     }
-    threadgroup_barrier(mem_flags::mem_threadgroup);
+    threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     // Write simd accumulations into shared memory
     if (simd_tid == 0) {
         threadgroup_sum[simd_gid] = acc;
     }
-    threadgroup_barrier(mem_flags::mem_threadgroup);
+    threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     // Accumulate over simd groups
     if (simd_gid == 0) {
-        acc = simd_sum(threadgroup_sum[simd_tid]);
+        acc = metal::simd_sum(threadgroup_sum[simd_tid]);
         if (simd_tid == 0) {
             threadgroup_exp_sum[0] = 1 / acc;
         }
     }
-    threadgroup_barrier(mem_flags::mem_threadgroup);
+    threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     // Write the outputs
     T exp_sum = T(threadgroup_exp_sum[0]);

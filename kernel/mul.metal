@@ -6,16 +6,13 @@
 #include "tensor.h"
 
 
-using namespace metal;
-
-
 template <typename T> struct __hadamard_parameters {
-    constant tensor_layout<2>& output_layout;
-    device T* output;
-    constant tensor_layout<2>& input1_layout;
-    device const T* input1;
-    constant tensor_layout<2>& input2_layout;
-    device const T* input2;
+    constant layout2& output_layout;
+    device T* output_data;
+    constant layout2& input1_layout;
+    const device T* input1_data;
+    constant layout2& input2_layout;
+    const device T* input2_data;
 };
 
 
@@ -27,18 +24,18 @@ hadamard(
     uint tid [[thread_index_in_threadgroup]]
 )
 {
-    tensor<const T, 2> in1{params.input1, params.input1_layout};
-    tensor<const T, 2> in2{params.input2, params.input2_layout};
-    tensor<T, 2> out{params.output, params.output_layout};
+    tensor2<T> output(params.output_layout, params.output_data);
+    tensor2<const T> input1(params.input1_layout, params.input1_data);
+    tensor2<const T> input2(params.input2_layout, params.input2_data);
 
-    const uint dim_size = in1.size(1);
+    const uint dim_size = input1.size(1);
     const uint i = gid;
 
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
     for (uint k = 0; k < end && k < dim_size; k++) {
-        out.at(i, k) = in1.at(i, k) * in2.at(i, k);
+        output.at(i, k) = input1.at(i, k) * input2.at(i, k);
     }
 }
 

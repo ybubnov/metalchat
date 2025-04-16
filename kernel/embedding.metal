@@ -7,9 +7,6 @@
 #include "tensor.h"
 
 
-using namespace metal;
-
-
 #define __embedding_parameters(T)                               \
     constant tensor_layout<3>& output_layout     [[buffer(0)]], \
     device T* output                             [[buffer(1)]], \

@@ -8,9 +8,6 @@
 #include "tensor.h"
 
 
-using namespace metal;
-
-
 #define __rmsnorm_parameters(T)                             \
     constant tensor_layout<2>& output_layout [[buffer(0)]], \
     device T* output                         [[buffer(1)]], \
@@ -49,7 +46,7 @@ rmsnorm(__rmsnorm_parameters(T))
         threadlocal_sum += xj * xj;
     }
 
-    float acc = simd_sum(threadlocal_sum);
+    float acc = metal::simd_sum(threadlocal_sum);
 
     threadgroup float threadgroup_inv_mean[1];
     threadgroup float threadgroup_sum[SIMD_SIZE];
@@ -58,22 +55,22 @@ rmsnorm(__rmsnorm_parameters(T))
     if (simd_gid == 0) {
         threadgroup_sum[simd_tid] = 0;
     }
-    threadgroup_barrier(mem_flags::mem_threadgroup);
+    threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     // Write simd accumulations into shared memory
     if (simd_tid == 0) {
         threadgroup_sum[simd_gid] = acc;
     }
-    threadgroup_barrier(mem_flags::mem_threadgroup);
+    threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     // Accumulate over simd groups
     if (simd_gid == 0) {
-        acc = simd_sum(threadgroup_sum[simd_tid]);
+        acc = metal::simd_sum(threadgroup_sum[simd_tid]);
         if (simd_tid == 0) {
             threadgroup_inv_mean[0] = metal::fast::rsqrt((acc / dim_size) + eps);
         }
     }
-    threadgroup_barrier(mem_flags::mem_threadgroup);
+    threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     // Write the outputs
     for (uint j = begin; j < end && j < dim_size; j++) {
