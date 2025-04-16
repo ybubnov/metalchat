@@ -81,7 +81,7 @@ public:
     using container_type = hardware_memory_container<T>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    hardware_memory_allocator(MTL::Device* device)
+    hardware_memory_allocator(NS::SharedPtr<MTL::Device> device)
     : _m_device(device)
     {}
 
@@ -105,7 +105,39 @@ public:
     }
 
 private:
-    MTL::Device* _m_device;
+    NS::SharedPtr<MTL::Device> _m_device;
+};
+
+class hardware_heap_allocator {
+public:
+    using value_type = void;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+    using size_type = std::size_t;
+    using container_type = hardware_memory_container<void>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    hardware_heap_allocator(NS::SharedPtr<MTL::Heap> heap)
+    : _m_heap(heap)
+    {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        auto memory_ptr = NS::TransferPtr(_m_heap->newBuffer(size, MTL::ResourceStorageModeShared));
+        return std::make_shared<container_type>(memory_ptr);
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        auto memory_ptr = NS::TransferPtr(_m_heap->newBuffer(size, MTL::ResourceStorageModeShared));
+        std::memcpy(memory_ptr->contents(), ptr, size);
+        return std::make_shared<container_type>(memory_ptr);
+    }
+
+private:
+    NS::SharedPtr<MTL::Heap> _m_heap;
 };
 
 
@@ -118,7 +150,7 @@ public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    hardware_memory_allocator(MTL::Device* device)
+    hardware_memory_allocator(NS::SharedPtr<MTL::Device> device)
     : _m_device(device)
     {}
 
@@ -139,7 +171,7 @@ public:
     }
 
 private:
-    MTL::Device* _m_device;
+    NS::SharedPtr<MTL::Device> _m_device;
 };
 
 

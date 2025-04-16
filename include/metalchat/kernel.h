@@ -73,7 +73,7 @@ public:
     hardware_memory_allocator<void>
     allocator()
     {
-        return hardware_memory_allocator<void>(_m_function->device());
+        return _m_kernel_thread.get().allocator();
     }
 
     std::size_t

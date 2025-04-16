@@ -127,9 +127,13 @@ public:
 
     kernel_thread(const kernel_thread&) noexcept = default;
 
-    kernel_thread(NS::SharedPtr<MTL::CommandQueue> queue, std::size_t capacity)
+    kernel_thread(
+        NS::SharedPtr<MTL::CommandQueue> queue,
+        std::size_t capacity,
+        hardware_memory_allocator<void> alloc
+    )
     : _m_commands(NS::TransferPtr(queue->commandBuffer())),
-      _m_allocator(queue->device()),
+      _m_allocator(alloc),
       _m_promise(std::make_shared<promise_type>()),
       _m_future(_m_promise->get_future()),
       _m_size(0),
@@ -184,7 +188,6 @@ public:
         }
 
         auto encoder = _m_commands->computeCommandEncoder(MTL::DispatchTypeSerial);
-        // f.encode(encoder);
         f.encode(hardware_function_encoder(encoder, _m_allocator));
         encoder->endEncoding();
 
@@ -214,24 +217,39 @@ public:
 
 class shared_kernel_thread {
 private:
+    using allocator_type = hardware_memory_allocator<void>;
+
     NS::SharedPtr<MTL::CommandQueue> _m_queue;
     std::shared_ptr<kernel_thread> _m_this_thread;
+    allocator_type _m_allocator;
     std::size_t _m_thread_capacity;
 
 public:
     shared_kernel_thread(const shared_kernel_thread&) noexcept = default;
 
-    shared_kernel_thread(NS::SharedPtr<MTL::CommandQueue> queue, std::size_t thread_capacity)
+    shared_kernel_thread(
+        NS::SharedPtr<MTL::CommandQueue> queue,
+        std::size_t thread_capacity,
+        hardware_memory_allocator<void> alloc
+    )
     : _m_queue(queue),
-      _m_this_thread(std::make_shared<kernel_thread>(queue, thread_capacity)),
+      _m_this_thread(std::make_shared<kernel_thread>(queue, thread_capacity, alloc)),
+      _m_allocator(alloc),
       _m_thread_capacity(thread_capacity)
     {}
+
+    allocator_type
+    allocator()
+    {
+        return _m_allocator;
+    }
 
     std::shared_ptr<kernel_thread>
     get_this_thread()
     {
         if (!_m_this_thread->joinable()) {
-            auto thread = std::make_shared<kernel_thread>(_m_queue, _m_thread_capacity);
+            auto thread
+                = std::make_shared<kernel_thread>(_m_queue, _m_thread_capacity, _m_allocator);
             _m_this_thread.swap(thread);
         }
         return _m_this_thread;
