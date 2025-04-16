@@ -130,7 +130,7 @@ public:
         heap_options->setStorageMode(MTL::StorageModeShared);
         heap_options->setResourceOptions(MTL::ResourceStorageModeShared);
         heap_options->setSize(NS::UInteger(capacity));
-        heap_options->setHazardTrackingMode(MTL::HazardTrackingModeTracked);
+        heap_options->setHazardTrackingMode(MTL::HazardTrackingModeUntracked);
         heap_options->setCpuCacheMode(MTL::CPUCacheModeDefaultCache);
 
         _m_heap = NS::TransferPtr(device->newHeap(heap_options.get()));
@@ -162,14 +162,14 @@ public:
     container_pointer
     allocate(size_type size)
     {
-        auto memory_ptr = _allocate(size);
+        auto memory_ptr = _m_allocate(size);
         return std::make_shared<container_type>(memory_ptr);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto memory_ptr = _allocate(size);
+        auto memory_ptr = _m_allocate(size);
         std::memcpy(memory_ptr->contents(), ptr, size);
         return std::make_shared<container_type>(memory_ptr);
     }
@@ -186,17 +186,15 @@ private:
     NS::SharedPtr<MTL::ResidencySet> _m_rset;
 
     NS::SharedPtr<MTL::Buffer>
-    _allocate(size_type size)
+    _m_allocate(size_type size)
     {
-        // std::cout << "alloc=" << size << "(bytes)";
         auto placement
             = _m_heap->device()->heapBufferSizeAndAlign(size, MTL::ResourceStorageModeShared);
-        // std::cout << " placement=" << placement.size << ", align=" << placement.align;
-        auto buf
-            = NS::TransferPtr(_m_heap->newBuffer(placement.size, MTL::ResourceStorageModeShared));
-        // std::cout << "  mem=" << buf->contents() << ", gpu_add=" << buf->gpuAddress() <<
-        // std::endl;
-        return buf;
+
+        size_type mask = placement.align - 1;
+        size_type alloc_size = ((placement.size + mask) & (~mask));
+
+        return NS::TransferPtr(_m_heap->newBuffer(alloc_size, MTL::ResourceStorageModeShared));
     }
 };
 

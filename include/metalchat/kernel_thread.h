@@ -129,11 +129,13 @@ private:
 
     NS::SharedPtr<MTL::CommandBuffer> _m_commands;
     NS::SharedPtr<MTL::ComputeCommandEncoder> _m_encoder;
+    NS::SharedPtr<MTL::Event> _m_event;
     hardware_heap_allocator<void> _m_allocator;
 
     std::shared_ptr<promise_type> _m_promise;
     std::shared_future<void> _m_future;
 
+    std::size_t _m_id;
     std::size_t _m_size;
     std::size_t _m_capacity;
 
@@ -146,18 +148,28 @@ public:
 
     kernel_thread(
         NS::SharedPtr<MTL::CommandQueue> queue,
+        NS::SharedPtr<MTL::Event> event,
+        std::size_t id,
         std::size_t capacity,
         hardware_heap_allocator<void> alloc
     )
     : _m_commands(NS::TransferPtr(queue->commandBuffer())),
-      _m_encoder(NS::TransferPtr(_m_commands->computeCommandEncoder(MTL::DispatchTypeConcurrent))),
+      _m_event(event),
       _m_allocator(alloc),
       _m_promise(std::make_shared<promise_type>()),
       _m_future(_m_promise->get_future()),
+      _m_id(id),
       _m_size(0),
       _m_capacity(capacity),
       _m_committed(false)
     {
+        if (_m_id > 0) {
+            _m_commands->encodeWait(_m_event.get(), _m_id);
+        }
+
+        _m_encoder
+            = NS::TransferPtr(_m_commands->computeCommandEncoder(MTL::DispatchTypeConcurrent));
+
         // After the completion of the kernel execution, release the promise and all blocks
         // waiting for the completion of this kernel.
         _m_commands->addCompletedHandler([promise = _m_promise](const MTL::CommandBuffer* buffer) {
@@ -229,8 +241,10 @@ public:
             auto label_ptr = NS::String::string(label.c_str(), NS::UTF8StringEncoding);
             auto commands_label = NS::TransferPtr(label_ptr);
 
-            _m_commands->setLabel(commands_label.get());
             _m_encoder->endEncoding();
+
+            _m_commands->setLabel(commands_label.get());
+            _m_commands->encodeSignalEvent(_m_event.get(), _m_id + 1);
 
             _m_commands->commit();
             _m_committed = true;
@@ -244,9 +258,13 @@ private:
     using allocator_type = hardware_heap_allocator<void>;
 
     NS::SharedPtr<MTL::CommandQueue> _m_queue;
-    std::shared_ptr<kernel_thread> _m_this_thread;
-    allocator_type _m_allocator;
+    NS::SharedPtr<MTL::Event> _m_event;
+
+    std::size_t _m_thread_id;
     std::size_t _m_thread_capacity;
+    std::shared_ptr<kernel_thread> _m_this_thread;
+
+    allocator_type _m_allocator;
 
 public:
     shared_kernel_thread(const shared_kernel_thread&) noexcept = default;
@@ -257,9 +275,13 @@ public:
         hardware_heap_allocator<void> alloc
     )
     : _m_queue(queue),
-      _m_this_thread(std::make_shared<kernel_thread>(queue, thread_capacity, alloc)),
-      _m_allocator(alloc),
-      _m_thread_capacity(thread_capacity)
+      _m_event(NS::TransferPtr(queue->device()->newEvent())),
+      _m_thread_id(0),
+      _m_thread_capacity(thread_capacity),
+      _m_this_thread(std::make_shared<kernel_thread>(
+          _m_queue, _m_event, _m_thread_id, _m_thread_capacity, alloc
+      )),
+      _m_allocator(alloc)
     {}
 
     allocator_type
@@ -272,8 +294,10 @@ public:
     get_this_thread()
     {
         if (!_m_this_thread->joinable()) {
-            auto thread
-                = std::make_shared<kernel_thread>(_m_queue, _m_thread_capacity, _m_allocator);
+            auto thread = std::make_shared<kernel_thread>(
+                _m_queue, _m_event, ++_m_thread_id, _m_thread_capacity, _m_allocator
+            );
+
             _m_this_thread.swap(thread);
         }
         return _m_this_thread;
