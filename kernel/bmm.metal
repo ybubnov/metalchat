@@ -7,15 +7,15 @@
 using namespace metal;
 
 
-#define __bmm_parameters(T)                                     \
-    constant uint& M [[buffer(0)]],                             \
-    constant uint& N [[buffer(1)]],                             \
-    constant uint& K [[buffer(2)]],                             \
-    device const T* mat1 [[buffer(3)]],                         \
-    device const T* mat2 [[buffer(4)]],                         \
-    device T* output [[buffer(5)]],                             \
-    uint2 group_id [[ threadgroup_position_in_grid ]],          \
-    uint2 group_thread_id [[ thread_position_in_threadgroup ]]
+#define __bmm_parameters(T)                                   \
+    constant uint& M [[buffer(0)]],                           \
+    constant uint& N [[buffer(1)]],                           \
+    constant uint& K [[buffer(2)]],                           \
+    device const T* mat1 [[buffer(3)]],                       \
+    device const T* mat2 [[buffer(4)]],                       \
+    device T* output [[buffer(5)]],                           \
+    uint2 group_id [[threadgroup_position_in_grid]],          \
+    uint2 group_thread_id [[thread_position_in_threadgroup]]
 
 
 /// Matrix multiplication mat1(MxK) @ mat2(KxN) -> C(MxN)

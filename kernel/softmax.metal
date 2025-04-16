@@ -35,7 +35,7 @@ softmax(__softmax_parameters(T))
     uint block_size = i + BLOCK_SIZE > dim_size ? remainder_size : BLOCK_SIZE;
 
     for (uint j = 0; j < block_size; j++) {
-        T xj = in[i + j];
+        float xj = float(in[i + j]);
         threadlocal_sum += metal::fast::exp(xj);
     }
 
