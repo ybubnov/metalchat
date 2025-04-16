@@ -1,0 +1,18 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v2.3.0
+  hooks:
+    - id: end-of-file-fixer
+    - id: trailing-whitespace
+    - id: debug-statements
+- repo: https://github.com/codespell-project/codespell
+  rev: v2.2.4
+  hooks:
+    - id: codespell
+      name: "Check code for common misspellings"
+- repo: https://github.com/pre-commit/mirrors-clang-format
+  rev: v18.1.7
+  hooks:
+    - id: clang-format
+      name: "Clang C++ formatting"
+      types_or: [c++, c, cuda]
