@@ -15,7 +15,7 @@ namespace metalchat {
 
 
 struct dim3 {
-    std::size_t x, y, z;
+    const std::size_t x, y, z;
 
     constexpr dim3(std::size_t x_, std::size_t y_ = 1, std::size_t z_ = 1)
     : x(x_),
@@ -28,6 +28,12 @@ struct dim3 {
     {
         os << "<" << d.x << "," << d.y << "," << d.z << ">";
         return os;
+    }
+
+    std::size_t
+    numel()
+    {
+        return x * y * z;
     }
 };
 

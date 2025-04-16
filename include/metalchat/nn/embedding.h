@@ -27,7 +27,7 @@ public:
         auto output = empty<T>({input.size(0), weight.size(1)}, m_device);
 
         auto blocks = dim3(input.size(0), weight.size(1));
-        blocking_kernel(blocks, 1, input, weight, stride, output);
+        blocking(blocks, 1)(input, weight, stride, output);
 
         return output;
     }
