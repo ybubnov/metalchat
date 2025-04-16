@@ -6,6 +6,7 @@
 
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
+#include <metalchat/format.h>
 #include <metalchat/functional/softmax.h>
 #include <metalchat/tensor.h>
 
@@ -47,4 +48,24 @@ TEST_CASE("Softmax sum should be 1.0", "[functional::softmax]")
 
     auto sum = std::reduce(output.data_ptr(), output.data_ptr() + output.numel());
     REQUIRE_THAT(sum, Catch::Matchers::WithinAbs(1.0, 0.01));
+}
+
+
+TEST_CASE("Softmax for 4-dimensional tensor", "[functional::softmax]")
+{
+    metalchat::device gpu0("metalchat.metallib");
+    metalchat::softmax<bf16> softmax(gpu0);
+
+    auto input = rand<bf16>({4, 4, 4, 64});
+    auto output = softmax(input);
+
+    for (auto i = 0; i < input.size(0); i++) {
+        for (auto j = 0; j < input.size(1); j++) {
+            for (auto k = 0; k < input.size(2); k++) {
+                auto tensor = output[i][j][k];
+                auto sum = std::reduce(tensor.data_ptr(), tensor.data_ptr() + input.size(3));
+                REQUIRE_THAT(sum, Catch::Matchers::WithinAbs(1.0, 0.1));
+            }
+        }
+    }
 }
