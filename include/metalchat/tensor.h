@@ -27,10 +27,10 @@ template <typename T, ContiguousContainer Container> struct tensor_traits {
 };
 
 
-template <std::size_t N> struct tensor_layout {
-    std::size_t sizes[N];
-    std::size_t strides[N];
-    std::size_t offsets[N];
+template <uint32_t N> struct tensor_layout {
+    uint32_t sizes[N];
+    uint32_t strides[N];
+    uint32_t offsets[N];
 };
 
 

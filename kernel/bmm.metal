@@ -10,12 +10,12 @@ using namespace metal;
 
 
 #define __bmm_parameters(T)                            \
-    device const T* mat1 [[buffer(0)]],                \
-    device const T* mat2 [[buffer(1)]],                \
-    device T* output [[buffer(2)]],                    \
-    constant tensor_layout<2>& l1 [[buffer(3)]],       \
-    constant tensor_layout<2>& l2 [[buffer(4)]],       \
-    constant tensor_layout<2>& lo [[buffer(5)]],       \
+    constant tensor_layout<2>& l1 [[buffer(0)]],       \
+    constant tensor_layout<2>& l2 [[buffer(1)]],       \
+    constant tensor_layout<2>& lo [[buffer(2)]],       \
+    device const T* mat1 [[buffer(3)]],                \
+    device const T* mat2 [[buffer(4)]],                \
+    device T* output [[buffer(5)]],                    \
     uint2 group_id [[threadgroup_position_in_grid]],   \
     uint2 thread_id [[thread_position_in_threadgroup]]
 
