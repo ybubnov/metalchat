@@ -16,7 +16,7 @@ template <typename T, std::size_t BlockSize = 16> class softmax {
 private:
     inline static const std::string operation_name = "softmax_" + std::to_string(BlockSize);
 
-    kernel_base _m_kernel;
+    basic_kernel _m_kernel;
 
 public:
     softmax(hardware_accelerator& gpu)

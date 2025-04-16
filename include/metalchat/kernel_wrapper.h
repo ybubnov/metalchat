@@ -9,10 +9,10 @@ namespace metalchat {
 
 template <typename T, std::size_t BlockSize> class binary_kernel_wrapper {
 private:
-    kernel_base _m_kernel;
+    basic_kernel _m_kernel;
 
 public:
-    binary_kernel_wrapper(kernel_base kernel)
+    binary_kernel_wrapper(basic_kernel kernel)
     : _m_kernel(kernel)
     {}
 

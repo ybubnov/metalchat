@@ -21,7 +21,7 @@ class embedding {
 private:
     inline static const std::string operation_name = "embedding_" + std::to_string(BlockSize);
 
-    kernel_base _m_kernel;
+    basic_kernel _m_kernel;
 
 public:
     embedding(hardware_accelerator& gpu)
@@ -57,7 +57,7 @@ template <typename T, std::size_t BlockSize = 16> class rope {
 private:
     inline static const std::string operation_name = "rope_" + std::to_string(BlockSize);
 
-    kernel_base _m_kernel;
+    basic_kernel _m_kernel;
 
 public:
     rope(hardware_accelerator& gpu)

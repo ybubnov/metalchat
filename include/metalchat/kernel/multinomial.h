@@ -15,7 +15,7 @@ template <typename T, std::size_t BlockSize = 32> class multinomial {
 private:
     inline static const std::string operation_name = "multinomial_" + std::to_string(BlockSize);
 
-    kernel_base _m_kernel;
+    basic_kernel _m_kernel;
 
     std::random_device _m_random_device;
     std::mt19937 _m_generator;

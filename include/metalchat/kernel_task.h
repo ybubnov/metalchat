@@ -54,7 +54,7 @@ template <immutable_tensor... Args> class kernel_task {
 private:
     using arguments_type = std::tuple<Args...>;
 
-    kernel_base _m_kernel;
+    basic_kernel _m_kernel;
     std::shared_ptr<kernel_thread> _m_this_thread_ptr;
 
     arguments_type _m_args;
@@ -68,7 +68,7 @@ private:
 public:
     kernel_task(const kernel_task& task) noexcept = default;
 
-    kernel_task(kernel_base kernel, dim3 grid, dim3 thread, std::tuple<Args...>&& args)
+    kernel_task(basic_kernel kernel, dim3 grid, dim3 thread, std::tuple<Args...>&& args)
     : _m_kernel(kernel),
       _m_this_thread_ptr(nullptr),
       _m_args(args),
@@ -92,7 +92,7 @@ public:
         }
     }
 
-    kernel_task(kernel_base kernel, dim3 grid, dim3 thread, Args... args)
+    kernel_task(basic_kernel kernel, dim3 grid, dim3 thread, Args... args)
     : kernel_task(kernel, grid, thread, std::make_tuple(args...))
     {}
 

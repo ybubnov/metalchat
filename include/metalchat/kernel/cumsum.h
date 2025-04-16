@@ -15,7 +15,7 @@ template <typename T, std::size_t BlockSize = 16> class cumsum {
 private:
     inline static const std::string operation_name = "cumsum_" + std::to_string(BlockSize);
 
-    kernel_base _m_kernel;
+    basic_kernel _m_kernel;
 
 public:
     cumsum(hardware_accelerator& gpu)

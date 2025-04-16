@@ -12,7 +12,7 @@
 namespace metalchat {
 
 
-class kernel_base {
+class basic_kernel {
 private:
     std::string _m_name;
     NS::SharedPtr<MTL::Function> _m_function;
@@ -24,7 +24,7 @@ private:
 public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
 
-    kernel_base(
+    basic_kernel(
         const std::string& name,
         NS::SharedPtr<MTL::Library> library,
         shared_kernel_thread& kernel_thread
