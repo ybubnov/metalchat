@@ -25,6 +25,7 @@ gt(__gt_parameters<T> params,
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
+#pragma unroll
     for (uint k = 0; k < end && k < dim_size; k++) {
         params.output.at(i, k) = (params.input.at(i, k) > params.value);
     }
@@ -34,7 +35,7 @@ gt(__gt_parameters<T> params,
 __lib_metalchat_kernel(gt, bfloat, 8);
 __lib_metalchat_kernel(gt, bfloat, 16);
 __lib_metalchat_kernel(gt, bfloat, 32);
-__lib_metalchat_kernel(gt, bfloat, 256);
+__lib_metalchat_kernel(gt, bfloat, 128);
 
 __lib_metalchat_kernel(gt, float, 8);
 __lib_metalchat_kernel(gt, float, 16);

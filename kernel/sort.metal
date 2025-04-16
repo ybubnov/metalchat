@@ -56,6 +56,7 @@ sort(
         for (uint j = k >> 1; j > 0; j = j >> 1) {
             threadgroup_barrier(metal::mem_flags::mem_device);
 
+#pragma unroll
             for (uint i = begin; i < end; i++) {
                 uint ij = i ^ j;
 
@@ -81,6 +82,7 @@ sort(
 __lib_metalchat_kernel2(sort, bfloat, 8);
 __lib_metalchat_kernel2(sort, bfloat, 16);
 __lib_metalchat_kernel2(sort, bfloat, 32);
+__lib_metalchat_kernel2(sort, bfloat, 128);
 __lib_metalchat_kernel2(sort, bfloat, 256);
 __lib_metalchat_kernel2(sort, bfloat, 512);
 __lib_metalchat_kernel2(sort, bfloat, 1024);

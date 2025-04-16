@@ -27,6 +27,7 @@ copy(
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
+#pragma unroll
     for (uint k = begin; k < end && k < dim_size; k++) {
         params.output.at(i, k) = params.input.at(i, k);
     }
@@ -73,7 +74,7 @@ scatter(
 __lib_metalchat_kernel(scatter, bfloat, 8);
 __lib_metalchat_kernel(scatter, bfloat, 16);
 __lib_metalchat_kernel(scatter, bfloat, 32);
-__lib_metalchat_kernel(scatter, bfloat, 256);
+__lib_metalchat_kernel(scatter, bfloat, 128);
 
 __lib_metalchat_kernel(scatter, float, 8);
 __lib_metalchat_kernel(scatter, float, 16);
@@ -111,12 +112,17 @@ gather(__gather_parameters(T))
 }
 
 
-template [[host_name("gather_256_int32_t")]]
-kernel void gather<int32_t, 32>(__gather_parameters(int32_t));
-
 template [[host_name("gather_8_float")]]
 kernel void gather<float, 8>(__gather_parameters(float));
 template [[host_name("gather_16_float")]]
 kernel void gather<float, 16>(__gather_parameters(float));
 template [[host_name("gather_32_float")]]
 kernel void gather<float, 32>(__gather_parameters(float));
+
+
+template [[host_name("gather_8_int32_t")]]
+kernel void gather<int32_t, 8>(__gather_parameters(int32_t));
+template [[host_name("gather_16_int32_t")]]
+kernel void gather<int32_t, 16>(__gather_parameters(int32_t));
+template [[host_name("gather_32_int32_t")]]
+kernel void gather<int32_t, 32>(__gather_parameters(int32_t));

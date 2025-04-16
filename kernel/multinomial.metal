@@ -100,11 +100,13 @@ multinomial(
     const uint end = begin + BlockSize;
 
     int32_t local_samples[BlockSize];
+#pragma unroll
     for (uint k = begin, j = 0; k < end && k < dim_size; k++, j++) {
         T random = T(generator.uniform());
         local_samples[j] = __binary_search(params.input, i, random);
     }
 
+#pragma unroll
     for (uint k = begin, j = 0; k < end && k < dim_size; k++, j++) {
         params.output.at(i, k) = local_samples[j];
     }

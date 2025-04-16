@@ -34,6 +34,7 @@ hadamard(
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
+#pragma unroll
     for (uint k = 0; k < end && k < dim_size; k++) {
         output.at(i, k) = input1.at(i, k) * input2.at(i, k);
     }
@@ -75,6 +76,7 @@ scalar_mul(
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
+#pragma unroll
     for (uint k = 0; k < end && k < dim_size; k++) {
         out.at(i, k) = in.at(i, k) * params.multiplier;
     }
@@ -84,7 +86,7 @@ scalar_mul(
 __lib_metalchat_kernel(scalar_mul, bfloat, 8);
 __lib_metalchat_kernel(scalar_mul, bfloat, 16);
 __lib_metalchat_kernel(scalar_mul, bfloat, 32);
-__lib_metalchat_kernel(scalar_mul, bfloat, 256);
+__lib_metalchat_kernel(scalar_mul, bfloat, 128);
 
 __lib_metalchat_kernel(scalar_mul, float, 8);
 __lib_metalchat_kernel(scalar_mul, float, 16);

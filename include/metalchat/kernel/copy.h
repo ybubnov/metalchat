@@ -118,7 +118,7 @@ public:
         auto num_rows = data_size / dim_size;
 
         // TODO:: ensure that input has the same dimensions as index.
-        auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
+        auto [grid, thread] = make_kernel_grid_1d(index, BlockSize);
 
         auto input_view = input.template flatten<2>();
         auto index_view = index.template flatten<2>();

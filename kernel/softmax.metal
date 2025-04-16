@@ -95,8 +95,8 @@ kernel void softmax<bfloat, 16>(__softmax_parameters(bfloat));
 template [[host_name("softmax_32_bfloat")]]
 kernel void softmax<bfloat, 32>(__softmax_parameters(bfloat));
 
-template [[host_name("softmax_256_bfloat")]]
-kernel void softmax<bfloat, 256>(__softmax_parameters(bfloat));
+template [[host_name("softmax_128_bfloat")]]
+kernel void softmax<bfloat, 128>(__softmax_parameters(bfloat));
 
 
 template [[host_name("softmax_1_float")]]

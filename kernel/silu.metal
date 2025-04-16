@@ -26,6 +26,7 @@ silu(
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
+#pragma unroll
     for (uint k = begin; k < end && k < dim_size; k++) {
         T x = params.input.at(i, k);
         params.output.at(i, k) = x / (T(1.0) + T(metal::exp(-x)));
