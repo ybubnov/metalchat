@@ -26,16 +26,20 @@ private:
     }
 
     shared_kernel_thread
-    _m_make_kernel_thread(NS::SharedPtr<MTL::Device>, std::size_t thread_capacity)
+    _m_make_kernel_thread(std::size_t thread_capacity)
     {
         auto queue = NS::TransferPtr(_m_device->newCommandQueue());
         auto label = NS::TransferPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
         queue->setLabel(label.get());
 
-        return shared_kernel_thread(queue, thread_capacity);
+        return shared_kernel_thread(
+            queue, thread_capacity, hardware_memory_allocator<void>(_m_device)
+        );
     }
 
 public:
+    using allocator_type = hardware_memory_allocator<void>;
+
     device(device&&) noexcept = default;
     device(const device&) = delete;
 
@@ -43,7 +47,7 @@ public:
     : _m_device(_m_make_device()),
       _m_library(),
       _m_kernels(),
-      _m_this_thread(_m_make_kernel_thread(_m_device, thread_capacity))
+      _m_this_thread(_m_make_kernel_thread(thread_capacity))
     {
         auto path_str = path.string();
         auto path_cstr = path_str.c_str();
@@ -80,10 +84,10 @@ public:
         return _m_device.get();
     }
 
-    hardware_memory_allocator<void>
+    allocator_type
     allocator()
     {
-        return hardware_memory_allocator<void>(_m_device.get());
+        return _m_this_thread.allocator();
     }
 
     kernel_base

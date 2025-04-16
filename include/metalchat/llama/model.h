@@ -23,15 +23,16 @@ private:
     nn::linear<T, hardware_memory_container<T>> _m_output;
 
     std::vector<transformer<T, Container>> _m_layers;
+    std::reference_wrapper<device> _m_device;
 
     auto
     create_additive_causal_mask(const std::size_t size) const
     {
-        std::optional<shared_tensor<T, 2, random_memory_container<T>>> mask;
+        std::optional<shared_tensor<T, 2, hardware_memory_container<T>>> mask;
 
         if (size > 1) {
             const T infinity = T(std::numeric_limits<float>::infinity());
-            auto m = full<T>({size, size}, -infinity);
+            auto m = full<T>({size, size}, -infinity, _m_device.get().allocator());
             triu(m);
 
             mask = std::make_optional(std::move(m));
@@ -47,12 +48,14 @@ public:
         nn::embedding<T, hardware_memory_container<T>>&& embedding,
         nn::rmsnorm<T, Container>&& norm,
         nn::linear<T, hardware_memory_container<T>>&& output,
-        std::vector<transformer<T, Container>>&& layers
+        std::vector<transformer<T, Container>>&& layers,
+        device& gpu
     )
     : _m_embedding(std::move(embedding)),
       _m_norm(std::move(norm)),
       _m_output(std::move(output)),
-      _m_layers(std::move(layers))
+      _m_layers(std::move(layers)),
+      _m_device(gpu)
     {}
 
     template <immutable_tensor2_t<int32_t> Input>

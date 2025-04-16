@@ -784,6 +784,16 @@ full(std::size_t (&&sizes)[N], const T& fill_value)
 }
 
 
+template <typename T, std::size_t N, hardware_allocator_t<void> Allocator>
+auto
+full(std::size_t (&&sizes)[N], const T& fill_value, Allocator alloc)
+{
+    auto t = empty<T>(std::move(sizes), alloc);
+    std::fill_n(t.data_ptr(), t.numel(), fill_value);
+    return t;
+}
+
+
 template <typename T, std::size_t N> requires(N > 0)
 auto
 full(std::size_t (&&sizes)[N], const T& fill_value, device& device)
