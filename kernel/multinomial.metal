@@ -71,12 +71,12 @@ __binary_search(thread tensor<const T, 2> data, uint batch, T value)
 
 
 template <typename T> struct __multinomial_parameters {
-    constant tensor_layout<2>& output_layout [[buffer(0)]];
-    device int32_t* output [[buffer(1)]];
-    constant tensor_layout<2>& input_layout [[buffer(2)]];
-    device const T* input [[buffer(3)]];
-    constant uint64_t& init_state [[buffer(4)]];
-    constant uint64_t& init_seq [[buffer(5)]];
+    constant tensor_layout<2>& output_layout;
+    device int32_t* output;
+    constant tensor_layout<2>& input_layout;
+    device const T* input;
+    constant uint64_t& init_state;
+    constant uint64_t& init_seq;
 };
 
 

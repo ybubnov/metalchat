@@ -10,17 +10,17 @@
 
 
 template <typename T> struct __rope_parameters {
-    constant tensor_layout<2>& output_layout [[buffer(0)]];
-    device T* output [[buffer(1)]];
-    constant tensor_layout<2>& input_layout [[buffer(2)]];
-    device const T* input [[buffer(3)]];
-    constant tensor_layout<2>& freqs_cos_layout [[buffer(4)]];
-    device const float* freqs_cos [[buffer(5)]];
-    constant tensor_layout<2>& freqs_sin_layout [[buffer(6)]];
-    device const float* freqs_sin [[buffer(7)]];
-    constant uint& batch_size [[buffer(8)]];
-    constant uint& n_head [[buffer(9)]];
-    constant uint& start_pos [[buffer(10)]];
+    constant tensor_layout<2>& output_layout;
+    device T* output;
+    constant tensor_layout<2>& input_layout;
+    device const T* input;
+    constant tensor_layout<2>& freqs_cos_layout;
+    device const float* freqs_cos;
+    constant tensor_layout<2>& freqs_sin_layout;
+    device const float* freqs_sin;
+    constant uint& batch_size;
+    constant uint& n_head;
+    constant uint& start_pos;
 };
 
 

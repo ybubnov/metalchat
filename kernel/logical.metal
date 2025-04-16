@@ -10,12 +10,12 @@ using namespace metal;
 
 
 template <typename T> struct __gt_parameters {
-    constant tensor_layout<2>& output_layout [[buffer(0)]];
-    device bool* output [[buffer(1)]];
-    constant tensor_layout<2>& input1_layout [[buffer(2)]];
-    device const T* input1 [[buffer(3)]];
-    constant tensor_layout<2>& input2_layout [[buffer(4)]];
-    device const T* input2 [[buffer(5)]];
+    constant tensor_layout<2>& output_layout;
+    device bool* output;
+    constant tensor_layout<2>& input1_layout;
+    device const T* input1;
+    constant tensor_layout<2>& input2_layout;
+    device const T* input2;
 };
 
 

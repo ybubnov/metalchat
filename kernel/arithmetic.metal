@@ -10,12 +10,12 @@ using namespace metal;
 
 
 template <typename T> struct __add_parameters {
-    constant tensor_layout<2>& output_layout [[buffer(0)]];
-    device T* output [[buffer(1)]];
-    constant tensor_layout<2>& input1_layout [[buffer(2)]];
-    device const T* input1 [[buffer(3)]];
-    constant tensor_layout<2>& input2_layout [[buffer(4)]];
-    device const T* input2 [[buffer(5)]];
+    constant tensor_layout<2>& output_layout;
+    device T* output;
+    constant tensor_layout<2>& input1_layout;
+    device const T* input1;
+    constant tensor_layout<2>& input2_layout;
+    device const T* input2;
 };
 
 
@@ -99,12 +99,12 @@ kernel void add2<float>(__add2_parameters(float));
 
 
 template <typename T> struct __sub_parameters {
-    constant tensor_layout<2>& output_layout [[buffer(0)]];
-    device T* output [[buffer(1)]];
-    constant tensor_layout<2>& input1_layout [[buffer(2)]];
-    device const T* input1 [[buffer(3)]];
-    constant tensor_layout<2>& input2_layout [[buffer(4)]];
-    device const T* input2 [[buffer(5)]];
+    constant tensor_layout<2>& output_layout;
+    device T* output;
+    constant tensor_layout<2>& input1_layout;
+    device const T* input1;
+    constant tensor_layout<2>& input2_layout;
+    device const T* input2;
 };
 
 
