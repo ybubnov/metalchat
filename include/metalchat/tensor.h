@@ -687,6 +687,14 @@ empty(std::size_t (&&sizes)[N], MTL::Device* device)
 }
 
 
+template <typename T, std::size_t N> requires(N > 0)
+auto
+empty(const std::span<std::size_t, N> sizes, MTL::Device* device)
+{
+    return tensor<T, N, device_ref<T>>(sizes, device);
+}
+
+
 template <typename T, std::size_t N, std::forward_iterator InputIt> requires(N > 0)
 auto
 empty(InputIt begin, InputIt end)
