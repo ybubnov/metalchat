@@ -30,11 +30,9 @@ template <typename T> struct memory_container {
 
 
 template <typename Container>
-concept contiguous_container = requires(Container c) {
+concept contiguous_container = requires {
     typename Container::value_type;
-
-    std::derived_from<Container, memory_container<typename Container::value_type>>;
-};
+} && std::derived_from<Container, memory_container<typename Container::value_type>>;
 
 
 template <typename T> struct reference_memory_container : public memory_container<T> {
@@ -110,6 +108,12 @@ public:
     {
         return _m_data;
     }
+
+    template <typename U> requires std::convertible_to<U, T>
+    operator random_memory_container<U>() const
+    {
+        return random_memory_container<U>(_m_data);
+    }
 };
 
 
@@ -118,30 +122,36 @@ template <typename T> struct hardware_memory_container : public memory_container
     using pointer = value_type*;
     using const_pointer = const pointer;
 
-    NS::SharedPtr<MTL::Buffer> m_buf;
+    NS::SharedPtr<MTL::Buffer> _m_buf;
 
     hardware_memory_container(NS::SharedPtr<MTL::Buffer> buf)
-    : m_buf(buf)
+    : _m_buf(buf)
     {}
 
-    ~hardware_memory_container() { m_buf.reset(); }
+    ~hardware_memory_container() { _m_buf.reset(); }
 
     pointer
     data() override
     {
-        return static_cast<T*>(m_buf->contents());
+        return static_cast<T*>(_m_buf->contents());
     }
 
     const_pointer
     data() const override
     {
-        return static_cast<T*>(m_buf->contents());
+        return static_cast<T*>(_m_buf->contents());
+    }
+
+    template <typename U> requires std::convertible_to<U, T>
+    operator hardware_memory_container<U>() const
+    {
+        return hardware_memory_container<U>(_m_buf);
     }
 
     NS::SharedPtr<MTL::Buffer>
     storage()
     {
-        return m_buf;
+        return _m_buf;
     }
 };
 

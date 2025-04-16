@@ -16,6 +16,7 @@
 #include <metalchat/device.h>
 #include <metalchat/indexing.h>
 #include <metalchat/iterator.h>
+#include <metalchat/tensor_concept.h>
 
 
 namespace metalchat {
@@ -57,13 +58,15 @@ public:
     }
 
     template <std::forward_iterator ForwardIt, allocator Allocator>
-    tensor(ForwardIt first, ForwardIt last, Allocator alloc) requires(N > 0)
+    requires std::same_as<typename Allocator::value_type, value_type> && (N > 0)
+    tensor(ForwardIt first, ForwardIt last, Allocator alloc)
     {
         _m_initialize(first, last);
         m_data = alloc.allocate(numel());
     }
 
     template <std::forward_iterator ForwardIt, allocator Allocator = random_memory_allocator<T>>
+    requires std::same_as<typename Allocator::value_type, value_type>
     tensor(ForwardIt first, ForwardIt last, T* data, Allocator alloc = Allocator())
     {
         _m_initialize(first, last);
@@ -643,11 +646,11 @@ protected:
 };
 
 
-template <typename T, std::size_t N> requires(N > 0)
+template <std::size_t N, immutable_tensor Tensor>
 auto
-empty(std::size_t (&&sizes)[N])
+flatten(Tensor tensor)
 {
-    return tensor<T, N, random_memory_container<T>>(std::move(sizes));
+    return tensor.template flatten<N>();
 }
 
 
@@ -659,13 +662,27 @@ scalar(const T& value)
 }
 
 
+template <typename T, std::size_t N, allocator Allocator>
+auto
+empty(std::size_t (&&sizes)[N], Allocator alloc)
+{
+    return tensor<T, N, typename Allocator::container_type>(std::move(sizes), alloc);
+}
+
+
+template <typename T, std::size_t N> requires(N > 0)
+auto
+empty(std::size_t (&&sizes)[N])
+{
+    return empty<T>(std::move(sizes), random_memory_allocator<T>());
+}
+
+
 template <typename T, std::size_t N> requires(N > 0)
 auto
 empty(std::size_t (&&sizes)[N], device& device)
 {
-    return tensor<T, N, hardware_memory_container<T>>(
-        std::move(sizes), hardware_memory_allocator<T>(*device)
-    );
+    return empty<T>(std::move(sizes), hardware_memory_allocator<T>(*device));
 }
 
 
@@ -673,9 +690,7 @@ template <typename T, std::size_t N> requires(N > 0)
 auto
 empty(std::size_t (&&sizes)[N], MTL::Device* device)
 {
-    return tensor<T, N, hardware_memory_container<T>>(
-        std::move(sizes), hardware_memory_allocator<T>(device)
-    );
+    return empty<T>(std::move(sizes), hardware_memory_allocator<T>(device));
 }
 
 
