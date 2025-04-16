@@ -11,7 +11,7 @@
 using namespace metalchat;
 using namespace metalchat::dtype;
 
-template <typename T, ContiguousContainer Container>
+template <typename T, contiguous_container Container>
 std::size_t
 argmax_(shared_tensor<T, 3, Container> t)
 {

@@ -29,8 +29,8 @@ template <typename T> struct array_ref {
 
 
 template <typename T>
-concept ContiguousContainer = requires { typename T::value_type; }
-                              && std::derived_from<T, array_ref<typename T::value_type>>;
+concept contiguous_container = requires { typename T::value_type; }
+                               && std::derived_from<T, array_ref<typename T::value_type>>;
 
 
 template <typename T> struct weak_ref : public array_ref<T> {

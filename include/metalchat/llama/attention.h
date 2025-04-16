@@ -31,7 +31,7 @@ struct attention_options {
 };
 
 
-template <typename T, ContiguousContainer Container> class attention {
+template <typename T, contiguous_container Container> class attention {
 private:
     static constexpr std::size_t input_size = 4;
 

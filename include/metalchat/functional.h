@@ -157,7 +157,7 @@ repeat_interleave(Tensor t, std::size_t repeats, std::size_t dim, device& device
 }
 
 
-template <typename T, ContiguousContainer Container>
+template <typename T, contiguous_container Container>
 void
 triu(tensor<T, 2, Container>& t)
 {

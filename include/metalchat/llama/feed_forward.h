@@ -10,7 +10,7 @@ namespace metalchat {
 namespace llama {
 
 
-template <typename T, ContiguousContainer Container> class feed_forward {
+template <typename T, contiguous_container Container> class feed_forward {
 private:
     nn::linear<T, Container> _m_w1;
     nn::linear<T, Container> _m_w2;

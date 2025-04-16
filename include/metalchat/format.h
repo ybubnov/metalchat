@@ -40,7 +40,7 @@ struct comma {
 } // namespace fmt
 
 
-template <typename T, std::size_t N, ContiguousContainer Container> struct tensor_format_base {
+template <typename T, std::size_t N, contiguous_container Container> struct tensor_format_base {
     const tensor<T, N, Container>& t;
     const int w;
 
@@ -51,7 +51,7 @@ template <typename T, std::size_t N, ContiguousContainer Container> struct tenso
 };
 
 
-template <typename T, std::size_t N, ContiguousContainer Container>
+template <typename T, std::size_t N, contiguous_container Container>
 struct tensor_format : public tensor_format_base<T, N, Container> {
     tensor_format(const tensor<T, N, Container>& tensor, const int w = 0)
     : tensor_format_base<T, N, Container>(tensor, w)
@@ -94,7 +94,7 @@ struct tensor_format : public tensor_format_base<T, N, Container> {
 };
 
 
-template <typename T, ContiguousContainer Container>
+template <typename T, contiguous_container Container>
 struct tensor_format<T, 1, Container> : public tensor_format_base<T, 1, Container> {
     tensor_format(const tensor<T, 1, Container>& tensor, const int w = 0)
     : tensor_format_base<T, 1, Container>(tensor, w)
@@ -128,7 +128,7 @@ struct tensor_format<T, 1, Container> : public tensor_format_base<T, 1, Containe
 };
 
 
-template <typename T, ContiguousContainer Container>
+template <typename T, contiguous_container Container>
 struct tensor_format<T, 0, Container> : public tensor_format_base<T, 0, Container> {
     tensor_format(const tensor<T, 0, Container>& tensor, const int w = 0)
     : tensor_format_base<T, 0, Container>(tensor, w)
@@ -157,7 +157,7 @@ operator<<(std::ostream& os, const std::span<T, N>& arr)
 }
 
 
-template <typename T, std::size_t N, ContiguousContainer Container>
+template <typename T, std::size_t N, contiguous_container Container>
 std::ostream&
 operator<<(std::ostream& os, const tensor<T, N, Container>& t)
 {
@@ -166,7 +166,7 @@ operator<<(std::ostream& os, const tensor<T, N, Container>& t)
 }
 
 
-template <typename T, std::size_t N, ContiguousContainer Container>
+template <typename T, std::size_t N, contiguous_container Container>
 std::ostream&
 operator<<(std::ostream& os, const shared_tensor<T, N, Container>& t)
 {

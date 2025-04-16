@@ -16,7 +16,7 @@ namespace metalchat {
 namespace llama {
 
 
-template <typename T, ContiguousContainer Container> class model {
+template <typename T, contiguous_container Container> class model {
 private:
     nn::embedding<T, device_ref<T>> _m_embedding;
     nn::rmsnorm<T, Container> _m_norm;
