@@ -1,6 +1,5 @@
 #pragma once
 
-#include <format>
 
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
@@ -17,7 +16,7 @@ private:
 
 public:
     rmsnorm(device& device)
-    : kernel(std::format("{}_{}", operation_name, type_traits<T>::name()), device)
+    : kernel(operation_name, type_traits<T>::name(), device)
     {}
 
     template <ContiguousContainer InputContainer, ContiguousContainer WeightContainer>

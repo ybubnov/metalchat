@@ -1,8 +1,6 @@
 #pragma once
 
 
-#include <format>
-
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
@@ -24,7 +22,7 @@ private:
 
 public:
     sgemm(device& device)
-    : kernel(std::format("{}_{}", operation_name, type_traits<T>::name()), device)
+    : kernel(operation_name, type_traits<T>::name(), device)
     {}
 
     template <ContiguousContainer InputContainer, ContiguousContainer WeightContainer>

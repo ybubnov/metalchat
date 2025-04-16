@@ -4,3 +4,4 @@
 #include <metalchat/functional/mul.h>
 #include <metalchat/functional/rmsnorm.h>
 #include <metalchat/functional/sgemm.h>
+#include <metalchat/functional/silu.h>

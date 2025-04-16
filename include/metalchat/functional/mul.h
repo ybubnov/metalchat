@@ -1,8 +1,6 @@
 #pragma once
 
 
-#include <format>
-
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
@@ -14,7 +12,7 @@ namespace metalchat {
 
 template <typename T> class mul : public kernel {
 private:
-    inline static const std::string operation_name = "mul2d";
+    inline static const std::string operation_name = "mul";
 
     std::size_t
     ceil_div(std::size_t a, std::size_t b)
@@ -24,7 +22,7 @@ private:
 
 public:
     mul(device& device)
-    : kernel(std::format("{}_{}", operation_name, type_traits<T>::name()), device)
+    : kernel(operation_name, type_traits<T>::name(), device)
     {}
 
     template <ContiguousContainer Input1Container, ContiguousContainer Input2Container>

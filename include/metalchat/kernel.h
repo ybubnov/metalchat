@@ -33,7 +33,7 @@ template <typename T, std::size_t N>
 kernel_traits::buffer_type
 make_buffer(device& device, const tensor<T, N, device_ref<T>>& t)
 {
-    return t.storage()->m_buf;
+    return t.container().storage();
 }
 
 template <typename T>
@@ -133,6 +133,7 @@ public:
       m_device(device),
       m_fn(device.make_fn(op))
     {
+        std::cout << "init func<" << op << ">" << std::endl;
         NS::Error* error = nullptr;
         m_pipeline = NS::TransferPtr(device->newComputePipelineState(m_fn.get(), &error));
         if (error != nullptr) {
@@ -141,6 +142,10 @@ public:
 
         m_queue = NS::TransferPtr(device->newCommandQueue());
     }
+
+    kernel(const std::string& op, const std::string& type, device& device)
+    : kernel(std::format("{}_{}", op, type), device)
+    {}
 
     std::string
     name() const

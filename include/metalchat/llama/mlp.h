@@ -2,6 +2,7 @@
 
 
 #include <metalchat/functional/mul.h>
+#include <metalchat/functional/silu.h>
 #include <metalchat/nn/linear.h>
 
 
@@ -16,6 +17,7 @@ private:
     nn::linear<T, Container> m_down_proj;
 
     mul<T> m_mul;
+    silu<T> m_silu;
 
 public:
     mlp(const tensor<T, 2, Container>& gate_proj_weight,
@@ -25,14 +27,15 @@ public:
     : m_gate_proj(gate_proj_weight, device),
       m_up_proj(up_proj_weight, device),
       m_down_proj(down_proj_weight, device),
-      m_mul(device)
+      m_mul(device),
+      m_silu(device)
     {}
 
     template <ContiguousContainer InputContainer>
     auto
     operator()(const tensor<T, 2, InputContainer>& input)
     {
-        return m_down_proj(m_mul(m_gate_proj(input), m_up_proj(input)));
+        return m_down_proj(m_mul(m_silu(m_gate_proj(input)), m_up_proj(input)));
     }
 };
 
