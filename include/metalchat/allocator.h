@@ -155,13 +155,17 @@ public:
         }
 
         _m_rset->addAllocation(_m_heap.get());
-        _m_rset->commit();
-        _m_rset->requestResidency();
+        _m_resident = std::make_shared<bool>(false);
     }
 
     container_pointer
     allocate(size_type size)
     {
+        if (!(*_m_resident)) {
+            _m_rset->commit();
+            _m_rset->requestResidency();
+            *_m_resident = true;
+        }
         auto memory_ptr = _m_allocate(size);
         return std::make_shared<container_type>(memory_ptr);
     }
@@ -169,8 +173,15 @@ public:
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto memory_ptr = _m_allocate(size);
-        std::memcpy(memory_ptr->contents(), ptr, size);
+        // auto memory_ptr = _m_allocate(size);
+        // std::memcpy(memory_ptr->contents(), ptr, size);
+        // return std::make_shared<container_type>(memory_ptr);
+
+        auto memory_ptr = NS::TransferPtr(
+            _m_heap->device()->newBuffer(ptr, size, MTL::ResourceStorageModeShared, nullptr)
+        );
+
+        _m_rset->addAllocation(memory_ptr.get());
         return std::make_shared<container_type>(memory_ptr);
     }
 
@@ -184,6 +195,7 @@ public:
 private:
     NS::SharedPtr<MTL::Heap> _m_heap;
     NS::SharedPtr<MTL::ResidencySet> _m_rset;
+    std::shared_ptr<bool> _m_resident;
 
     NS::SharedPtr<MTL::Buffer>
     _m_allocate(size_type size)

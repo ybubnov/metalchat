@@ -20,11 +20,8 @@ TEST_CASE("Test make model", "[llama]")
     metalchat::bpe bpe("../Llama-3.2-1B/original/tokenizer.model");
     metalchat::device gpu0("metalchat.metallib", 32);
 
-    // Load tensors in lambda, so that all resources are cleaned up after the load.
-    auto m = [&] -> auto {
-        safetensor_file tensors("../llama32.safetensors");
-        return llama::make_model<bf16>(tensors, gpu0);
-    }();
+    safetensor_file tensors("../llama32.safetensors");
+    auto m = llama::make_model<bf16>(tensors, gpu0);
 
     auto input_text = std::string("I have a dog called");
 

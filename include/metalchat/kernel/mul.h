@@ -32,7 +32,7 @@ public:
 };
 
 
-template <typename T, std::size_t BlockSize = 16> class scalar_mul {
+template <typename T, std::size_t BlockSize = 1> class scalar_mul {
 private:
     inline static const std::string operation_name = "scalar_mul_" + std::to_string(BlockSize);
 
