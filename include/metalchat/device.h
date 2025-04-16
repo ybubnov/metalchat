@@ -5,7 +5,7 @@
 #include <iostream>
 #include <unordered_map>
 
-#include <metalchat/kernel_base.h>
+#include <metalchat/kernel.h>
 
 
 namespace metalchat {

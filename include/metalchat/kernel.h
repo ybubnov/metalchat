@@ -1,254 +1,112 @@
 #pragma once
 
-#include <format>
-#include <future>
-#include <ranges>
 
+#define NS_PRIVATE_IMPLEMENTATION
+#define CA_PRIVATE_IMPLEMENTATION
+#define MTL_PRIVATE_IMPLEMENTATION
 #include <Foundation/Foundation.hpp>
 #include <Metal/Metal.hpp>
+#include <QuartzCore/QuartzCore.hpp>
 
-#include <metalchat/tensor.h>
+#include <format>
+#include <future>
+#include <tuple>
+
+#include <metalchat/container.h>
+#include <metalchat/tensor_concept.h>
 
 
 namespace metalchat {
 
 
-struct kernel_traits {
-    using device_type = NS::SharedPtr<MTL::Device>;
-    using pipeline_type = NS::SharedPtr<MTL::ComputePipelineState>;
-    using queue_type = NS::SharedPtr<MTL::CommandQueue>;
-    using kernel_type = NS::SharedPtr<MTL::Function>;
-    using buffer_type = NS::SharedPtr<MTL::Buffer>;
-    using command_buffer_type = NS::SharedPtr<MTL::CommandBuffer>;
-};
+struct dim3 {
+    const std::size_t x, y, z;
 
-
-template <typename T, std::size_t N, ContiguousContainer Container>
-kernel_traits::buffer_type
-make_buffer(MTL::Device* device, const tensor<T, N, Container>& t)
-{
-    auto size = t.numel() * sizeof(T);
-    return NS::TransferPtr(device->newBuffer(t.data_ptr(), size, MTL::ResourceStorageModeShared));
-}
-
-template <typename T, std::size_t N>
-kernel_traits::buffer_type
-make_buffer(MTL::Device* device, const tensor<T, N, device_ref<T>>& t)
-{
-    return t.container().storage();
-}
-
-template <typename T>
-kernel_traits::buffer_type
-make_buffer(MTL::Device* device, const tensor<T, 0, value_ref<T>>& t)
-{
-    return kernel_traits::buffer_type();
-}
-
-
-template <std::size_t N>
-kernel_traits::buffer_type
-make_buffer(MTL::Device* device, const tensor<tensor_layout<N>, 0, value_ref<tensor_layout<N>>>& t)
-{
-    auto size = sizeof(tensor_layout<N>);
-    return NS::TransferPtr(device->newBuffer(t.data_ptr(), size, MTL::ResourceStorageModeShared));
-}
-
-
-inline std::size_t
-ceil_div(std::size_t a, std::size_t b)
-{
-    return (a + b - 1) / b;
-}
-
-
-class execution_policy {
-private:
-    kernel_traits::pipeline_type _m_pipeline;
-    kernel_traits::queue_type _m_queue;
-    device& _m_device;
-
-    const dim3 _m_threads;
-    const dim3 _m_thread;
-
-public:
-    execution_policy(
-        kernel_traits::pipeline_type pipeline,
-        kernel_traits::queue_type queue,
-        device& device,
-        const dim3& threads,
-        const dim3& thread
-    )
-    : _m_pipeline(pipeline),
-      _m_queue(queue),
-      _m_device(device),
-      _m_threads(threads),
-      _m_thread(thread)
-    {
-        auto max_threadgroup_size = pipeline->maxTotalThreadsPerThreadgroup();
-        if (thread.numel() > max_threadgroup_size) {
-            throw std::invalid_argument(std::format(
-                "<{}, {}, {}> exceeds maximum number of threads per threadgroup {}", thread.x,
-                thread.y, thread.z, max_threadgroup_size
-            ));
-        }
-
-        if (threads.numel() < thread.numel()) {
-            throw std::invalid_argument(std::format(
-                "threads per grid <{}, {}, {}> are lesser than threads per group <{}, {}, {}>",
-                threads.x, threads.y, threads.z, thread.x, thread.y, thread.z
-            ));
-        }
-    }
-
-    template <typename... T, std::size_t... N, ContiguousContainer... Container>
-    kernel_traits::command_buffer_type
-    initialize(const tensor<T, N, Container>&... args)
-    {
-        std::size_t i = 0;
-        auto command_buf = NS::TransferPtr(_m_queue->commandBuffer());
-        auto command_encoder = NS::TransferPtr(command_buf->computeCommandEncoder());
-
-        command_encoder->setComputePipelineState(_m_pipeline.get());
-        std::vector<NS::SharedPtr<MTL::Buffer>> buffers;
-
-        ([&] {
-            if (auto buf = make_buffer(*_m_device, args); buf) {
-                buffers.push_back(buf);
-                command_encoder->setBuffer(buf.get(), 0, i);
-            } else {
-                const void* data_ptr = args.data_ptr();
-                std::size_t data_size = sizeof(T);
-                command_encoder->setBytes(data_ptr, data_size, 0, i);
-            }
-            i++;
-        }(), ...);
-
-        MTL::Size threads_per_grid(_m_threads.x, _m_threads.y, _m_threads.z);
-        MTL::Size threads_per_group(_m_thread.x, _m_thread.y, _m_thread.z);
-        command_encoder->dispatchThreads(threads_per_grid, threads_per_group);
-        command_encoder->endEncoding();
-
-        return command_buf;
-    }
-};
-
-
-class sequenced_policy : public execution_policy {
-public:
-    using execution_policy::execution_policy;
-
-    template <typename... T, std::size_t... N, ContiguousContainer... Container>
-    void
-    operator()(const tensor<T, N, Container>&... args)
-    {
-        auto command_buf = initialize(args...);
-        command_buf->commit();
-        command_buf->waitUntilCompleted();
-    }
-};
-
-
-template <typename T, std::size_t N> struct unsequenced_policy_callback {
-    std::shared_ptr<tensor<T, N, device_ref<T>>> output;
-    std::shared_ptr<std::promise<bool>> promise;
-};
-
-
-template <typename T, std::size_t N> class unsequenced_policy : public execution_policy {
-private:
-    unsequenced_policy_callback<T, N> _m_callback;
-    std::future<bool> _m_future;
-
-public:
-    unsequenced_policy(
-        kernel_traits::pipeline_type pipeline,
-        kernel_traits::queue_type queue,
-        device& device,
-        const dim3& threads,
-        const dim3& thread,
-        unsequenced_policy_callback<T, N>&& callback
-    )
-    : execution_policy(pipeline, queue, device, threads, thread),
-      _m_callback(std::move(callback))
-    {
-        _m_future = _m_callback.promise->get_future();
-    }
-
-    template <typename... U, std::size_t... M, ContiguousContainer... Container>
-    void
-    operator()(const tensor<U, M, Container>&... args)
-    {
-        auto command_buf = initialize(args...);
-        command_buf->addCompletedHandler([promise
-                                          = _m_callback.promise](const MTL::CommandBuffer* buf) {
-            promise->set_value(true);
-        });
-        command_buf->commit();
-    }
-
-    tensor<T, N, device_ref<T>>&
-    get()
-    {
-        if (_m_future.get()) {
-            return *_m_callback.output;
-        }
-        throw std::runtime_error("METAL ERROR");
-    }
-
-    void
-    wait()
-    {
-        _m_future.wait();
-    }
-};
-
-
-class base_kernel {
-protected:
-    std::string m_op;
-    device& m_device;
-
-    kernel_traits::kernel_type m_fn;
-    kernel_traits::pipeline_type m_pipeline;
-    kernel_traits::queue_type m_queue;
-
-public:
-    base_kernel(const std::string& op, device& device)
-    : m_op(op),
-      m_device(device),
-      m_fn(device.make_fn(op))
-    {
-        NS::Error* error = nullptr;
-        m_pipeline = NS::TransferPtr(device->newComputePipelineState(m_fn.get(), &error));
-        if (error != nullptr) {
-            throw std::runtime_error("failed to create compute pipeline");
-        }
-
-        m_queue = NS::TransferPtr(device->newCommandQueue());
-    }
-
-    base_kernel(const std::string& op, const std::string& type, device& device)
-    : base_kernel(std::format("{}_{}", op, type), device)
+    constexpr dim3(std::size_t x_, std::size_t y_ = 1, std::size_t z_ = 1)
+    : x(x_),
+      y(y_),
+      z(z_)
     {}
 
-    std::string
-    name() const
+    friend std::ostream&
+    operator<<(std::ostream& os, const dim3& d)
     {
-        return m_op;
+        os << "<" << d.x << "," << d.y << "," << d.z << ">";
+        return os;
     }
 
-    sequenced_policy
-    blocking(dim3 threads, dim3 thread)
+    std::size_t
+    numel() const
     {
-        return sequenced_policy(m_pipeline, m_queue, m_device, threads, thread);
+        return x * y * z;
+    }
+};
+
+
+class kernel_base {
+private:
+    NS::SharedPtr<MTL::Function> _m_function;
+    NS::SharedPtr<MTL::ComputePipelineState> _m_pipeline;
+    NS::SharedPtr<MTL::CommandQueue> _m_queue;
+    NS::SharedPtr<MTL::Device> _m_device;
+
+    static NS::SharedPtr<MTL::Function>
+    _m_initialize_function(const std::string& name, NS::SharedPtr<MTL::Library> library)
+    {
+        auto fn_name = NS::TransferPtr(NS::String::string(name.c_str(), NS::UTF8StringEncoding));
+        return NS::TransferPtr(library->newFunction(fn_name.get()));
     }
 
-    template <typename T, std::size_t N>
-    unsequenced_policy<T, N>
-    nonblocking(dim3 threads, dim3 thread, unsequenced_policy_callback<T, N>&& cb)
+public:
+    kernel_base(const kernel_base& k) noexcept = default;
+
+    kernel_base(
+        const std::string& name,
+        NS::SharedPtr<MTL::Device> device,
+        NS::SharedPtr<MTL::Library> library
+    )
+    : _m_function(_m_initialize_function(name, library)),
+      _m_pipeline(),
+      _m_queue(),
+      _m_device(device)
     {
-        return unsequenced_policy(m_pipeline, m_queue, m_device, threads, thread, std::move(cb));
+        NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
+        NS::Error* error_ptr = error.get();
+
+        _m_pipeline
+            = NS::TransferPtr(device->newComputePipelineState(_m_function.get(), &error_ptr));
+        if (!_m_pipeline) {
+            throw std::runtime_error(std::format(
+                "base_kernel: failed to create compute pipeline, {}",
+                error_ptr->localizedDescription()->utf8String()
+            ));
+        }
+
+        _m_queue = NS::TransferPtr(device->newCommandQueue());
+    }
+
+    std::size_t
+    max_threads_per_threadgroup()
+    {
+        return _m_pipeline->maxTotalThreadsPerThreadgroup();
+    }
+
+    MTL::Device*
+    device()
+    {
+        return _m_device.get();
+    }
+
+    MTL::ComputePipelineState*
+    pipeline()
+    {
+        return _m_pipeline.get();
+    }
+
+    MTL::CommandBuffer*
+    make_buffer()
+    {
+        return _m_queue->commandBuffer();
     }
 };
 

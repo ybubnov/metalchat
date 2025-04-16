@@ -2,7 +2,7 @@
 
 #include <future>
 
-#include <metalchat/kernel_base.h>
+#include <metalchat/kernel.h>
 #include <metalchat/kernel_task.h>
 #include <metalchat/tensor.h>
 #include <metalchat/tensor_concept.h>
