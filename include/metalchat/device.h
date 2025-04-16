@@ -31,7 +31,7 @@ struct dim3 {
     }
 
     std::size_t
-    numel()
+    numel() const
     {
         return x * y * z;
     }

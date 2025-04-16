@@ -52,6 +52,7 @@ main()
         std::cout << result << std::endl;
     }
 
+    std::cout << "----" << std::endl;
     auto t = metalchat::empty<int32_t>({1, 2, 3});
     std::cout << t << std::endl;
     std::cout << "free" << std::endl;

@@ -20,6 +20,23 @@ struct kernel_traits {
 };
 
 
+template <typename T, std::size_t N, template <typename U> class Reference>
+kernel_traits::buffer_type
+make_buffer(device& device, const tensor<T, N, Reference>& t)
+{
+    auto size = t.numel() * sizeof(T);
+    std::cout << "buffer(ptr)=" << t.data_ptr() << "; [0]=" << t.data_ptr()[0] << std::endl;
+    return NS::TransferPtr(device->newBuffer(t.data_ptr(), size, MTL::ResourceStorageModeShared));
+}
+
+template <typename T, std::size_t N>
+kernel_traits::buffer_type
+make_buffer(device& device, const tensor<T, N, device_ref>& t)
+{
+    return t.storage()->m_buf;
+}
+
+
 class blocking_kernel {
 private:
     const std::string m_op;
@@ -36,8 +53,8 @@ public:
         device& device,
         kernel_traits::pipeline_type pipeline,
         kernel_traits::queue_type queue,
-        dim3 blocks,
-        dim3 threads
+        const dim3& blocks,
+        const dim3& threads
     )
     : m_op(op),
       m_device(device),
@@ -63,11 +80,13 @@ public:
                   << "(" << m_op << ", args[" << sizeof...(args) << "])" << std::endl;
         std::cout << "max threads per threadgroup=" << m_pipeline->maxTotalThreadsPerThreadgroup()
                   << std::endl;
+
         auto command_buf = NS::TransferPtr(m_queue->commandBuffer());
         auto command_encoder = NS::TransferPtr(command_buf->computeCommandEncoder());
 
         constexpr auto args_size = sizeof...(args);
-        std::array<kernel_traits::buffer_type, args_size> buffers = {(make_device_buffer(args))...};
+        std::array<kernel_traits::buffer_type, args_size> buffers
+            = {(make_buffer(m_device, args))...};
 
         command_encoder->setComputePipelineState(m_pipeline.get());
         for (std::size_t i = 0; i < args_size; i++) {
@@ -81,24 +100,6 @@ public:
         command_encoder->endEncoding();
         command_buf->commit();
         command_buf->waitUntilCompleted();
-    }
-
-    template <typename T, std::size_t N, template <typename U> class Reference>
-    kernel_traits::buffer_type
-    make_device_buffer(const tensor<T, N, Reference>& t)
-    {
-        auto size = t.numel() * sizeof(T);
-        std::cout << "buffer(ptr)=" << t.data_ptr() << "; [0]=" << t.data_ptr()[0] << std::endl;
-        return NS::TransferPtr(
-            m_device->newBuffer(t.data_ptr(), size, MTL::ResourceStorageModeShared)
-        );
-    }
-
-    template <typename T, std::size_t N>
-    kernel_traits::buffer_type
-    make_device_buffer(const tensor<T, N, device_ref>& t)
-    {
-        return t.storage()->m_buf;
     }
 };
 

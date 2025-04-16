@@ -129,18 +129,6 @@ struct tensor_traits {
     }
 
     static inline data_type
-    borrow(T* values)
-    {
-        return move<T, Reference>(values);
-    }
-
-    static inline size_type
-    borrow(std::size_t* values)
-    {
-        return move<std::size_t, Reference>(values);
-    }
-
-    static inline data_type
     weak_move(T* data)
     {
         return move<T, weak_ref>(data);
