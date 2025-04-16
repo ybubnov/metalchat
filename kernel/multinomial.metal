@@ -49,7 +49,7 @@ public:
 
 template <typename T>
 uint
-__binary_search(thread tensor<const T, 2> data, uint batch, T value)
+__binary_search(thread tensor2<const T> data, uint batch, T value)
 {
     int low = 0;
     int high = data.size(1) - 1;
@@ -65,16 +65,13 @@ __binary_search(thread tensor<const T, 2> data, uint batch, T value)
         }
     }
 
-    // return min(uint(low), data.size(1) - 1);
     return low;
 }
 
 
 template <typename T> struct __multinomial_parameters {
-    constant tensor_layout<2>& output_layout;
-    device int32_t* output;
-    constant tensor_layout<2>& input_layout;
-    device const T* input;
+    tensor2<int32_t> output;
+    tensor2<const T> input;
     constant uint64_t& init_state;
     constant uint64_t& init_seq;
 };
@@ -92,12 +89,9 @@ multinomial(
     uint tid [[thread_position_in_threadgroup]]
 )
 {
-    tensor<const T, 2> in{params.input, params.input_layout};
-    tensor<int32_t, 2> out{params.output, params.output_layout};
-
     pcg32 generator(params.init_state + gid, params.init_seq + tid);
 
-    const uint dim_size = out.size(1);
+    const uint dim_size = params.output.size(1);
     const uint i = gid;
 
     const uint begin = tid * BlockSize;
@@ -106,11 +100,11 @@ multinomial(
     int32_t local_samples[BlockSize];
     for (uint k = begin, j = 0; k < end && k < dim_size; k++, j++) {
         T random = T(generator.uniform());
-        local_samples[j] = __binary_search(in, i, random);
+        local_samples[j] = __binary_search(params.input, i, random);
     }
 
     for (uint k = begin, j = 0; k < end && k < dim_size; k++, j++) {
-        out.at(i, k) = local_samples[j];
+        params.output.at(i, k) = local_samples[j];
     }
 }
 
