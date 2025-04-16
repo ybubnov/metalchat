@@ -4,8 +4,6 @@ set(metalama_KERNEL_LIBRARY "${metalama_KERNEL_NAME}.metallib")
 
 string(STRIP metalama_TARGET ${metalama_TARGET})
 
-include_directories()
-
 file(GLOB metalama_KERNEL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.metal)
 
 
@@ -15,6 +13,7 @@ add_custom_command(
     COMMAND xcrun -v -sdk macosx metal
     ${METAL_FLAGS}
     -I .
+    -I ${PROJECT_SOURCE_DIR}/include
     -O3
     -ffast-math
     -c

@@ -7,11 +7,14 @@
 
 #include <iostream>
 
+#include <metalama/tensor.h>
+
 
 int
 main()
 {
-    auto filepath = NS::TransferPtr(NS::String::string("metalama.metallib", NS::UTF8StringEncoding));
+    auto filepath
+        = NS::TransferPtr(NS::String::string("metalama.metallib", NS::UTF8StringEncoding));
 
     auto url = NS::TransferPtr(NS::URL::fileURLWithPath(filepath.get()));
     std::cout << "kernel=" << url->fileSystemRepresentation() << std::endl;
@@ -33,12 +36,10 @@ main()
         std::cout << "registered (" << function_name->utf8String() << ")" << std::endl;
     }
 
-    auto mul_name
-        = NS::TransferPtr(NS::String::string("mul", NS::UTF8StringEncoding));
+    auto mul_name = NS::TransferPtr(NS::String::string("mul", NS::UTF8StringEncoding));
     auto mul_kernel = NS::TransferPtr(library->newFunction(mul_name.get()));
 
-    auto pipeline
-        = NS::TransferPtr(device->newComputePipelineState(mul_kernel.get(), &error));
+    auto pipeline = NS::TransferPtr(device->newComputePipelineState(mul_kernel.get(), &error));
     if (error != nullptr) {
         std::cout << "failed to create compute pipeline" << std::endl;
         return 1;
