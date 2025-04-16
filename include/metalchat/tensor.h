@@ -14,6 +14,7 @@
 #include <metalchat/device.h>
 #include <metalchat/format.h>
 #include <metalchat/indexing.h>
+#include <metalchat/iterator.h>
 
 
 namespace metalchat {
@@ -280,6 +281,34 @@ public:
             make_weak(this->data_ptr()), make_owning(shape), make_weak(this->m_strides->data()),
             make_owning(offsets)
         );
+    }
+
+    template <ContiguousContainer OtherContainer>
+    tensor&
+    operator=(const tensor<T, N, OtherContainer>& other)
+    {
+        for (std::size_t i = 0; i < N; i++) {
+            assert(other.size(i) == this->size(i));
+        }
+
+        return *this;
+    }
+
+    tensor_iterator<T, N>
+    begin()
+    {
+        return tensor_iterator<T, N>(
+            *this->m_data, *this->m_shape, *this->m_strides, *this->m_offsets
+        );
+    }
+
+    tensor_iterator<T, N>
+    end()
+    {
+        return tensor_iterator<T, N>(
+                   *this->m_data, *this->m_shape, *this->m_strides, *this->m_offsets
+        )
+            .end();
     }
 
     template <typename = void>
