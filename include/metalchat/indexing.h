@@ -47,5 +47,9 @@ template <class T>
 concept SliceConvertible = std::is_convertible_v<T, slice>;
 
 
+template <class T>
+concept SizeConvertible = std::is_convertible_v<T, std::size_t>;
+
+
 } // namespace indexing
 } // namespace metalchat
