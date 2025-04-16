@@ -67,7 +67,7 @@ public:
 
     template <ContiguousContainer InputContainer, ContiguousContainer MaskContainer>
     auto
-    operator()(const tensor<T, 3, InputContainer>& input const tensor<T, 2, MaskContainer>& mask)
+    operator()(const tensor<T, 3, InputContainer>& input, const tensor<T, 2, MaskContainer>& mask)
     {
         auto bs = input.size(0);
         auto len = input.size(1);
