@@ -14,24 +14,24 @@ using namespace metalchat::indexing;
 
 TEST_CASE("Iterate 3d tensor slice", "[tensor_iterator]")
 {
-    auto T = rand<bf16>({10, 7, 6});
-    auto S = T[slice(2, 7), slice(4, 7), slice(2, 4)];
+    auto t = rand<bf16>({10, 7, 6});
+    auto s = t[slice(2, 7), slice(4, 7), slice(2, 4)];
 
     std::vector<bf16> data;
 
-    auto last = S.end();
-    for (auto first = S.begin(); first != last; ++first) {
+    auto last = s.end();
+    for (auto first = s.begin(); first != last; ++first) {
         data.push_back(*first);
     }
 
-    REQUIRE(data.size() == S.numel());
+    REQUIRE(data.size() == s.numel());
 
     auto first = data.begin();
 
-    for (std::size_t i = 0; i < S.size(0); i++) {
-        for (std::size_t j = 0; j < S.size(1); j++) {
-            for (std::size_t k = 0; k < S.size(2); k++) {
-                REQUIRE(S[i][j][k] == (*first));
+    for (std::size_t i = 0; i < s.size(0); i++) {
+        for (std::size_t j = 0; j < s.size(1); j++) {
+            for (std::size_t k = 0; k < s.size(2); k++) {
+                REQUIRE(s[i][j][k] == (*first));
                 ++first;
             }
         }

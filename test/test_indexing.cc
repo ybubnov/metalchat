@@ -13,25 +13,25 @@ using namespace metalchat::indexing;
 
 TEST_CASE("Read-write 2d tensor slicing", "[tensor::operator]")
 {
-    auto T = full<bf16>({4, 5}, 5.0);
-    for (auto i = 0; i < T.size(0); i++) {
-        for (auto j = 0; j < T.size(1); j++) {
-            REQUIRE(T[i][j] == 5.0);
-            T[i][j] = bf16((i + 1) * 10 + j);
+    auto t = full<bf16>({4, 5}, 5.0);
+    for (auto i = 0; i < t.size(0); i++) {
+        for (auto j = 0; j < t.size(1); j++) {
+            REQUIRE(t[i][j] == 5.0);
+            t[i][j] = bf16((i + 1) * 10 + j);
         }
     }
 
-    auto S = T[slice(1, 3), slice(1, 4)];
-    REQUIRE(S.size(0) == 2);
-    REQUIRE(S.size(1) == 3);
+    auto s = t[slice(1, 3), slice(1, 4)];
+    REQUIRE(s.size(0) == 2);
+    REQUIRE(s.size(1) == 3);
 
-    REQUIRE(S.stride(0) == 5);
-    REQUIRE(S.stride(1) == 1);
-    REQUIRE(!S.is_contiguous());
+    REQUIRE(s.stride(0) == 5);
+    REQUIRE(s.stride(1) == 1);
+    REQUIRE(!s.is_contiguous());
 
-    for (auto i = 0; i < S.size(0); i++) {
-        for (auto j = 0; j < S.size(1); j++) {
-            S[i][j] = 0.0;
+    for (auto i = 0; i < s.size(0); i++) {
+        for (auto j = 0; j < s.size(1); j++) {
+            s[i][j] = 0.0;
         }
     }
 
@@ -39,7 +39,7 @@ TEST_CASE("Read-write 2d tensor slicing", "[tensor::operator]")
     // underlying storage.
     for (auto i = 1; i < 3; i++) {
         for (auto j = 1; j < 4; j++) {
-            REQUIRE(T[i][j] == 0.0);
+            REQUIRE(t[i][j] == 0.0);
         }
     }
 }
@@ -47,33 +47,36 @@ TEST_CASE("Read-write 2d tensor slicing", "[tensor::operator]")
 
 TEST_CASE("Read-write 1d tensor slicing", "[tensor::operator]")
 {
-    auto T = full<bf16>({15}, 2.0);
-    auto S = T[slice(3, 10)];
+    auto t = full<bf16>({15}, 2.0);
+    auto s = t[slice(3, 10)];
 
-    REQUIRE(S.size(0) == 7);
-    REQUIRE(S.stride(0) == 1);
-    REQUIRE(!S.is_contiguous());
+    REQUIRE(s.size(0) == 7);
+    REQUIRE(s.stride(0) == 1);
+    REQUIRE(!s.is_contiguous());
 
-    for (auto i = 0; i < S.size(0); i++) {
-        S[i] = 0.0;
+    for (auto i = 0; i < s.size(0); i++) {
+        s[i] = 0.0;
     }
 
     for (auto i = 3; i < 10; i++) {
-        REQUIRE(T[i] == 0.0);
+        REQUIRE(t[i] == 0.0);
     }
 }
 
 
 TEST_CASE("Copy 2d tensor through slicing", "[tensor::operator=]")
 {
-    auto T0 = full<bf16>({7, 8}, 2.0);
-    auto T1 = rand<bf16>({3, 2});
+    auto t0 = full<bf16>({7, 8}, 2.0);
+    auto t1 = rand<bf16>({3, 2});
 
-    T0[slice(4, 7), slice(6, 8)] = T1;
+    t0[slice(4, 7), slice(6, 8)] = t1;
+
+    REQUIRE(t0.size(0) == 7);
+    REQUIRE(t0.size(1) == 8);
 
     for (std::size_t i = 4; i < 7; i++) {
         for (std::size_t j = 6; j < 8; j++) {
-            REQUIRE(T0[i][j] == T1[i - 4][j - 6]);
+            REQUIRE(t0[i][j] == t1[i - 4][j - 6]);
         }
     }
 }
