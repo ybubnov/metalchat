@@ -15,7 +15,6 @@ add_subdirectory(test)
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-
 find_package(cppcodec CONFIG REQUIRED)
 find_package(simdjson CONFIG REQUIRED)
 find_package(metal-cpp CONFIG REQUIRED)
@@ -24,7 +23,6 @@ find_package(PCRE2 CONFIG REQUIRED)
 
 set(metalchat_METALLIB metalchat.metallib)
 aux_source_directory(src metalchat_SOURCES)
-
 
 add_library(metalchat SHARED ${metalchat_SOURCES})
 add_dependencies(metalchat ${metalchat_METALLIB})

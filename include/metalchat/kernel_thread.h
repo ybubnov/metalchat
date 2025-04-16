@@ -154,15 +154,15 @@ public:
     {
         // After the completion of the kernel execution, release the promise and all blocks
         // waiting for the completion of this kernel.
-        _m_commands->addCompletedHandler([promise = _m_promise,
-                                          size = &_m_size](const MTL::CommandBuffer* buffer) {
+        _m_commands->addCompletedHandler([promise = _m_promise](const MTL::CommandBuffer* buffer) {
             if (buffer->error() != nullptr) {
-                std::cout << "command error!" << std::endl;
+                auto failure_reason = buffer->error()->localizedDescription();
+                auto exception_ptr
+                    = std::make_exception_ptr(std::runtime_error(failure_reason->utf8String()));
+                promise->set_exception(exception_ptr);
+            } else {
+                promise->set_value();
             }
-            // std::cout << "kernel = " << (buffer->GPUEndTime() - buffer->GPUStartTime()) * 1000.0
-            // << "ms" << std::endl; std::cout << "size=" << (*size) << std::endl;
-            //  TODO: handle the error.
-            promise->set_value();
         });
     }
 
