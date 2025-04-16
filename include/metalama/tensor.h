@@ -120,7 +120,7 @@ struct device_ref : public array_ref<T> {
 
 
 template <typename T, template <typename U> class Reference>
-// requires(std::derived_from(Reference, array_ref))
+    requires(std::derived_from<Reference<T>, array_ref<T>>)
 struct tensor_traits {
     using data_type = std::unique_ptr<Reference<T>>;
     using size_type = std::unique_ptr<array_ref<std::size_t>>;
@@ -159,6 +159,7 @@ struct tensor_traits {
 
 
 template <typename T, std::size_t N, template <typename U> class Reference>
+    requires(std::derived_from<Reference<T>, array_ref<T>>)
 class tensor_base {
 public:
     using traits = tensor_traits<T, Reference>;
@@ -279,6 +280,7 @@ operator<<(std::ostream& os, const tensor_base<T, N, Reference>& t)
 
 
 template <typename T, std::size_t N, template <typename U> class Reference = weak_ref>
+    requires(std::derived_from<Reference<T>, array_ref<T>>)
 class tensor : public tensor_base<T, N, Reference> {
 public:
     tensor(T* data, std::size_t* shape, std::size_t* strides)
@@ -352,6 +354,7 @@ public:
 
 
 template <typename T, template <typename U> class Reference>
+    requires(std::derived_from<Reference<T>, array_ref<T>>)
 class tensor<T, 1, Reference> : public tensor_base<T, 1, Reference> {
 public:
     tensor(T* data, std::size_t* shape, std::size_t* strides)
