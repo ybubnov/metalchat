@@ -23,16 +23,9 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <
-        std::size_t N,
-        ContiguousContainer InputContainer,
-        ContiguousContainer WeightContainer>
+    template <immutable_tensor InputTensor, immutable_tensor1d WeightTensor>
     auto
-    operator()(
-        shared_tensor<T, N, InputContainer> input,
-        shared_tensor<T, 1, WeightContainer> weight,
-        const float eps = 1e-5
-    )
+    operator()(InputTensor input, WeightTensor weight, const float eps = 1e-5)
     {
         auto data_size = input.numel();
         auto dim_size = input.sizes().back();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <cstdlib>
 #include <format>
 #include <future>
 #include <memory>
@@ -29,6 +30,7 @@ private:
     std::size_t _m_capacity;
 
     bool _m_committed;
+    int _m_id = std::rand();
 
 public:
     kernel_thread(const kernel_thread&) noexcept = default;
@@ -126,7 +128,8 @@ public:
     get_this_thread()
     {
         if (!_m_this_thread->joinable()) {
-            _m_this_thread = std::make_shared<kernel_thread>(_m_queue, _m_thread_capacity);
+            auto thread = std::make_shared<kernel_thread>(_m_queue, _m_thread_capacity);
+            _m_this_thread.swap(thread);
         }
         return _m_this_thread;
     }

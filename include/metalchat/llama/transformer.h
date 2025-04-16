@@ -42,22 +42,18 @@ public:
       _m_sum(device)
     {}
 
-    template <ContiguousContainer InputContainer, ContiguousContainer MaskContainer>
+    template <immutable_tensor3d InputTensor, immutable_tensor2d MaskTensor>
     auto
-    operator()(
-        shared_tensor<T, 3, InputContainer> input,
-        const std::optional<shared_tensor<T, 2, MaskContainer>> mask,
-        std::size_t start_pos = 0
-    )
+    operator()(InputTensor input, const std::optional<MaskTensor> mask, std::size_t start_pos = 0)
     {
         auto norm = _m_attention_norm(input);
 
-        auto res0 = _m_attention(norm.get(), mask, start_pos);
-        auto h = _m_sum(input, res0.get());
+        auto res0 = _m_attention(norm, mask, start_pos);
+        auto h = _m_sum(input, res0);
 
-        auto ff_norm = _m_ff_norm(h.get());
-        auto res1 = _m_ff(ff_norm.get());
-        auto output = _m_sum(h.get(), res1.get());
+        auto ff_norm = _m_ff_norm(h);
+        auto res1 = _m_ff(ff_norm);
+        auto output = _m_sum(h, res1);
         return output;
     }
 

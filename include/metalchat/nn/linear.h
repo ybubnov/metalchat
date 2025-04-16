@@ -23,16 +23,9 @@ public:
       _m_bmm(device)
     {}
 
-    template <std::size_t N, ContiguousContainer InputContainer>
+    template <immutable_tensor InputTensor>
     auto
-    operator()(const tensor<T, N, InputContainer>& input)
-    {
-        return _m_bmm(input, *_m_weight);
-    }
-
-    template <std::size_t N, ContiguousContainer InputContainer>
-    auto
-    operator()(shared_tensor<T, N, InputContainer> input)
+    operator()(InputTensor input)
     {
         return _m_bmm(input, _m_weight);
     }

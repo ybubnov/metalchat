@@ -24,15 +24,9 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <
-        std::size_t M,
-        std::size_t N,
-        ContiguousContainer Input1Container,
-        ContiguousContainer Input2Container>
+    template <immutable_tensor InputTensor1, immutable_tensor InputTensor2>
     auto
-    operator()(
-        shared_tensor<T, M, Input1Container> input1, shared_tensor<T, N, Input2Container> input2
-    )
+    operator()(InputTensor1 input1, InputTensor2 input2)
     {
         auto data_size = input1.numel();
         auto dim_size = input1.sizes().back();
@@ -77,18 +71,15 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <
-        std::size_t M,
-        ContiguousContainer Input1Container,
-        ContiguousContainer Input2Container>
-    requires(M >= 2)
+    template <immutable_tensor InputTensor1, immutable_tensor2d InputTensor2>
+    requires(InputTensor1::dim() >= 2)
     auto
-    operator()(
-        shared_tensor<T, M, Input1Container> input1, shared_tensor<T, 2, Input2Container> input2
-    )
+    operator()(InputTensor1 input1, InputTensor2 input2)
     {
         constexpr std::size_t block_size_x = 4;
         constexpr std::size_t block_size_y = 4;
+
+        constexpr auto M = InputTensor1::dim();
 
         auto data_size = input1.numel();
         auto dim0_size = input2.size(0);

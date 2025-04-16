@@ -76,9 +76,6 @@ public:
         // Erase type of the task, and simply ensure that task is ready, when a user
         // calls either `wait` or `get` method of the future tensor.
         _m_future_wait = std::bind(&Task::make_ready_at_thread_exit, std::move(task));
-        //_m_future_wait = [t = std::move(task)]() {
-        //    t.make_ready_at_thread_exit();
-        //};
     }
 
     result_type
@@ -93,6 +90,11 @@ public:
     {
         _m_future_wait();
         _m_future.wait();
+
+        // Once the waiting of the future completion is done, erase associated
+        // with this task, but setting an empty function (lambda), so that the
+        // task could be destroyed.
+        _m_future_wait = [] {};
     }
 
     static constexpr std::size_t

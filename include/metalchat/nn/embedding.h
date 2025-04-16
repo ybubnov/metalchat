@@ -25,9 +25,9 @@ public:
       _m_embedding(device)
     {}
 
-    template <integral IndexType, ContiguousContainer InputContainer>
+    template <immutable_tensor2d InputTensor> requires(integral<typename InputTensor::value_type>)
     auto
-    operator()(shared_tensor<IndexType, 2, InputContainer>& input)
+    operator()(InputTensor input)
     {
         return _m_embedding(input, _m_weight);
     }

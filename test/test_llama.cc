@@ -48,7 +48,7 @@ TEST_CASE("Test make model", "[llama]")
     std::cout << input_text;
     std::cout << bpe.decode(id);
 
-    for (auto i = input0.size(1); i < 16; i++) {
+    for (auto i = input0.size(1); i < 32; i++) {
         auto input = shared_tensor(full<int32_t>({1, 1}, id));
         auto output = m(input, i);
         id = argmax_(output.get());

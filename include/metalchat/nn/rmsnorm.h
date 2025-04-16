@@ -22,9 +22,9 @@ public:
       _m_norm(device)
     {}
 
-    template <std::size_t N, ContiguousContainer InputContainer>
+    template <immutable_tensor InputTensor>
     auto
-    operator()(shared_tensor<T, N, InputContainer> input, float eps = 1e-5)
+    operator()(InputTensor input, float eps = 1e-5)
     {
         return _m_norm(input, _m_weight, eps);
     }

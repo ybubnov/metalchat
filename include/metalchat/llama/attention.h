@@ -76,11 +76,11 @@ private:
         return output;
     }
 
-    template <ContiguousContainer InputContainer, ContiguousContainer CacheContainer>
+    template <immutable_tensor4d InputTensor, immutable_device_tensor4d CacheTensor>
     auto
     cache_copy(
-        shared_tensor<T, input_size, InputContainer> input,
-        shared_tensor<T, input_size, CacheContainer> cache,
+        InputTensor input,
+        CacheTensor cache,
         std::size_t bs,
         std::size_t start_pos,
         std::size_t size
@@ -95,26 +95,16 @@ private:
         );
     }
 
-    template <ContiguousContainer InputContainer>
+    template <immutable_tensor4d InputTensor>
     inline auto
-    cache_keys(
-        shared_tensor<T, input_size, InputContainer> input,
-        std::size_t bs,
-        std::size_t begin,
-        std::size_t size
-    )
+    cache_keys(InputTensor input, std::size_t bs, std::size_t begin, std::size_t size)
     {
         return cache_copy(input, _m_cache_k, bs, begin, size);
     }
 
-    template <ContiguousContainer InputContainer>
+    template <immutable_tensor4d InputTensor>
     inline auto
-    cache_values(
-        shared_tensor<T, input_size, InputContainer> input,
-        std::size_t bs,
-        std::size_t begin,
-        std::size_t size
-    )
+    cache_values(InputTensor input, std::size_t bs, std::size_t begin, std::size_t size)
     {
         return cache_copy(input, _m_cache_v, bs, begin, size);
     }
@@ -153,13 +143,9 @@ public:
       _m_device(device)
     {}
 
-    template <ContiguousContainer InputContainer, ContiguousContainer MaskContainer>
+    template <immutable_tensor3d InputTensor, immutable_tensor2d MaskTensor>
     auto
-    operator()(
-        shared_tensor<T, 3, InputContainer> input,
-        const std::optional<shared_tensor<T, 2, MaskContainer>> mask,
-        std::size_t start_pos = 0
-    )
+    operator()(InputTensor input, const std::optional<MaskTensor> mask, std::size_t start_pos = 0)
     {
         int bs = input.size(0);
         int len = input.size(1);
@@ -172,11 +158,11 @@ public:
         auto k = m_wk(input).view({bs, len, n_kv_heads, head_dim});
         auto v = m_wv(input).view({bs, len, n_kv_heads, head_dim});
 
-        q = m_rope(q.get(), /*start_pos=*/start_pos);
-        k = m_rope(k.get(), /*start_pos=*/start_pos);
+        q = m_rope(q, /*start_pos=*/start_pos);
+        k = m_rope(k, /*start_pos=*/start_pos);
 
-        auto [kk, kk_future] = cache_keys(k.get(), bs, start_pos, len);
-        auto [vv, vv_future] = cache_values(v.get(), bs, start_pos, len);
+        auto [kk, kk_future] = cache_keys(k, bs, start_pos, len);
+        auto [vv, vv_future] = cache_values(v, bs, start_pos, len);
 
         auto repeat_kv
             = [&]<ContiguousContainer TensorContainer>(shared_tensor<T, 4, TensorContainer>&& t
@@ -196,12 +182,12 @@ public:
         keys = keys.transpose({0, 2, 3, 1});
         values = values.transpose({0, 2, 1, 3});
 
-        auto scores = m_mul(m_matmul(queries.get(), keys).get(), m_scale).get();
+        auto scores = m_mul(m_matmul(queries, keys), m_scale);
 
         if (mask.has_value()) {
-            scores = m_sum(scores, mask.value()).get();
+            scores = m_sum(scores, mask.value());
         }
-        scores = m_softmax(scores).get();
+        scores = m_softmax(scores);
 
         auto output = m_matmul(scores, values).transpose({0, 2, 1, 3});
         auto output_ = contiguous(output.get(), /*dim=*/1);
