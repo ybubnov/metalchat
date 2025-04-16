@@ -83,7 +83,7 @@ using namespace simdjson;
 
 template <>
 simdjson_inline simdjson_result<std::vector<std::size_t>>
-simdjson::ondemand::value::get() noexcept
+simdjson::ondemand::value::get() // noexcept
 {
     ondemand::array array;
     auto error = get_array().get(array);
