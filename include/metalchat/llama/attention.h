@@ -87,21 +87,23 @@ public:
         auto k = m_wk(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
         auto v = m_wv(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
 
+        auto repeat_kv = [&](tensor<T, 4, device_ref<T>>&& t) -> auto {
+            auto reps = repeat_interleave(std::move(t), n_reps, /*dim=*/2);
+            return reps.reshape({bs, n_heads, len, -1});
+        };
+
+        auto keys = repeat_kv(std::move(k));
+        auto values = repeat_kv(std::move(v));
+
         // TODO: cache queries and keys.
-        auto keys = repeat_interleave(std::move(k), n_reps, /*dim=*/2);
-        auto K = keys.reshape({bs, n_heads, len, -1});
+        auto q_rot = m_rope(q);
+        auto k_rot = m_rope(keys);
 
-        auto values = repeat_interleave(std::move(v), n_reps, /*dim=*/2);
-        auto V = values.reshape({bs, n_heads, len, -1});
-
-        auto Q_ = m_rope(q);
-        auto K_ = m_rope(K);
-
-        auto scores = m_matmul(m_mul(Q_, m_scale), K_.transpose({0, 1, 3, 2}));
+        auto scores = m_matmul(m_mul(q_rot, m_scale), k_rot.transpose({0, 1, 3, 2}));
         auto scores_ = m_sum(scores, mask);
 
         scores_ = m_softmax(scores_);
-        auto output = m_matmul(scores_, V).transpose({0, 2, 1, 3}).reshape({bs, len, -1});
+        auto output = m_matmul(scores_, values).transpose({0, 2, 1, 3}).reshape({bs, len, -1});
 
         return m_wo(output);
     }
