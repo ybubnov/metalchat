@@ -59,27 +59,27 @@ embedding(__embedding_parameters(T))
 }
 
 
-template [[host_name("embedding4x64_bf16")]]
+template [[host_name("embedding_4x64_bf16")]]
 kernel void embedding<bfloat, 4, 64>(__embedding_parameters(bfloat));
 
-template [[host_name("embedding4x128_bf16")]]
+template [[host_name("embedding_4x128_bf16")]]
 kernel void embedding<bfloat, 4, 128>(__embedding_parameters(bfloat));
 
-template [[host_name("embedding16x64_bf16")]]
+template [[host_name("embedding_16x64_bf16")]]
 kernel void embedding<bfloat, 16, 64>(__embedding_parameters(bfloat));
 
-template [[host_name("embedding16x128_bf16")]]
+template [[host_name("embedding_16x128_bf16")]]
 kernel void embedding<bfloat, 16, 128>(__embedding_parameters(bfloat));
 
 
-template [[host_name("embedding4x64_float")]]
+template [[host_name("embedding_4x64_float")]]
 kernel void embedding<float, 4, 64>(__embedding_parameters(float));
 
-template [[host_name("embedding4x128_float")]]
+template [[host_name("embedding_4x128_float")]]
 kernel void embedding<float, 4, 128>(__embedding_parameters(float));
 
-template [[host_name("embedding16x64_float")]]
+template [[host_name("embedding_16x64_float")]]
 kernel void embedding<float, 16, 64>(__embedding_parameters(float));
 
-template [[host_name("embedding16x128_float")]]
+template [[host_name("embedding_16x128_float")]]
 kernel void embedding<float, 16, 128>(__embedding_parameters(float));

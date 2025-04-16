@@ -19,12 +19,10 @@ using namespace metal;
     uint tid [[thread_index_in_threadgroup]]
 
 
-template <typename T>
+template <typename T, uint BlockSize>
 kernel void
 sum(__sum_parameters(T))
 {
-    constexpr uint BLOCK_SIZE = 32;
-
     tensor<const T, 2> in1{input1, input1_layout};
     tensor<const T, 2> in2{input2, input2_layout};
     tensor<T, 2> out{output, output_layout};
@@ -32,8 +30,8 @@ sum(__sum_parameters(T))
     const uint dim_size = in1.size(1);
     const uint i = gid;
 
-    const uint begin = tid * BLOCK_SIZE;
-    const uint end = begin + BLOCK_SIZE;
+    const uint begin = tid * BlockSize;
+    const uint end = begin + BlockSize;
 
     for (uint k = 0; k < end && k < dim_size; k++) {
         out.at(i, k) = in1.at(i, k) + in2.at(i, k);
@@ -41,12 +39,42 @@ sum(__sum_parameters(T))
 }
 
 
-template [[host_name("sum_bf16")]]
-kernel void sum<bfloat>(__sum_parameters(bfloat));
+template [[host_name("sum_1_bf16")]]
+kernel void sum<bfloat, 1>(__sum_parameters(bfloat));
+
+template [[host_name("sum_2_bf16")]]
+kernel void sum<bfloat, 2>(__sum_parameters(bfloat));
+
+template [[host_name("sum_4_bf16")]]
+kernel void sum<bfloat, 4>(__sum_parameters(bfloat));
+
+template [[host_name("sum_8_bf16")]]
+kernel void sum<bfloat, 8>(__sum_parameters(bfloat));
+
+template [[host_name("sum_16_bf16")]]
+kernel void sum<bfloat, 16>(__sum_parameters(bfloat));
+
+template [[host_name("sum_32_bf16")]]
+kernel void sum<bfloat, 32>(__sum_parameters(bfloat));
 
 
-template [[host_name("sum_float")]]
-kernel void sum<float>(__sum_parameters(float));
+template [[host_name("sum_1_float")]]
+kernel void sum<float, 1>(__sum_parameters(float));
+
+template [[host_name("sum_2_float")]]
+kernel void sum<float, 2>(__sum_parameters(float));
+
+template [[host_name("sum_4_float")]]
+kernel void sum<float, 4>(__sum_parameters(float));
+
+template [[host_name("sum_8_float")]]
+kernel void sum<float, 8>(__sum_parameters(float));
+
+template [[host_name("sum_16_float")]]
+kernel void sum<float, 16>(__sum_parameters(float));
+
+template [[host_name("sum_32_float")]]
+kernel void sum<float, 32>(__sum_parameters(float));
 
 
 #define __sum2_parameters(T)                                \

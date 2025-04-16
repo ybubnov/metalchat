@@ -13,9 +13,9 @@
 namespace metalchat {
 
 
-template <typename T> class softmax {
+template <typename T, std::size_t BlockSize = 16> class softmax {
 private:
-    inline static const std::string operation_name = "softmax";
+    inline static const std::string operation_name = "softmax_" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 
@@ -28,13 +28,11 @@ public:
     auto
     operator()(InputTensor input)
     {
-        constexpr std::size_t block_size = 4;
-
         auto dim_size = input.sizes().back();
         auto num_rows = input.numel() / dim_size;
         auto input_view = input.view({-1, int(dim_size)});
 
-        auto [grid, thread] = make_kernel_grid_1d(input, block_size);
+        auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto fn = task.bind_back(input_view);

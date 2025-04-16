@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
@@ -14,7 +13,7 @@ namespace metalchat {
 
 template <typename T, std::size_t BlockSize = 16> class bmm {
 private:
-    inline static const std::string operation_name = "bmm" + std::to_string(BlockSize);
+    inline static const std::string operation_name = "bmm_" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 

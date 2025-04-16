@@ -13,7 +13,7 @@ namespace metalchat {
 
 template <typename T, std::size_t BlockSize = 16> class cpy {
 private:
-    inline static const std::string operation_name = "copy" + std::to_string(BlockSize);
+    inline static const std::string operation_name = "copy_" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 

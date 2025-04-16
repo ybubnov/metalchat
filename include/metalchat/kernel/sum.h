@@ -13,9 +13,9 @@
 namespace metalchat {
 
 
-template <typename T> class sum {
+template <typename T, std::size_t BlockSize = 32> class sum {
 private:
-    inline static const std::string operation_name = "sum";
+    inline static const std::string operation_name = "sum_" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 
@@ -45,8 +45,7 @@ public:
             ));
         }
 
-        constexpr std::size_t block_size = 32;
-        auto [grid, thread] = make_kernel_grid_1d(input1, block_size);
+        auto [grid, thread] = make_kernel_grid_1d(input1, BlockSize);
 
         auto input1_view = input1.view({-1, int(dim_size)});
         auto input2_view = input2.view({-1, int(dim_size)});

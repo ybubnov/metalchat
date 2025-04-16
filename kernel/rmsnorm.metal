@@ -26,12 +26,11 @@ using namespace metal;
     uint simd_gid [[simdgroup_index_in_threadgroup]]
 
 
-template <typename T>
+template <typename T, uint BlockSize>
 kernel void
 rmsnorm(__rmsnorm_parameters(T))
 {
     constexpr int SIMD_SIZE = 32;
-    constexpr int BLOCK_SIZE = 4;
 
     tensor<const T, 2> in{input, input_layout};
     tensor<const T, 1> w{weight, weight_layout};
@@ -42,8 +41,8 @@ rmsnorm(__rmsnorm_parameters(T))
     const uint dim_size = in.size(1);
     const uint i = gid;
 
-    const uint begin = tid * BLOCK_SIZE;
-    const uint end = begin + BLOCK_SIZE;
+    const uint begin = tid * BlockSize;
+    const uint end = begin + BlockSize;
 
     for (uint j = begin; j < end && j < dim_size; j++) {
         float xj = float(in.at(i, j));
@@ -83,9 +82,39 @@ rmsnorm(__rmsnorm_parameters(T))
 }
 
 
-template [[host_name("rmsnorm_bf16")]]
-kernel void rmsnorm<bfloat>(__rmsnorm_parameters(bfloat));
+template [[host_name("rmsnorm_1_bf16")]]
+kernel void rmsnorm<bfloat, 1>(__rmsnorm_parameters(bfloat));
+
+template [[host_name("rmsnorm_2_bf16")]]
+kernel void rmsnorm<bfloat, 2>(__rmsnorm_parameters(bfloat));
+
+template [[host_name("rmsnorm_4_bf16")]]
+kernel void rmsnorm<bfloat, 4>(__rmsnorm_parameters(bfloat));
+
+template [[host_name("rmsnorm_8_bf16")]]
+kernel void rmsnorm<bfloat, 8>(__rmsnorm_parameters(bfloat));
+
+template [[host_name("rmsnorm_16_bf16")]]
+kernel void rmsnorm<bfloat, 16>(__rmsnorm_parameters(bfloat));
+
+template [[host_name("rmsnorm_32_bf16")]]
+kernel void rmsnorm<bfloat, 32>(__rmsnorm_parameters(bfloat));
 
 
-template [[host_name("rmsnorm_float")]]
-kernel void rmsnorm<float>(__rmsnorm_parameters(float));
+template [[host_name("rmsnorm_1_float")]]
+kernel void rmsnorm<float, 1>(__rmsnorm_parameters(float));
+
+template [[host_name("rmsnorm_2_float")]]
+kernel void rmsnorm<float, 2>(__rmsnorm_parameters(float));
+
+template [[host_name("rmsnorm_4_float")]]
+kernel void rmsnorm<float, 4>(__rmsnorm_parameters(float));
+
+template [[host_name("rmsnorm_8_float")]]
+kernel void rmsnorm<float, 8>(__rmsnorm_parameters(float));
+
+template [[host_name("rmsnorm_16_float")]]
+kernel void rmsnorm<float, 16>(__rmsnorm_parameters(float));
+
+template [[host_name("rmsnorm_32_float")]]
+kernel void rmsnorm<float, 32>(__rmsnorm_parameters(float));
