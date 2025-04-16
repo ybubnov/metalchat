@@ -30,6 +30,10 @@ template <typename T, std::size_t N, ContiguousContainer Container> class tensor
 public:
     using traits = tensor_traits<T, Container>;
 
+    using iterator = tensor_iterator<T, N>;
+
+    using const_iterator = const iterator;
+
     tensor_base(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
     : m_data(make_weak(data)),
       m_shape(make_weak(shape)),
@@ -170,6 +174,30 @@ public:
         return *m_data;
     }
 
+    iterator
+    begin()
+    {
+        return iterator(*m_data, *m_shape, *m_strides, *m_offsets);
+    }
+
+    const_iterator
+    begin() const
+    {
+        return const_iterator(*m_data, *m_shape, *m_strides, *m_offsets);
+    }
+
+    iterator
+    end()
+    {
+        return iterator(*m_data, *m_shape, *m_strides, *m_offsets, numel());
+    }
+
+    const_iterator
+    end() const
+    {
+        return const_iterator(*m_data, *m_shape, *m_strides, *m_offsets, numel());
+    }
+
 protected:
     traits::data_type m_data = nullptr;
     traits::size_type m_shape = nullptr;
@@ -291,24 +319,9 @@ public:
             assert(other.size(i) == this->size(i));
         }
 
+        std::copy(other.begin(), other.end(), this->begin());
+
         return *this;
-    }
-
-    tensor_iterator<T, N>
-    begin()
-    {
-        return tensor_iterator<T, N>(
-            *this->m_data, *this->m_shape, *this->m_strides, *this->m_offsets
-        );
-    }
-
-    tensor_iterator<T, N>
-    end()
-    {
-        return tensor_iterator<T, N>(
-                   *this->m_data, *this->m_shape, *this->m_strides, *this->m_offsets
-        )
-            .end();
     }
 
     template <typename = void>

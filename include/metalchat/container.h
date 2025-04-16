@@ -107,7 +107,6 @@ public:
     {
         delete[] m_data;
         m_data = nullptr;
-        std::cout << "owning_ref::~owning_ref()" << std::endl;
     }
 
     T*
@@ -140,8 +139,6 @@ template <typename T> struct device_ref : public array_ref<T> {
     device_ref(NS::SharedPtr<MTL::Buffer> buf)
     : m_buf(buf)
     {}
-
-    ~device_ref() { std::cout << "device_ref::~device_ref()" << std::endl; }
 
     T*
     data() override
