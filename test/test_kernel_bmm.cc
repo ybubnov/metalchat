@@ -30,6 +30,36 @@ TEST_CASE("Matmul 4d predefined", "[kernel::bmm]")
 }
 
 
+TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
+{
+    metalchat::device gpu0("metalchat.metallib");
+    metalchat::bmm<float> mm(gpu0);
+
+    auto input1 = rand<float>({1, 5, 2048}); // b, i, j
+    auto input2 = rand<float>({2048, 8192}); // j, k
+
+    auto output = mm(input1, input2);
+
+    REQUIRE(output.dim() == 3);
+    REQUIRE(output.size(0) == 1);
+    REQUIRE(output.size(1) == 5);
+    REQUIRE(output.size(2) == 8192);
+
+    for (auto batch = 0; batch < input1.size(0); batch++) {
+        for (auto i = 0; i < input1.size(1); i++) {
+            for (auto k = 0; k < input2.size(1); k++) {
+                float result_ik = 0;
+                for (auto j = 0; j < input1.size(2); j++) {
+                    result_ik += (input1[batch, i, j] * input2[j, k]);
+                }
+
+                REQUIRE_THAT((output[batch, i, k]), Catch::Matchers::WithinAbs(result_ik, 0.0001));
+            }
+        }
+    }
+}
+
+
 TEST_CASE("Matmul large 2d", "[kernel::bmm]")
 {
     metalchat::device gpu0("metalchat.metallib");

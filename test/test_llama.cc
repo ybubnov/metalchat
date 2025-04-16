@@ -19,20 +19,20 @@ TEST_CASE("Test make model", "[llama]")
     metalchat::device gpu0("metalchat.metallib");
 
     auto m = make_llama<bf16>(tensors, gpu0);
-
-    auto input = bpe.encode("In the beginning was ").reshape({1, -1});
+    auto input = bpe.encode("Are you alive?").reshape({1, -1});
 
     auto output = m(input);
     std::cout << output << std::endl;
 
-    REQUIRE(output.dim() == 2);
+    REQUIRE(output.dim() == 3);
 
     std::size_t id = 0;
-    bf16 max;
-    for (auto i = 0; i < output.size(1); i++) {
-        if (output[input.size(0) - 1, i] > max) {
+    bf16 max = output[0, input.size(1) - 1, 0];
+
+    for (auto i = 0; i < output.size(2); i++) {
+        if (output[0, input.size(1) - 1, i] > max) {
             id = i;
-            max = output[input.size(0) - 1, i];
+            max = output[0, input.size(1) - 1, i];
         }
     }
 

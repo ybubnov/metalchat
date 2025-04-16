@@ -24,6 +24,7 @@ private:
 
 public:
     transformer(transformer&&) = default;
+    transformer(const transformer&) = delete;
 
     transformer(
         attention<T, Container>&& attention,
