@@ -33,14 +33,14 @@ public:
 
         if (auto dim_size2 = output.sizes().back(); dim_size != dim_size2) {
             throw std::invalid_argument(std::format(
-                "copy: last dimension should be the same for both tensors {} != {}", dim_size,
-                dim_size2
+                "kernel::cpy: last dimension should be the same for both tensors {} != {}",
+                dim_size, dim_size2
             ));
         }
 
         if (auto data_size2 = output.numel(); data_size != data_size2) {
             throw std::invalid_argument(std::format(
-                "copy: data size should be the same for both tensors {} != {}", data_size,
+                "kernel::cpy: data size should be the same for both tensors {} != {}", data_size,
                 data_size2
             ));
         }

@@ -88,7 +88,7 @@ public:
       m_wk(std::move(wk), device),
       m_wv(std::move(wv), device),
       m_wo(std::move(wo), device),
-      m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta),
+      m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, device),
       m_mul(device),
       m_matmul(device),
       m_sum(device),
