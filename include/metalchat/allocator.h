@@ -33,13 +33,7 @@ concept hardware_allocator_t
       && std::same_as<typename Allocator::container_type, hardware_memory_container<T>>;
 
 
-template <typename Allocator>
-concept incomplete_hardware_allocator
-    = allocator<Allocator> && std::same_as<typename Allocator::value_type, void>
-      && std::same_as<typename Allocator::container_type, hardware_memory_container<void>>;
-
-
-template <typename T, incomplete_hardware_allocator Allocator> class rebind_hardware_allocator {
+template <typename T, hardware_allocator_t<void> Allocator> class rebind_hardware_allocator {
 public:
     using value_type = T;
     using pointer = T*;
