@@ -79,7 +79,7 @@ private:
 };
 
 
-template <hardware_allocator Allocator> class nocopy_hardware_allocator {
+template <hardware_allocator Allocator> class hardware_nocopy_allocator {
 public:
     using value_type = typename Allocator::value_type;
     using pointer = value_type*;
@@ -88,7 +88,7 @@ public:
     using container_type = hardware_memory_container<value_type>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    nocopy_hardware_allocator(Allocator alloc, NS::SharedPtr<MTL::Device> device)
+    hardware_nocopy_allocator(Allocator alloc, NS::SharedPtr<MTL::Device> device)
     : _m_alloc(alloc),
       _m_device(device)
     {}
@@ -107,15 +107,116 @@ public:
 
         if (memory_ptr == nullptr) {
             throw std::runtime_error(std::format(
-                "metalchat::nocopy_hardware_allocator: failed to allocate no-copy buffer"
+                "metalchat::hardware_nocopy_allocator: failed to allocate no-copy buffer"
             ));
         }
-        return std::make_shared<container_type>(NS::TransferPtr(memory_ptr));
+        return std::make_shared<container_type>(memory_ptr);
     }
 
 private:
     Allocator _m_alloc;
     NS::SharedPtr<MTL::Device> _m_device;
+};
+
+
+template <typename T> struct __hardware_iterative_residence_deleter {
+    NS::SharedPtr<MTL::ResidencySet> rset;
+    std::shared_ptr<std::size_t> allocations;
+
+    void
+    operator()(const hardware_memory_container<T>* p)
+    {
+        rset->removeAllocation(p->storage().get());
+        *allocations = (*allocations) - 1;
+
+        if ((*allocations) == 0) {
+            rset->endResidency();
+        }
+    }
+};
+
+
+template <typename T> struct __hardware_complete_residence_deleter {
+    NS::SharedPtr<MTL::ResidencySet> rset;
+    std::shared_ptr<std::size_t> allocations;
+
+    void
+    operator()(const hardware_memory_container<T>* p)
+    {
+        *allocations = (*allocations) - 1;
+
+        if ((*allocations) == 0) {
+            rset->removeAllAllocations();
+            rset->endResidency();
+        }
+    }
+};
+
+
+template <hardware_allocator Allocator> class hardware_resident_allocator {
+public:
+    using value_type = typename Allocator::value_type;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+    using size_type = std::size_t;
+    using container_type = hardware_memory_container<value_type>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    hardware_resident_allocator(
+        Allocator alloc, NS::SharedPtr<MTL::Device> device, std::size_t capacity = 256
+    )
+    : _m_alloc(alloc),
+      _m_allocations(std::make_shared<std::size_t>(0))
+    {
+        auto rset_options_ptr = MTL::ResidencySetDescriptor::alloc();
+        auto rset_options = NS::TransferPtr(rset_options_ptr->init());
+        rset_options->setInitialCapacity(capacity);
+
+        NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
+        NS::Error* error_ptr = error.get();
+
+        _m_rset = NS::TransferPtr(device->newResidencySet(rset_options.get(), &error_ptr));
+        if (!_m_rset) {
+            auto failure_reason = error_ptr->localizedDescription();
+            throw std::runtime_error(failure_reason->utf8String());
+        }
+    }
+
+    void
+    wire_memory()
+    {
+        _m_rset->commit();
+        _m_rset->requestResidency();
+    }
+
+    container_pointer
+    allocate(size_type size)
+    {
+        return _m_memory_move(_m_alloc.allocate(size));
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        return _m_memory_move(_m_alloc.allocate(ptr, size));
+    }
+
+private:
+    container_pointer
+    _m_memory_move(container_pointer container)
+    {
+        _m_rset->addAllocation(container->storage().get());
+        *_m_allocations = (*_m_allocations) + 1;
+
+        return std::make_shared<container_type>(
+            container->storage(),
+            __hardware_iterative_residence_deleter<value_type>{_m_rset, _m_allocations}
+        );
+    }
+
+    Allocator _m_alloc;
+    NS::SharedPtr<MTL::ResidencySet> _m_rset;
+    std::shared_ptr<std::size_t> _m_allocations;
 };
 
 
@@ -136,8 +237,8 @@ public:
     allocate(size_type size)
     {
         auto memory_size = size * sizeof(value_type);
-        auto memory_ptr
-            = NS::TransferPtr(_m_device->newBuffer(memory_size, MTL::ResourceStorageModeShared));
+        auto memory_ptr = _m_device->newBuffer(memory_size, MTL::ResourceStorageModeShared);
+
         return std::make_shared<container_type>(memory_ptr);
     }
 
@@ -145,9 +246,7 @@ public:
     allocate(const_pointer ptr, size_type size)
     {
         auto memory_size = size * sizeof(value_type);
-        auto memory_ptr
-            = NS::TransferPtr(_m_device->newBuffer(ptr, memory_size, MTL::ResourceStorageModeShared)
-            );
+        auto memory_ptr = _m_device->newBuffer(ptr, memory_size, MTL::ResourceStorageModeShared);
 
         return std::make_shared<container_type>(memory_ptr);
     }
@@ -170,6 +269,7 @@ public:
     using container_pointer = std::shared_ptr<container_type>;
 
     hardware_heap_allocator(NS::SharedPtr<MTL::Device> device, std::size_t capacity)
+    : _m_allocations(std::make_shared<std::size_t>(0))
     {
         auto heap_options_ptr = MTL::HeapDescriptor::alloc();
         auto heap_options = NS::TransferPtr(heap_options_ptr->init());
@@ -183,7 +283,9 @@ public:
 
         _m_heap = NS::TransferPtr(device->newHeap(heap_options.get()));
         if (!_m_heap) {
-            throw std::runtime_error("failed creating a new heap");
+            throw std::runtime_error(
+                "metalchat::hardware_heap_allocator: failed creating a new heap"
+            );
         }
 
         // This residency set is supposed to be used only for the heap, therefore
@@ -203,42 +305,30 @@ public:
         }
 
         _m_rset->addAllocation(_m_heap.get());
-        _m_resident = std::make_shared<bool>(false);
+        _m_rset->commit();
+        _m_rset->requestResidency();
     }
 
     container_pointer
     allocate(size_type size)
     {
-        if (!(*_m_resident)) {
-            _m_rset->commit();
-            _m_rset->requestResidency();
-            *_m_resident = true;
-        }
-        auto memory_ptr = _m_allocate(size);
-        return std::make_shared<container_type>(memory_ptr);
+        return _m_allocate(size);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto memory_ptr = _m_allocate(size);
-        std::memcpy(memory_ptr->contents(), ptr, size);
-        return std::make_shared<container_type>(memory_ptr);
+        auto container = _m_allocate(size);
+        std::memcpy(container->storage()->contents(), ptr, size);
+        return container;
     }
-
-    // TODO: implement a deleter for std::shared_ptr that will drop residency set from GPU.
-    //~hardware_heap_allocator()
-    //{
-    //    _m_rset->endResidency();
-    //    _m_rset->removeAllAllocations();
-    //}
 
 private:
     NS::SharedPtr<MTL::Heap> _m_heap;
     NS::SharedPtr<MTL::ResidencySet> _m_rset;
-    std::shared_ptr<bool> _m_resident;
+    std::shared_ptr<std::size_t> _m_allocations;
 
-    NS::SharedPtr<MTL::Buffer>
+    container_pointer
     _m_allocate(size_type size)
     {
         auto placement
@@ -247,8 +337,8 @@ private:
         size_type mask = placement.align - 1;
         size_type alloc_size = ((placement.size + mask) & (~mask));
 
-        auto buf_ptr = _m_heap->newBuffer(alloc_size, MTL::ResourceStorageModeShared);
-        if (buf_ptr == nullptr) {
+        auto memory_ptr = _m_heap->newBuffer(alloc_size, MTL::ResourceStorageModeShared);
+        if (memory_ptr == nullptr) {
             auto cap = _m_heap->maxAvailableSize(placement.align);
             throw std::runtime_error(std::format(
                 "metalchat::hardware_heap_allocator: failed to allocate buffer of size={}, "
@@ -257,7 +347,11 @@ private:
             ));
         }
 
-        return NS::TransferPtr(buf_ptr);
+        *_m_allocations = (*_m_allocations) + 1;
+        return std::make_shared<container_type>(
+            NS::TransferPtr(memory_ptr),
+            __hardware_complete_residence_deleter<value_type>{_m_rset, _m_allocations}
+        );
     }
 };
 
@@ -278,16 +372,14 @@ public:
     container_pointer
     allocate(size_type size)
     {
-        auto memory_ptr
-            = NS::TransferPtr(_m_device->newBuffer(size, MTL::ResourceStorageModeShared));
+        auto memory_ptr = _m_device->newBuffer(size, MTL::ResourceStorageModeShared);
         return std::make_shared<container_type>(memory_ptr);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto memory_ptr
-            = NS::TransferPtr(_m_device->newBuffer(ptr, size, MTL::ResourceStorageModeShared));
+        auto memory_ptr = _m_device->newBuffer(ptr, size, MTL::ResourceStorageModeShared);
         return std::make_shared<container_type>(memory_ptr);
     }
 

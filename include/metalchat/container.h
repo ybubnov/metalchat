@@ -122,13 +122,33 @@ template <typename T> struct hardware_memory_container : public memory_container
     using pointer = value_type*;
     using const_pointer = const pointer;
 
+    using deleter_type = std::function<void(hardware_memory_container*)>;
+
     NS::SharedPtr<MTL::Buffer> _m_buf;
+    deleter_type _m_deleter;
 
     hardware_memory_container(NS::SharedPtr<MTL::Buffer> buf)
-    : _m_buf(buf)
+    : _m_buf(buf),
+      _m_deleter(nullptr)
     {}
 
-    ~hardware_memory_container() { _m_buf.reset(); }
+    hardware_memory_container(NS::SharedPtr<MTL::Buffer> buf, deleter_type deleter)
+    : _m_buf(buf),
+      _m_deleter(deleter)
+    {}
+
+    hardware_memory_container(MTL::Buffer* buf)
+    : _m_buf(NS::TransferPtr(buf)),
+      _m_deleter(nullptr)
+    {}
+
+    ~hardware_memory_container()
+    {
+        if (_m_deleter != nullptr) {
+            _m_deleter(this);
+        }
+        _m_buf.reset();
+    }
 
     pointer
     data() override
@@ -149,7 +169,7 @@ template <typename T> struct hardware_memory_container : public memory_container
     }
 
     NS::SharedPtr<MTL::Buffer>
-    storage()
+    storage() const
     {
         return _m_buf;
     }
