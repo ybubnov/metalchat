@@ -43,7 +43,7 @@ bmm(__bmm_parameters<T> params,
     const uint thread_row = thread_id.x;
     const uint thread_col = thread_id.y;
 
-    float partial = 0.0;
+    T partial = T(0.0);
 
     uint r1 = metal::min(block_row + thread_row, M - 1);
     uint c2 = metal::min(block_col + thread_col, N - 1);
@@ -64,26 +64,24 @@ bmm(__bmm_parameters<T> params,
 
         threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
-        for (uint b = 0; b < BlockSize; b++) {
-            partial += m1_local[thread_row][b] * m2_local[b][thread_col];
-        }
-
-        threadgroup_barrier(metal::mem_flags::mem_threadgroup);
+        partial += m1_local[thread_row][0] * m2_local[0][thread_col];
+        partial += m1_local[thread_row][1] * m2_local[1][thread_col];
+        partial += m1_local[thread_row][2] * m2_local[2][thread_col];
+        partial += m1_local[thread_row][3] * m2_local[3][thread_col];
+        partial += m1_local[thread_row][4] * m2_local[4][thread_col];
+        partial += m1_local[thread_row][5] * m2_local[5][thread_col];
+        partial += m1_local[thread_row][6] * m2_local[6][thread_col];
+        partial += m1_local[thread_row][7] * m2_local[7][thread_col];
     }
 
     uint row = block_row + thread_row;
     uint col = block_col + thread_col;
 
     if (row < M && col < N) {
-        out.at(batch, row, col) = T(partial);
+        out.at(batch, row, col) = partial;
     }
 }
 
 
 __lib_metalchat_kernel3(bmm, bfloat, 8);
-__lib_metalchat_kernel3(bmm, bfloat, 16);
-__lib_metalchat_kernel3(bmm, bfloat, 32);
-
 __lib_metalchat_kernel3(bmm, float, 8);
-__lib_metalchat_kernel3(bmm, float, 16);
-__lib_metalchat_kernel3(bmm, float, 32);
