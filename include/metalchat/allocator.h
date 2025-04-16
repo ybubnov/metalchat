@@ -326,10 +326,10 @@ private:
 };
 
 
-/// The `hardware_memory_allocator` creates tracked buffer resources directly from the device.
+/// This class creates tracked buffer resources directly from the device.
 ///
 /// This is the default implementation of the hardware memory allocator, all resources are
-/// tracked and shared with CPU. In some workloads this is implementation might provide
+/// tracked and shared with CPU. In some workloads this implementation might provide
 /// suboptimal results due to frequent allocation/deallocation/wiring of the memory.
 template <typename T> class hardware_memory_allocator : public basic_hardware_memory_allocator<T> {
 public:

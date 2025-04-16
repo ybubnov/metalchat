@@ -20,6 +20,7 @@ extensions = [
 # Breathe configuration.
 breathe_projects = {"metalchat": "_xml"}
 breathe_default_project = "metalchat"
+breathe_show_include = True
 breathe_domain_by_extension = {"h": "cpp"}
 
 
