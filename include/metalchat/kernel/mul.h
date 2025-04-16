@@ -4,7 +4,6 @@
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_task.h>
-#include <metalchat/tensor.h>
 #include <metalchat/tensor_future.h>
 
 
@@ -22,9 +21,9 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <immutable_tensor Input1Tensor, immutable_tensor Input2Tensor>
+    template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
     auto
-    operator()(Input1Tensor input1, Input2Tensor input2)
+    operator()(Input1 input1, Input2 input2)
     {
         auto data_size = input1.numel();
         auto dim_size = input1.sizes().back();
@@ -67,9 +66,9 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <immutable_tensor InputTensor, immutable_scalar Multiplier>
+    template <immutable_tensor_t<T> Input, immutable_scalar_t<T> Multiplier>
     auto
-    operator()(InputTensor input, Multiplier multiplier)
+    operator()(Input input, Multiplier multiplier)
     {
         auto dim_size = input.sizes().back();
         auto num_rows = input.numel() / dim_size;
@@ -84,9 +83,9 @@ public:
         return output.view(input.sizes());
     }
 
-    template <immutable_tensor InputTensor>
+    template <immutable_tensor_t<T> Input>
     auto
-    operator()(InputTensor input, const T multiplier)
+    operator()(Input input, const T multiplier)
     {
         return operator()(input, shared_tensor(scalar(multiplier)));
     }

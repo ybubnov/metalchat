@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <metalchat/kernel/copy.h>
+#include <metalchat/tensor_shared.h>
 
 
 using namespace metalchat;

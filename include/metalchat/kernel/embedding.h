@@ -2,14 +2,14 @@
 
 #include <cmath>
 #include <concepts>
+#include <type_traits>
 
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel.h>
-#include <metalchat/tensor.h>
+#include <metalchat/kernel_task.h>
 #include <metalchat/tensor_future.h>
-#include <metalchat/tensor_shared.h>
 
 
 namespace metalchat {
@@ -28,10 +28,9 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <immutable_tensor2d InputTensor, immutable_tensor2d WeightTensor>
-    requires(integral<typename InputTensor::value_type>)
+    template <immutable_tensor2_t<int32_t> Input, immutable_tensor2_t<T> WeightTensor>
     auto
-    operator()(InputTensor input, WeightTensor weight)
+    operator()(Input input, WeightTensor weight)
     {
         auto data_size = input.numel();
         auto emb_size = weight.sizes().back();
@@ -63,21 +62,21 @@ public:
     {}
 
     template <
-        immutable_tensor4d InputTensor,
-        immutable_tensor2d CosTensor,
-        immutable_tensor2d SinTensor>
+        immutable_tensor4_t<T> Input,
+        immutable_tensor2_t<float> Cosines,
+        immutable_tensor2_t<float> Sines>
     auto
-    debug_rope(InputTensor input, CosTensor freqs_cos, SinTensor freqs_sin, std::size_t start_pos)
+    debug_rope(Input input, Cosines freqs_cos, Sines freqs_sin, std::size_t start_pos)
     {
         return operator()(input, freqs_cos, freqs_sin, start_pos);
     }
 
     template <
-        immutable_tensor4d InputTensor,
-        immutable_tensor2d CosTensor,
-        immutable_tensor2d SinTensor>
+        immutable_tensor4_t<T> Input,
+        immutable_tensor2_t<float> Cosines,
+        immutable_tensor2_t<float> Sines>
     auto
-    operator()(InputTensor input, CosTensor freqs_cos, SinTensor freqs_sin, std::size_t start_pos)
+    operator()(Input input, Cosines freqs_cos, Sines freqs_sin, std::size_t start_pos)
     {
         auto bs = input.size(0);
         auto n_head = input.size(2);

@@ -10,10 +10,6 @@
 namespace metalchat {
 
 
-template <typename T>
-concept integral = std::is_integral_v<T>;
-
-
 namespace dtype {
 
 

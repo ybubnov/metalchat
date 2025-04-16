@@ -23,9 +23,9 @@ public:
       _m_bmm(device)
     {}
 
-    template <immutable_tensor InputTensor>
+    template <immutable_tensor_t<T> Input>
     auto
-    operator()(InputTensor input)
+    operator()(Input input)
     {
         return _m_bmm(input, _m_weight);
     }

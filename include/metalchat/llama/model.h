@@ -5,13 +5,11 @@
 
 #include <metalchat/container.h>
 #include <metalchat/device.h>
-#include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/functional.h>
 #include <metalchat/llama/transformer.h>
 #include <metalchat/nn/embedding.h>
 #include <metalchat/nn/rmsnorm.h>
-#include <metalchat/tensor.h>
 
 
 namespace metalchat {
@@ -57,9 +55,9 @@ public:
       _m_layers(std::move(layers))
     {}
 
-    template <immutable_tensor2d InputTensor> requires(integral<typename InputTensor::value_type>)
+    template <immutable_tensor2_t<int32_t> Input>
     auto
-    operator()(InputTensor input, std::size_t start_pos = 0)
+    operator()(Input input, std::size_t start_pos = 0)
     {
         const auto mask = create_additive_causal_mask(input.size(1));
         auto x = _m_embedding(input);

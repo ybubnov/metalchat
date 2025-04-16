@@ -3,9 +3,8 @@
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
-#include <metalchat/tensor.h>
+#include <metalchat/kernel_task.h>
 #include <metalchat/tensor_future.h>
-#include <metalchat/tensor_shared.h>
 
 
 namespace metalchat {
@@ -17,9 +16,9 @@ private:
 
     kernel_base _m_kernel;
 
-    template <immutable_tensor2d InputTensor, immutable_tensor2d OutputTensor>
+    template <immutable_tensor2_t<T> Input, immutable_tensor2_t<T> Output>
     auto
-    copy(InputTensor input, OutputTensor output)
+    copy(Input input, Output output)
     {
         if (auto dim_size = output.sizes().back(); dim_size != input.sizes().back()) {
             throw std::invalid_argument(std::format(
@@ -60,9 +59,9 @@ public:
     ///
     /// The operation is executed asynchronously on GPU, therefore output tensor should be
     /// allocated on GPU memory.
-    template <immutable_tensor InputTensor, immutable_device_tensor OutputTensor>
+    template <immutable_tensor_t<T> Input, immutable_device_tensor_t<T> Output>
     auto
-    operator()(InputTensor input, OutputTensor output)
+    operator()(Input input, Output output)
     {
         return copy(input.template flatten<2>(), output.template flatten<2>());
     }

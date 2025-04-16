@@ -43,7 +43,7 @@ private:
     nn::rope<T> m_rope;
 
     attention_options m_options;
-    float m_scale;
+    T m_scale;
 
     shared_tensor<T, input_size, device_ref<T>> _m_cache_k;
     shared_tensor<T, input_size, device_ref<T>> _m_cache_v;
@@ -51,9 +51,9 @@ private:
     cpy<T> _m_cpy;
     device& _m_device;
 
-    template <immutable_tensor InputTensor>
+    template <immutable_tensor_t<T> Input>
     auto
-    contiguous(InputTensor input, std::size_t dim)
+    contiguous(Input input, std::size_t dim)
     {
         auto output = future_tensor(empty_like(input, _m_device));
 
@@ -65,15 +65,9 @@ private:
         return output;
     }
 
-    template <immutable_tensor4d InputTensor, immutable_device_tensor4d CacheTensor>
+    template <immutable_tensor4_t<T> Input, immutable_device_tensor4_t<T> Cache>
     auto
-    cache_copy(
-        InputTensor input,
-        CacheTensor cache,
-        std::size_t bs,
-        std::size_t start_pos,
-        std::size_t size
-    )
+    cache_copy(Input input, Cache cache, std::size_t bs, std::size_t start_pos, std::size_t size)
     {
         using s = indexing::slice;
         auto target = cache[s(0, bs), s(start_pos, start_pos + size), s(), s()];
@@ -82,16 +76,16 @@ private:
         return future_tensor(result, _m_cpy(input, target));
     }
 
-    template <immutable_tensor4d InputTensor>
+    template <immutable_tensor4_t<T> Input>
     inline auto
-    cache_keys(InputTensor input, std::size_t bs, std::size_t begin, std::size_t size)
+    cache_keys(Input input, std::size_t bs, std::size_t begin, std::size_t size)
     {
         return cache_copy(input, _m_cache_k, bs, begin, size);
     }
 
-    template <immutable_tensor4d InputTensor>
+    template <immutable_tensor4_t<T> Input>
     inline auto
-    cache_values(InputTensor input, std::size_t bs, std::size_t begin, std::size_t size)
+    cache_values(Input input, std::size_t bs, std::size_t begin, std::size_t size)
     {
         return cache_copy(input, _m_cache_v, bs, begin, size);
     }
@@ -126,9 +120,9 @@ public:
       _m_device(device)
     {}
 
-    template <immutable_tensor3d InputTensor, immutable_tensor2d MaskTensor>
+    template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
     auto
-    operator()(InputTensor input, const std::optional<MaskTensor> mask, std::size_t start_pos = 0)
+    operator()(Input input, const std::optional<Mask> mask, std::size_t start_pos = 0)
     {
         int bs = input.size(0);
         int len = input.size(1);
@@ -147,7 +141,7 @@ public:
         auto kk = cache_keys(k, bs, start_pos, len);
         auto vv = cache_values(v, bs, start_pos, len);
 
-        auto repeat_kv = [&]<immutable_tensor4d Tensor>(Tensor&& t) -> auto {
+        auto repeat_kv = [&]<immutable_tensor4_t<T> Tensor>(Tensor&& t) -> auto {
             int slen = t.size(1);
             auto reps = repeat_interleave(t, n_reps, /*dim=*/2, _m_device);
             return reps.view({bs, slen, n_heads, head_dim});
@@ -162,7 +156,6 @@ public:
         values = values.transpose({0, 2, 1, 3});
 
         auto scores = fn::mul(fn::matmul(queries, keys, _m_device), m_scale, _m_device);
-
         if (mask.has_value()) {
             scores = fn::sum2(scores, mask.value(), _m_device);
         }

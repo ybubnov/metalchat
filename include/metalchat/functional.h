@@ -9,6 +9,7 @@
 #include <metalchat/kernel/bmm.h>
 #include <metalchat/kernel/copy.h>
 #include <metalchat/kernel/mul.h>
+#include <metalchat/kernel/silu.h>
 #include <metalchat/kernel/softmax.h>
 #include <metalchat/kernel/sum.h>
 #include <metalchat/tensor_future.h>
@@ -18,21 +19,30 @@ namespace metalchat {
 namespace fn {
 
 
-template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 16>
+template <immutable_tensor Tensor1, immutable_tensor Tensor2>
 auto
 matmul(Tensor1 t1, Tensor2 t2, device& gpu)
 {
-    bmm<typename Tensor1::value_type, BlockSize> op(gpu);
+    bmm<typename Tensor1::value_type> op(gpu);
     return op(t1, t2);
 }
 
 
-template <immutable_tensor Tensor, typename T, std::size_t BlockSize = 16>
+template <immutable_tensor Tensor, typename T>
 auto
 mul(Tensor t, const T multiplier, device& gpu)
 {
     scalar_mul<typename Tensor::value_type> op(gpu);
     return op(t, multiplier);
+}
+
+
+template <immutable_tensor Tensor1, immutable_tensor Tensor2>
+auto
+hadamard(Tensor1 t1, Tensor2 t2, device& gpu)
+{
+    metalchat::hadamard<typename Tensor1::value_type> op(gpu);
+    return op(t1, t2);
 }
 
 
@@ -45,7 +55,7 @@ sum(Tensor1 t1, Tensor2 t2, device& gpu)
 }
 
 
-template <immutable_tensor Tensor1, immutable_tensor2d Tensor2>
+template <immutable_tensor Tensor1, immutable_tensor Tensor2>
 auto
 sum2(Tensor1 t1, Tensor2 t2, device& gpu)
 {
@@ -63,15 +73,23 @@ softmax(Tensor t, device& gpu)
 }
 
 
+template <immutable_tensor Tensor>
+auto
+silu(Tensor t, device& gpu)
+{
+    metalchat::silu<typename Tensor::value_type> op(gpu);
+    return op(t);
+}
+
+
 } // namespace fn
 
 
-template <forward_tensor_iterator ForwardIt>
+template <typename T, forward_tensor_iterator_t<T> ForwardIt>
 auto
 concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, device& device)
 {
     using tensor_type = std::iterator_traits<ForwardIt>::value_type;
-    using value_type = tensor_type::value_type;
 
     if (dim > tensor_type::dim()) {
         throw std::invalid_argument(std::format(
@@ -101,10 +119,10 @@ concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, device& device)
         }
     }
 
-    auto output = future_tensor(empty<value_type>(std::move(size0), device));
+    auto output = future_tensor(empty<T>(std::move(size0), device));
     std::size_t offset = 0;
 
-    auto copy_kernel = cpy<value_type>(device);
+    auto copy_kernel = cpy<T>(device);
 
     for (auto first = begin; first != end; ++first) {
         const auto& input = (*first);
@@ -123,17 +141,19 @@ template <immutable_tensor Tensor>
 auto
 concatenate(const std::initializer_list<Tensor> tensors, std::size_t dim, device& device)
 {
-    return concatenate(tensors.begin(), tensors.end(), dim, device);
+    using T = Tensor::value_type;
+    return concatenate<T>(tensors.begin(), tensors.end(), dim, device);
 }
-
 
 template <immutable_tensor Tensor>
 auto
 repeat_interleave(Tensor t, std::size_t repeats, std::size_t dim, device& device)
 {
+    using T = Tensor::value_type;
+
     auto expanded_tensor = t.expand_dims(dim + 1);
     auto rep_tensor = std::views::repeat(expanded_tensor, repeats);
-    auto output = concatenate(rep_tensor.begin(), rep_tensor.end(), dim + 1, device);
+    auto output = concatenate<T>(rep_tensor.begin(), rep_tensor.end(), dim + 1, device);
     return output;
 }
 

@@ -4,8 +4,8 @@
 #include <iostream>
 #include <numbers>
 
-#include <metalchat/functional.h>
 #include <metalchat/kernel/embedding.h>
+#include <metalchat/tensor_shared.h>
 
 
 namespace metalchat {
@@ -25,9 +25,9 @@ public:
       _m_embedding(device)
     {}
 
-    template <immutable_tensor2d InputTensor> requires(integral<typename InputTensor::value_type>)
+    template <immutable_tensor2_t<int32_t> Input>
     auto
-    operator()(InputTensor input)
+    operator()(Input input)
     {
         return _m_embedding(input, _m_weight);
     }
@@ -107,9 +107,9 @@ public:
         }
     }
 
-    template <immutable_tensor4d InputTensor>
+    template <immutable_tensor4_t<T> Input>
     auto
-    operator()(InputTensor input, std::size_t start_pos = 0)
+    operator()(Input input, std::size_t start_pos = 0)
     {
         if (_m_dim != input.sizes().back()) {
             throw std::invalid_argument(std::format(
