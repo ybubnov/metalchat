@@ -31,11 +31,11 @@ gt(__gt_parameters<T> params,
 }
 
 
-__lib_metalchat_kernel2x(gt, bfloat, 8);
-__lib_metalchat_kernel2x(gt, bfloat, 16);
-__lib_metalchat_kernel2x(gt, bfloat, 32);
-__lib_metalchat_kernel2x(gt, bfloat, 128);
+__lib_metalchat_kernel2(gt, bfloat, 8);
+__lib_metalchat_kernel2(gt, bfloat, 16);
+__lib_metalchat_kernel2(gt, bfloat, 32);
+__lib_metalchat_kernel2(gt, bfloat, 128);
 
-__lib_metalchat_kernel2x(gt, float, 8);
-__lib_metalchat_kernel2x(gt, float, 16);
-__lib_metalchat_kernel2x(gt, float, 32);
+__lib_metalchat_kernel2(gt, float, 8);
+__lib_metalchat_kernel2(gt, float, 16);
+__lib_metalchat_kernel2(gt, float, 32);

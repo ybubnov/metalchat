@@ -40,3 +40,12 @@ TEST_CASE("Encode pairs with byte merge", "[bpe]")
     std::vector<bpe::index_type> expect = {3112, 813, 836, 374, 3842, 89663, 13};
     REQUIRE_THAT(actual, Catch::Matchers::Equals(expect));
 }
+
+
+TEST_CASE("Decode special token", "bpe")
+{
+    bpe tokenizer("../Llama-3.2-1B/original/tokenizer.model");
+
+    auto token = tokenizer.decode(128001);
+    REQUIRE(token == "<|end_of_text|>");
+}

@@ -282,6 +282,9 @@ public:
         if (auto tok = _m_rmap.find(id); tok != _m_rmap.end()) {
             return tok->second;
         }
+        if (auto tok = special_tokens.find(id - _m_rmap.size()); tok != special_tokens.end()) {
+            return tok->second;
+        }
         throw std::runtime_error(std::format("bpe: unable to decode id '{}'", id));
     }
 

@@ -55,10 +55,10 @@ rope(
 }
 
 
-__lib_metalchat_kernel2x(rope, bfloat, 8);
-__lib_metalchat_kernel2x(rope, bfloat, 16);
-__lib_metalchat_kernel2x(rope, bfloat, 32);
+__lib_metalchat_kernel2(rope, bfloat, 8);
+__lib_metalchat_kernel2(rope, bfloat, 16);
+__lib_metalchat_kernel2(rope, bfloat, 32);
 
-__lib_metalchat_kernel2x(rope, float, 8);
-__lib_metalchat_kernel2x(rope, float, 16);
-__lib_metalchat_kernel2x(rope, float, 32);
+__lib_metalchat_kernel2(rope, float, 8);
+__lib_metalchat_kernel2(rope, float, 16);
+__lib_metalchat_kernel2(rope, float, 32);

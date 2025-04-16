@@ -33,13 +33,13 @@ copy(
 }
 
 
-__lib_metalchat_kernel2x(copy, bfloat, 8);
-__lib_metalchat_kernel2x(copy, bfloat, 16);
-__lib_metalchat_kernel2x(copy, bfloat, 32);
+__lib_metalchat_kernel2(copy, bfloat, 8);
+__lib_metalchat_kernel2(copy, bfloat, 16);
+__lib_metalchat_kernel2(copy, bfloat, 32);
 
-__lib_metalchat_kernel2x(copy, float, 8);
-__lib_metalchat_kernel2x(copy, float, 16);
-__lib_metalchat_kernel2x(copy, float, 32);
+__lib_metalchat_kernel2(copy, float, 8);
+__lib_metalchat_kernel2(copy, float, 16);
+__lib_metalchat_kernel2(copy, float, 32);
 
 
 template <typename T> struct __scatter_parameters {
@@ -70,14 +70,14 @@ scatter(
     }
 }
 
-__lib_metalchat_kernel2x(scatter, bfloat, 8);
-__lib_metalchat_kernel2x(scatter, bfloat, 16);
-__lib_metalchat_kernel2x(scatter, bfloat, 32);
-__lib_metalchat_kernel2x(scatter, bfloat, 128);
+__lib_metalchat_kernel2(scatter, bfloat, 8);
+__lib_metalchat_kernel2(scatter, bfloat, 16);
+__lib_metalchat_kernel2(scatter, bfloat, 32);
+__lib_metalchat_kernel2(scatter, bfloat, 128);
 
-__lib_metalchat_kernel2x(scatter, float, 8);
-__lib_metalchat_kernel2x(scatter, float, 16);
-__lib_metalchat_kernel2x(scatter, float, 32);
+__lib_metalchat_kernel2(scatter, float, 8);
+__lib_metalchat_kernel2(scatter, float, 16);
+__lib_metalchat_kernel2(scatter, float, 32);
 
 
 #define __gather_parameters(T)                                  \

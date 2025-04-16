@@ -33,10 +33,10 @@ silu(
 }
 
 
-__lib_metalchat_kernel2x(silu, bfloat, 8);
-__lib_metalchat_kernel2x(silu, bfloat, 16);
-__lib_metalchat_kernel2x(silu, bfloat, 32);
+__lib_metalchat_kernel2(silu, bfloat, 8);
+__lib_metalchat_kernel2(silu, bfloat, 16);
+__lib_metalchat_kernel2(silu, bfloat, 32);
 
-__lib_metalchat_kernel2x(silu, float, 8);
-__lib_metalchat_kernel2x(silu, float, 16);
-__lib_metalchat_kernel2x(silu, float, 32);
+__lib_metalchat_kernel2(silu, float, 8);
+__lib_metalchat_kernel2(silu, float, 16);
+__lib_metalchat_kernel2(silu, float, 32);

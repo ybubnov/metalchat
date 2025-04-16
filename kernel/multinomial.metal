@@ -106,10 +106,10 @@ multinomial(
 }
 
 
-__lib_metalchat_kernel2x(multinomial, bfloat, 8);
-__lib_metalchat_kernel2x(multinomial, bfloat, 16);
-__lib_metalchat_kernel2x(multinomial, bfloat, 32);
+__lib_metalchat_kernel2(multinomial, bfloat, 8);
+__lib_metalchat_kernel2(multinomial, bfloat, 16);
+__lib_metalchat_kernel2(multinomial, bfloat, 32);
 
-__lib_metalchat_kernel2x(multinomial, float, 8);
-__lib_metalchat_kernel2x(multinomial, float, 16);
-__lib_metalchat_kernel2x(multinomial, float, 32);
+__lib_metalchat_kernel2(multinomial, float, 8);
+__lib_metalchat_kernel2(multinomial, float, 16);
+__lib_metalchat_kernel2(multinomial, float, 32);
