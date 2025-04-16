@@ -335,7 +335,11 @@ public:
         auto new_shape = new std::size_t[N]{*(this->m_shape->data() + 1), *this->m_shape->data()};
         auto new_strides
             = new std::size_t[N]{*(this->m_strides->data() + 1), *this->m_strides->data()};
-        return tensor<T, 2>(this->m_data->data(), new_shape, new_strides);
+        return tensor<T, 2, weak_ref>(
+            std::move(std::make_unique<weak_ref<T>>(this->m_data->data())),
+            std::move(std::make_unique<owned_ref<std::size_t>>(new_shape)),
+            std::move(std::make_unique<owned_ref<std::size_t>>(new_strides))
+        );
     }
 
     void
