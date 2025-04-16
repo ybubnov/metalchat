@@ -15,19 +15,25 @@ TEST_CASE("Test sorting", "[kernel::sort]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::sort<float, 32> sort(gpu0);
 
-    auto input = shared_tensor(rand<float>({1, 1, 2048}));
-    auto output = sort(input).get();
+    auto input = shared_tensor(rand<float>({1, 4, 2048}));
+    auto [values_future, indices_future] = sort(input);
+    auto values = values_future.get();
+    auto indices = indices_future.get();
 
-    REQUIRE(output.dim() == 3);
-    REQUIRE(output.size(0) == input.size(1));
-    REQUIRE(output.size(1) == input.size(1));
-    REQUIRE(output.size(2) == input.size(2));
+    REQUIRE(values.dim() == 3);
+    REQUIRE(values.size(0) == input.size(0));
+    REQUIRE(values.size(1) == input.size(1));
+    REQUIRE(values.size(2) == input.size(2));
 
-    for (std::size_t i = 0; i < output.size(0); i++) {
-        for (std::size_t j = 0; j < output.size(1); j++) {
-            auto output_ij = output[i][j];
-            std::cout << output_ij << std::endl;
-            REQUIRE(std::is_sorted(output_ij.begin(), output_ij.end(), std::greater<float>()));
+    REQUIRE(indices.dim() == 3);
+    REQUIRE(indices.size(0) == input.size(0));
+    REQUIRE(indices.size(1) == input.size(1));
+    REQUIRE(indices.size(2) == input.size(2));
+
+    for (std::size_t i = 0; i < values.size(0); i++) {
+        for (std::size_t j = 0; j < values.size(1); j++) {
+            auto values_ij = values[i][j];
+            REQUIRE(std::is_sorted(values_ij.begin(), values_ij.end(), std::greater<float>()));
         }
     }
 }
