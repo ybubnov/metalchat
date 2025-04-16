@@ -11,10 +11,8 @@ using namespace metal;
 
 
 template <typename T> struct __copy_parameters {
-    constant tensor_layout<2>& output_layout;
-    device T* output;
-    constant tensor_layout<2>& input_layout;
-    device const T* input;
+    tensor2<T> output;
+    tensor2<const T> input;
 };
 
 
@@ -26,17 +24,14 @@ copy(
     uint tid [[thread_position_in_threadgroup]]
 )
 {
-    tensor<const T, 2> in{params.input, params.input_layout};
-    tensor<T, 2> out{params.output, params.output_layout};
-
-    const uint dim_size = in.size(1);
+    const uint dim_size = params.input.size(1);
     const uint i = gid;
 
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
     for (uint k = begin; k < end && k < dim_size; k++) {
-        out.at(i, k) = in.at(i, k);
+        params.output.at(i, k) = params.input.at(i, k);
     }
 }
 
@@ -51,10 +46,8 @@ __lib_metalchat_kernel(copy, float, 32);
 
 
 template <typename T> struct __scatter_parameters {
-    constant tensor_layout<2>& output_layout;
-    device T* output;
-    constant tensor_layout<2>& mask_layout;
-    device const bool* mask;
+    tensor2<T> output;
+    tensor2<const bool> mask;
     constant T& value;
 };
 
@@ -67,18 +60,15 @@ scatter(
     uint tid [[thread_position_in_threadgroup]]
 )
 {
-    tensor<T, 2> out{params.output, params.output_layout};
-    tensor<const bool, 2> m{params.mask, params.mask_layout};
-
-    const uint dim_size = out.size(1);
+    const uint dim_size = params.output.size(1);
     const uint i = gid;
 
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
     for (uint k = begin; k < end && k < dim_size; k++) {
-        if (m.at(i, k)) {
-            out.at(i, k) = params.value;
+        if (params.mask.at(i, k)) {
+            params.output.at(i, k) = params.value;
         }
     }
 }
@@ -93,12 +83,9 @@ __lib_metalchat_kernel(scatter, float, 32);
 
 
 template <typename T> struct __gather_parameters {
-    constant tensor_layout<2>& output_layout;
-    device T* output;
-    constant tensor_layout<2>& input_layout;
-    device const T* input;
-    constant tensor_layout<2>& index_layout;
-    device const int32_t* index;
+    tensor2<T> output;
+    tensor2<const T> input;
+    tensor2<const int32_t> index;
 };
 
 
@@ -110,18 +97,14 @@ gather(
     uint tid [[thread_position_in_threadgroup]]
 )
 {
-    tensor<T, 2> out{params.output, params.output_layout};
-    tensor<const T, 2> in{params.input, params.input_layout};
-    tensor<const int32_t, 2> idx{params.index, params.index_layout};
-
-    const uint dim_size = idx.size(1);
+    const uint dim_size = params.index.size(1);
     const uint i = gid;
 
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
     for (uint k = begin; k < end && k < dim_size; k++) {
-        out.at(i, k) = in.at(i, idx.at(i, k));
+        params.output.at(i, k) = params.input.at(i, params.index.at(i, k));
     }
 }
 
