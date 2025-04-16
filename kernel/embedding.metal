@@ -4,17 +4,20 @@
 #include <metal_simdgroup>
 #include <metal_stdlib>
 
+#include "tensor.h"
+
 
 using namespace metal;
 
 
-#define __embedding_parameters(T)                \
-    constant uint& dim_size [[buffer(0)]],       \
-    constant uint& emb_size [[buffer(1)]],       \
-    device const int32_t* input [[buffer(2)]],   \
-    device const T* weight [[buffer(3)]],        \
-    device T* output [[buffer(4)]],              \
-    uint2 gid [[threadgroup_position_in_grid]],  \
+#define __embedding_parameters(T)                               \
+    constant tensor_layout<3>& output_layout     [[buffer(0)]], \
+    device T* output                             [[buffer(1)]], \
+    constant tensor_layout<2>& input_layout      [[buffer(2)]], \
+    device const int32_t* input                  [[buffer(3)]], \
+    constant tensor_layout<2>& weight_layout     [[buffer(4)]], \
+    device const T* weight                       [[buffer(5)]], \
+    uint2 gid [[threadgroup_position_in_grid]],                 \
     uint2 tid [[thread_position_in_threadgroup]]
 
 
@@ -38,25 +41,23 @@ embedding(__embedding_parameters(T))
     constexpr uint BLOCK_SIZE = 4;
     constexpr uint EMBEDDING_SIZE = 128;
 
-    // Jump to a particular row of the input, then using `i + j` iterator, iterate
-    // over the potions of ids.
-    device const int32_t* in = input + gid.x * dim_size;
+    tensor<const int32_t, 2> in{input, input_layout};
+    tensor<const T, 2> w{weight, weight_layout};
+    tensor<T, 3> out{output, output_layout};
 
-    // Jump to a particular row (batch) of the output. The logic below essentially
-    // copies portion of elements from the `weight` tensor within a single block.
-    device T* out = output + gid.x * emb_size * dim_size;
+    const uint dim_size = in.size(1);
+    const uint emb_size = w.size(1);
+    const uint i = gid.x;
 
-    uint i = tid.x * BLOCK_SIZE;
-    uint remainder_size = dim_size % BLOCK_SIZE;
-    uint block_size = i + BLOCK_SIZE > dim_size ? remainder_size : BLOCK_SIZE;
+    const uint begin = tid.x * BLOCK_SIZE;
+    const uint end = begin + BLOCK_SIZE;
 
-    uint e = tid.y * EMBEDDING_SIZE;
-    uint emb_remainder_size = emb_size % EMBEDDING_SIZE;
-    uint emb_block_size = e + EMBEDDING_SIZE > emb_size ? emb_remainder_size : EMBEDDING_SIZE;
+    const uint emb_begin = tid.y * EMBEDDING_SIZE;
+    const uint emb_end = emb_begin + EMBEDDING_SIZE;
 
-    for (uint j = 0; j < block_size; j++) {
-        for (uint k = 0; k < emb_block_size; k++) {
-            out[(i + j) * emb_size + e + k] = weight[in[i + j] * emb_size + e + k];
+    for (uint j = begin; j < end && j < dim_size; j++) {
+        for (uint k = emb_begin; k < emb_end && k < emb_size; k++) {
+            out.at(i, j, k) = w.at(in.at(i, j), k);
         }
     }
 }

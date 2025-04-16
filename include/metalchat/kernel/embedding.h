@@ -15,13 +15,15 @@
 namespace metalchat {
 
 
-template <typename T> class embedding : public base_kernel {
+template <typename T> class embedding {
 private:
     inline static const std::string operation_name = "embedding";
 
+    kernel_base _m_kernel;
+
 public:
     embedding(device& device)
-    : base_kernel(operation_name, type_traits<T>::name(), device)
+    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
     template <
@@ -30,12 +32,10 @@ public:
         ContiguousContainer WeightContainer>
     auto
     operator()(
-        const tensor<IndexType, 2, InputContainer>& input,
-        const tensor<T, 2, WeightContainer>& weight
+        shared_tensor<IndexType, 2, InputContainer> input,
+        shared_tensor<T, 2, WeightContainer> weight
     )
     {
-        auto output = empty<T>({input.size(0), input.size(1), weight.size(1)}, m_device);
-
         auto data_size = input.numel();
         auto emb_size = weight.sizes().back();
         auto dim_size = input.sizes().back();
@@ -44,15 +44,15 @@ public:
         constexpr std::size_t block_size = 4;
         constexpr std::size_t eblock_size = 128;
 
-        auto x_size = ceil_div(dim_size, block_size);
-        auto y_size = ceil_div(emb_size, eblock_size);
-        auto thread = dim3(x_size, y_size);
-        auto threads = dim3(x_size * num_rows, y_size);
+        auto thread_size_x = ceil_div(dim_size, block_size);
+        auto thread_size_y = ceil_div(emb_size, eblock_size);
+        auto thread = dim3(thread_size_x, thread_size_y);
+        auto grid = dim3(thread_size_x * num_rows, thread_size_y);
 
-        blocking(threads, thread)(
-            scalar<IndexType>(dim_size), scalar<IndexType>(emb_size), input, weight, output
-        );
-        return output;
+        auto task = kernel_task(_m_kernel, grid, thread);
+        auto fn = task.bind_back(input, weight);
+
+        return empty_future<T>({input.size(0), dim_size, emb_size}, std::move(fn));
     }
 };
 

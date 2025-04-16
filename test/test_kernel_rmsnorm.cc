@@ -16,13 +16,13 @@ using namespace metalchat::dtype;
 
 TEST_CASE("RMSNorm array of ones", "[kernel::rmsnorm]")
 {
-    auto input = full<bf16>({4, 3, 5, 7}, 1.0);
-    auto weight = full<bf16>({7}, 3.0);
+    auto input = shared_tensor(full<bf16>({4, 3, 5, 7}, 1.0));
+    auto weight = shared_tensor(full<bf16>({7}, 3.0));
 
     metalchat::device device("metalchat.metallib");
     metalchat::rmsnorm<bf16> rms(device);
 
-    auto output = rms(input, weight);
+    auto output = rms(input, weight).get();
     REQUIRE(output.numel() == input.numel());
     REQUIRE(output.dim() == input.dim());
 
@@ -41,10 +41,10 @@ TEST_CASE("RMSNorm array of random numbers", "[kernel::rmsnorm]")
     metalchat::device device("metalchat.metallib");
     metalchat::rmsnorm<float> rms(device);
 
-    auto input = rand<float>({3, 5, 2048});
-    auto weight = rand<float>({2048});
+    auto input = shared_tensor(rand<float>({3, 5, 2048}));
+    auto weight = shared_tensor(rand<float>({2048}));
 
-    auto output = rms(input, weight);
+    auto output = rms(input, weight).get();
     REQUIRE(output.numel() == input.numel());
     REQUIRE(output.dim() == input.dim());
 

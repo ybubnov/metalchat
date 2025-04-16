@@ -4,19 +4,23 @@
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
+#include <metalchat/kernel_task.h>
 #include <metalchat/tensor.h>
+#include <metalchat/tensor_future.h>
 
 
 namespace metalchat {
 
 
-template <typename T> class rmsnorm : public base_kernel {
+template <typename T> class rmsnorm {
 private:
     inline static const std::string operation_name = "rmsnorm";
 
+    kernel_base _m_kernel;
+
 public:
     rmsnorm(device& device)
-    : base_kernel(operation_name, type_traits<T>::name(), device)
+    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
     template <
@@ -25,8 +29,8 @@ public:
         ContiguousContainer WeightContainer>
     auto
     operator()(
-        const tensor<T, N, InputContainer>& input,
-        const tensor<T, 1, WeightContainer>& weight,
+        shared_tensor<T, N, InputContainer> input,
+        shared_tensor<T, 1, WeightContainer> weight,
         const float eps = 1e-5
     )
     {
@@ -43,16 +47,14 @@ public:
 
         constexpr std::size_t block_size = 4;
 
-        auto thread_size = ceil_div(dim_size, block_size);
+        auto input_view = input.view({-1, int(dim_size)});
+        auto [grid, thread] = make_kernel_grid_1d(input, block_size);
 
-        auto thread = dim3(thread_size);
-        auto threads = dim3(thread_size * num_rows);
+        auto task = kernel_task(_m_kernel, grid, thread);
+        auto fn = task.bind_back(input_view, weight, shared_tensor(scalar<float>(eps)));
 
-        auto output = empty_like<T>(input, m_device);
-        auto eps_ = scalar<float>(eps);
-
-        blocking(threads, thread)(scalar<int32_t>(dim_size), input, weight, eps_, output);
-        return output;
+        auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
+        return output.view(input.sizes());
     }
 };
 

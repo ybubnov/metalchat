@@ -112,13 +112,13 @@ public:
         m_data = nullptr;
     }
 
-    T*
+    inline T*
     data() override
     {
         return m_data;
     }
 
-    const T*
+    inline const T*
     data() const override
     {
         return m_data;

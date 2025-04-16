@@ -42,14 +42,14 @@ TEST_CASE("Test make model", "[llama]")
     bpe.encode(special_token::begin_text, ids);
     bpe.encode(input_text, ids);
 
-    auto input0 = to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end());
+    auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));
     auto output0 = m(input0, 0);
     auto id = argmax_(output0.get());
     std::cout << input_text;
     std::cout << bpe.decode(id);
 
     for (auto i = input0.size(1); i < 16; i++) {
-        auto input = full<int32_t>({1, 1}, id);
+        auto input = shared_tensor(full<int32_t>({1, 1}, id));
         auto output = m(input, i);
         id = argmax_(output.get());
         std::cout << bpe.decode(id) << std::flush;

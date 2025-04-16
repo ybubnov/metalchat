@@ -10,7 +10,7 @@ namespace nn {
 
 template <typename T, ContiguousContainer Container> class rmsnorm {
 private:
-    tensor<T, 1, Container> _m_weight;
+    shared_tensor<T, 1, Container> _m_weight;
     metalchat::rmsnorm<T> _m_norm;
 
 public:
@@ -24,7 +24,7 @@ public:
 
     template <std::size_t N, ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<T, N, InputContainer>& input, float eps = 1e-5)
+    operator()(shared_tensor<T, N, InputContainer> input, float eps = 1e-5)
     {
         return _m_norm(input, _m_weight, eps);
     }
