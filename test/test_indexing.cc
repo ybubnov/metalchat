@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE(tensor_slice)
     for (auto i = 0; i < T.size(0); i++) {
         for (auto j = 0; j < T.size(1); j++) {
             BOOST_REQUIRE_EQUAL(T[i][j], 5.0);
-            T[i][j] = bf16((i+1)*10 + j);
+            T[i][j] = bf16((i + 1) * 10 + j);
         }
     }
 

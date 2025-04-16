@@ -14,10 +14,7 @@ struct slice {
     std::optional<std::size_t> start;
     std::optional<std::size_t> stop;
 
-    slice(
-        std::optional<std::size_t> start_,
-        std::optional<std::size_t> stop_
-    )
+    slice(std::optional<std::size_t> start_, std::optional<std::size_t> stop_)
     : start(start_),
       stop(stop_)
     {
