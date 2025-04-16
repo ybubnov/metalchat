@@ -270,7 +270,9 @@ public:
             if (auto it = _m_fmap.find(key); it != _m_fmap.end()) {
                 ids.push_back(it->second);
             } else {
-                throw std::runtime_error(std::format("bpe: key '{}' is missing", key));
+                throw std::runtime_error(
+                    std::format("bpe: key '{}'(size={}) is missing", key, key.size())
+                );
             }
             // TODO: else, concatenate byte pairs.
         }
