@@ -70,6 +70,12 @@ public:
         return _m_name;
     }
 
+    hardware_memory_allocator<void>
+    allocator()
+    {
+        return hardware_memory_allocator<void>(_m_function->device());
+    }
+
     std::size_t
     max_threads_per_threadgroup()
     {

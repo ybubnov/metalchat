@@ -681,7 +681,7 @@ template <typename T, std::size_t N, std::forward_iterator InputIt> requires(N >
 auto
 empty(InputIt begin, InputIt end)
 {
-    return empty<T>(begin, end);
+    return tensor<T, N, random_memory_container<T>>(begin, end);
 }
 
 
@@ -702,6 +702,26 @@ empty(InputIt begin, InputIt end, MTL::Device* device)
     return tensor<T, N, hardware_memory_container<T>>(
         begin, end, hardware_memory_allocator<T>(device)
     );
+}
+
+
+template <typename T, immutable_tensor Tensor, allocator_t<T> Allocator>
+auto
+empty_like(const Tensor& like, Allocator alloc)
+{
+    using container_type = Allocator::container_type;
+
+    auto sizes = like.sizes();
+    return tensor<T, Tensor::dim(), container_type>(sizes.begin(), sizes.end(), alloc);
+}
+
+
+template <typename T, immutable_tensor Tensor, hardware_allocator_t<void> Allocator>
+auto
+empty_like(const Tensor& like, Allocator alloc)
+{
+    auto rebind_alloc = rebind_hardware_allocator<T, Allocator>(alloc);
+    return empty_like<T>(like, rebind_alloc);
 }
 
 

@@ -54,10 +54,10 @@ public:
         auto thread = dim3(BlockSize, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_back(input, weight);
+        auto task_future = task.bind_back(input, weight);
 
         // A(MxK) @ B(KxN) -> C(MxN)
-        return empty_future<T>({num_batches, input_size1, weight_size2}, std::move(fn));
+        return empty_future<T>({num_batches, input_size1, weight_size2}, std::move(task_future));
     }
 
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Weight>
@@ -91,7 +91,7 @@ public:
         output_sizes[N - 2] = input.size(N - 2);
         output_sizes[N - 1] = weight.size(N - 1);
 
-        auto output = operator()(input.template flatten<3>(), weight.template flatten<3>());
+        auto output = operator()(flatten<3>(input), flatten<3>(weight));
         return output.view(std::move(output_sizes));
     }
 };
