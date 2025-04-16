@@ -146,15 +146,15 @@ public:
             }
 
             std::string key;
-            match.toUTF8String(key);
-            std::cout << "KEY(" << key << ")" << std::endl;
+            key = match.toUTF8String(key);
 
             if (auto it = _m_fmap.find(key); it != _m_fmap.end()) {
                 ids.push_back(it->second);
+            } else {
+                throw std::runtime_error(std::format("bpe: byte-pair merging is not implemented"));
             }
             // TODO: else, concatenate byte pairs.
         }
-        std::cout << "ENCODE (size)" << ids.size() << std::endl;
     }
 
     template <push_back_container PushBackContainer>
@@ -177,16 +177,21 @@ public:
         return to_tensor<index_type>({ids.size()}, ids.cbegin(), ids.cend());
     }
 
+    const std::string
+    decode(index_type id) const
+    {
+        if (auto tok = _m_rmap.find(id); tok != _m_rmap.end()) {
+            return tok->second;
+        }
+        throw std::runtime_error(std::format("unable to decode id '{}'", id));
+    }
+
     template <std::forward_iterator ForwardIt, push_back_container PushBackContainer>
     void
-    decode(ForwardIt first, ForwardIt last, PushBackContainer output)
+    decode(ForwardIt first, ForwardIt last, PushBackContainer output) const
     {
         for (auto id = first; id != last; ++id) {
-            if (auto tok = _m_rmap.find(*id); tok != _m_rmap.end()) {
-                output.push_back(tok->second);
-            } else {
-                throw std::runtime_error(std::format("unable to decode id '{}'", *id));
-            }
+            output.push_back(decode(*id));
         }
     }
 

@@ -25,6 +25,33 @@ public:
     template <
         integral IndexType,
         ContiguousContainer InputContainer,
+        ContiguousContainer WeightContainer,
+        ContiguousContainer OutputContainer>
+    void
+    operator()(
+        const tensor<IndexType, 1, InputContainer>& input,
+        const tensor<T, 2, WeightContainer>& weight,
+        const tensor<T, 2, OutputContainer>& output
+    )
+    {
+        if (output.size(0) != input.size(0) || output.size(1) != weight.size(1)) {
+            throw std::invalid_argument(std::format(
+                "output tensor should be of size [{}, {}], but is {}", input.size(0),
+                weight.size(1), output.sizes()
+            ));
+        }
+
+        auto stride = scalar<IndexType>(weight.stride(0));
+
+        auto threads = dim3(input.size(0), weight.size(1));
+        auto thread = dim3(1);
+
+        blocking(threads, thread)(input, weight, stride, output);
+    }
+
+    template <
+        integral IndexType,
+        ContiguousContainer InputContainer,
         ContiguousContainer WeightContainer>
     auto
     operator()(
@@ -32,14 +59,8 @@ public:
         const tensor<T, 2, WeightContainer>& weight
     )
     {
-        auto stride = scalar<IndexType>(weight.stride(0));
         auto output = empty<T>({input.size(0), weight.size(1)}, m_device);
-
-        auto threads = dim3(input.size(0), weight.size(1));
-        auto thread = dim3(1);
-
-        blocking(threads, thread)(input, weight, stride, output);
-
+        operator()(input, weight, output);
         return output;
     }
 };
