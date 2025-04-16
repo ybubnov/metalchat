@@ -11,7 +11,7 @@ using namespace metalchat;
 using namespace metalchat::dtype;
 
 
-TEST_CASE("RoPE array of ones", "[functional::rope]")
+TEST_CASE("RoPE array of ones", "[kernel::rope]")
 {
     // {bs, n_heads, seqlen, head_dim}
     std::size_t head_dim = 4;

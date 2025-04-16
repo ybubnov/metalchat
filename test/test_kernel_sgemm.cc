@@ -13,7 +13,7 @@ using namespace metalchat;
 using namespace metalchat::dtype;
 
 
-TEST_CASE("Matmul 4d predefined", "[functional::sgemm]")
+TEST_CASE("Matmul 4d predefined", "[kernel::sgemm]")
 {
     metalchat::device gpu0("metalchat.metallib");
     metalchat::sgemm<bf16> mm(gpu0);

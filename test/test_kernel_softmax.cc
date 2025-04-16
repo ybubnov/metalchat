@@ -15,7 +15,7 @@ using namespace metalchat;
 using namespace metalchat::dtype;
 
 
-TEST_CASE("Softmax predefined array", "[functional::softmax]")
+TEST_CASE("Softmax predefined array", "[kernel::softmax]")
 {
     auto input = empty<bf16>({5});
     for (std::size_t i = 0; i < 5; i++) {
@@ -37,7 +37,7 @@ TEST_CASE("Softmax predefined array", "[functional::softmax]")
 }
 
 
-TEST_CASE("Softmax sum should be 1.0", "[functional::softmax]")
+TEST_CASE("Softmax sum should be 1.0", "[kernel::softmax]")
 {
     auto input = rand<bf16>({30});
 
@@ -51,7 +51,7 @@ TEST_CASE("Softmax sum should be 1.0", "[functional::softmax]")
 }
 
 
-TEST_CASE("Softmax for 4-dimensional tensor", "[functional::softmax]")
+TEST_CASE("Softmax for 4-dimensional tensor", "[kernel::softmax]")
 {
     metalchat::device gpu0("metalchat.metallib");
     metalchat::softmax<bf16> softmax(gpu0);
