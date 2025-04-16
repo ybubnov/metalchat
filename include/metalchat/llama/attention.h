@@ -196,15 +196,15 @@ public:
         keys = keys.transpose({0, 2, 3, 1});
         values = values.transpose({0, 2, 1, 3});
 
-        auto scores = m_mul(m_matmul(*queries.get(), *keys), m_scale);
+        auto scores = m_mul(m_matmul(queries.get(), keys).get(), m_scale).get();
 
         if (mask.has_value()) {
-            scores = m_sum(scores, mask.value());
+            scores = shared_tensor(m_sum(*scores, mask.value()));
         }
-        scores = m_softmax(scores);
+        scores = shared_tensor(m_softmax(*scores));
 
-        auto output = m_matmul(scores, *values).transpose({0, 2, 1, 3});
-        auto output_ = contiguous(shared_tensor(std::move(output)), /*dim=*/1);
+        auto output = m_matmul(scores, values).transpose({0, 2, 1, 3});
+        auto output_ = contiguous(output.get(), /*dim=*/1);
 
         return m_wo(output_.view({bs, len, -1}));
     }

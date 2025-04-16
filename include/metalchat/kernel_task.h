@@ -31,6 +31,22 @@ make_buffer(MTL::Device* device, const shared_tensor<T, 0, value_ref<T>>& t)
 }
 
 
+template <is_tensor Tensor>
+std::tuple<dim3, dim3>
+make_kernel_grid_1d(const Tensor& t, std::size_t block_size)
+{
+    auto data_size = t.numel();
+    auto dim_size = t.sizes().back();
+    auto num_rows = data_size / dim_size;
+
+    auto thread_size = ceil_div(dim_size, block_size);
+    auto thread = dim3(thread_size);
+    auto grid = dim3(thread_size * num_rows);
+
+    return std::forward_as_tuple(grid, thread);
+}
+
+
 template <is_tensor... Args> class kernel_task {
 private:
     kernel_base _m_kernel;

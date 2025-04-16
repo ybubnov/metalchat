@@ -4,7 +4,9 @@
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
+#include <metalchat/kernel_task.h>
 #include <metalchat/tensor.h>
+#include <metalchat/tensor_future.h>
 
 
 namespace metalchat {
@@ -61,13 +63,15 @@ public:
 };
 
 
-template <typename T> class scalar_mul : public base_kernel {
+template <typename T> class scalar_mul {
 private:
     inline static const std::string operation_name = "scalar_mul";
 
+    kernel_base _m_kernel;
+
 public:
     scalar_mul(device& device)
-    : base_kernel(operation_name, type_traits<T>::name(), device)
+    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
     template <
@@ -76,31 +80,35 @@ public:
         ContiguousContainer MultiplierContainer>
     auto
     operator()(
-        const tensor<T, N, InputContainer>& input,
-        const tensor<T, 0, MultiplierContainer>& multiplier
+        shared_tensor<T, N, InputContainer> input,
+        shared_tensor<T, 0, MultiplierContainer> multiplier
     )
     {
         constexpr std::size_t block_size = 32;
 
-        auto data_size = input.numel();
         auto dim_size = input.sizes().back();
-        auto num_rows = data_size / dim_size;
+        auto num_rows = input.numel() / dim_size;
+        auto input_view = input.view({-1, int(dim_size)});
 
-        auto output = empty_like(input, m_device);
+        auto [grid, thread] = make_kernel_grid_1d(input, block_size);
 
-        auto thread_size = ceil_div(dim_size, block_size);
-        auto thread = dim3(thread_size);
-        auto threads = dim3(thread_size * num_rows);
+        auto task = kernel_task(_m_kernel, grid, thread);
+        auto fn = task.bind_back(input_view, multiplier);
 
-        blocking(threads, thread)(scalar<int32_t>(dim_size), input, multiplier, output);
-        return output;
+        auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
+        int output_sizes[N];
+        for (auto i = 0; i < N; i++) {
+            output_sizes[i] = input.size(i);
+        }
+
+        return output.view(std::move(output_sizes));
     }
 
     template <std::size_t N, ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<T, N, InputContainer>& input, const T multiplier)
+    operator()(shared_tensor<T, N, InputContainer> input, const T multiplier)
     {
-        return operator()(input, scalar(multiplier));
+        return operator()(input, shared_tensor(scalar(multiplier)));
     }
 };
 
