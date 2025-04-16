@@ -3,7 +3,7 @@
 
 #include <metalchat/device.h>
 #include <metalchat/format.h>
-#include <metalchat/kernel/sum.h>
+#include <metalchat/kernel/add.h>
 #include <metalchat/tensor_shared.h>
 
 
@@ -13,12 +13,12 @@ using namespace metalchat;
 TEST_CASE("Kernel thread", "[kernel::thread]")
 {
     metalchat::device gpu0("metalchat.metallib", 2);
-    metalchat::sum<float> sum(gpu0);
+    metalchat::add<float> add(gpu0);
 
     auto input1 = shared_tensor(full<float>({3, 4, 5}, 1.0));
-    auto output1 = sum(input1, input1);
-    auto output2 = sum(output1, output1);
-    auto output3 = sum(output2, output2);
+    auto output1 = add(input1, input1);
+    auto output2 = add(output1, output1);
+    auto output3 = add(output2, output2);
 
     auto result = output3.get();
     REQUIRE(result.dim() == 3);

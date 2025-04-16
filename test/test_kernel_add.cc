@@ -6,7 +6,7 @@
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
-#include <metalchat/kernel/sum.h>
+#include <metalchat/kernel/add.h>
 #include <metalchat/tensor.h>
 
 
@@ -14,14 +14,14 @@ using namespace metalchat;
 using namespace metalchat::dtype;
 
 
-TEST_CASE("Sum of 3-dimensional tensors", "[kernel::sum]")
+TEST_CASE("Add 3-dimensional tensors", "[kernel::add]")
 {
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::sum<float> sum(gpu0);
+    metalchat::add<float> add(gpu0);
 
     auto input1 = shared_tensor(rand<float>({1, 4, 2048}));
     auto input2 = shared_tensor(rand<float>({1, 4, 2048}));
-    auto output = sum(input1, input2).get();
+    auto output = add(input1, input2).get();
 
     REQUIRE(output.dim() == 3);
     REQUIRE(output.size(0) == 1);
@@ -41,14 +41,14 @@ TEST_CASE("Sum of 3-dimensional tensors", "[kernel::sum]")
 }
 
 
-TEST_CASE("2-dimensional sum of tensors", "[kernel::sum2]")
+TEST_CASE("Add 2-dimensional tensors", "[kernel::add2]")
 {
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::sum2<float> sum(gpu0);
+    metalchat::add2<float> add(gpu0);
 
     auto input1 = shared_tensor(rand<float>({5, 32, 16, 16}));
     auto input2 = shared_tensor(rand<float>({16, 16}));
-    auto output = sum(input1, input2).get();
+    auto output = add(input1, input2).get();
 
     REQUIRE(output.dim() == 4);
     REQUIRE(output.size(0) == 5);
