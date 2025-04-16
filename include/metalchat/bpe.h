@@ -5,9 +5,11 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <iterator>
 #include <memory>
+#include <queue>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -146,6 +148,62 @@ private:
                                                 R"(\s+(?!\S)|)"
                                                 R"(\s+)");
 
+    template <push_back_container PushBackContainer>
+    void
+    _m_encode_byte_pairs(const std::string& s, PushBackContainer& ids)
+    {
+        std::size_t priority_limit = std::numeric_limits<index_type>::max();
+
+        using pair_type = std::pair<index_type, std::size_t>;
+
+        std::priority_queue<pair_type, std::vector<pair_type>, std::greater<pair_type>> ordering;
+        std::vector<pair_type> encoding;
+
+        // Get the priority from the map, when the key is not resented, return a
+        // limit of the priority.
+        auto get_priority = [&](const std::string& key) -> index_type {
+            if (auto it = _m_fmap.find(key); it != _m_fmap.end()) {
+                return it->second;
+            }
+            return priority_limit;
+        };
+
+        for (std::size_t i = 0; i < s.size() - 1; i++) {
+            auto key = s.substr(i, i + 2);
+            auto priority = get_priority(key);
+
+            ordering.emplace(priority, i);
+            encoding.emplace_back(priority, i);
+        }
+
+        while (!ordering.empty()) {
+            auto [priority, i] = ordering.top();
+            ordering.pop();
+            if (i >= encoding.size() - 1) {
+                continue;
+            }
+
+            auto begin = encoding[i].second;
+            auto end = encoding[i + 1].second;
+            auto key = s.substr(begin, end);
+
+            auto merged_priority = get_priority(s.substr(begin, end));
+
+            encoding[i].first = merged_priority;
+            encoding.erase(encoding.begin() + i + 1);
+
+            // Merge elements, then push a merge into the queue for further merges.
+            if (merged_priority < priority_limit) {
+                ordering.emplace(merged_priority, i);
+            }
+        }
+
+        for (std::size_t i = 0; i < encoding.size() - 1; i++) {
+            auto key = s.substr(encoding[i].second, encoding[i + 1].second);
+            ids.push_back(_m_fmap.at(key));
+        }
+    }
+
 public:
     static constexpr index_type pad = -1;
 
@@ -185,11 +243,8 @@ public:
             if (auto it = _m_fmap.find(key); it != _m_fmap.end()) {
                 ids.push_back(it->second);
             } else {
-                throw std::runtime_error(
-                    std::format("bpe: key '{}'(size={}) is missing", key, key.size())
-                );
+                _m_encode_byte_pairs(key, ids);
             }
-            // TODO: else, concatenate byte pairs.
         }
     }
 
