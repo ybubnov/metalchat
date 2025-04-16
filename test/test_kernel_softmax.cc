@@ -17,7 +17,7 @@ using namespace metalchat::dtype;
 
 TEST_CASE("Softmax predefined array", "[kernel::softmax]")
 {
-    auto input = empty<bf16>({5});
+    auto input = shared_tensor(empty<bf16>({5}));
     for (std::size_t i = 0; i < 5; i++) {
         input[i] = bf16(i);
     }
@@ -25,7 +25,7 @@ TEST_CASE("Softmax predefined array", "[kernel::softmax]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::softmax<bf16> softmax(gpu0);
 
-    auto output = softmax(input);
+    auto output = softmax(input).get();
 
     REQUIRE(input.dim() == output.dim());
     REQUIRE(input.size(0) == output.size(0));
@@ -39,12 +39,11 @@ TEST_CASE("Softmax predefined array", "[kernel::softmax]")
 
 TEST_CASE("Softmax sum should be 1.0", "[kernel::softmax]")
 {
-    auto input = rand<bf16>({30});
-
     metalchat::device gpu0("metalchat.metallib");
     metalchat::softmax<bf16> softmax(gpu0);
 
-    auto output = softmax(input);
+    auto input = shared_tensor(rand<bf16>({30}));
+    auto output = softmax(input).get();
 
     auto sum = std::reduce(output.data_ptr(), output.data_ptr() + output.numel());
     REQUIRE_THAT(sum, Catch::Matchers::WithinAbs(1.0, 0.01));
@@ -56,8 +55,8 @@ TEST_CASE("Softmax for 4-dimensional tensor", "[kernel::softmax]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::softmax<float> softmax(gpu0);
 
-    auto input = rand<float>({1, 32, 4, 4});
-    auto output = softmax(input);
+    auto input = shared_tensor(rand<float>({1, 32, 4, 4}));
+    auto output = softmax(input).get();
 
     for (auto i = 0; i < input.size(0); i++) {
         for (auto j = 0; j < input.size(1); j++) {

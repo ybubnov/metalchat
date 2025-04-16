@@ -3,6 +3,7 @@ set(metalchat_KERNEL_LIBRARY "metalchat.metallib")
 
 string(STRIP metalchat_TARGET ${metalchat_TARGET})
 
+file(GLOB metalchat_KERNEL_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 file(GLOB metalchat_KERNEL_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.metal)
 
 
@@ -11,7 +12,10 @@ foreach(metalchat_KERNEL_SOURCE ${metalchat_KERNEL_SOURCES})
 
     add_custom_command(
         OUTPUT ${metalchat_KERNEL_NAME}.air
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${metalchat_KERNEL_NAME}.metal ${COMMON_DEPENDENCIES}
+        DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/${metalchat_KERNEL_NAME}.metal
+            ${COMMON_DEPENDENCIES}
+            ${metalchat_KERNEL_HEADERS}
         COMMAND xcrun -v -sdk macosx metal
         ${METAL_FLAGS}
         -I .

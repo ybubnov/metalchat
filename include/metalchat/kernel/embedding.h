@@ -93,9 +93,7 @@ public:
             ));
         }
 
-        auto thread_size = ceil_div(dim_size, block_size);
-        auto grid = dim3(thread_size * num_rows);
-        auto thread = dim3(thread_size);
+        auto [grid, thread] = make_kernel_grid_1d(input, block_size);
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto fn = task.bind_front(

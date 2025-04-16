@@ -201,7 +201,7 @@ public:
         if (mask.has_value()) {
             scores = shared_tensor(m_sum(*scores, mask.value()));
         }
-        scores = shared_tensor(m_softmax(*scores));
+        scores = m_softmax(scores).get();
 
         auto output = m_matmul(scores, values).transpose({0, 2, 1, 3});
         auto output_ = contiguous(output.get(), /*dim=*/1);

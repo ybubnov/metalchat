@@ -198,6 +198,12 @@ public:
         return shared_tensor(_m_value->index_select(slices...));
     }
 
+    auto
+    operator[](std::size_t i) requires(N > 1)
+    {
+        return shared_tensor<T, N - 1, weak_ref<T>>(_m_value->at(i));
+    }
+
 private:
     std::shared_ptr<tensor_type> _m_value;
 };
