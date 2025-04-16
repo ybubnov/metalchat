@@ -49,8 +49,10 @@ private:
     std::size_t _m_max_seq_len;
     float _m_theta;
 
-    tensor<float, 2, owning_ref<float>> _m_freqs_cos;
-    tensor<float, 2, owning_ref<float>> _m_freqs_sin;
+    tensor<float, 2, device_ref<float>> _m_freqs_cos;
+    tensor<float, 2, device_ref<float>> _m_freqs_sin;
+
+    metalchat::rope<T> _m_rope;
 
     void
     scale_freqs(
@@ -81,12 +83,13 @@ private:
 public:
     rope(rope&&) = default;
 
-    rope(std::size_t dim, std::size_t max_seq_len, float theta)
+    rope(std::size_t dim, std::size_t max_seq_len, float theta, device& device)
     : _m_dim(dim),
       _m_max_seq_len(max_seq_len),
       _m_theta(theta),
-      _m_freqs_cos(empty<float>({_m_max_seq_len * 2, _m_dim / 2})),
-      _m_freqs_sin(empty<float>({_m_max_seq_len * 2, _m_dim / 2}))
+      _m_freqs_cos(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, device)),
+      _m_freqs_sin(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, device)),
+      _m_rope(device)
     {
         std::vector<float> freqs(_m_dim / 2);
         for (std::size_t i = 0; i < freqs.size(); i++) {
@@ -115,24 +118,7 @@ public:
             ));
         }
 
-        // bs, seq_len, n_head, head_dim
-        auto output = empty_like(input);
-        for (auto bs = 0; bs < input.size(0); bs++) {
-            for (auto i = 0; i < input.size(1); i++) {
-                for (auto j = 0; j < input.size(2); j++) {
-                    for (auto k = 0; k < _m_dim / 2; k++) {
-                        auto x1 = input[bs, i, j, 2 * k];
-                        auto x2 = input[bs, i, j, 2 * k + 1];
-                        auto cos = _m_freqs_cos[start_pos + i, k];
-                        auto sin = _m_freqs_sin[start_pos + i, k];
-
-                        output[bs, i, j, 2 * k] = cos * x1 - sin * x2;
-                        output[bs, i, j, 2 * k + 1] = sin * x1 + cos * x2;
-                    }
-                }
-            }
-        }
-        return output;
+        return _m_rope(input, _m_freqs_cos, _m_freqs_sin, start_pos);
     }
 };
 

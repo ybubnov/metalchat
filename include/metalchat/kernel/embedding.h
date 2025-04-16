@@ -59,81 +59,50 @@ template <typename T> class rope : public kernel {
 private:
     inline static const std::string operation_name = "rope";
 
-    std::size_t m_dim;
-    float m_theta;
-    float m_scale;
-
 public:
-    rope(device& device, std::size_t dim, float theta = 500000.0, float scale = 1.0)
-    : kernel(operation_name, type_traits<T>::name(), device),
-      m_dim(dim),
-      m_theta(theta),
-      m_scale(scale)
+    rope(device& device)
+    : kernel(operation_name, type_traits<T>::name(), device)
     {}
 
-    // Implements the rotary positional encoding.
-    //
-    // Shape:
-    //   - Input: :math:`(B, N, L, D)`, where :math:`B` is a batch size, :math:`N` is a number
-    //            of attention heads, :math:`L` is a sequence length, and :math:`D` is a head
-    //            dimension.
-    //   - Output: :math:`(B, N, L, D)`, same as input.
-    template <ContiguousContainer InputContainer, ContiguousContainer MultiplierContainer>
+    template <ContiguousContainer InputContainer, ContiguousContainer FrequenciesContainer>
     auto
     operator()(
         const tensor<T, 4, InputContainer>& input,
-        const tensor<int32_t, 0, MultiplierContainer>& offset
+        const tensor<float, 2, FrequenciesContainer>& freqs_cos,
+        const tensor<float, 2, FrequenciesContainer>& freqs_sin,
+        std::size_t start_pos
     )
     {
-        std::cout << "ROPE input=" << input.sizes() << std::endl;
-        assert((input.is_contiguous()));
-        assert((input.size(3) % 2 == 0));
+        constexpr std::size_t block_size = 32;
 
-        if (input.size(3) != m_dim) {
+        auto bs = input.size(0);
+        auto n_head = input.size(2);
+
+        auto data_size = input.numel();
+        auto dim_size = input.sizes().back();
+        auto num_rows = data_size / dim_size;
+
+        if (auto head_dim = freqs_cos.size(1); dim_size != head_dim * 2) {
             throw std::invalid_argument(std::format(
                 "kernel::rope: the last dimension of the input should be {}, but received {}",
-                m_dim, input.size(3)
+                head_dim * 2, dim_size
             ));
         }
 
-        constexpr std::size_t block_size = 4;
+        auto thread_size = ceil_div(dim_size, block_size);
+        auto thread = dim3(thread_size);
+        auto threads = dim3(thread_size * num_rows);
 
-        auto input_strides = empty<uint32_t>({3});
-        auto output_strides = empty<uint32_t>({3});
-
+        auto input_view = input.view({-1, int(dim_size)});
         auto output = empty_like(input, m_device);
-        auto mat_size = input.size(2) * input.size(3);
-
-        input_strides[0] = mat_size;
-        input_strides[1] = input.stride(2);
-        input_strides[2] = input.stride(3);
-
-        output_strides[0] = mat_size;
-        output_strides[1] = output.stride(2);
-        output_strides[2] = output.stride(3);
-
-        auto n_batch = input.numel() / mat_size;
-
-        auto dim0 = m_dim / 2;
-        auto dim1 = input.size(2);
-        auto dim2 = ceil_div(n_batch, block_size);
-
-        auto threads = dim3(dim0, dim1, dim2);
-        auto thread = dim3(1, 1, block_size);
+        auto output_view = output.view({-1, int(dim_size)});
 
         blocking(threads, thread)(
-            input, input_strides, output, output_strides, offset, scalar<float>(m_scale),
-            scalar<float>(m_theta), scalar<uint32_t>(n_batch)
+            scalar<int32_t>(bs), scalar<int32_t>(n_head), scalar<int32_t>(start_pos),
+            scalar(freqs_cos.layout()), scalar(freqs_sin.layout()), scalar(input_view.layout()),
+            scalar(output_view.layout()), freqs_cos, freqs_sin, input_view, output_view
         );
-
         return output;
-    }
-
-    template <ContiguousContainer InputContainer>
-    auto
-    operator()(const tensor<T, 4, InputContainer>& input, std::size_t offset = 0)
-    {
-        return operator()(input, scalar<int32_t>(offset));
     }
 };
 
