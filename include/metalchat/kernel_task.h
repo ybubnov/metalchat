@@ -1,5 +1,8 @@
 #pragma once
 
+#include <future>
+
+#include <metalchat/device.h>
 #include <metalchat/kernel.h>
 #include <metalchat/tensor.h>
 #include <metalchat/tensor_shared.h>
@@ -34,21 +37,26 @@ make_kernel_grid_1d(const Tensor& t, std::size_t block_size)
 template <immutable_tensor... Args> class kernel_task {
 private:
     kernel_base _m_kernel;
+    std::shared_ptr<kernel_thread> _m_this_thread_ptr;
 
     std::tuple<Args...> _m_args;
 
     /// Buffers used to keep encodings of the tensors, they are deleted altogether
-    /// with a task object deletion.
+    /// with a task instance deletion.
     std::vector<NS::SharedPtr<MTL::Buffer>> _m_buffers;
 
+    /// Configuration of the Metal grid to invoke this particular kernel. Grid specifies
+    /// the total number of threads in a grid, while thread defines a number of threads
+    /// in a threadgroup.
     dim3 _m_grid;
     dim3 _m_thread;
 
 public:
-    kernel_task(kernel_task&& task) noexcept = default;
+    kernel_task(const kernel_task& task) noexcept = default;
 
     kernel_task(kernel_base kernel, dim3 grid, dim3 thread, std::tuple<Args...>&& args)
     : _m_kernel(kernel),
+      _m_this_thread_ptr(nullptr),
       _m_args(args),
       _m_buffers(),
       _m_grid(grid),
@@ -81,21 +89,36 @@ public:
     }
 
     template <std::size_t... Indices>
-    void
-    operator()(std::shared_ptr<std::promise<void>> promise, std::index_sequence<Indices...>)
+    std::shared_future<void>
+    operator()()
     {
-        // Clear the buffers used from the previous execution of the kernel task.
-        //
+        if (_m_this_thread_ptr != nullptr) {
+            throw std::runtime_error(std::format("kernel_task: the kernel has already been invoked")
+            );
+        }
+
+        _m_this_thread_ptr = _m_kernel.get_this_thread();
+        return _m_this_thread_ptr->push(*this);
+    }
+
+    void
+    encode(MTL::ComputeCommandEncoder* encoder)
+    {
+        return encode(encoder, std::index_sequence_for<Args...>{});
+    }
+
+    template <std::size_t... Indices>
+    void
+    encode(MTL::ComputeCommandEncoder* encoder, std::index_sequence<Indices...>)
+    {
         // Usually there is no reason of executing the kernel task twice, since it's tightly
         // coupled with a tensor future, but kernel task could still be used independently
         // from the tensor future, prepare a clean run of the kernel.
-        _m_buffers.clear();
+        //
+        // This means, buffer list will be simply extended with new arguments.
 
         auto device_ptr = device();
-        auto command_buf = _m_kernel.make_buffer();
-        auto command_encoder = command_buf->computeCommandEncoder(MTL::DispatchTypeConcurrent);
-
-        command_encoder->setComputePipelineState(_m_kernel.pipeline());
+        encoder->setComputePipelineState(_m_kernel.pipeline());
 
         // Move the tensors to a command encoder one-by-one. Prepend each non-scalar tensor
         // (regular multi-dimensional tensors) with a layout: offsets, strides, sizes. This
@@ -107,35 +130,31 @@ public:
             auto& arg = std::get<Indices>(_m_args);
             if (auto buf = arg.memory_move(device_ptr); buf) {
                 auto layout = arg.layout();
-                command_encoder->setBytes(&layout, sizeof(layout), i++);
+                encoder->setBytes(&layout, sizeof(layout), i++);
 
                 _m_buffers.push_back(buf);
-                command_encoder->setBuffer(buf.get(), 0, i);
+                encoder->setBuffer(buf.get(), 0, i);
             } else {
                 const void* data_ptr = arg.data_ptr();
                 std::size_t data_size = sizeof(typename Args::value_type);
-                command_encoder->setBytes(data_ptr, data_size, i);
+                encoder->setBytes(data_ptr, data_size, i);
             }
             i++;
         }(), ...);
 
         MTL::Size threads_per_grid(_m_grid.x, _m_grid.y, _m_grid.z);
         MTL::Size threads_per_group(_m_thread.x, _m_thread.y, _m_thread.z);
-        command_encoder->dispatchThreads(threads_per_grid, threads_per_group);
-        command_encoder->endEncoding();
-
-        // After the completion of the kernel execution, release the promise and all blocks
-        // waiting for the completion of this kernel.
-        command_buf->addCompletedHandler([promise = promise](const MTL::CommandBuffer* buf) {
-            promise->set_value();
-        });
-        command_buf->commit();
+        encoder->dispatchThreads(threads_per_grid, threads_per_group);
     }
 
     void
-    operator()(std::shared_ptr<std::promise<void>> promise)
+    make_ready_at_thread_exit()
     {
-        operator()(promise, std::index_sequence_for<Args...>{});
+        if (_m_this_thread_ptr != nullptr) {
+            _m_this_thread_ptr->make_ready_at_thread_exit();
+        } else {
+            throw std::runtime_error(std::format("kernel_task: task was not invoked"));
+        }
     }
 
     template <immutable_tensor... FrontArgs>

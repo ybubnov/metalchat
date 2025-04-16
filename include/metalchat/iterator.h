@@ -6,9 +6,17 @@
 
 
 #include <metalchat/container.h>
+#include <metalchat/tensor_concept.h>
 
 
 namespace metalchat {
+
+
+template <typename It>
+concept forward_tensor_iterator = std::forward_iterator<It> && requires(It it) {
+    typename std::iterator_traits<It>::value_type;
+    requires immutable_tensor<typename std::iterator_traits<It>::value_type>;
+};
 
 
 template <typename T, std::size_t N> class tensor_iterator {
