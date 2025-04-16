@@ -64,8 +64,8 @@ main()
         std::cout << input << std::endl;
         std::cout << weight << std::endl;
 
-        metalchat::nn::sgemm<bf16> sgemm(gpu0);
-        auto result = sgemm(input, weight.t());
+        metalchat::nn::linear linear(gpu0, weight);
+        auto result = linear(input);
 
         std::cout << "result=" << result << std::endl;
     }

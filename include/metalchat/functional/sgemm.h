@@ -10,7 +10,6 @@
 
 
 namespace metalchat {
-namespace nn {
 
 
 template <typename T> class sgemm : public kernel {
@@ -28,9 +27,11 @@ public:
     : kernel(std::format("{}_{}", operation_name, type_traits<T>::name()), device)
     {}
 
-    template <template <typename U> class InputRef, template <typename V> class WeightRef>
-    tensor<T, 2, device_ref>
-    operator()(const tensor<T, 2, InputRef>& input, const tensor<T, 2, WeightRef>& weight)
+    template <ContiguousContainer InputContainer, ContiguousContainer WeightContainer>
+    auto
+    operator()(
+        const tensor<T, 2, InputContainer>& input, const tensor<T, 2, WeightContainer>& weight
+    )
     {
         assert(input.size(1) == weight.size(0));
 
@@ -49,5 +50,4 @@ public:
 };
 
 
-} // namespace nn
 } // namespace metalchat

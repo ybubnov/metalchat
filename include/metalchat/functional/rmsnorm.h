@@ -9,7 +9,6 @@
 
 
 namespace metalchat {
-namespace nn {
 
 
 template <typename T> class rmsnorm : public kernel {
@@ -21,11 +20,11 @@ public:
     : kernel(std::format("{}_{}", operation_name, type_traits<T>::name()), device)
     {}
 
-    template <template <typename U> class InputRef, template <typename V> class WeightRef>
+    template <ContiguousContainer InputContainer, ContiguousContainer WeightContainer>
     tensor<T, 1, device_ref>
     operator()(
-        const tensor<T, 1, InputRef>& input,
-        const tensor<T, 1, WeightRef>& weight,
+        const tensor<T, 1, InputContainer>& input,
+        const tensor<T, 1, WeightContainer>& weight,
         const T eps = T(1e-5)
     )
     {
@@ -43,5 +42,4 @@ public:
 };
 
 
-} // namespace nn
 } // namespace metalchat

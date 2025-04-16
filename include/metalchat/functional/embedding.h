@@ -9,7 +9,6 @@
 
 
 namespace metalchat {
-namespace nn {
 
 
 template <typename T> class embedding : public kernel {
@@ -21,9 +20,11 @@ public:
     : kernel(std::format("{}_{}", operation_name, type_traits<T>::name()), device)
     {}
 
-    template <template <typename U> class InputRef, template <typename V> class WeightRef>
+    template <ContiguousContainer InputContainer, ContiguousContainer WeightContainer>
     auto
-    operator()(const tensor<int32_t, 1, InputRef>& input, const tensor<T, 2, WeightRef>& weight)
+    operator()(
+        const tensor<int32_t, 1, InputContainer>& input, const tensor<T, 2, WeightContainer>& weight
+    )
     {
         auto stride = scalar<int32_t>(weight.stride(0));
         auto output = empty<T>({input.size(0), weight.size(1)}, m_device);
@@ -36,5 +37,4 @@ public:
 };
 
 
-} // namespace nn
 } // namespace metalchat

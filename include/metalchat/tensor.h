@@ -9,6 +9,7 @@
 #include <type_traits>
 #include <utility>
 
+#include <metalchat/container.h>
 #include <metalchat/device.h>
 #include <metalchat/format.h>
 
@@ -16,153 +17,8 @@
 namespace metalchat {
 
 
-template <typename T> struct array_ref {
-    using ptr_type = T*;
-
-    virtual ptr_type
-    data()
-        = 0;
-
-    virtual const T*
-    data() const
-        = 0;
-
-    T*
-    operator*()
-    {
-        return data();
-    }
-
-    virtual ~array_ref() {}
-};
-
-
-template <typename T, template <typename U> class Reference, class OutputIt>
-    requires(std::derived_from<Reference<T>, array_ref<T>>)
-OutputIt
-reverse_copy(const Reference<T>& first, std::size_t count, OutputIt d_first)
-{
-    auto last = first.data() + count;
-    for (; first.data() != last; ++d_first)
-        *d_first = *(--last);
-    return d_first;
-}
-
-
-template <typename T> struct weak_ref : public array_ref<T> {
-private:
-    T* m_data = nullptr;
-
-public:
-    weak_ref(T* data)
-    : m_data(data)
-    {}
-
-    weak_ref(const weak_ref& ref)
-    : weak_ref(ref.m_data)
-    {}
-
-    T*
-    data() override
-    {
-        return m_data;
-    }
-
-    const T*
-    data() const override
-    {
-        return m_data;
-    }
-
-    ~weak_ref() { m_data = nullptr; }
-};
-
-template <typename T> struct owned_ref : public array_ref<T> {
-private:
-    T* m_data = nullptr;
-
-public:
-    owned_ref(T* data)
-    : m_data(data)
-    {}
-
-    owned_ref(const owned_ref& ref) = delete;
-
-    ~owned_ref()
-    {
-        delete[] m_data;
-        m_data = nullptr;
-        std::cout << "owned_ref::~owned_ref()" << std::endl;
-    }
-
-    T*
-    data() override
-    {
-        return m_data;
-    }
-
-    const T*
-    data() const override
-    {
-        return m_data;
-    }
-};
-
-
-template <typename T> struct device_ref : public array_ref<T> {
-    using ptr_type = NS::SharedPtr<MTL::Buffer>;
-
-    ptr_type m_buf;
-
-    device_ref(NS::SharedPtr<MTL::Buffer> buf)
-    : m_buf(buf)
-    {}
-
-    ~device_ref() { std::cout << "device_ref::~device_ref()" << std::endl; }
-
-    T*
-    data() override
-    {
-        return static_cast<T*>(m_buf->contents());
-    }
-
-    const T*
-    data() const override
-    {
-        return static_cast<T*>(m_buf->contents());
-    }
-};
-
-
-template <typename T> struct value_ref : public array_ref<T> {
-private:
-    T m_data;
-
-public:
-    using ptr_type = T*;
-
-    value_ref(T data)
-    : m_data(data)
-    {}
-
-    T*
-    data() override
-    {
-        return &m_data;
-    }
-
-    const T*
-    data() const override
-    {
-        return &m_data;
-    }
-};
-
-
-template <typename T, template <typename U> class Reference>
-    requires(std::derived_from<Reference<T>, array_ref<T>>)
-struct tensor_traits {
-    using data_type = std::unique_ptr<Reference<T>>;
+template <typename T, ContiguousContainer Container> struct tensor_traits {
+    using data_type = std::unique_ptr<Container>;
     using size_type = std::unique_ptr<array_ref<std::size_t>>;
 
     template <typename V, template <typename U> class ref_type>
@@ -186,11 +42,9 @@ struct tensor_traits {
 };
 
 
-template <typename T, std::size_t N, template <typename U> class Reference>
-    requires(std::derived_from<Reference<T>, array_ref<T>>)
-class tensor_base {
+template <typename T, std::size_t N, ContiguousContainer Container> class tensor_base {
 public:
-    using traits = tensor_traits<T, Reference>;
+    using traits = tensor_traits<T, Container>;
 
     tensor_base(T* data, std::size_t* shape, std::size_t* strides)
     : m_data(traits::weak_move(data)),
@@ -204,7 +58,7 @@ public:
       m_strides(std::move(strides))
     {}
 
-    tensor_base(tensor_base<T, N, Reference>&& t)
+    tensor_base(tensor_base<T, N, Container>&& t)
     : m_data(std::move(t.m_data)),
       m_shape(std::move(t.m_shape)),
       m_strides(std::move(t.m_strides))
@@ -291,18 +145,18 @@ protected:
 };
 
 
-template <typename T, std::size_t N, template <typename U> class Reference = weak_ref>
+template <typename T, std::size_t N, ContiguousContainer Container = weak_ref<T>>
 struct tensor_format {
-    const tensor_base<T, N, Reference>& tensor;
+    const tensor_base<T, N, Container>& tensor;
     const int w;
 
-    tensor_format(const tensor_base<T, N, Reference>& tensor_, const int w_ = 0)
+    tensor_format(const tensor_base<T, N, Container>& tensor_, const int w_ = 0)
     : tensor(tensor_),
       w(w_)
     {}
 
     friend std::ostream&
-    operator<<(std::ostream& os, const tensor_format<T, N, Reference>& tf)
+    operator<<(std::ostream& os, const tensor_format<T, N, Container>& tf)
     {
         tf.tensor.data_repr(os, tf.w);
         return os;
@@ -310,27 +164,26 @@ struct tensor_format {
 };
 
 
-template <typename T, std::size_t N, template <typename U> class Reference>
+template <typename T, std::size_t N, ContiguousContainer Container>
 std::ostream&
-operator<<(std::ostream& os, const tensor_base<T, N, Reference>& t)
+operator<<(std::ostream& os, const tensor_base<T, N, Container>& t)
 {
-    os << tensor_format<T, N, Reference>(t, 1) << ", shape=(" << t.shape() << ")";
+    os << tensor_format<T, N, Container>(t, 1) << ", shape=(" << t.shape() << ")";
     return os;
 }
 
 
-template <typename T, std::size_t N, template <typename U> class Reference = weak_ref>
-    requires(std::derived_from<Reference<T>, array_ref<T>>)
-class tensor : public tensor_base<T, N, Reference> {
+template <typename T, std::size_t N, ContiguousContainer Container = weak_ref<T>>
+class tensor : public tensor_base<T, N, Container> {
 public:
-    using traits = tensor_traits<T, Reference>;
+    using traits = tensor_traits<T, Container>;
 
     tensor(T* data, std::size_t* shape, std::size_t* strides)
-    : tensor_base<T, N, Reference>(data, shape, strides)
+    : tensor_base<T, N, Container>(data, shape, strides)
     {}
 
     tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
-    : tensor_base<T, N, Reference>(std::move(data), std::move(shape), std::move(strides))
+    : tensor_base<T, N, Container>(std::move(data), std::move(shape), std::move(strides))
     {}
 
     tensor<T, N - 1>
@@ -360,7 +213,7 @@ public:
     template <typename = void>
         requires(N == 2)
     auto
-    t()
+    t() const
     {
         auto shape = new std::size_t[N];
         auto strides = new std::size_t[N];
@@ -368,7 +221,7 @@ public:
         reverse_copy(*this->m_shape, N, shape);
         reverse_copy(*this->m_strides, N, strides);
 
-        return tensor<T, 2, weak_ref>(
+        return tensor(
             std::move(std::make_unique<weak_ref<T>>(this->m_data->data())),
             std::move(std::make_unique<owned_ref<std::size_t>>(shape)),
             std::move(std::make_unique<owned_ref<std::size_t>>(strides))
@@ -409,18 +262,17 @@ public:
 };
 
 
-template <typename T, template <typename U> class Reference>
-    requires(std::derived_from<Reference<T>, array_ref<T>>)
-class tensor<T, 1, Reference> : public tensor_base<T, 1, Reference> {
+template <typename T, ContiguousContainer Container>
+class tensor<T, 1, Container> : public tensor_base<T, 1, Container> {
 public:
-    using traits = tensor_traits<T, Reference>;
+    using traits = tensor_traits<T, Container>;
 
     tensor(T* data, std::size_t* shape, std::size_t* strides)
-    : tensor_base<T, 1, Reference>(data, shape, strides)
+    : tensor_base<T, 1, Container>(data, shape, strides)
     {}
 
     tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
-    : tensor_base<T, 1, Reference>(std::move(data), std::move(shape), std::move(strides))
+    : tensor_base<T, 1, Container>(std::move(data), std::move(shape), std::move(strides))
     {}
 
     T&
@@ -456,11 +308,9 @@ public:
     }
 
     auto
-    t()
+    t() const
     {
-        return tensor<T, 1, weak_ref>(
-            this->m_data->data(), this->m_shape->data(), this->m_strides->data()
-        );
+        return tensor(this->m_data->data(), this->m_shape->data(), this->m_strides->data());
     }
 
     void
@@ -488,14 +338,13 @@ public:
 };
 
 
-template <typename T, template <typename U> class Reference>
-    requires(std::derived_from<Reference<T>, array_ref<T>>)
-class tensor<T, 0, Reference> : public tensor_base<T, 0, Reference> {
+template <typename T, ContiguousContainer Container>
+class tensor<T, 0, Container> : public tensor_base<T, 0, Container> {
 public:
-    using traits = tensor_traits<T, Reference>;
+    using traits = tensor_traits<T, Container>;
 
     tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
-    : tensor_base<T, 0, Reference>(std::move(data), std::move(shape), std::move(strides))
+    : tensor_base<T, 0, Container>(std::move(data), std::move(shape), std::move(strides))
     {}
 
     void
@@ -528,7 +377,7 @@ empty(std::size_t (&&sizes)[N])
         strides[i] = strides[i + 1] * shape[i + 1];
     }
 
-    using tensor_type = tensor<T, N, owned_ref>;
+    using tensor_type = tensor<T, N, owned_ref<T>>;
 
     return tensor_type(
         std::move(std::make_unique<owned_ref<T>>(data)),
@@ -542,7 +391,7 @@ template <typename T>
 auto
 scalar(const T& value)
 {
-    using tensor_type = tensor<T, 0, value_ref>;
+    using tensor_type = tensor<T, 0, value_ref<T>>;
 
     return tensor_type(
         std::move(std::make_unique<value_ref<T>>(value)),
@@ -576,7 +425,7 @@ empty(std::size_t (&&sizes)[N], device& device)
         strides[i] = strides[i + 1] * shape[i + 1];
     }
 
-    using tensor_type = tensor<T, N, device_ref>;
+    using tensor_type = tensor<T, N, device_ref<T>>;
 
     return tensor_type(
         std::move(std::make_unique<device_ref<T>>(data)),
@@ -615,10 +464,6 @@ zeros(std::size_t (&&sizes)[N])
 {
     return full<T>(std::move(sizes), 0);
 }
-
-
-using int32_tensor1d = tensor<int32_t, 1>;
-using int32_tensor2d = tensor<int32_t, 2>;
 
 
 } //  namespace metalchat
