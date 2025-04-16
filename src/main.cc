@@ -11,18 +11,17 @@
 int
 main()
 {
-    NS::SharedPtr<NS::String> filepath
-        = NS::TransferPtr(NS::String::string("metalama.metallib", NS::UTF8StringEncoding));
+    auto filepath = NS::TransferPtr(NS::String::string("metalama.metallib", NS::UTF8StringEncoding));
 
-    NS::SharedPtr<NS::URL> url = NS::TransferPtr(NS::URL::fileURLWithPath(filepath.get()));
+    auto url = NS::TransferPtr(NS::URL::fileURLWithPath(filepath.get()));
     std::cout << "kernel=" << url->fileSystemRepresentation() << std::endl;
 
-    NS::SharedPtr<MTL::Device> device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
-    NS::SharedPtr<NS::String> device_name = NS::TransferPtr(device->name());
+    auto device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
+    auto device_name = NS::TransferPtr(device->name());
     std::cout << "name=" << device_name->utf8String() << std::endl;
 
     NS::Error* error = nullptr;
-    NS::SharedPtr<MTL::Library> library = NS::TransferPtr(device->newLibrary(url.get(), &error));
+    auto library = NS::TransferPtr(device->newLibrary(url.get(), &error));
     if (!library) {
         std::cout << "failed to create shader library" << std::endl;
         return 1;
@@ -34,11 +33,11 @@ main()
         std::cout << "registered (" << function_name->utf8String() << ")" << std::endl;
     }
 
-    NS::SharedPtr<NS::String> mul_name
+    auto mul_name
         = NS::TransferPtr(NS::String::string("mul", NS::UTF8StringEncoding));
-    NS::SharedPtr<MTL::Function> mul_kernel = NS::TransferPtr(library->newFunction(mul_name.get()));
+    auto mul_kernel = NS::TransferPtr(library->newFunction(mul_name.get()));
 
-    NS::SharedPtr<MTL::ComputePipelineState> pipeline
+    auto pipeline
         = NS::TransferPtr(device->newComputePipelineState(mul_kernel.get(), &error));
     if (error != nullptr) {
         std::cout << "failed to create compute pipeline" << std::endl;
@@ -46,7 +45,7 @@ main()
     }
     std::cout << "created pipeline" << std::endl;
 
-    NS::SharedPtr<MTL::CommandQueue> command_queue = NS::TransferPtr(device->newCommandQueue());
+    auto command_queue = NS::TransferPtr(device->newCommandQueue());
     std::cout << "created queue" << std::endl;
 
     std::size_t length = 1000;
@@ -61,17 +60,16 @@ main()
         output[i] = 0;
     }
 
-    NS::SharedPtr<MTL::Buffer> input_buf
+    auto input_buf
         = NS::TransferPtr(device->newBuffer(input, length_bytes, MTL::ResourceStorageModeShared));
-    NS::SharedPtr<MTL::Buffer> other_buf
+    auto other_buf
         = NS::TransferPtr(device->newBuffer(other, length_bytes, MTL::ResourceStorageModeShared));
-    NS::SharedPtr<MTL::Buffer> output_buf
+    auto output_buf
         = NS::TransferPtr(device->newBuffer(output, length_bytes, MTL::ResourceStorageModeShared));
     std::cout << "created buffers" << std::endl;
 
-    NS::SharedPtr<MTL::CommandBuffer> command_buf = NS::TransferPtr(command_queue->commandBuffer());
-    NS::SharedPtr<MTL::ComputeCommandEncoder> command_encoder
-        = NS::TransferPtr(command_buf->computeCommandEncoder());
+    auto command_buf = NS::TransferPtr(command_queue->commandBuffer());
+    auto command_encoder = NS::TransferPtr(command_buf->computeCommandEncoder());
 
     std::cout << "computing pipeline" << std::endl;
     command_encoder->setComputePipelineState(pipeline.get());
