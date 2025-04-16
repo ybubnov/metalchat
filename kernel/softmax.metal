@@ -23,11 +23,8 @@ softmax_bf16(
     constexpr uint SIMD_SIZE = 32;
     constexpr uint BLOCK_SIZE = 4;
 
-    input = input + gid * dim_size;   //* threadgroup_size;
-    output = output + gid * dim_size; // * threadgroup_size;
-
-    threadgroup float threadgroup_exp_sum[1];
-    threadgroup float threadgroup_sum[SIMD_SIZE];
+    device const bfloat* in = input + gid * dim_size;
+    device bfloat* out = output + gid * dim_size;
 
     float threadlocal_sum = 0.0f;
 
@@ -36,12 +33,14 @@ softmax_bf16(
     uint block_size = i + BLOCK_SIZE > dim_size ? remainder_size : BLOCK_SIZE;
 
     for (uint j = 0; j < block_size; j++) {
-        bfloat xj = input[i + j];
+        bfloat xj = in[i + j];
         threadlocal_sum += metal::fast::exp(xj);
     }
 
-    float acc = threadlocal_sum;
-    acc = simd_sum(acc);
+    float acc = simd_sum(threadlocal_sum);
+
+    threadgroup float threadgroup_exp_sum[1];
+    threadgroup float threadgroup_sum[SIMD_SIZE];
 
     //  Initialize shared memory
     if (simd_gid == 0) {
@@ -67,6 +66,6 @@ softmax_bf16(
     // Write the outputs
     bfloat exp_sum = bfloat(threadgroup_exp_sum[0]);
     for (uint j = 0; j < block_size; j++) {
-        output[i + j] = bfloat(exp(input[i + j])) * exp_sum;
+        out[i + j] = bfloat(exp(in[i + j])) * exp_sum;
     }
 }

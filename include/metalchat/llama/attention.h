@@ -81,6 +81,9 @@ public:
         values = values.reshape({bs, len, m_options.n_kv_heads, -1}).transpose({0, 2, 1, 3});
 
         // TODO: cache queries and keys.
+        //
+        // TODO: does it even make sense to make the repetition, whould it be better
+        // to adjust the implementation of the "rope", so it uses the same memory?
         queries = queries.expand_dims(queries, 2);
         auto n_queries = std::views::repeat(std::move(queries), m_options.repeats());
         queries = concatenate(n_queries, 2).reshape({bs, m_options.n_heads, len, -1});

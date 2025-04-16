@@ -14,7 +14,7 @@ using namespace metalchat;
 using namespace metalchat::dtype;
 
 
-TEST_CASE("Sum of 4-dimensional tensors", "[functional::sum]")
+TEST_CASE("Sum of 4-dimensional tensors", "[kernel::sum]")
 {
     metalchat::device gpu0("metalchat.metallib");
     metalchat::sum<bf16> sum(gpu0);

@@ -36,7 +36,7 @@ public:
         auto thread_simd_size = ceil_div(thread_size, simd_size);
 
         auto thread = dim3(thread_size * thread_simd_size);
-        auto threads = dim3(thread_size * thread_simd_size * block_size * num_rows);
+        auto threads = dim3(thread_size * thread_simd_size * num_rows);
 
         auto output = empty_like(input, m_device);
 

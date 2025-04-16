@@ -25,6 +25,13 @@ public:
     {
         return m_sgemm(input, m_weight.t());
     }
+
+    template <ContiguousContainer InputContainer>
+    auto
+    operator()(const tensor<T, 4, InputContainer>& input)
+    {
+        return m_sgemm(input, m_weight.t());
+    }
 };
 
 
