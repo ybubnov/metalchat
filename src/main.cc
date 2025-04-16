@@ -61,12 +61,15 @@ main()
     // }
 
     {
-        auto input1 = metalchat::full<bf16>({4, 16}, 10.0);
+        auto input = metalchat::empty<bf16>({5});
+        for (std::size_t i = 0; i < 5; i++) {
+            input[i] = bf16(i);
+        }
 
-        metalchat::scalar_mul<bf16> scalar_mul(gpu0);
+        metalchat::softmax<bf16> softmax(gpu0);
 
-        auto result = scalar_mul(input1, 5.1);
-        std::cout << result << std::endl;
+        std::cout << input << std::endl;
+        std::cout << softmax(input) << std::endl;
     }
 
     return 0;

@@ -5,4 +5,5 @@
 #include <metalchat/functional/rmsnorm.h>
 #include <metalchat/functional/sgemm.h>
 #include <metalchat/functional/silu.h>
+#include <metalchat/functional/softmax.h>
 #include <metalchat/functional/sum.h>
