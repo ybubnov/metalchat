@@ -115,6 +115,31 @@ template <typename T> struct device_ref : public array_ref<T> {
 };
 
 
+template <typename T> struct value_ref : public array_ref<T> {
+private:
+    T m_data;
+
+public:
+    using ptr_type = T*;
+
+    value_ref(T data)
+    : m_data(data)
+    {}
+
+    T*
+    data() override
+    {
+        return &m_data;
+    }
+
+    const T*
+    data() const override
+    {
+        return &m_data;
+    }
+};
+
+
 template <typename T, template <typename U> class Reference>
     requires(std::derived_from<Reference<T>, array_ref<T>>)
 struct tensor_traits {
@@ -386,6 +411,24 @@ public:
 };
 
 
+template <typename T, template <typename U> class Reference>
+    requires(std::derived_from<Reference<T>, array_ref<T>>)
+class tensor<T, 0, Reference> : public tensor_base<T, 0, Reference> {
+public:
+    using traits = tensor_traits<T, Reference>;
+
+    tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
+    : tensor_base<T, 0, Reference>(std::move(data), std::move(shape), std::move(strides))
+    {}
+
+    void
+    data_repr(std::ostream& os, int w) const override
+    {
+        os << *this->data_ptr();
+    }
+};
+
+
 template <typename T, std::size_t N>
     requires(N > 0)
 auto
@@ -414,6 +457,20 @@ empty(std::size_t (&&sizes)[N])
         std::move(std::make_unique<owned_ref<T>>(data)),
         std::move(std::make_unique<owned_ref<std::size_t>>(shape)),
         std::move(std::make_unique<owned_ref<std::size_t>>(strides))
+    );
+}
+
+
+template <typename T>
+auto
+scalar(const T& value)
+{
+    using tensor_type = tensor<T, 0, value_ref>;
+
+    return tensor_type(
+        std::move(std::make_unique<value_ref<T>>(value)),
+        std::move(std::make_unique<value_ref<std::size_t>>(0)),
+        std::move(std::make_unique<value_ref<std::size_t>>(0))
     );
 }
 
@@ -483,8 +540,6 @@ zeros(std::size_t (&&sizes)[N])
 }
 
 
-using bfloat_tensor1d = tensor<__fp16, 1>;
-using bfloat_tensor2d = tensor<__fp16, 2>;
 using int32_tensor1d = tensor<int32_t, 1>;
 using int32_tensor2d = tensor<int32_t, 2>;
 
