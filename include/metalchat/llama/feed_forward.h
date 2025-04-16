@@ -39,12 +39,12 @@ public:
 
     template <ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<T, 3, InputContainer>& input)
+    operator()(shared_tensor<T, 3, InputContainer> input)
     {
-        auto input1 = shared_tensor(m_silu(m_w1(input)));
-        auto input2 = shared_tensor(m_w3(input));
+        auto input2 = m_w3(input);
+        auto input1 = m_silu(m_w1(input).get());
 
-        return m_w2(m_hadamard(input1, input2).get());
+        return m_w2(m_hadamard(input1.get(), input2.get()).get());
     }
 
     friend std::ostream&

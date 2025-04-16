@@ -16,9 +16,9 @@ TEST_CASE("SiLU function", "[kernel::hadamard]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::silu<float> silu(gpu0);
 
-    auto input = rand<float>({3, 5, 8192});
+    auto input = shared_tensor(rand<float>({3, 5, 8192}));
 
-    auto output = silu(input);
+    auto output = silu(input).get();
     REQUIRE(output.dim() == 3);
     REQUIRE(output.size(0) == 3);
     REQUIRE(output.size(1) == 5);
