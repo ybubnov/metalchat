@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 
 #define NS_PRIVATE_IMPLEMENTATION
 #define CA_PRIVATE_IMPLEMENTATION
@@ -54,11 +55,14 @@ public:
 
         m_device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
 
-        NS::Error* error = nullptr;
-        m_library = NS::TransferPtr(m_device->newLibrary(url.get(), &error));
+        NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
+        NS::Error* error_ptr = error.get();
+
+        m_library = NS::TransferPtr(m_device->newLibrary(url.get(), &error_ptr));
 
         if (!m_library) {
-            throw std::runtime_error(error->localizedFailureReason()->utf8String());
+            auto failure_reason = error_ptr->localizedDescription();
+            throw std::runtime_error(failure_reason->utf8String());
         }
     }
 
