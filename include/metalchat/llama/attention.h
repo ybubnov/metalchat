@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <optional>
 
 #include <metalchat/functional/embedding.h>
 #include <metalchat/functional/sgemm.h>
@@ -56,9 +57,9 @@ public:
       m_scale(std::pow(options.head_dim, -0.5))
     {}
 
-    template <ContiguousContainer InputContainer>
-    void
-    operator()(const tensor<T, 3, InputContainer>& input)
+    template <ContiguousContainer InputContainer, ContiguousContainer MaskContainer>
+    auto
+    operator()(const tensor<T, 3, InputContainer>& input const tensor<T, 2, MaskContainer>& mask)
     {
         auto bs = input.size(0);
         auto len = input.size(1);
@@ -71,12 +72,13 @@ public:
         keys = keys.reshape({bs, len, m_options.n_kv_heads, -1}).transpose({0, 2, 1, 3});
         values = values.reshape({bs, len, m_options.n_kv_heads, -1}).transpose({0, 2, 1, 3});
 
+        // TODO: cache queries and keys.
         // TODO: repeat + concatenate queries and keys.
         queries = m_rope(queries);
         keys = m_rope(keys);
 
         auto scores = m_matmul(m_mul(queries, m_scale), keys.transpose({0, 1, 3, 2}));
-        // scores = m_sum(scores, mask);
+        scores = m_sum(scores, mask);
 
         scores = m_softmax(scores);
         auto output = m_matmul(scores, values).transpose({0, 2, 1, 3}).reshape({bs, len, -1});

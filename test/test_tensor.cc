@@ -130,3 +130,18 @@ TEST_CASE("Tensor reshape unsqueeze", "[tensor::reshape]")
     t0[3][4][1][0] = 100.0;
     REQUIRE(t[3][4][1] == 100.0);
 }
+
+
+TEST_CASE("Tensor expand dimensions", "[tensor::expand_dims]")
+{
+    auto t = rand<float>({6, 3, 8, 2});
+    auto t0 = t.expand_dims(2);
+
+    REQUIRE(t0.dim() == 5);
+    REQUIRE(t0.size(0) == 6);
+    REQUIRE(t0.size(1) == 3);
+    REQUIRE(t0.size(2) == 1);
+    REQUIRE(t0.size(3) == 8);
+    REQUIRE(t0.size(4) == 2);
+    REQUIRE(t0.numel() == t.numel());
+}
