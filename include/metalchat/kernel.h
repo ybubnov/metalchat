@@ -9,10 +9,9 @@
 
 
 namespace metalchat {
-namespace nn {
 
 
-class operation {
+class kernel {
 protected:
     std::string m_op;
     device& m_device;
@@ -24,7 +23,7 @@ protected:
 public:
     using buffer_type = NS::SharedPtr<MTL::Buffer>;
 
-    operation(const std::string& op, device& device)
+    kernel(const std::string& op, device& device)
     : m_op(op),
       m_device(device),
       m_fn(device.make_fn(op))
@@ -90,5 +89,28 @@ public:
 };
 
 
-} // namespace nn
+class sum : public kernel {
+public:
+    sum(const std::string& opname, device& device)
+    : kernel(opname, device)
+    {}
+
+    template <
+        typename T,
+        template <typename U> class InputRef>
+    auto
+    operator()(const tensor<T, 1, InputRef>& input)
+    {
+        auto output = full<float>({1}, 0.0);
+
+        // TODO: Write a kernel operation of sum.
+        for (std::size_t i = 0; i < input.size(0); i++) {
+            output[0] += input[i];
+        }
+
+        return output;
+    }
+};
+
+
 } // namespace metalchat

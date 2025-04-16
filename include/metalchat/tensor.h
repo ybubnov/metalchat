@@ -15,8 +15,7 @@
 namespace metalchat {
 
 
-template <typename T>
-struct array_ref {
+template <typename T> struct array_ref {
     using ptr_type = T*;
 
     virtual ptr_type
@@ -31,8 +30,7 @@ struct array_ref {
 };
 
 
-template <typename T>
-struct weak_ref : public array_ref<T> {
+template <typename T> struct weak_ref : public array_ref<T> {
 private:
     T* m_data = nullptr;
 
@@ -60,8 +58,7 @@ public:
     ~weak_ref() { m_data = nullptr; }
 };
 
-template <typename T>
-struct owned_ref : public array_ref<T> {
+template <typename T> struct owned_ref : public array_ref<T> {
 private:
     T* m_data = nullptr;
 
@@ -93,8 +90,7 @@ public:
 };
 
 
-template <typename T>
-struct device_ref : public array_ref<T> {
+template <typename T> struct device_ref : public array_ref<T> {
     using ptr_type = NS::SharedPtr<MTL::Buffer>;
 
     ptr_type m_buf;
@@ -375,6 +371,12 @@ public:
         return this->data_ptr()[i];
     }
 
+    const T&
+    operator[](std::size_t i) const
+    {
+        return this->data_ptr()[i];
+    }
+
     void
     data_repr(std::ostream& os, int w) const override
     {
@@ -467,6 +469,17 @@ auto
 full(std::size_t (&&sizes)[N], const T& fill_value)
 {
     auto t = empty<T>(std::move(sizes));
+    std::fill_n(t.data_ptr(), t.numel(), fill_value);
+    return t;
+}
+
+
+template <typename T, std::size_t N>
+    requires(N > 0)
+auto
+full(std::size_t (&&sizes)[N], const T& fill_value, device& device)
+{
+    auto t = empty<T>(std::move(sizes), device);
     std::fill_n(t.data_ptr(), t.numel(), fill_value);
     return t;
 }

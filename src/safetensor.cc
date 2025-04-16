@@ -1,7 +1,7 @@
 #include <utility>
 
 #include <metalchat/device.h>
-#include <metalchat/nn/embedding.h>
+#include <metalchat/nn.h>
 #include <metalchat/safetensor.h>
 
 
@@ -34,10 +34,14 @@ main()
         auto input = metalchat::full<int32_t>({12}, /*fill_value=*/1);
         std::cout << input << std::endl;
 
-        metalchat::nn::embedding embedding("embedding_bf16", gpu0);
+        metalchat::nn::embedding embedding("embedding_f16", gpu0);
 
         auto result = embedding(input, weight);
         std::cout << result << std::endl;
+
+        metalchat::sum sum("sum_f16", gpu0);
+        auto s = metalchat::full<__fp16>({10}, /*fill_value=*/3);
+        std::cout << "sum = " << sum(s) << std::endl;
     }
 
     auto t = metalchat::empty<int32_t>({1, 2, 3});
