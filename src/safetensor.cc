@@ -1,9 +1,12 @@
 #include <utility>
 
 #include <metalchat/device.h>
+#include <metalchat/dtype.h>
 #include <metalchat/nn.h>
 #include <metalchat/safetensor.h>
-#include <metalchat/types.h>
+
+
+using namespace metalchat::dtype;
 
 
 int
@@ -36,7 +39,7 @@ main()
         auto input = metalchat::full<int32_t>({12}, 1);
         std::cout << input << std::endl;
 
-        metalchat::nn::embedding embedding("embedding_f16", gpu0);
+        metalchat::nn::embedding<bf16> embedding(gpu0);
 
         auto result = embedding(input, weight);
         std::cout << result << std::endl;
@@ -47,7 +50,7 @@ main()
         auto weight = metalchat::full<bf16>({1024}, /*fill_value=*/2.0);
         auto input = metalchat::full<bf16>({1024}, /*fill_value=*/5.0);
 
-        metalchat::nn::rmsnorm rmsnorm("rmsnorm_f16", gpu0);
+        metalchat::nn::rmsnorm<bf16> rmsnorm(gpu0);
         auto result = rmsnorm(input, weight);
         std::cout << result << std::endl;
     }
