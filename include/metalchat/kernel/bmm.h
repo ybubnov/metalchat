@@ -35,10 +35,6 @@ public:
         // A(MxK) @ B(KxN) -> C(MxN)
         auto output = empty<T>({input.size(0), weight.size(1)}, m_device);
 
-        auto m = scalar<int32_t>(input.size(0));
-        auto k = scalar<int32_t>(input.size(1));
-        auto n = scalar<int32_t>(weight.size(1));
-
         constexpr std::size_t block_size = 32;
 
         auto threads = dim3(
@@ -48,9 +44,8 @@ public:
         auto thread = dim3(block_size, block_size);
 
         blocking(threads, thread)(
-            m, n, k, input, weight, output, scalar<int32_t>(input.stride(0)),
-            scalar<int32_t>(input.stride(1)), scalar<int32_t>(weight.stride(0)),
-            scalar<int32_t>(weight.stride(1))
+            input, weight, output, scalar(input.layout()), scalar(weight.layout()),
+            scalar(output.layout())
         );
         return output;
     }

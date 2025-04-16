@@ -27,6 +27,13 @@ template <typename T, ContiguousContainer Container> struct tensor_traits {
 };
 
 
+template <std::size_t N> struct tensor_layout {
+    std::size_t sizes[N];
+    std::size_t strides[N];
+    std::size_t offsets[N];
+};
+
+
 template <typename T, std::size_t N, ContiguousContainer Container> class tensor_base {
 public:
     using traits = tensor_traits<T, Container>;
@@ -185,6 +192,16 @@ public:
         return *m_data;
     }
 
+    tensor_layout<N>
+    layout() const
+    {
+        tensor_layout<N> layout;
+        std::copy_n(m_shape->data(), N, layout.sizes);
+        std::copy_n(m_strides->data(), N, layout.strides);
+        std::copy_n(m_offsets->data(), N, layout.offsets);
+        return layout;
+    }
+
     iterator
     begin()
     {
@@ -232,13 +249,20 @@ public:
 
     template <indexing::size_convertible... S>
     T&
-    value_select(const S&... sizes) requires(sizeof...(sizes) == N)
+    value_select(const S&... indices) requires(sizeof...(indices) == N)
     {
         std::size_t ptr_offset = 0;
         std::size_t dim = 0;
 
         ([&] {
-            auto i = static_cast<std::size_t>(sizes);
+            auto i = static_cast<std::size_t>(indices);
+            if (i >= size(dim)) {
+                throw std::out_of_range(std::format(
+                    "tensor::value_select index {} for dimension {} is outside of range {}", i, dim,
+                    size(dim)
+                ));
+            }
+
             ptr_offset += stride(dim) * (offset(dim) + i);
             dim++;
         }(), ...);

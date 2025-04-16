@@ -35,9 +35,9 @@ make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_
         const std::string layer_name = std::format("layers.{}.", i);
 
         llama::feed_forward ff(
-            tensors[layer_name + "feed_forward.w1.weight"].as<T, 2>(),
-            tensors[layer_name + "feed_forward.w2.weight"].as<T, 2>(),
-            tensors[layer_name + "feed_forward.w3.weight"].as<T, 2>(), device
+            tensors[layer_name + "feed_forward.w1.weight"].as<T, 2>(device),
+            tensors[layer_name + "feed_forward.w2.weight"].as<T, 2>(device),
+            tensors[layer_name + "feed_forward.w3.weight"].as<T, 2>(device), device
         );
 
         llama::attention attention(
