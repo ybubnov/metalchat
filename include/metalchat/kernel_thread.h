@@ -77,6 +77,12 @@ public:
         auto layout = tensor.layout();
         _m_encoder->setBytes(&layout, sizeof(layout), _m_buffer++);
         _m_encoder->setBuffer(tensor.container().storage().get(), 0, _m_buffer++);
+
+        // Mark all hardware-allocated tensors of the command as memory barriers,
+        // so that kernel waits until previous kernels stop writing to that memory,
+        // before running the current kernel.
+        const MTL::Resource* resources[1] = {tensor.container().storage().get()};
+        _m_encoder->memoryBarrier(resources, 1);
     }
 
     template <typename T, immutable_tensor_t<T> Tensor>
@@ -144,7 +150,7 @@ public:
         hardware_heap_allocator<void> alloc
     )
     : _m_commands(NS::TransferPtr(queue->commandBuffer())),
-      _m_encoder(NS::TransferPtr(_m_commands->computeCommandEncoder(MTL::DispatchTypeSerial))),
+      _m_encoder(NS::TransferPtr(_m_commands->computeCommandEncoder(MTL::DispatchTypeConcurrent))),
       _m_allocator(alloc),
       _m_promise(std::make_shared<promise_type>()),
       _m_future(_m_promise->get_future()),
