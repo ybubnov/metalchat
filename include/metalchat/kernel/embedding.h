@@ -19,7 +19,7 @@ template <typename T, std::size_t BlockSize = 16, std::size_t EmbeddingBlockSize
 class embedding {
 private:
     inline static const std::string operation_name
-        = "embedding" + std::to_string(BlockSize) + "x" + std::to_string(EmbeddingBlockSize);
+        = "embedding_" + std::to_string(BlockSize) + "x" + std::to_string(EmbeddingBlockSize);
 
     kernel_base _m_kernel;
 
@@ -53,7 +53,7 @@ public:
 
 template <typename T, std::size_t BlockSize = 16> class rope {
 private:
-    inline static const std::string operation_name = "rope" + std::to_string(BlockSize);
+    inline static const std::string operation_name = "rope_" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 

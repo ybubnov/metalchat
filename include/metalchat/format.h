@@ -5,7 +5,6 @@
 #include <span>
 #include <vector>
 
-
 #include <metalchat/tensor.h>
 #include <metalchat/tensor_future.h>
 #include <metalchat/tensor_shared.h>

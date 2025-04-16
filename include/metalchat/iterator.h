@@ -1,9 +1,7 @@
 #pragma once
 
-
 #include <iterator>
 #include <optional>
-
 
 #include <metalchat/container.h>
 #include <metalchat/tensor_concept.h>

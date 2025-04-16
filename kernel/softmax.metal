@@ -21,12 +21,11 @@ using namespace metal;
     uint simd_gid [[simdgroup_index_in_threadgroup]]
 
 
-template <typename T>
+template <typename T, uint BlockSize>
 kernel void
 softmax(__softmax_parameters(T))
 {
     constexpr uint SIMD_SIZE = 32;
-    constexpr uint BLOCK_SIZE = 4;
 
     tensor<const T, 2> in{input, input_layout};
     tensor<T, 2> out{output, output_layout};
@@ -36,8 +35,8 @@ softmax(__softmax_parameters(T))
     const uint dim_size = in.size(1);
     const uint i = gid;
 
-    const uint begin = tid * BLOCK_SIZE;
-    const uint end = begin + BLOCK_SIZE;
+    const uint begin = tid * BlockSize;
+    const uint end = begin + BlockSize;
 
     for (uint j = begin; j < end && j < dim_size; j++) {
         float xj = float(in.at(i, j));
@@ -78,9 +77,39 @@ softmax(__softmax_parameters(T))
 }
 
 
-template [[host_name("softmax_bf16")]]
-kernel void softmax<bfloat>(__softmax_parameters(bfloat));
+template [[host_name("softmax_1_bf16")]]
+kernel void softmax<bfloat, 1>(__softmax_parameters(bfloat));
+
+template [[host_name("softmax_2_bf16")]]
+kernel void softmax<bfloat, 2>(__softmax_parameters(bfloat));
+
+template [[host_name("softmax_4_bf16")]]
+kernel void softmax<bfloat, 4>(__softmax_parameters(bfloat));
+
+template [[host_name("softmax_8_bf16")]]
+kernel void softmax<bfloat, 8>(__softmax_parameters(bfloat));
+
+template [[host_name("softmax_16_bf16")]]
+kernel void softmax<bfloat, 16>(__softmax_parameters(bfloat));
+
+template [[host_name("softmax_32_bf16")]]
+kernel void softmax<bfloat, 32>(__softmax_parameters(bfloat));
 
 
-template [[host_name("softmax_float")]]
-kernel void softmax<float>(__softmax_parameters(float));
+template [[host_name("softmax_1_float")]]
+kernel void softmax<float, 1>(__softmax_parameters(float));
+
+template [[host_name("softmax_2_float")]]
+kernel void softmax<float, 2>(__softmax_parameters(float));
+
+template [[host_name("softmax_4_float")]]
+kernel void softmax<float, 4>(__softmax_parameters(float));
+
+template [[host_name("softmax_8_float")]]
+kernel void softmax<float, 8>(__softmax_parameters(float));
+
+template [[host_name("softmax_16_float")]]
+kernel void softmax<float, 16>(__softmax_parameters(float));
+
+template [[host_name("softmax_32_float")]]
+kernel void softmax<float, 32>(__softmax_parameters(float));

@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
@@ -12,9 +11,9 @@
 namespace metalchat {
 
 
-template <typename T> class hadamard {
+template <typename T, std::size_t BlockSize = 16> class hadamard {
 private:
-    inline static const std::string operation_name = "hadamard";
+    inline static const std::string operation_name = "hadamard_" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 
@@ -27,8 +26,6 @@ public:
     auto
     operator()(Input1Tensor input1, Input2Tensor input2)
     {
-        constexpr std::size_t block_size = 32;
-
         auto data_size = input1.numel();
         auto dim_size = input1.sizes().back();
         auto num_rows = data_size / dim_size;
@@ -48,7 +45,7 @@ public:
             ));
         }
 
-        auto [grid, thread] = make_kernel_grid_1d(input1, block_size);
+        auto [grid, thread] = make_kernel_grid_1d(input1, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto fn = task.bind_back(input1.template flatten<2>(), input2.template flatten<2>());
@@ -59,9 +56,9 @@ public:
 };
 
 
-template <typename T> class scalar_mul {
+template <typename T, std::size_t BlockSize = 16> class scalar_mul {
 private:
-    inline static const std::string operation_name = "scalar_mul";
+    inline static const std::string operation_name = "scalar_mul_" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 
@@ -74,13 +71,11 @@ public:
     auto
     operator()(InputTensor input, Multiplier multiplier)
     {
-        constexpr std::size_t block_size = 32;
-
         auto dim_size = input.sizes().back();
         auto num_rows = input.numel() / dim_size;
         auto input_view = input.view({-1, int(dim_size)});
 
-        auto [grid, thread] = make_kernel_grid_1d(input, block_size);
+        auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto fn = task.bind_back(input_view, multiplier);
