@@ -88,7 +88,7 @@ public:
     }
 
     template <typename U, std::size_t M>
-    future_tensor(result_type result, future_tensor<U, M>&& future)
+    future_tensor(result_type result, future_tensor<U, M> future)
     : _m_result(result),
       _m_future_mutex(std::make_shared<std::mutex>())
     {
@@ -97,7 +97,7 @@ public:
         // Wait on the same future.
         _m_future = future._m_future;
         _m_future_wait = std::make_shared<future_wait_type::element_type>(
-            std::bind(&future_tensor<U, M>::wait, std::move(future))
+            [future = std::make_shared<future_tensor<U, M>>(future)] { future->wait(); }
         );
     }
 
