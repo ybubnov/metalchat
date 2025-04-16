@@ -50,37 +50,37 @@ __lib_metalchat_kernel(add, float, 16);
 __lib_metalchat_kernel(add, float, 32);
 
 
-#define __add2_parameters(T)                                \
-    constant tensor_layout<3>& output_layout [[buffer(0)]], \
-    device T* output                         [[buffer(1)]], \
-    constant tensor_layout<3>& input1_layout [[buffer(2)]], \
-    device const T* input1                   [[buffer(3)]], \
-    constant tensor_layout<2>& input2_layout [[buffer(4)]], \
-    device const T* input2                   [[buffer(5)]], \
-    uint2 gid [[threadgroup_position_in_grid]],             \
-    uint2 tid [[thread_position_in_threadgroup]]
+template <typename T> struct __add2_parameters {
+    constant tensor_layout<3>& output_layout;
+    device T* output;
+    constant tensor_layout<3>& input1_layout;
+    device const T* input1;
+    constant tensor_layout<2>& input2_layout;
+    device const T* input2;
+};
 
 
-template <typename T>
+template <typename T, uint BlockSize>
 kernel void
-add2(__add2_parameters(T))
+add2(
+    __add2_parameters<T> params,
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]]
+)
 {
-    constexpr uint BLOCK_SIZE_X = 4;
-    constexpr uint BLOCK_SIZE_Y = 4;
-
-    tensor<const T, 3> in1{input1, input1_layout};
-    tensor<const T, 2> in2{input2, input2_layout};
-    tensor<T, 3> out{output, output_layout};
+    tensor<const T, 3> in1{params.input1, params.input1_layout};
+    tensor<const T, 2> in2{params.input2, params.input2_layout};
+    tensor<T, 3> out{params.output, params.output_layout};
 
     const uint dim0_size = in2.size(0);
     const uint dim1_size = in2.size(1);
     const uint i = gid.x;
 
-    const uint begin_x = tid.x * BLOCK_SIZE_X;
-    const uint end_x = begin_x + BLOCK_SIZE_X;
+    const uint begin_x = tid.x * BlockSize;
+    const uint end_x = begin_x + BlockSize;
 
-    const uint begin_y = tid.y * BLOCK_SIZE_Y;
-    const uint end_y = begin_y + BLOCK_SIZE_Y;
+    const uint begin_y = tid.y * BlockSize;
+    const uint end_y = begin_y + BlockSize;
 
     for (uint j = begin_x; j < end_x && j < dim0_size; j++) {
         for (uint k = begin_y; k < end_y && k < dim1_size; k++) {
@@ -90,12 +90,13 @@ add2(__add2_parameters(T))
 }
 
 
-template [[host_name("add2_bfloat")]]
-kernel void add2<bfloat>(__add2_parameters(bfloat));
+__lib_metalchat_kernel2(add2, bfloat, 8);
+__lib_metalchat_kernel2(add2, bfloat, 16);
+__lib_metalchat_kernel2(add2, bfloat, 32);
 
-
-template [[host_name("add2_float")]]
-kernel void add2<float>(__add2_parameters(float));
+__lib_metalchat_kernel2(add2, float, 8);
+__lib_metalchat_kernel2(add2, float, 16);
+__lib_metalchat_kernel2(add2, float, 32);
 
 
 template <typename T> struct __sub_parameters {
