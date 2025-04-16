@@ -27,8 +27,26 @@ template <typename T> struct array_ref {
     data() const
         = 0;
 
+    T*
+    operator*()
+    {
+        return data();
+    }
+
     virtual ~array_ref() {}
 };
+
+
+template <typename T, template <typename U> class Reference, class OutputIt>
+    requires(std::derived_from<Reference<T>, array_ref<T>>)
+OutputIt
+reverse_copy(const Reference<T>& first, std::size_t count, OutputIt d_first)
+{
+    auto last = first.data() + count;
+    for (; first.data() != last; ++d_first)
+        *d_first = *(--last);
+    return d_first;
+}
 
 
 template <typename T> struct weak_ref : public array_ref<T> {
@@ -332,13 +350,16 @@ public:
     auto
     t()
     {
-        auto new_shape = new std::size_t[N]{*(this->m_shape->data() + 1), *this->m_shape->data()};
-        auto new_strides
-            = new std::size_t[N]{*(this->m_strides->data() + 1), *this->m_strides->data()};
+        auto shape = new std::size_t[N];
+        auto strides = new std::size_t[N];
+
+        reverse_copy(*this->m_shape, N, shape);
+        reverse_copy(*this->m_strides, N, strides);
+
         return tensor<T, 2, weak_ref>(
             std::move(std::make_unique<weak_ref<T>>(this->m_data->data())),
-            std::move(std::make_unique<owned_ref<std::size_t>>(new_shape)),
-            std::move(std::make_unique<owned_ref<std::size_t>>(new_strides))
+            std::move(std::make_unique<owned_ref<std::size_t>>(shape)),
+            std::move(std::make_unique<owned_ref<std::size_t>>(strides))
         );
     }
 
