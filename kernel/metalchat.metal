@@ -22,10 +22,22 @@ kernel void
 embedding_bf16(
     device const int32_t* input [[buffer(0)]],
     device const bfloat* weight [[buffer(1)]],
-    device const int64_t& stride [[buffer(2)]],
+    device const int64_t* stride [[buffer(2)]],
     device bfloat* output [[buffer(3)]],
     uint2 index [[thread_position_in_grid]]
 )
 {
-    output[index.x * stride + index.y] = weight[input[index.x] * stride + index.y];
+    output[index.x * stride[0] + index.y] = weight[input[index.x] * stride[0] + index.y];
 }
+
+
+//kernel void
+//rmsnorm_bf16(
+//    device const bfloat* weight [[buffer(0)]],
+//    device const bfloat& eps [[buffer(1)]],
+//    device bfloat* output [[buffer(3)]]
+//    uint index [[thread_position_in_grid]]
+//)
+//{
+//    output[index] = weight[index] * rsqrt(1.0 + eps);
+//}

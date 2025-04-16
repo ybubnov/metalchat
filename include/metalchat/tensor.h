@@ -420,8 +420,9 @@ empty(std::size_t (&&sizes)[N])
     using tensor_type = tensor<T, N, owned_ref>;
 
     return tensor_type(
-        tensor_type::traits::borrow(data), tensor_type::traits::borrow(shape),
-        tensor_type::traits::borrow(strides)
+        std::move(std::make_unique<owned_ref<T>>(data)),
+        std::move(std::make_unique<owned_ref<std::size_t>>(shape)),
+        std::move(std::make_unique<owned_ref<std::size_t>>(strides))
     );
 }
 
@@ -466,7 +467,6 @@ auto
 full(std::size_t (&&sizes)[N], const T& fill_value)
 {
     auto t = empty<T>(std::move(sizes));
-    std::cout << "full" << std::endl;
     std::fill_n(t.data_ptr(), t.numel(), fill_value);
     return t;
 }

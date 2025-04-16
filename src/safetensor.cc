@@ -10,19 +10,21 @@ main()
 {
     {
         metalchat::safetensor_file model_file("../Llama-3.2-1B/model.safetensors");
-        // for (auto [name, tensor] : model_file) {
-        //     std::cout << tensor << std::endl;
-        //     std::cout << name << ": ";
+        /*
+        for (auto [name, tensor] : model_file) {
+             std::cout << tensor << std::endl;
+             std::cout << name << ": ";
 
-        //    if (tensor.dim() == 1) {
-        //        auto t = tensor.as<__fp16, 1>();
-        //        std::cout << t << std::endl;
-        //    }
-        //    if (tensor.dim() == 2) {
-        //        auto t = tensor.as<__fp16, 2>();
-        //        std::cout << t << std::endl;
-        //    }
-        //}
+            if (tensor.dim() == 1) {
+                auto t = tensor.as<__fp16, 1>();
+                std::cout << t << std::endl;
+            }
+            if (tensor.dim() == 2) {
+                auto t = tensor.as<__fp16, 2>();
+                std::cout << t << std::endl;
+            }
+        }
+        */
         metalchat::device gpu0("metalchat.metallib");
         std::cout << "device = " << gpu0.name() << std::endl;
 

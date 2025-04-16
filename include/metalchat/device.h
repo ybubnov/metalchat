@@ -14,6 +14,23 @@
 namespace metalchat {
 
 
+struct dim3 {
+    std::size_t x, y, z;
+
+    constexpr dim3(std::size_t x_, std::size_t y_, std::size_t z_ = 1)
+    : x(x_),
+      y(y_),
+      z(z_)
+    {}
+
+    constexpr dim3(std::size_t n)
+    : x(n),
+      y(n),
+      z(n)
+    {}
+};
+
+
 class device {
 private:
     NS::SharedPtr<MTL::Device> m_device;
