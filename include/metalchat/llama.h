@@ -26,7 +26,8 @@ make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_
         .head_dim = 64,
         .n_heads = 32,
         .n_kv_heads = 8,
-        .base = 500000.0
+        .max_seq_len = 1024,
+        .rope_theta = 500000.0
     };
 
     std::vector<llama::transformer<T, container_type>> layers;
