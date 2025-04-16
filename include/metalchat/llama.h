@@ -17,7 +17,7 @@ make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_
 {
     using container_type = weak_ref<T>;
 
-    nn::embedding embedding(tensors["tok_embeddings.weight"].as<T, 2>(), device);
+    nn::embedding embedding(tensors["tok_embeddings.weight"].as<T, 2>(device), device);
     nn::rmsnorm norm(tensors["norm.weight"].as<T, 1>(), device);
 
     std::cout << embedding << std::endl;

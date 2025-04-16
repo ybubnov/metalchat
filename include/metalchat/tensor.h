@@ -365,7 +365,9 @@ public:
         }
 
         if (new_size != size) {
-            throw std::invalid_argument(std::format("shape is invalid for input size {}", size));
+            throw std::invalid_argument(
+                std::format("tensor::reshape: shape is invalid for input size {}", size)
+            );
         }
 
         return tensor_base<T, M, Container>(std::move(sizes), m_data);

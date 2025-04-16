@@ -20,7 +20,7 @@ namespace llama {
 
 template <typename T, ContiguousContainer Container> class model {
 private:
-    nn::embedding<T, Container> _m_embedding;
+    nn::embedding<T, device_ref<T>> _m_embedding;
     nn::rmsnorm<T, Container> _m_norm;
     nn::linear<T, Container> _m_output;
 
@@ -46,7 +46,7 @@ public:
     model(model&&) = default;
 
     model(
-        nn::embedding<T, Container>&& embedding,
+        nn::embedding<T, device_ref<T>>&& embedding,
         nn::rmsnorm<T, Container>&& norm,
         nn::linear<T, Container>&& output,
         std::vector<transformer<T, Container>>&& layers
