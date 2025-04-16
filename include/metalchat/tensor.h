@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <span>
 #include <sstream>
+#include <type_traits>
 #include <utility>
 
 #include <metalchat/device.h>
@@ -292,15 +293,13 @@ template <typename T, std::size_t N, template <typename U> class Reference = wea
     requires(std::derived_from<Reference<T>, array_ref<T>>)
 class tensor : public tensor_base<T, N, Reference> {
 public:
+    using traits = tensor_traits<T, Reference>;
+
     tensor(T* data, std::size_t* shape, std::size_t* strides)
     : tensor_base<T, N, Reference>(data, shape, strides)
     {}
 
-    tensor(
-        std::unique_ptr<Reference<T>>&& data,
-        std::unique_ptr<array_ref<std::size_t>>&& shape,
-        std::unique_ptr<array_ref<std::size_t>>&& strides
-    )
+    tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
     : tensor_base<T, N, Reference>(std::move(data), std::move(shape), std::move(strides))
     {}
 
@@ -326,6 +325,17 @@ public:
     operator[](std::size_t i)
     {
         return at(i);
+    }
+
+    template <typename = void>
+        requires(N == 2)
+    auto
+    t()
+    {
+        auto new_shape = new std::size_t[N]{*(this->m_shape->data() + 1), *this->m_shape->data()};
+        auto new_strides
+            = new std::size_t[N]{*(this->m_strides->data() + 1), *this->m_strides->data()};
+        return tensor<T, 2>(this->m_data->data(), new_shape, new_strides);
     }
 
     void
@@ -366,15 +376,13 @@ template <typename T, template <typename U> class Reference>
     requires(std::derived_from<Reference<T>, array_ref<T>>)
 class tensor<T, 1, Reference> : public tensor_base<T, 1, Reference> {
 public:
+    using traits = tensor_traits<T, Reference>;
+
     tensor(T* data, std::size_t* shape, std::size_t* strides)
     : tensor_base<T, 1, Reference>(data, shape, strides)
     {}
 
-    tensor(
-        std::unique_ptr<Reference<T>>&& data,
-        std::unique_ptr<array_ref<std::size_t>>&& shape,
-        std::unique_ptr<array_ref<std::size_t>>&& strides
-    )
+    tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
     : tensor_base<T, 1, Reference>(std::move(data), std::move(shape), std::move(strides))
     {}
 
@@ -390,6 +398,14 @@ public:
         return this->data_ptr()[i];
     }
 
+    auto
+    t()
+    {
+        return tensor<T, 1, weak_ref>(
+            this->m_data->data(), this->m_shape->data(), this->m_strides->data()
+        );
+    }
+
     void
     data_repr(std::ostream& os, int w) const override
     {
@@ -397,14 +413,13 @@ public:
         auto max_size = fmt::edgeitems * 2 + 1;
 
         os << "[";
-        // if (size > max_size) {
-        //     os << std::vector<T>(this->data_ptr(), this->data_ptr() + fmt::edgeitems);
-        //     os << ", ..., ";
-        //     os << std::vector<T>(this->data_ptr() + size - fmt::edgeitems, this->data_ptr() +
-        //     size);
-        // } else {
-        os << std::vector<T>(this->data_ptr(), this->data_ptr() + size);
-        //}
+        if (size > max_size) {
+            os << std::vector<T>(this->data_ptr(), this->data_ptr() + fmt::edgeitems);
+            os << ", ..., ";
+            os << std::vector<T>(this->data_ptr() + size - fmt::edgeitems, this->data_ptr() + size);
+        } else {
+            os << std::vector<T>(this->data_ptr(), this->data_ptr() + size);
+        }
 
         os << "]";
     }
