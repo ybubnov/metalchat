@@ -3,6 +3,7 @@
 
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
+#include <metalchat/format.h>
 #include <metalchat/tensor.h>
 
 
@@ -69,4 +70,18 @@ TEST_CASE("Tensor transpose in scope", "[tensor::transpose]")
     for (const auto& v : x) {
         REQUIRE(v == 7.0);
     }
+}
+
+
+TEST_CASE("Tensor format", "[tensor::ostream]")
+{
+    auto t0 = scalar<float>(5.0);
+    auto t1 = full<float>({3}, 6.0);
+    auto t2 = full<float>({3, 4}, 7.0);
+    auto t3 = full<float>({3, 4, 5}, 8.0);
+
+    std::cout << t0 << std::endl;
+    std::cout << t1 << std::endl;
+    std::cout << t2 << std::endl;
+    std::cout << t3 << std::endl;
 }

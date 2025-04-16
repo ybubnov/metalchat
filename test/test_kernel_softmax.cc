@@ -44,7 +44,6 @@ TEST_CASE("Softmax sum should be 1.0", "[functional::softmax]")
     metalchat::softmax<bf16> softmax(gpu0);
 
     auto output = softmax(input);
-    std::cout << output << std::endl;
 
     auto sum = std::reduce(output.data_ptr(), output.data_ptr() + output.numel());
     REQUIRE_THAT(sum, Catch::Matchers::WithinAbs(1.0, 0.01));

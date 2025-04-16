@@ -6,6 +6,9 @@
 #include <vector>
 
 
+#include <metalchat/tensor.h>
+
+
 namespace metalchat {
 namespace fmt {
 
@@ -36,18 +39,105 @@ struct comma {
 } // namespace fmt
 
 
-template <typename T>
-std::ostream&
-operator<<(std::ostream& os, const std::vector<T>& vec)
-{
-    for (auto it = vec.begin(); it != vec.end(); ++it) {
-        os << *it;
-        if (it != vec.end() - 1) {
-            os << ", ";
+template <typename T, std::size_t N, ContiguousContainer Container> struct tensor_format_base {
+    const tensor<T, N, Container>& t;
+    const int w;
+
+    tensor_format_base(const tensor<T, N, Container>& t_, const int w_ = 0)
+    : t(t_),
+      w(w_)
+    {}
+};
+
+
+template <typename T, std::size_t N, ContiguousContainer Container>
+struct tensor_format : public tensor_format_base<T, N, Container> {
+    tensor_format(const tensor<T, N, Container>& tensor, const int w = 0)
+    : tensor_format_base<T, N, Container>(tensor, w)
+    {}
+
+    friend std::ostream&
+    operator<<(std::ostream& os, const tensor_format<T, N, Container>& tf)
+    {
+        auto size = tf.t.size(0);
+        auto max_size = fmt::edgeitems * 2 + 1;
+
+        using format_type = tensor_format<const T, N - 1, weak_ref<const T>>;
+
+        os << "[";
+        if (size > max_size) {
+            for (std::size_t i = 0; i < fmt::edgeitems; i++) {
+                os << format_type(tf.t.at(i), tf.w + 1) << fmt::comma(i, size);
+                os << std::endl << std::setw(tf.w) << "";
+            }
+
+            os << "..., " << std::endl << std::setw(tf.w) << "";
+
+            for (std::size_t i = size - fmt::edgeitems; i < size; i++) {
+                os << format_type(tf.t.at(i), tf.w + 1) << fmt::comma(i, size);
+                if (i < size - 1) {
+                    os << std::endl << std::setw(tf.w) << "";
+                }
+            }
+        } else {
+            for (std::size_t i = 0; i < size; i++) {
+                os << format_type(tf.t.at(i), tf.w + 1) << fmt::comma(i, size);
+                if (i < size - 1) {
+                    os << std::endl << std::setw(tf.w) << "";
+                }
+            }
         }
+        os << "]";
+        return os;
     }
-    return os;
-}
+};
+
+
+template <typename T, ContiguousContainer Container>
+struct tensor_format<T, 1, Container> : public tensor_format_base<T, 1, Container> {
+    tensor_format(const tensor<T, 1, Container>& tensor, const int w = 0)
+    : tensor_format_base<T, 1, Container>(tensor, w)
+    {}
+
+    friend std::ostream&
+    operator<<(std::ostream& os, const tensor_format<T, 1, Container>& tf)
+    {
+        auto size = tf.t.size(0);
+        auto max_size = fmt::edgeitems * 2 + 1;
+
+        os << "[";
+        if (size > max_size) {
+            for (std::size_t i = 0; i < fmt::edgeitems; i++) {
+                os << tf.t.at(i) << fmt::comma(i, size);
+            }
+            os << ", ..., ";
+            for (std::size_t i = size - fmt::edgeitems; i < size; i++) {
+                os << tf.t.at(i) << fmt::comma(i, size);
+            }
+        } else {
+            for (std::size_t i = 0; i < size; i++) {
+                os << tf.t.at(i) << fmt::comma(i, size);
+            }
+        }
+        os << "]";
+        return os;
+    }
+};
+
+
+template <typename T, ContiguousContainer Container>
+struct tensor_format<T, 0, Container> : public tensor_format_base<T, 0, Container> {
+    tensor_format(const tensor<T, 0, Container>& tensor, const int w = 0)
+    : tensor_format_base<T, 0, Container>(tensor, w)
+    {}
+
+    friend std::ostream&
+    operator<<(std::ostream& os, const tensor_format<T, 0, Container>& tf)
+    {
+        os << *tf.t.data_ptr();
+        return os;
+    }
+};
 
 
 template <typename T>
@@ -57,6 +147,29 @@ operator<<(std::ostream& os, const std::span<T>& arr)
     for (auto it = arr.begin(); it != arr.end(); ++it) {
         os << *it;
         if (it != arr.end() - 1) {
+            os << ", ";
+        }
+    }
+    return os;
+}
+
+
+template <typename T, std::size_t N, ContiguousContainer Container>
+std::ostream&
+operator<<(std::ostream& os, const tensor<T, N, Container>& t)
+{
+    os << tensor_format<T, N, Container>(t, 1) << ", shape=(" << t.shape() << ")";
+    return os;
+}
+
+
+template <typename T>
+std::ostream&
+operator<<(std::ostream& os, const std::vector<T>& vec)
+{
+    for (auto it = vec.begin(); it != vec.end(); ++it) {
+        os << *it;
+        if (it != vec.end() - 1) {
             os << ", ";
         }
     }
