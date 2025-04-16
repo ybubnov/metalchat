@@ -80,22 +80,22 @@ bmm(__bmm_parameters(T))
 }
 
 
-template [[host_name("bmm_1_bf16")]]
+template [[host_name("bmm_1_bfloat")]]
 kernel void bmm<bfloat, 1>(__bmm_parameters(bfloat));
 
-template [[host_name("bmm_2_bf16")]]
+template [[host_name("bmm_2_bfloat")]]
 kernel void bmm<bfloat, 2>(__bmm_parameters(bfloat));
 
-template [[host_name("bmm_4_bf16")]]
+template [[host_name("bmm_4_bfloat")]]
 kernel void bmm<bfloat, 4>(__bmm_parameters(bfloat));
 
-template [[host_name("bmm_8_bf16")]]
+template [[host_name("bmm_8_bfloat")]]
 kernel void bmm<bfloat, 8>(__bmm_parameters(bfloat));
 
-template [[host_name("bmm_16_bf16")]]
+template [[host_name("bmm_16_bfloat")]]
 kernel void bmm<bfloat, 16>(__bmm_parameters(bfloat));
 
-template [[host_name("bmm_32_bf16")]]
+template [[host_name("bmm_32_bfloat")]]
 kernel void bmm<bfloat, 32>(__bmm_parameters(bfloat));
 
 

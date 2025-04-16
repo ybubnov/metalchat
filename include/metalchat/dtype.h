@@ -88,7 +88,7 @@ template <> struct type_traits<dtype::bf16> {
     static std::string
     name()
     {
-        return "bf16";
+        return "bfloat";
     }
 };
 

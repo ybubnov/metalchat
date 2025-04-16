@@ -56,6 +56,11 @@ public:
     {
         auto fn_name = NS::TransferPtr(NS::String::string(name.c_str(), NS::UTF8StringEncoding));
         _m_function = NS::TransferPtr(library->newFunction(fn_name.get()));
+        if (!_m_function) {
+            throw std::invalid_argument(
+                std::format("base_kernel: function {} not found in a shader library", name)
+            );
+        }
 
         NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
         NS::Error* error_ptr = error.get();

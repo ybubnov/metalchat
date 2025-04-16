@@ -82,22 +82,22 @@ rmsnorm(__rmsnorm_parameters(T))
 }
 
 
-template [[host_name("rmsnorm_1_bf16")]]
+template [[host_name("rmsnorm_1_bfloat")]]
 kernel void rmsnorm<bfloat, 1>(__rmsnorm_parameters(bfloat));
 
-template [[host_name("rmsnorm_2_bf16")]]
+template [[host_name("rmsnorm_2_bfloat")]]
 kernel void rmsnorm<bfloat, 2>(__rmsnorm_parameters(bfloat));
 
-template [[host_name("rmsnorm_4_bf16")]]
+template [[host_name("rmsnorm_4_bfloat")]]
 kernel void rmsnorm<bfloat, 4>(__rmsnorm_parameters(bfloat));
 
-template [[host_name("rmsnorm_8_bf16")]]
+template [[host_name("rmsnorm_8_bfloat")]]
 kernel void rmsnorm<bfloat, 8>(__rmsnorm_parameters(bfloat));
 
-template [[host_name("rmsnorm_16_bf16")]]
+template [[host_name("rmsnorm_16_bfloat")]]
 kernel void rmsnorm<bfloat, 16>(__rmsnorm_parameters(bfloat));
 
-template [[host_name("rmsnorm_32_bf16")]]
+template [[host_name("rmsnorm_32_bfloat")]]
 kernel void rmsnorm<bfloat, 32>(__rmsnorm_parameters(bfloat));
 
 

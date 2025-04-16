@@ -2,30 +2,32 @@
 
 #include <metal_common>
 
+#include "kernel.h"
 #include "tensor.h"
 
 
 using namespace metal;
 
 
-#define __add_parameters(T)                                    \
-    constant tensor_layout<2>& output_layout    [[buffer(0)]], \
-    device T* output                            [[buffer(1)]], \
-    constant tensor_layout<2>& input1_layout    [[buffer(2)]], \
-    device const T* input1                      [[buffer(3)]], \
-    constant tensor_layout<2>& input2_layout    [[buffer(4)]], \
-    device const T* input2                      [[buffer(5)]], \
-    uint gid [[threadgroup_position_in_grid]],                 \
-    uint tid [[thread_index_in_threadgroup]]
+template <typename T> struct __add_parameters {
+    constant tensor_layout<2>& output_layout [[buffer(0)]];
+    device T* output [[buffer(1)]];
+    constant tensor_layout<2>& input1_layout [[buffer(2)]];
+    device const T* input1 [[buffer(3)]];
+    constant tensor_layout<2>& input2_layout [[buffer(4)]];
+    device const T* input2 [[buffer(5)]];
+};
 
 
 template <typename T, uint BlockSize>
 kernel void
-add(__add_parameters(T))
+add(__add_parameters<T> params,
+    uint gid [[threadgroup_position_in_grid]],
+    uint tid [[thread_index_in_threadgroup]])
 {
-    tensor<const T, 2> in1{input1, input1_layout};
-    tensor<const T, 2> in2{input2, input2_layout};
-    tensor<T, 2> out{output, output_layout};
+    tensor<const T, 2> in1{params.input1, params.input1_layout};
+    tensor<const T, 2> in2{params.input2, params.input2_layout};
+    tensor<T, 2> out{params.output, params.output_layout};
 
     const uint dim_size = in1.size(1);
     const uint i = gid;
@@ -39,24 +41,13 @@ add(__add_parameters(T))
 }
 
 
-template [[host_name("add_8_bf16")]]
-kernel void add<bfloat, 8>(__add_parameters(bfloat));
+__lib_metalchat_kernel(add, bfloat, 8);
+__lib_metalchat_kernel(add, bfloat, 16);
+__lib_metalchat_kernel(add, bfloat, 32);
 
-template [[host_name("add_16_bf16")]]
-kernel void add<bfloat, 16>(__add_parameters(bfloat));
-
-template [[host_name("add_32_bf16")]]
-kernel void add<bfloat, 32>(__add_parameters(bfloat));
-
-
-template [[host_name("add_8_float")]]
-kernel void add<float, 8>(__add_parameters(float));
-
-template [[host_name("add_16_float")]]
-kernel void add<float, 16>(__add_parameters(float));
-
-template [[host_name("add_32_float")]]
-kernel void add<float, 32>(__add_parameters(float));
+__lib_metalchat_kernel(add, float, 8);
+__lib_metalchat_kernel(add, float, 16);
+__lib_metalchat_kernel(add, float, 32);
 
 
 #define __add2_parameters(T)                                \
@@ -99,7 +90,7 @@ add2(__add2_parameters(T))
 }
 
 
-template [[host_name("add2_bf16")]]
+template [[host_name("add2_bfloat")]]
 kernel void add2<bfloat>(__add2_parameters(bfloat));
 
 
@@ -107,24 +98,25 @@ template [[host_name("add2_float")]]
 kernel void add2<float>(__add2_parameters(float));
 
 
-#define __sub_parameters(T)                                    \
-    constant tensor_layout<2>& output_layout    [[buffer(0)]], \
-    device T* output                            [[buffer(1)]], \
-    constant tensor_layout<2>& input1_layout    [[buffer(2)]], \
-    device const T* input1                      [[buffer(3)]], \
-    constant tensor_layout<2>& input2_layout    [[buffer(4)]], \
-    device const T* input2                      [[buffer(5)]], \
-    uint gid [[threadgroup_position_in_grid]],                 \
-    uint tid [[thread_index_in_threadgroup]]
+template <typename T> struct __sub_parameters {
+    constant tensor_layout<2>& output_layout [[buffer(0)]];
+    device T* output [[buffer(1)]];
+    constant tensor_layout<2>& input1_layout [[buffer(2)]];
+    device const T* input1 [[buffer(3)]];
+    constant tensor_layout<2>& input2_layout [[buffer(4)]];
+    device const T* input2 [[buffer(5)]];
+};
 
 
 template <typename T, uint BlockSize>
 kernel void
-sub(__sub_parameters(T))
+sub(__sub_parameters<T> params,
+    uint gid [[threadgroup_position_in_grid]],
+    uint tid [[thread_index_in_threadgroup]])
 {
-    tensor<const T, 2> in1{input1, input1_layout};
-    tensor<const T, 2> in2{input2, input2_layout};
-    tensor<T, 2> out{output, output_layout};
+    tensor<const T, 2> in1{params.input1, params.input1_layout};
+    tensor<const T, 2> in2{params.input2, params.input2_layout};
+    tensor<T, 2> out{params.output, params.output_layout};
 
     const uint dim_size = in1.size(1);
     const uint i = gid;
@@ -138,21 +130,10 @@ sub(__sub_parameters(T))
 }
 
 
-template [[host_name("sub_8_bf16")]]
-kernel void sub<bfloat, 8>(__sub_parameters(bfloat));
+__lib_metalchat_kernel(sub, bfloat, 8);
+__lib_metalchat_kernel(sub, bfloat, 16);
+__lib_metalchat_kernel(sub, bfloat, 32);
 
-template [[host_name("sub_16_bf16")]]
-kernel void sub<bfloat, 16>(__sub_parameters(bfloat));
-
-template [[host_name("sub_32_bf16")]]
-kernel void sub<bfloat, 32>(__sub_parameters(bfloat));
-
-
-template [[host_name("sub_8_float")]]
-kernel void sub<float, 8>(__sub_parameters(float));
-
-template [[host_name("sub_16_float")]]
-kernel void sub<float, 16>(__sub_parameters(float));
-
-template [[host_name("sub_32_float")]]
-kernel void sub<float, 32>(__sub_parameters(float));
+__lib_metalchat_kernel(sub, float, 8);
+__lib_metalchat_kernel(sub, float, 16);
+__lib_metalchat_kernel(sub, float, 32);

@@ -56,22 +56,22 @@ rope(__rope_parameters(T))
 }
 
 
-template [[host_name("rope_1_bf16")]]
+template [[host_name("rope_1_bfloat")]]
 kernel void rope<bfloat, 1>(__rope_parameters(bfloat));
 
-template [[host_name("rope_2_bf16")]]
+template [[host_name("rope_2_bfloat")]]
 kernel void rope<bfloat, 2>(__rope_parameters(bfloat));
 
-template [[host_name("rope_4_bf16")]]
+template [[host_name("rope_4_bfloat")]]
 kernel void rope<bfloat, 4>(__rope_parameters(bfloat));
 
-template [[host_name("rope_8_bf16")]]
+template [[host_name("rope_8_bfloat")]]
 kernel void rope<bfloat, 8>(__rope_parameters(bfloat));
 
-template [[host_name("rope_16_bf16")]]
+template [[host_name("rope_16_bfloat")]]
 kernel void rope<bfloat, 16>(__rope_parameters(bfloat));
 
-template [[host_name("rope_32_bf16")]]
+template [[host_name("rope_32_bfloat")]]
 kernel void rope<bfloat, 32>(__rope_parameters(bfloat));
 
 

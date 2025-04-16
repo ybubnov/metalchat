@@ -39,22 +39,22 @@ hadamard(__hadamard_parameters(T))
 }
 
 
-template [[host_name("hadamard_1_bf16")]]
+template [[host_name("hadamard_1_bfloat")]]
 kernel void hadamard<bfloat, 1>(__hadamard_parameters(bfloat));
 
-template [[host_name("hadamard_2_bf16")]]
+template [[host_name("hadamard_2_bfloat")]]
 kernel void hadamard<bfloat, 2>(__hadamard_parameters(bfloat));
 
-template [[host_name("hadamard_4_bf16")]]
+template [[host_name("hadamard_4_bfloat")]]
 kernel void hadamard<bfloat, 4>(__hadamard_parameters(bfloat));
 
-template [[host_name("hadamard_8_bf16")]]
+template [[host_name("hadamard_8_bfloat")]]
 kernel void hadamard<bfloat, 8>(__hadamard_parameters(bfloat));
 
-template [[host_name("hadamard_16_bf16")]]
+template [[host_name("hadamard_16_bfloat")]]
 kernel void hadamard<bfloat, 16>(__hadamard_parameters(bfloat));
 
-template [[host_name("hadamard_32_bf16")]]
+template [[host_name("hadamard_32_bfloat")]]
 kernel void hadamard<bfloat, 32>(__hadamard_parameters(bfloat));
 
 
@@ -106,22 +106,22 @@ scalar_mul(__scalar_mul_parameters(T))
 }
 
 
-template [[host_name("scalar_mul_1_bf16")]]
+template [[host_name("scalar_mul_1_bfloat")]]
 kernel void scalar_mul<bfloat, 1>(__scalar_mul_parameters(bfloat));
 
-template [[host_name("scalar_mul_2_bf16")]]
+template [[host_name("scalar_mul_2_bfloat")]]
 kernel void scalar_mul<bfloat, 2>(__scalar_mul_parameters(bfloat));
 
-template [[host_name("scalar_mul_4_bf16")]]
+template [[host_name("scalar_mul_4_bfloat")]]
 kernel void scalar_mul<bfloat, 4>(__scalar_mul_parameters(bfloat));
 
-template [[host_name("scalar_mul_8_bf16")]]
+template [[host_name("scalar_mul_8_bfloat")]]
 kernel void scalar_mul<bfloat, 8>(__scalar_mul_parameters(bfloat));
 
-template [[host_name("scalar_mul_16_bf16")]]
+template [[host_name("scalar_mul_16_bfloat")]]
 kernel void scalar_mul<bfloat, 16>(__scalar_mul_parameters(bfloat));
 
-template [[host_name("scalar_mul_32_bf16")]]
+template [[host_name("scalar_mul_32_bfloat")]]
 kernel void scalar_mul<bfloat, 32>(__scalar_mul_parameters(bfloat));
 
 
