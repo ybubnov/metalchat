@@ -35,7 +35,7 @@ public:
         NS::Error* error = nullptr;
         m_library = NS::TransferPtr(m_device->newLibrary(url.get(), &error));
 
-        if(!m_library) {
+        if (!m_library) {
             throw std::runtime_error(error->localizedFailureReason()->utf8String());
         }
     }
@@ -58,13 +58,12 @@ private:
 public:
     op(const std::string& op)
     : m_op(op)
-    {
-    }
+    {}
 
-    //void
-    //operator()(tensor_base<T, 1>... tensors, const device& device)
+    // void
+    // operator()(tensor_base<T, 1>... tensors, const device& device)
     //{
-    //}
+    // }
 };
 
 
