@@ -1,0 +1,4 @@
+breathe
+sphinx
+sphinx-autobuild
+furo>=2022.6.4
