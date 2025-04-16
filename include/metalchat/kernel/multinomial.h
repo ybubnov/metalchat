@@ -43,7 +43,7 @@ public:
         auto init_state = _m_seed(_m_generator);
         auto init_seq = _m_seed(_m_generator);
 
-        auto output = shared_empty<int32_t>({num_rows, sample_size}, _m_kernel.allocator());
+        auto output = shared_empty<int32_t>({num_rows, sample_size}, _m_kernel.get_allocator());
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto task_future = task.bind_front(

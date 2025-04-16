@@ -20,6 +20,11 @@ TEST_CASE("Test make model", "[llama]")
     metalchat::bpe bpe("../Llama-3.2-1B/original/tokenizer.model");
     metalchat::device gpu0("metalchat.metallib", 16);
 
+    hardware_heap_allocator<void> heap_alloc(
+        gpu0.get_hardware_device(), std::size_t(512) * 1024 * 1024
+    );
+    gpu0.set_allocator(std::move(heap_alloc));
+
     safetensor_file tensors("../llama32.safetensors");
     auto m = llama::make_model<bf16>(tensors, gpu0);
 

@@ -37,7 +37,7 @@ public:
         auto [grid, thread] = make_kernel_grid_2d(input1, BlockSize);
         auto input1_view = flatten<2>(input1);
         auto input2_view = flatten<2>(input2);
-        auto output_view = shared_empty_like<T>(input1_view, _m_kernel.allocator());
+        auto output_view = shared_empty_like<T>(input1_view, _m_kernel.get_allocator());
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto task_future = task.bind_front(output_view, input1_view, input2_view);
@@ -51,7 +51,7 @@ public:
     operator()(Input1 input1, Input2 input2)
     {
         auto input_view = flatten<2>(input1);
-        auto output_view = shared_empty_like<T>(input_view, _m_kernel.allocator());
+        auto output_view = shared_empty_like<T>(input_view, _m_kernel.get_allocator());
 
         auto [grid, thread] = make_kernel_grid_2d(input1, BlockSize);
 

@@ -291,9 +291,22 @@ public:
     {}
 
     allocator_type
-    allocator()
+    get_allocator() const
     {
         return _m_allocator;
+    }
+
+    void
+    set_allocator(std::shared_ptr<allocator_type::outer_allocator_type> alloc)
+    {
+        _m_allocator = allocator_type(alloc);
+    }
+
+    template <basic_hardware_allocator_t<void> Allocator>
+    void
+    set_allocator(Allocator&& alloc)
+    {
+        set_allocator(std::make_shared<Allocator>(std::move(alloc)));
     }
 
     std::shared_ptr<kernel_thread>
