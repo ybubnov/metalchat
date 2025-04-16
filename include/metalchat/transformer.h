@@ -7,8 +7,7 @@
 namespace metalchat {
 
 
-template <typename T>
-struct attention {
+template <typename T> struct attention {
     tensor<T, 2> q;
     tensor<T, 2> k;
     tensor<T, 2> v;
