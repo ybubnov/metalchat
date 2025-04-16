@@ -10,10 +10,8 @@
 
 
 template <typename T> struct __rope_parameters {
-    constant tensor_layout<2>& output_layout;
-    device T* output;
-    constant tensor_layout<2>& input_layout;
-    device const T* input;
+    tensor2<T> output;
+    tensor2<const T> input;
     constant tensor_layout<2>& freqs_cos_layout;
     device const float* freqs_cos;
     constant tensor_layout<2>& freqs_sin_layout;
@@ -32,11 +30,8 @@ rope(
     uint tid [[thread_position_in_threadgroup]]
 )
 {
-    tensor<const float, 2> f_cos{params.freqs_cos, params.freqs_cos_layout};
-    tensor<const float, 2> f_sin{params.freqs_sin, params.freqs_sin_layout};
-    tensor<const T, 2> in{params.input, params.input_layout};
-
-    tensor<T, 2> out{params.output, params.output_layout};
+    tensor2<const float> f_cos{params.freqs_cos_layout, params.freqs_cos};
+    tensor2<const float> f_sin{params.freqs_sin_layout, params.freqs_sin};
 
     const uint head_dim = f_cos.size(1);
     const uint i = gid;
@@ -48,14 +43,14 @@ rope(
     const uint pos = i / (params.batch_size * params.n_head);
 
     for (uint k = begin; k < end && k < head_dim; k++) {
-        float x1 = in.at(i, 2 * k);
-        float x2 = in.at(i, 2 * k + 1);
+        float x1 = params.input.at(i, 2 * k);
+        float x2 = params.input.at(i, 2 * k + 1);
 
         float fcos = f_cos.at(params.start_pos + pos, k);
         float fsin = f_sin.at(params.start_pos + pos, k);
 
-        out.at(i, 2 * k) = T(fcos * x1 - fsin * x2);
-        out.at(i, 2 * k + 1) = T(fsin * x1 + fcos * x2);
+        params.output.at(i, 2 * k) = T(fcos * x1 - fsin * x2);
+        params.output.at(i, 2 * k + 1) = T(fsin * x1 + fcos * x2);
     }
 }
 
