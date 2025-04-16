@@ -11,6 +11,7 @@
 #include <type_traits>
 #include <utility>
 
+#include <metalchat/allocator.h>
 #include <metalchat/container.h>
 #include <metalchat/device.h>
 #include <metalchat/indexing.h>
@@ -28,17 +29,19 @@ template <typename T, contiguous_container Container> struct tensor_traits {
 
 template <typename T, std::size_t N, contiguous_container Container> class tensor {
 public:
-    using traits_type = tensor_traits<T, Container>;
-
     using value_type = T;
 
     using pointer_type = T*;
 
     using container_type = Container;
 
+    using container_pointer = std::shared_ptr<container_type>;
+
     using iterator = tensor_iterator<T, N>;
 
     using const_iterator = const iterator;
+
+    using traits_type = tensor_traits<T, container_type>;
 
     /// Tensor move constructor
     ///
@@ -48,80 +51,60 @@ public:
 
     tensor(const tensor& t) noexcept = delete;
 
-    tensor(const T& value) requires(std::same_as<Container, value_ref<T>> && N == 0)
-    : m_data(std::make_shared<Container>(value)),
+    template <allocator Allocator>
+    tensor(const T& value, Allocator alloc)
+    : m_data(alloc.allocate(1)),
       m_shape(make_value<std::size_t>(0)),
       m_strides(make_value<std::size_t>(0)),
       m_offsets(make_value<std::size_t>(0))
+    {
+        *data_ptr() = value;
+    }
+
+    tensor(const T& value)
+    : tensor(value, scalar_memory_allocator<T>())
     {}
 
-    tensor(const std::span<std::size_t, N> sizes, const traits_type::data_type& data)
-    : m_data(data)
+    template <std::forward_iterator ForwardIt, allocator Allocator>
+    tensor(ForwardIt first, ForwardIt last, Allocator alloc) requires(N > 0)
     {
-        _m_initialize(sizes);
+        _m_initialize(first, last);
+        m_data = alloc.allocate(numel());
     }
 
     template <std::forward_iterator ForwardIt>
-    tensor(ForwardIt first, ForwardIt last)
-        requires(std::same_as<Container, owning_ref<T>> && N > 0)
+    tensor(ForwardIt first, ForwardIt last, const container_pointer& data)
     {
         _m_initialize(first, last);
-        m_data = std::make_shared<owning_ref<T>>(new T[numel()]);
+        m_data = data;
     }
 
-    template <std::forward_iterator ForwardIt>
-    tensor(ForwardIt first, ForwardIt last, const traits_type::data_type& data)
-    : m_data(data)
-    {
-        _m_initialize(first, last);
-    }
-
-    template <std::forward_iterator ForwardIt>
-    tensor(ForwardIt first, ForwardIt last, MTL::Device* device)
-        requires(std::same_as<Container, device_ref<T>> && N > 0)
-    {
-        _m_initialize(first, last);
-
-        auto buf_size = numel() * sizeof(T);
-        auto buf = NS::TransferPtr(device->newBuffer(buf_size, MTL::ResourceStorageModeShared));
-
-        m_data = std::make_shared<device_ref<T>>(buf);
-    }
+    template <allocator Allocator>
+    tensor(const std::span<std::size_t, N> sizes, Allocator alloc)
+    : tensor(sizes.begin(), sizes.end(), alloc)
+    {}
 
     tensor(const std::span<std::size_t, N> sizes)
-    : tensor(sizes.begin(), sizes.end())
+    : tensor(sizes.begin(), sizes.end(), random_memory_allocator<T>())
     {}
 
-    tensor(std::size_t (&&sizes)[N]) requires(std::same_as<Container, owning_ref<T>> && N > 0)
+    tensor(const std::span<std::size_t, N> sizes, const container_pointer& data)
+    {
+        _m_initialize(sizes);
+        m_data = data;
+    }
+
+    tensor(std::size_t (&&sizes)[N])
     : tensor(std::span<std::size_t, N>(sizes, N))
     {}
 
-    tensor(std::size_t (&&sizes)[N], const traits_type::data_type& data) requires(N > 0)
+    template <allocator Allocator>
+    tensor(std::size_t (&&sizes)[N], Allocator alloc)
+    : tensor(std::span<std::size_t, N>(sizes, N), alloc)
+    {}
+
+    tensor(std::size_t (&&sizes)[N], const container_pointer& data)
     : tensor(std::span<std::size_t, N>(sizes, N), data)
-    {}
-
-    tensor(const std::span<std::size_t, N> sizes, MTL::Device* device)
-        requires(std::same_as<Container, device_ref<T>> && N > 0)
-    : tensor(sizes.begin(), sizes.end(), device)
-    {}
-
-    tensor(std::size_t (&&sizes)[N], MTL::Device* device)
-        requires(std::same_as<Container, device_ref<T>> && N > 0)
-    : tensor(std::span<std::size_t, N>(sizes, N), device)
-    {}
-
-    tensor(std::size_t (&&sizes)[N], device& device)
-        requires(std::same_as<Container, device_ref<T>> && N > 0)
-    : tensor(std::move(sizes), (*device))
-    {}
-
-    tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
-    : tensor(
-          std::make_shared<weak_ref<T>>(data),
-          make_weak(shape),
-          make_weak(strides),
-          make_weak(offsets)
-      )
     {}
 
     static constexpr std::size_t
@@ -250,19 +233,19 @@ public:
 
     // TODO: move these methods to the container implementations!
     NS::SharedPtr<MTL::Buffer>
-    memory_move(MTL::Device*) const requires(std::same_as<Container, device_ref<T>>)
+    memory_move(MTL::Device*) const requires(std::same_as<container_type, device_ref<T>>)
     {
         return container().storage();
     }
 
     NS::SharedPtr<MTL::Buffer>
-    memory_move(MTL::Device*) const requires(std::same_as<Container, value_ref<T>>)
+    memory_move(MTL::Device*) const requires(std::same_as<container_type, value_ref<T>>)
     {
         return NS::SharedPtr<MTL::Buffer>();
     }
 
     NS::SharedPtr<MTL::Buffer>
-    memory_move(MTL::Device* device) const requires(std::same_as<Container, owning_ref<T>>)
+    memory_move(MTL::Device* device) const requires(std::same_as<container_type, owning_ref<T>>)
     {
         auto buf_size = numel() * sizeof(T);
         return NS::TransferPtr(
@@ -583,10 +566,14 @@ public:
     }
 
 protected:
-    traits_type::data_type m_data = nullptr;
+    container_pointer m_data = nullptr;
     traits_type::size_type m_shape = nullptr;
     traits_type::size_type m_strides = nullptr;
     traits_type::size_type m_offsets = nullptr;
+
+    // Make all specialization of the tensor friends to the current specialization.
+    template <typename FriendT, std::size_t FriendN, contiguous_container FriendContainer>
+    friend class tensor;
 
     inline void
     set_size(std::size_t dim, std::size_t i)
@@ -635,14 +622,14 @@ protected:
         _m_initialize_strides();
     }
 
-    tensor(const traits_type::data_type& data)
+    tensor(const container_pointer& data)
     : m_data(data)
     {
         _m_initialize();
     }
 
     tensor(
-        const traits_type::data_type& data,
+        const container_pointer& data,
         traits_type::size_type&& shape,
         traits_type::size_type&& strides,
         traits_type::size_type&& offsets
@@ -651,6 +638,15 @@ protected:
       m_shape(std::move(shape)),
       m_strides(std::move(strides)),
       m_offsets(std::move(offsets))
+    {}
+
+    tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
+    : tensor(
+          std::make_shared<weak_ref<T>>(data),
+          make_weak(shape),
+          make_weak(strides),
+          make_weak(offsets)
+      )
     {}
 };
 
@@ -675,7 +671,7 @@ template <typename T, std::size_t N> requires(N > 0)
 auto
 empty(std::size_t (&&sizes)[N], device& device)
 {
-    return tensor<T, N, device_ref<T>>(std::move(sizes), device);
+    return tensor<T, N, device_ref<T>>(std::move(sizes), hardware_memory_allocator<T>(*device));
 }
 
 
@@ -683,7 +679,7 @@ template <typename T, std::size_t N> requires(N > 0)
 auto
 empty(std::size_t (&&sizes)[N], MTL::Device* device)
 {
-    return tensor<T, N, device_ref<T>>(std::move(sizes), device);
+    return tensor<T, N, device_ref<T>>(std::move(sizes), hardware_memory_allocator<T>(device));
 }
 
 
@@ -691,7 +687,7 @@ template <typename T, std::size_t N> requires(N > 0)
 auto
 empty(const std::span<std::size_t, N> sizes, MTL::Device* device)
 {
-    return tensor<T, N, device_ref<T>>(sizes, device);
+    return tensor<T, N, device_ref<T>>(sizes, hardware_memory_allocator<T>(device));
 }
 
 
@@ -707,7 +703,7 @@ template <typename T, std::size_t N, std::forward_iterator InputIt> requires(N >
 auto
 empty(InputIt begin, InputIt end, device& device)
 {
-    return tensor<T, N, device_ref<T>>(begin, end, *device);
+    return tensor<T, N, device_ref<T>>(begin, end, hardware_memory_allocator<T>(*device));
 }
 
 
@@ -715,7 +711,7 @@ template <typename T, std::size_t N, std::forward_iterator InputIt> requires(N >
 auto
 empty(InputIt begin, InputIt end, MTL::Device* device)
 {
-    return tensor<T, N, device_ref<T>>(begin, end, device);
+    return tensor<T, N, device_ref<T>>(begin, end, hardware_memory_allocator<T>(device));
 }
 
 
