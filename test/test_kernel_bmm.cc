@@ -2,7 +2,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel/bmm.h>
@@ -15,7 +15,7 @@ using namespace metalchat::dtype;
 
 TEST_CASE("Matmul simple", "[kernel::bmm]")
 {
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
     kernel::bmm<bf16> mm(gpu0);
 
     auto input1 = shared_tensor(full<bf16>({32, 32}, 2.0));
@@ -30,7 +30,7 @@ TEST_CASE("Matmul simple", "[kernel::bmm]")
 
 TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
 {
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
     kernel::bmm<float> mm(gpu0);
 
     auto input1 = shared_tensor(rand<float>({1, 5, 2048}));     // b, i, j
@@ -61,7 +61,7 @@ TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
 
 TEST_CASE("Matmul large 2d", "[kernel::bmm]")
 {
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
     kernel::bmm<float> mm(gpu0);
 
     auto input1 = shared_tensor(full<float>({8, 2048}, 2.0));

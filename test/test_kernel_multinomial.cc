@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel/multinomial.h>
@@ -13,7 +13,7 @@ using namespace metalchat;
 
 TEST_CASE("Multinomial generator", "[kernel::multinomial]")
 {
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
     kernel::multinomial<float> m(gpu0);
 
     auto input = shared_tensor(empty<float>({4, 5}));

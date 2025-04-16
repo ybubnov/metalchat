@@ -362,18 +362,6 @@ template <typename T, std::size_t N>
 future_tensor(tensor<T, N, hardware_memory_container<T>>&& t) -> future_tensor<T, N>;
 
 
-template <typename T, std::size_t N, asynchronously_invocable Task>
-//[[deprecated("Use `empty_future` with a dedicated allocator instead.")]]
-auto
-empty_future(std::size_t (&&sizes)[N], Task&& task)
-{
-    auto result = shared_tensor(empty<T>(std::move(sizes), task.device()));
-    auto result_task = task.bind_front(result);
-
-    return future_tensor(result, std::move(result_task));
-}
-
-
 template <
     typename T,
     std::size_t N,

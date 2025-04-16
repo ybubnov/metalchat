@@ -4,7 +4,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel/softmax.h>
@@ -22,7 +22,7 @@ TEST_CASE("Softmax predefined array", "[kernel::softmax]")
         input[0, i] = bf16(i);
     }
 
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
     kernel::softmax<bf16> softmax(gpu0);
 
     auto output = softmax(input).get();
@@ -40,7 +40,7 @@ TEST_CASE("Softmax predefined array", "[kernel::softmax]")
 
 TEST_CASE("Softmax sum should be 1.0", "[kernel::softmax]")
 {
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
     kernel::softmax<float> softmax(gpu0);
 
     auto input = shared_tensor(rand<float>({1, 30}));
@@ -53,7 +53,7 @@ TEST_CASE("Softmax sum should be 1.0", "[kernel::softmax]")
 
 TEST_CASE("Softmax for 4-dimensional tensor", "[kernel::softmax]")
 {
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
     kernel::softmax<float> softmax(gpu0);
 
     auto input = shared_tensor(rand<float>({1, 32, 4, 4}));

@@ -2,7 +2,7 @@
 
 #include <format>
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_wrapper.h>
@@ -20,8 +20,8 @@ private:
     binary_kernel_wrapper<T, BlockSize> _m_kernel;
 
 public:
-    add(device& device)
-    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    add(hardware_accelerator& gpu)
+    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
     {}
 
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
@@ -40,8 +40,8 @@ private:
     kernel_base _m_kernel;
 
 public:
-    add2(device& device)
-    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    add2(hardware_accelerator& gpu)
+    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
     {}
 
     template <immutable_tensor_t<T> Input1, immutable_tensor2_t<T> Input2>
@@ -87,8 +87,8 @@ private:
     binary_kernel_wrapper<T, BlockSize> _m_kernel;
 
 public:
-    sub(device& device)
-    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    sub(hardware_accelerator& gpu)
+    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
     {}
 
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>

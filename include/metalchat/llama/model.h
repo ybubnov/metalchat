@@ -4,8 +4,8 @@
 #include <optional>
 #include <vector>
 
+#include <metalchat/accelerator.h>
 #include <metalchat/container.h>
-#include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/functional.h>
@@ -26,7 +26,7 @@ private:
     nn::linear<T, hardware_memory_container<T>> _m_output;
 
     std::vector<transformer<T, Container>> _m_layers;
-    std::reference_wrapper<device> _m_device;
+    std::reference_wrapper<hardware_accelerator> _m_gpu;
 
     auto
     create_additive_causal_mask(const std::size_t size) const
@@ -35,7 +35,7 @@ private:
 
         if (size > 1) {
             const T infinity = T(std::numeric_limits<float>::infinity());
-            auto m = full<T>({size, size}, -infinity, _m_device.get().get_allocator());
+            auto m = full<T>({size, size}, -infinity, _m_gpu.get().get_allocator());
             triu(m);
 
             mask = std::make_optional(std::move(m));
@@ -52,13 +52,13 @@ public:
         nn::rmsnorm<T, Container>&& norm,
         nn::linear<T, hardware_memory_container<T>>&& output,
         std::vector<transformer<T, Container>>&& layers,
-        device& gpu
+        hardware_accelerator& gpu
     )
     : _m_embedding(std::move(embedding)),
       _m_norm(std::move(norm)),
       _m_output(std::move(output)),
       _m_layers(std::move(layers)),
-      _m_device(gpu)
+      _m_gpu(gpu)
     {}
 
     template <immutable_tensor2_t<int32_t> Input>
@@ -85,9 +85,11 @@ public:
 
 template <typename T>
 auto
-make_model(const metalchat::safetensor_file& tensors, device& gpu, std::size_t nlayers = 16)
+make_model(
+    const metalchat::safetensor_file& tensors, hardware_accelerator& gpu, std::size_t nlayers = 16
+)
 {
-    using allocator_type = rebind_hardware_allocator<T, device::allocator_type>;
+    using allocator_type = rebind_hardware_allocator<T, hardware_accelerator::allocator_type>;
     using container_type = allocator_type::container_type;
 
     auto alloc0 = allocator_type(gpu.get_allocator());

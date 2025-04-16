@@ -18,13 +18,13 @@ private:
     kernel::embedding<T> _m_embedding;
 
 public:
-    embedding(shared_tensor<T, 2, Container> weight, device& device)
+    embedding(shared_tensor<T, 2, Container> weight, hardware_accelerator& gpu)
     : _m_weight(weight),
-      _m_embedding(device)
+      _m_embedding(gpu)
     {}
 
-    embedding(tensor<T, 2, Container>&& weight, device& device)
-    : embedding(shared_tensor(std::move(weight)), device)
+    embedding(tensor<T, 2, Container>&& weight, hardware_accelerator& gpu)
+    : embedding(shared_tensor(std::move(weight)), gpu)
     {}
 
     template <immutable_tensor2_t<int32_t> Input>
@@ -85,13 +85,13 @@ private:
 public:
     rope(rope&&) = default;
 
-    rope(std::size_t dim, std::size_t max_seq_len, float theta, device& device)
+    rope(std::size_t dim, std::size_t max_seq_len, float theta, hardware_accelerator& gpu)
     : _m_dim(dim),
       _m_max_seq_len(max_seq_len),
       _m_theta(theta),
-      _m_freqs_cos(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, device.get_allocator())),
-      _m_freqs_sin(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, device.get_allocator())),
-      _m_rope(device)
+      _m_freqs_cos(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, gpu.get_allocator())),
+      _m_freqs_sin(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, gpu.get_allocator())),
+      _m_rope(gpu)
     {
         std::vector<float> freqs(_m_dim / 2);
         for (std::size_t i = 0; i < freqs.size(); i++) {

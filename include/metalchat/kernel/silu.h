@@ -1,6 +1,6 @@
 #pragma once
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_task.h>
@@ -18,8 +18,8 @@ private:
     kernel_base _m_kernel;
 
 public:
-    silu(device& device)
-    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    silu(hardware_accelerator& gpu)
+    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
     {}
 
     template <immutable_tensor_t<T> Input>

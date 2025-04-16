@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel/mul.h>
@@ -13,7 +13,7 @@ using namespace metalchat;
 
 TEST_CASE("Hadamard product", "[kernel::hadamard]")
 {
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
     kernel::hadamard<float> m(gpu0);
 
     auto input1 = shared_tensor(rand<float>({3, 5, 8192}));
@@ -38,7 +38,7 @@ TEST_CASE("Hadamard product", "[kernel::hadamard]")
 
 TEST_CASE("Scalar multiplication", "[kernel::scalar_mul]")
 {
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
     kernel::scalar_mul<float> m(gpu0);
 
     auto input = shared_tensor(rand<float>({1, 32, 4, 64}));

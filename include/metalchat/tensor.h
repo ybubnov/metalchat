@@ -11,9 +11,9 @@
 #include <type_traits>
 #include <utility>
 
+#include <metalchat/accelerator.h>
 #include <metalchat/allocator.h>
 #include <metalchat/container.h>
-#include <metalchat/device.h>
 #include <metalchat/indexing.h>
 #include <metalchat/iterator.h>
 #include <metalchat/tensor_concept.h>
@@ -665,9 +665,9 @@ empty(std::size_t (&&sizes)[N])
 template <typename T, std::size_t N> requires(N > 0)
 [[deprecated("Use `empty` with an allocator parameter instead.")]]
 auto
-empty(std::size_t (&&sizes)[N], device& device)
+empty(std::size_t (&&sizes)[N], hardware_accelerator& gpu)
 {
-    return empty<T>(std::move(sizes), hardware_memory_allocator<T>(device.get_hardware_device()));
+    return empty<T>(std::move(sizes), hardware_memory_allocator<T>(gpu.get_hardware_device()));
 }
 
 
@@ -700,10 +700,10 @@ empty(InputIt begin, InputIt end)
 template <typename T, std::size_t N, std::forward_iterator InputIt> requires(N > 0)
 [[deprecated("Use `empty` with an allocator parameter instead.")]]
 auto
-empty(InputIt begin, InputIt end, device& device)
+empty(InputIt begin, InputIt end, hardware_accelerator& gpu)
 {
     return tensor<T, N, hardware_memory_container<T>>(
-        begin, end, hardware_memory_allocator<T>(device.get_hardware_device())
+        begin, end, hardware_memory_allocator<T>(gpu.get_hardware_device())
     );
 }
 
@@ -753,12 +753,12 @@ empty_like(const Tensor& like)
 template <immutable_tensor Tensor> requires(Tensor::dim() > 0)
 [[deprecated("Use `empty_like` with an allocator parameter instead.")]]
 auto
-empty_like(const Tensor& like, device& device)
+empty_like(const Tensor& like, hardware_accelerator& gpu)
 {
     using value_type = Tensor::value_type;
 
     auto sizes = like.sizes();
-    return empty<value_type, Tensor::dim()>(sizes.begin(), sizes.end(), device);
+    return empty<value_type, Tensor::dim()>(sizes.begin(), sizes.end(), gpu);
 }
 
 
@@ -796,9 +796,9 @@ full(std::size_t (&&sizes)[N], const T& fill_value, Allocator alloc)
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-full(std::size_t (&&sizes)[N], const T& fill_value, device& device)
+full(std::size_t (&&sizes)[N], const T& fill_value, hardware_accelerator& gpu)
 {
-    auto t = empty<T>(std::move(sizes), device);
+    auto t = empty<T>(std::move(sizes), gpu);
     std::fill_n(t.data_ptr(), t.numel(), fill_value);
     return t;
 }
