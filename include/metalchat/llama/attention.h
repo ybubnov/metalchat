@@ -44,7 +44,6 @@ private:
     nn::linear<T, Container> m_wv;
     nn::linear<T, Container> m_wo;
 
-    // rope<T> m_rope;
     nn::rope<T> m_rope;
     scalar_mul<T> m_mul;
     bmm<T> m_matmul;
@@ -87,12 +86,10 @@ private:
     )
     {
         using s = indexing::slice;
-        auto target = shared_tensor(cache[s(0, bs), s(start_pos, start_pos + size), s(), s()]);
-        auto output = _m_cpy(input, target);
+        auto target = cache[s(0, bs), s(start_pos, start_pos + size), s(), s()];
+        auto result = cache[s(0, bs), s(0, start_pos + size), s(), s()];
 
-        return std::make_tuple(
-            std::move(cache[s(0, bs), s(0, start_pos + size), s(), s()]), std::move(output)
-        );
+        return future_tensor(result, _m_cpy(input, target));
     }
 
     template <immutable_tensor4d InputTensor>
@@ -161,8 +158,8 @@ public:
         q = m_rope(q, /*start_pos=*/start_pos);
         k = m_rope(k, /*start_pos=*/start_pos);
 
-        auto [kk, kk_future] = cache_keys(k, bs, start_pos, len);
-        auto [vv, vv_future] = cache_values(v, bs, start_pos, len);
+        auto kk = cache_keys(k, bs, start_pos, len);
+        auto vv = cache_values(v, bs, start_pos, len);
 
         auto repeat_kv
             = [&]<ContiguousContainer TensorContainer>(shared_tensor<T, 4, TensorContainer>&& t
@@ -172,11 +169,9 @@ public:
             return reps.view({bs, slen, n_heads, head_dim});
         };
 
-        kk_future.wait();
-        vv_future.wait();
         // shape: bs, cache + len, n_heads, head_dim.
-        auto keys = repeat_kv(std::move(kk));
-        auto values = repeat_kv(std::move(vv));
+        auto keys = repeat_kv(kk.get());
+        auto values = repeat_kv(vv.get());
 
         auto queries = q.transpose({0, 2, 1, 3});
         keys = keys.transpose({0, 2, 3, 1});

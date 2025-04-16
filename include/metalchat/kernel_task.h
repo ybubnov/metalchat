@@ -41,10 +41,6 @@ private:
 
     std::tuple<Args...> _m_args;
 
-    /// Buffers used to keep encodings of the tensors, they are deleted altogether
-    /// with a task instance deletion.
-    std::vector<NS::SharedPtr<MTL::Buffer>> _m_buffers;
-
     /// Configuration of the Metal grid to invoke this particular kernel. Grid specifies
     /// the total number of threads in a grid, while thread defines a number of threads
     /// in a threadgroup.
@@ -58,7 +54,6 @@ public:
     : _m_kernel(kernel),
       _m_this_thread_ptr(nullptr),
       _m_args(args),
-      _m_buffers(),
       _m_grid(grid),
       _m_thread(thread)
     {
@@ -88,7 +83,6 @@ public:
         return _m_kernel.device();
     }
 
-    template <std::size_t... Indices>
     std::shared_future<void>
     operator()()
     {
@@ -101,6 +95,18 @@ public:
         return _m_this_thread_ptr->push(*this);
     }
 
+    std::shared_future<void>
+    operator()(std::function<void()> callback)
+    {
+        if (_m_this_thread_ptr != nullptr) {
+            throw std::runtime_error(std::format("kernel_task: the kernel has already been invoked")
+            );
+        }
+
+        _m_this_thread_ptr = _m_kernel.get_this_thread();
+        return _m_this_thread_ptr->push(*this, callback);
+    }
+
     void
     encode(MTL::ComputeCommandEncoder* encoder)
     {
@@ -111,12 +117,6 @@ public:
     void
     encode(MTL::ComputeCommandEncoder* encoder, std::index_sequence<Indices...>)
     {
-        // Usually there is no reason of executing the kernel task twice, since it's tightly
-        // coupled with a tensor future, but kernel task could still be used independently
-        // from the tensor future, prepare a clean run of the kernel.
-        //
-        // This means, buffer list will be simply extended with new arguments.
-
         auto device_ptr = device();
         encoder->setComputePipelineState(_m_kernel.pipeline());
 
@@ -132,7 +132,6 @@ public:
                 auto layout = arg.layout();
                 encoder->setBytes(&layout, sizeof(layout), i++);
 
-                _m_buffers.push_back(buf);
                 encoder->setBuffer(buf.get(), 0, i);
             } else {
                 const void* data_ptr = arg.data_ptr();

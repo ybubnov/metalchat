@@ -33,6 +33,8 @@ private:
     int _m_id = std::rand();
 
 public:
+    using callback_type = std::function<void()>;
+
     kernel_thread(const kernel_thread&) noexcept = default;
 
     kernel_thread(NS::SharedPtr<MTL::CommandQueue> queue, std::size_t capacity)
@@ -53,8 +55,9 @@ public:
 
     ~kernel_thread()
     {
-        // If thread was completed, the code below does absolutely nothing, otherwise,
-        // on object deletion all commands are committed to the device.
+        // std::cout << "kernel_thread::~kernel_thread()" << std::endl;
+        //  If thread was completed, the code below does absolutely nothing, otherwise,
+        //  on object deletion all commands are committed to the device.
         make_ready_at_thread_exit();
     }
 
@@ -78,16 +81,22 @@ public:
 
     template <hardware_encodable_function F>
     std::shared_future<void>
-    push(F& f)
+    push(F& f, std::optional<callback_type> callback = std::nullopt)
     {
-        if (_m_size >= _m_capacity) {
-            throw std::runtime_error(std::format("thread: thread reached maximum capacity"));
-        }
+        // std::cout << "kernel_thread::push, size=" << _m_size << ", cap=" << _m_capacity <<
+        // std::endl;
 
-        if (_m_committed) {
+        if (!joinable()) {
             throw std::runtime_error(
-                std::format("thread: unable to submit function to the already promised thread")
+                std::format("thread: thread is either committed or reached its capacity")
             );
+        }
+        if (callback.has_value()) {
+            _m_commands->addCompletedHandler([callback
+                                              = callback.value()](const MTL::CommandBuffer*) {
+                // std::cout << "kernel_thread::callback" << std::endl;
+                callback();
+            });
         }
 
         auto encoder = _m_commands->computeCommandEncoder(MTL::DispatchTypeSerial);
@@ -95,6 +104,10 @@ public:
         encoder->endEncoding();
 
         _m_size++;
+
+        if (_m_size == _m_capacity) {
+            make_ready_at_thread_exit();
+        }
         return _m_future;
     }
 
@@ -102,6 +115,7 @@ public:
     make_ready_at_thread_exit()
     {
         if (!_m_committed) {
+            // std::cout << "kernel_thread::commit" << std::endl;
             _m_commands->commit();
             _m_committed = true;
         }

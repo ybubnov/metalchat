@@ -1,6 +1,7 @@
 #pragma once
 
 #include <future>
+#include <mutex>
 
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_task.h>
@@ -40,6 +41,7 @@ wait_all(const std::vector<std::shared_ptr<awaitable>>& awaitables)
 template <typename T>
 concept asynchronously_invocable = requires(std::remove_reference_t<T> t) {
     { t() } -> std::same_as<std::shared_future<void>>;
+    { t(std::function<void()>()) } -> std::same_as<std::shared_future<void>>;
     { t.make_ready_at_thread_exit() } -> std::same_as<void>;
 };
 
@@ -50,7 +52,9 @@ public:
 
     using future_type = std::shared_future<void>;
 
-    using future_wait_type = std::function<void()>;
+    using future_mutex_type = std::shared_ptr<std::mutex>;
+
+    using future_wait_type = std::shared_ptr<std::function<void()>>;
 
     using value_type = result_type::value_type;
 
@@ -66,21 +70,47 @@ public:
 
     template <asynchronously_invocable Task>
     future_tensor(result_type result, Task&& task)
-    : _m_result(std::move(result))
+    : _m_result(std::move(result)),
+      _m_future_mutex(std::make_shared<std::mutex>())
     {
+        const std::lock_guard __lock(*_m_future_mutex);
+
         // Enqueue the calculations to compute the tensor, upon the completion,
         // command buffers calls a callback that sets a value to the promise, so
         // all waiting routines will be unblocked.
-        _m_future = task();
+        // std::cout << "future_tensor::future_tensor()" << std::endl;
+        _m_future = task([ft = std::make_shared<future_tensor<T, N>>(*this)] {
+            // std::cout << "future_tensor::#lambda->wait()" << std::endl;
+            const std::lock_guard __lock(*(ft->_m_future_mutex));
+            ft->_m_future_wait = nullptr;
+        });
 
-        // Erase type of the task, and simply ensure that task is ready, when a user
-        // calls either `wait` or `get` method of the future tensor.
-        _m_future_wait = std::bind(&Task::make_ready_at_thread_exit, std::move(task));
+        // std::cout << "future_tensor::bind_wait" << std::endl;
+        //  Erase type of the task, and simply ensure that task is ready, when a user
+        //  calls either `wait` or `get` method of the future tensor.
+        _m_future_wait = std::make_shared<std::function<void()>>(
+            std::bind(&Task::make_ready_at_thread_exit, std::move(task))
+        );
+    }
+
+    template <typename U, std::size_t M>
+    future_tensor(result_type result, future_tensor<U, M>&& future)
+    : _m_result(std::move(result)),
+      _m_future_mutex(std::make_shared<std::mutex>())
+    {
+        const std::lock_guard __lock(*_m_future_mutex);
+
+        // Wait on the same future.
+        _m_future = future._m_future;
+        _m_future_wait = std::make_shared<std::function<void()>>(
+            std::bind(&future_tensor<U, M>::wait, std::move(future))
+        );
     }
 
     result_type
     get()
     {
+        // std::cout << "future_tensor::get" << std::endl;
         wait();
         return _m_result;
     }
@@ -88,13 +118,19 @@ public:
     void
     wait() override
     {
-        _m_future_wait();
+        // std::cout << "future_tensor::wait" << std::endl;
+        const std::lock_guard __lock(*_m_future_mutex);
+        // std::cout << "future_tensor::wait::lock_guard" << std::endl;
+        if (_m_future_wait) {
+            (*_m_future_wait)();
+        }
+        // std::cout << "future_tensor::wait::future_wait" << std::endl;
         _m_future.wait();
 
         // Once the waiting of the future completion is done, erase associated
         // with this task, but setting an empty function (lambda), so that the
         // task could be destroyed.
-        _m_future_wait = [] {};
+        _m_future_wait = nullptr;
     }
 
     static constexpr std::size_t
@@ -190,47 +226,61 @@ public:
     future_tensor<T, N + 1>
     expand_dims(std::size_t dim) const
     {
-        return future_tensor<T, N + 1>(_m_result.expand_dims(dim), _m_future, _m_future_wait);
+        return future_tensor<T, N + 1>(
+            _m_result.expand_dims(dim), _m_future_mutex, _m_future, _m_future_wait
+        );
     }
 
     template <std::size_t M>
     future_tensor<T, M>
     view(int (&&dims)[M]) const requires(M > 0)
     {
-        return future_tensor<T, M>(_m_result.view(std::move(dims)), _m_future, _m_future_wait);
+        return future_tensor<T, M>(
+            _m_result.view(std::move(dims)), _m_future_mutex, _m_future, _m_future_wait
+        );
     }
 
     template <std::size_t M>
     future_tensor<T, M>
     view(const std::span<int, M> dims) const
     {
-        return future_tensor<T, M>(_m_result.view(dims), _m_future, _m_future_wait);
+        return future_tensor<T, M>(
+            _m_result.view(dims), _m_future_mutex, _m_future, _m_future_wait
+        );
     }
 
     template <std::size_t M>
     future_tensor<T, M>
     view(const std::span<std::size_t, M> dims) const
     {
-        return future_tensor<T, M>(_m_result.view(dims), _m_future, _m_future_wait);
+        return future_tensor<T, M>(
+            _m_result.view(dims), _m_future_mutex, _m_future, _m_future_wait
+        );
     }
 
     template <std::size_t M>
     future_tensor<T, M>
     flatten() const
     {
-        return future_tensor<T, M>(_m_result.template flatten<M>(), _m_future, _m_future_wait);
+        return future_tensor<T, M>(
+            _m_result.template flatten<M>(), _m_future_mutex, _m_future, _m_future_wait
+        );
     }
 
     future_tensor
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
-        return future_tensor(_m_result.narrow(dim, start, length), _m_future, _m_future_wait);
+        return future_tensor(
+            _m_result.narrow(dim, start, length), _m_future_mutex, _m_future, _m_future_wait
+        );
     }
 
     future_tensor
     transpose(const std::size_t (&&dims)[N]) const
     {
-        return future_tensor(_m_result.transpose(std::move(dims)), _m_future, _m_future_wait);
+        return future_tensor(
+            _m_result.transpose(std::move(dims)), _m_future_mutex, _m_future, _m_future_wait
+        );
     }
 
     tensor_layout<N>
@@ -243,17 +293,26 @@ public:
     auto
     operator[](const S&... slices) requires(sizeof...(slices) == N)
     {
-        return future_tensor(_m_result.index_select(slices...), _m_future, _m_future_wait);
+        return future_tensor(
+            _m_result.index_select(slices...), _m_future_mutex, _m_future, _m_future_wait
+        );
     }
 
 private:
-    future_tensor(result_type result, future_type future, future_wait_type future_wait)
+    future_tensor(
+        result_type result,
+        future_mutex_type future_mutex,
+        future_type future,
+        future_wait_type future_wait
+    )
     : _m_result(result),
+      _m_future_mutex(future_mutex),
       _m_future(future),
       _m_future_wait(future_wait)
     {}
 
     result_type _m_result;
+    future_mutex_type _m_future_mutex;
     future_type _m_future;
     future_wait_type _m_future_wait;
 

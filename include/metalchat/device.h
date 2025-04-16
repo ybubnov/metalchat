@@ -35,6 +35,7 @@ private:
 
 public:
     device(device&&) noexcept = default;
+    device(const device&) = delete;
 
     device(const std::filesystem::path& path, std::size_t thread_capacity = 64)
     : _m_device(_m_make_device()),

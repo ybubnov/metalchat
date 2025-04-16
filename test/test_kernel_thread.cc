@@ -12,7 +12,7 @@ using namespace metalchat;
 
 TEST_CASE("Kernel thread", "[kernel::thread]")
 {
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::device gpu0("metalchat.metallib", 2);
     metalchat::sum<float> sum(gpu0);
 
     auto input1 = shared_tensor(full<float>({3, 4, 5}, 1.0));
