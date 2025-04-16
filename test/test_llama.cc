@@ -18,7 +18,7 @@ using namespace metalchat::dtype;
 TEST_CASE("Test make model", "[llama]")
 {
     metalchat::bpe bpe("../Llama-3.2-1B/original/tokenizer.model");
-    metalchat::device gpu0("metalchat.metallib", 16);
+    metalchat::device gpu0("metalchat.metallib", 64);
 
     // Load tensors in lambda, so that all resources are cleaned up after the load.
     auto m = [&] -> auto {
