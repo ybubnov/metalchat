@@ -1,8 +1,8 @@
 #pragma once
 
 
-#include <array>
 #include <concepts>
+#include <format>
 #include <optional>
 #include <ostream>
 
@@ -21,7 +21,12 @@ struct slice {
     : start(start_),
       stop(stop_)
     {
-        assert(stop >= start);
+        if (stop < start) {
+            throw std::invalid_argument(std::format(
+                "slice: start position {} should be lesser than stop position {}", start.value(),
+                stop.value()
+            ));
+        }
     }
 
     slice(std::size_t (&&sizes)[2])

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 
 project(metalchat, CXX)
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(metalchat_LIBRARY_VERSION "1.0.0")
 set(metalchat_LIBRARY_SOVERSION "1")

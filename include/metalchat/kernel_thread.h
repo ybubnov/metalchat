@@ -6,6 +6,8 @@
 #include <future>
 #include <memory>
 
+#include <metalchat/metal.h>
+
 
 namespace metalchat {
 
