@@ -379,8 +379,11 @@ empty_future(std::size_t (&&sizes)[N], Task&& task)
 }
 
 
-template <typename T, std::size_t N, asynchronously_invocable Task, hardware_allocator Allocator>
-requires std::same_as<typename Allocator::value_type, T>
+template <
+    typename T,
+    std::size_t N,
+    asynchronously_invocable Task,
+    hardware_allocator_t<T> Allocator>
 auto
 empty_future(std::size_t (&&sizes)[N], Task&& task, Allocator alloc)
 {

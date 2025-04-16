@@ -27,11 +27,10 @@ concept allocator = requires(std::remove_reference_t<Allocator> a) {
 } && contiguous_container<typename Allocator::container_type>;
 
 
-template <typename Allocator>
-concept hardware_allocator = allocator<Allocator>
-                             && std::same_as<
-                                 typename Allocator::container_type,
-                                 hardware_memory_container<typename Allocator::value_type>>;
+template <typename Allocator, typename T>
+concept hardware_allocator_t
+    = allocator<Allocator> && std::same_as<typename Allocator::value_type, T>
+      && std::same_as<typename Allocator::container_type, hardware_memory_container<T>>;
 
 
 template <typename Allocator>
