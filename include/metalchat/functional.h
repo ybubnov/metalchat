@@ -5,6 +5,7 @@
 #include <format>
 #include <functional>
 #include <iterator>
+#include <ranges>
 #include <span>
 
 #include <metalchat/container.h>
@@ -102,6 +103,18 @@ concatenate(
     });
 
     return concatenate(reference_iterator.begin(), reference_iterator.end(), dim);
+}
+
+
+template <typename T, ContiguousContainer Container>
+void
+triu(tensor<T, 2, Container>& t)
+{
+    for (auto i = 0; i < t.size(0); i++) {
+        for (auto j = 0; j <= i; j++) {
+            t[i][j] = T(0);
+        }
+    }
 }
 
 
