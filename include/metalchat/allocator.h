@@ -121,9 +121,40 @@ public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    hardware_heap_allocator(NS::SharedPtr<MTL::Heap> heap)
-    : _m_heap(heap)
-    {}
+    hardware_heap_allocator(NS::SharedPtr<MTL::Device> device, std::size_t capacity)
+    {
+        auto heap_options_ptr = MTL::HeapDescriptor::alloc();
+        auto heap_options = NS::TransferPtr(heap_options_ptr->init());
+
+        heap_options->setType(MTL::HeapTypeAutomatic);
+        heap_options->setStorageMode(MTL::StorageModeShared);
+        heap_options->setResourceOptions(MTL::ResourceStorageModeShared);
+        heap_options->setSize(NS::UInteger(capacity));
+        heap_options->setHazardTrackingMode(MTL::HazardTrackingModeTracked);
+        heap_options->setCpuCacheMode(MTL::CPUCacheModeDefaultCache);
+
+        _m_heap = NS::TransferPtr(device->newHeap(heap_options.get()));
+        if (!_m_heap) {
+            throw std::runtime_error("failed creating a new heap");
+        }
+
+        auto rset_options_ptr = MTL::ResidencySetDescriptor::alloc();
+        auto rset_options = NS::TransferPtr(rset_options_ptr->init());
+        rset_options->setInitialCapacity(8);
+
+        NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
+        NS::Error* error_ptr = error.get();
+
+        _m_rset = NS::TransferPtr(device->newResidencySet(rset_options.get(), &error_ptr));
+        if (!_m_rset) {
+            auto failure_reason = error_ptr->localizedDescription();
+            throw std::runtime_error(failure_reason->utf8String());
+        }
+
+        _m_rset->addAllocation(_m_heap.get());
+        _m_rset->commit();
+        _m_rset->requestResidency();
+    }
 
     container_pointer
     allocate(size_type size)
@@ -140,8 +171,15 @@ public:
         return std::make_shared<container_type>(memory_ptr);
     }
 
+    ~hardware_heap_allocator()
+    {
+        _m_rset->endResidency();
+        _m_rset->removeAllAllocations();
+    }
+
 private:
     NS::SharedPtr<MTL::Heap> _m_heap;
+    NS::SharedPtr<MTL::ResidencySet> _m_rset;
 
     NS::SharedPtr<MTL::Buffer>
     _allocate(size_type size)

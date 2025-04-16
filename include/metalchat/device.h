@@ -35,17 +35,8 @@ private:
         auto label = NS::TransferPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
         queue->setLabel(label.get());
 
-        auto heap_options_ptr = MTL::HeapDescriptor::alloc();
-        auto heap_options = NS::TransferPtr(heap_options_ptr->init());
-        heap_options->setType(MTL::HeapTypeAutomatic);
-        heap_options->setStorageMode(MTL::StorageModeShared);
-        heap_options->setResourceOptions(MTL::ResourceStorageModeShared);
-        heap_options->setSize(NS::UInteger(3 * 1024 * 1024) * 1024);
-        heap_options->setHazardTrackingMode(MTL::HazardTrackingModeTracked);
-        heap_options->setCpuCacheMode(MTL::CPUCacheModeDefaultCache);
-
-        auto heap = NS::TransferPtr(_m_device->newHeap(heap_options.get()));
-        return shared_kernel_thread(queue, thread_capacity, allocator_type(heap));
+        auto capacity = std::size_t(3 * 1024 * 1024) * 1024;
+        return shared_kernel_thread(queue, thread_capacity, allocator_type(_m_device, capacity));
     }
 
 public:

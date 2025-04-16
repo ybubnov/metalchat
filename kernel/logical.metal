@@ -25,7 +25,7 @@ gt(__gt_parameters<T> params,
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
-#pragma unroll
+#pragma unroll(BlockSize)
     for (uint k = 0; k < end && k < dim_size; k++) {
         params.output.at(i, k) = (params.input.at(i, k) > params.value);
     }

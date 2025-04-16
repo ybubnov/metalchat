@@ -1,7 +1,7 @@
 [requires]
 catch2/3.7.1
 cppcodec/0.2
-metal-cpp/14.2
+metal-cpp/15
 simdjson/3.11.2
 pcre2/10.44
 
