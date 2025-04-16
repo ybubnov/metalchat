@@ -22,15 +22,7 @@ namespace metalchat {
 
 template <typename T, ContiguousContainer Container> struct tensor_traits {
     using data_type = std::shared_ptr<Container>;
-
     using size_type = std::unique_ptr<array_ref<std::size_t>>;
-};
-
-
-template <uint32_t N> struct tensor_layout {
-    uint32_t sizes[N];
-    uint32_t strides[N];
-    uint32_t offsets[N];
 };
 
 
@@ -54,7 +46,7 @@ public:
     /// The contents of the moved instance are a valid, but unspecified tensor.
     tensor(tensor&& t) noexcept = default;
 
-    tensor(const tensor& t) noexcept = default;
+    tensor(const tensor& t) noexcept = delete;
 
     tensor(const T& value) requires(std::same_as<Container, value_ref<T>> && N == 0)
     : m_data(std::make_shared<Container>(value)),
@@ -82,7 +74,7 @@ public:
         _m_initialize(first, last);
     }
 
-    tensor(const std::size_t (&&sizes)[N], device& device)
+    tensor(const std::size_t (&&sizes)[N], MTL::Device* device)
         requires(std::same_as<Container, device_ref<T>> && N > 0)
     {
         _m_initialize(std::move(sizes));
@@ -92,6 +84,11 @@ public:
 
         m_data = std::make_shared<device_ref<T>>(buf);
     }
+
+    tensor(const std::size_t (&&sizes)[N], device& device)
+        requires(std::same_as<Container, device_ref<T>> && N > 0)
+    : tensor(std::move(sizes), (*device))
+    {}
 
     tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
     : tensor(
@@ -210,7 +207,7 @@ public:
         return n;
     }
 
-    inline traits_type::data_type::element_type&
+    inline container_type&
     container() const
     {
         return *m_data;
@@ -597,6 +594,14 @@ scalar(const T& value)
 template <typename T, std::size_t N> requires(N > 0)
 auto
 empty(const std::size_t (&&sizes)[N], device& device)
+{
+    return tensor<T, N, device_ref<T>>(std::move(sizes), device);
+}
+
+
+template <typename T, std::size_t N> requires(N > 0)
+auto
+empty(const std::size_t (&&sizes)[N], MTL::Device* device)
 {
     return tensor<T, N, device_ref<T>>(std::move(sizes), device);
 }

@@ -6,6 +6,8 @@
 #include <metalchat/format.h>
 #include <metalchat/kernel.h>
 #include <metalchat/tensor.h>
+#include <metalchat/tensor_future.h>
+#include <metalchat/tensor_shared.h>
 
 
 namespace metalchat {
@@ -15,9 +17,12 @@ template <typename T> class bmm : public base_kernel {
 private:
     inline static const std::string operation_name = "bmm";
 
+    kernel_base _m_kernel;
+
 public:
     bmm(device& device)
-    : base_kernel(operation_name, type_traits<T>::name(), device)
+    : base_kernel(operation_name, type_traits<T>::name(), device),
+      _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
     template <ContiguousContainer InputContainer, ContiguousContainer WeightContainer>
@@ -55,8 +60,8 @@ public:
         auto thread = dim3(block_size, block_size);
 
         blocking(threads, thread)(
-            scalar(input.layout()), scalar(weight.layout()), scalar(output.layout()), input, weight,
-            output
+            scalar(output.layout()), output, scalar(input.layout()), input, scalar(weight.layout()),
+            weight
         );
         return output;
     }
@@ -123,8 +128,8 @@ public:
 
     template <ContiguousContainer InputContainer, ContiguousContainer WeightContainer>
     auto
-    maybe_compute(
-        const tensor<T, 3, InputContainer>& input, const tensor<T, 2, WeightContainer>& weight
+    operator()(
+        shared_tensor<T, 3, InputContainer> input, shared_tensor<T, 2, WeightContainer> weight
     )
     {
         constexpr std::size_t block_size = 32;
@@ -137,25 +142,17 @@ public:
 
         // A(MxK) @ B(KxN) -> C(MxN)
         std::size_t output_sizes[3] = {num_batches, input.size(1), weight_view.size(2)};
-        auto output
-            = std::make_shared<tensor<T, 3, device_ref<T>>>(std::move(output_sizes), m_device);
-        auto cb = unsequenced_policy_callback<T, 3>{
-            .output = output,
-            .promise = std::make_shared<std::promise<bool>>()
-        };
 
-        auto threads = dim3(
+        auto grid = dim3(
             ceil_div(input.size(1), block_size) * block_size,
             ceil_div(weight_view.size(2), block_size) * block_size, num_batches
         );
         auto thread = dim3(block_size, block_size);
 
-        auto policy = nonblocking(threads, thread, std::move(cb));
-        policy(
-            scalar(input.layout()), scalar(weight_view.layout()), scalar(output->layout()), input,
-            weight_view, *output
-        );
-        return policy;
+        auto task = kernel_task(_m_kernel, grid, thread);
+        auto fn = task.bind_back(input, weight_view);
+
+        return empty_future<T>(std::move(output_sizes), std::move(fn));
     }
 };
 

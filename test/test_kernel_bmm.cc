@@ -78,3 +78,17 @@ TEST_CASE("Matmul large 2d", "[kernel::bmm]")
 
     std::cout << output << std::endl;
 }
+
+
+TEST_CASE("Matmul async", "[kernel::bmm]")
+{
+    metalchat::device gpu0("metalchat.metallib");
+    metalchat::bmm<float> mm(gpu0);
+
+    auto input1 = shared_tensor(full<float>({1, 8, 16}, 2.0));
+    auto input2 = shared_tensor(full<float>({16, 32}, 16.0));
+    std::cout << input1.sizes() << " x " << input2.sizes() << std::endl;
+
+    auto output_future = mm(input1, input2);
+    std::cout << output_future.get() << std::endl;
+}

@@ -13,6 +13,7 @@
 #include <metalchat/kernel/sum.h>
 #include <metalchat/nn/embedding.h>
 #include <metalchat/nn/linear.h>
+#include <metalchat/tensor_future.h>
 
 
 namespace metalchat {
@@ -152,7 +153,7 @@ public:
     template <ContiguousContainer InputContainer, ContiguousContainer MaskContainer>
     auto
     operator()(
-        const tensor<T, 3, InputContainer>& input,
+        shared_tensor<T, 3, InputContainer> input,
         const std::optional<tensor<T, 2, MaskContainer>>& mask,
         std::size_t start_pos = 0
     )
@@ -164,14 +165,9 @@ public:
         auto n_reps = m_options.repeats();
         const int head_dim = m_options.head_dim;
 
-        using input_type = const tensor<T, 3, InputContainer>&;
-        std::promise<input_type> input_promise;
-        input_promise.set_value(input);
-        auto input_future = std::shared_future(input_promise.get_future());
-
-        auto fq = m_wq(input_future);
-        auto fk = m_wk(input_future);
-        auto fv = m_wv(input_future);
+        auto fq = m_wq(input);
+        auto fk = m_wk(input);
+        auto fv = m_wv(input);
         auto q = fq.get().view({bs, len, n_heads, head_dim});
         auto k = fk.get().view({bs, len, n_kv_heads, head_dim});
         auto v = fv.get().view({bs, len, n_kv_heads, head_dim});

@@ -9,15 +9,15 @@
 using namespace metal;
 
 
-#define __bmm_parameters(T)                                 \
-    constant tensor_layout<3>& mat1_layout [[buffer(0)]],   \
-    constant tensor_layout<3>& mat2_layout [[buffer(1)]],   \
-    constant tensor_layout<3>& output_layout [[buffer(2)]], \
-    device const T* mat1 [[buffer(3)]],                     \
-    device const T* mat2 [[buffer(4)]],                     \
-    device T* output [[buffer(5)]],                         \
-    uint3 group_id [[threadgroup_position_in_grid]],        \
-    uint3 thread_id [[thread_position_in_threadgroup]]
+#define __bmm_parameters(T)                                                         \
+    constant tensor_layout<3>& output_layout    [[buffer(0)]],                      \
+    device T* output                            [[buffer(1)]],                      \
+    constant tensor_layout<3>& mat1_layout      [[buffer(2)]],                      \
+    device const T* mat1                        [[buffer(3)]],                      \
+    constant tensor_layout<3>& mat2_layout      [[buffer(4)]],                      \
+    device const T* mat2                        [[buffer(5)]],                      \
+    uint3 group_id                              [[threadgroup_position_in_grid]],   \
+    uint3 thread_id                             [[thread_position_in_threadgroup]]
 
 
 /// Matrix multiplication mat1(MxK) @ mat2(KxN) -> C(MxN)

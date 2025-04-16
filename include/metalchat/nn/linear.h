@@ -11,7 +11,7 @@ namespace nn {
 
 template <typename T, ContiguousContainer WeightContainer> class linear {
 private:
-    tensor<T, 2, WeightContainer> _m_weight;
+    shared_tensor<T, 2, WeightContainer> _m_weight;
     bmm<T> _m_bmm;
 
 public:
@@ -27,14 +27,14 @@ public:
     auto
     operator()(const tensor<T, N, InputContainer>& input)
     {
-        return _m_bmm(input, _m_weight);
+        return _m_bmm(input, *_m_weight);
     }
 
     template <ContiguousContainer InputContainer>
     auto
-    operator()(std::shared_future<const tensor<T, 3, InputContainer>&>& input)
+    operator()(shared_tensor<T, 3, InputContainer> input)
     {
-        return _m_bmm.maybe_compute(input.get(), _m_weight);
+        return _m_bmm(input, _m_weight);
     }
 
     friend std::ostream&
@@ -42,7 +42,6 @@ public:
     {
         os << "nn::linear<" << type_traits<T>::name() << ">";
         os << "(" << l._m_weight.size(0) << ", " << l._m_weight.size(1) << ")";
-        os << std::endl << l._m_weight << "::: " << l._m_weight.strides() << std::endl;
         return os;
     }
 };

@@ -1,51 +1,28 @@
 #pragma once
-#include <iostream>
-
-#define NS_PRIVATE_IMPLEMENTATION
-#define CA_PRIVATE_IMPLEMENTATION
-#define MTL_PRIVATE_IMPLEMENTATION
-#include <Foundation/Foundation.hpp>
-#include <Metal/Metal.hpp>
-#include <QuartzCore/QuartzCore.hpp>
 
 
 #include <filesystem>
+#include <iostream>
+#include <unordered_map>
+
+#include <metalchat/kernel_base.h>
 
 
 namespace metalchat {
 
 
-struct dim3 {
-    const std::size_t x, y, z;
-
-    constexpr dim3(std::size_t x_, std::size_t y_ = 1, std::size_t z_ = 1)
-    : x(x_),
-      y(y_),
-      z(z_)
-    {}
-
-    friend std::ostream&
-    operator<<(std::ostream& os, const dim3& d)
-    {
-        os << "<" << d.x << "," << d.y << "," << d.z << ">";
-        return os;
-    }
-
-    std::size_t
-    numel() const
-    {
-        return x * y * z;
-    }
-};
-
-
 class device {
 private:
-    NS::SharedPtr<MTL::Device> m_device;
-    NS::SharedPtr<MTL::Library> m_library;
+    NS::SharedPtr<MTL::Device> _m_device;
+    NS::SharedPtr<MTL::Library> _m_library;
+
+    std::unordered_map<std::string, kernel_base> _m_kernels;
 
 public:
     device(const std::filesystem::path& path)
+    : _m_device(),
+      _m_library(),
+      _m_kernels()
     {
         auto path_str = path.string();
         auto path_cstr = path_str.c_str();
@@ -53,14 +30,14 @@ public:
         auto filepath = NS::TransferPtr(NS::String::string(path_cstr, NS::UTF8StringEncoding));
         auto url = NS::TransferPtr(NS::URL::fileURLWithPath(filepath.get()));
 
-        m_device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
+        _m_device = NS::TransferPtr(MTL::CreateSystemDefaultDevice());
 
         NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
         NS::Error* error_ptr = error.get();
 
-        m_library = NS::TransferPtr(m_device->newLibrary(url.get(), &error_ptr));
+        _m_library = NS::TransferPtr(_m_device->newLibrary(url.get(), &error_ptr));
 
-        if (!m_library) {
+        if (!_m_library) {
             auto failure_reason = error_ptr->localizedDescription();
             throw std::runtime_error(failure_reason->utf8String());
         }
@@ -69,21 +46,45 @@ public:
     std::string
     name() const
     {
-        auto device_name = NS::TransferPtr(m_device->name());
+        auto device_name = NS::TransferPtr(_m_device->name());
         return std::string(device_name->utf8String());
     }
 
     inline MTL::Device*
     operator->()
     {
-        return m_device.get();
+        return _m_device.get();
+    }
+
+    inline MTL::Device*
+    operator*()
+    {
+        return _m_device.get();
+    }
+
+    kernel_base
+    load(const std::string& name)
+    {
+        if (auto it = _m_kernels.find(name); it != _m_kernels.end()) {
+            return it->second;
+        }
+
+        auto kernel = kernel_base(name, _m_device, _m_library);
+        _m_kernels.insert_or_assign(name, kernel);
+        return kernel;
+    }
+
+    kernel_base
+    load(const std::string& name, const std::string& type)
+    {
+        return load(std::format("{}_{}", name, type));
     }
 
     NS::SharedPtr<MTL::Function>
     make_fn(const std::string& fname)
     {
         auto name = NS::TransferPtr(NS::String::string(fname.c_str(), NS::UTF8StringEncoding));
-        auto op_kernel = NS::TransferPtr(m_library->newFunction(name.get()));
+        auto op_kernel = NS::TransferPtr(_m_library->newFunction(name.get()));
         return op_kernel;
     }
 };
