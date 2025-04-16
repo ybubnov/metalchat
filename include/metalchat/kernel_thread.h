@@ -38,16 +38,20 @@ struct dim3 {
 };
 
 
-template <hardware_allocator_t<void> Allocator = hardware_heap_allocator<void>>
 class hardware_function_encoder {
+public:
+    using allocator_type = polymorphic_hardware_memory_allocator<void>;
+
 private:
     NS::SharedPtr<MTL::ComputeCommandEncoder> _m_encoder;
-    Allocator _m_allocator;
+    allocator_type _m_allocator;
     std::size_t _m_buffer;
     std::string _m_name;
 
 public:
-    hardware_function_encoder(NS::SharedPtr<MTL::ComputeCommandEncoder> encoder, Allocator alloc)
+    hardware_function_encoder(
+        NS::SharedPtr<MTL::ComputeCommandEncoder> encoder, allocator_type alloc
+    )
     : _m_encoder(encoder),
       _m_allocator(alloc),
       _m_buffer(0),
@@ -89,7 +93,7 @@ public:
     void
     encode(const Tensor& tensor)
     {
-        auto alloc = rebind_hardware_allocator<T, Allocator>(_m_allocator);
+        auto alloc = rebind_hardware_allocator<T, allocator_type>(_m_allocator);
         auto container = alloc.allocate(tensor.data_ptr(), tensor.numel());
 
         auto layout = tensor.layout();
@@ -117,21 +121,24 @@ public:
 
 template <typename T>
 concept hardware_encodable_function
-    = requires(std::remove_reference_t<T> t, hardware_function_encoder<> encoder) {
+    = requires(std::remove_reference_t<T> t, hardware_function_encoder encoder) {
           { t.encode(encoder) } -> std::same_as<void>;
       };
 
 
-// template <hardware_allocator_t<void> Allocator = hardware_heap_allocator<void>>
 class kernel_thread {
+public:
+    using callback_type = std::function<void()>;
+    using allocator_type = polymorphic_hardware_memory_allocator<void>;
+
 private:
     using promise_type = std::promise<void>;
 
     NS::SharedPtr<MTL::CommandBuffer> _m_commands;
     NS::SharedPtr<MTL::ComputeCommandEncoder> _m_encoder;
     NS::SharedPtr<MTL::Event> _m_event;
-    hardware_heap_allocator<void> _m_allocator;
 
+    allocator_type _m_allocator;
     std::shared_ptr<promise_type> _m_promise;
     std::shared_future<void> _m_future;
 
@@ -142,8 +149,6 @@ private:
     bool _m_committed;
 
 public:
-    using callback_type = std::function<void()>;
-
     kernel_thread(const kernel_thread&) noexcept = default;
 
     kernel_thread(
@@ -151,7 +156,7 @@ public:
         NS::SharedPtr<MTL::Event> event,
         std::size_t id,
         std::size_t capacity,
-        hardware_heap_allocator<void> alloc
+        allocator_type alloc
     )
     : _m_commands(NS::TransferPtr(queue->commandBuffer())),
       _m_event(event),
@@ -256,25 +261,24 @@ public:
 
 
 class shared_kernel_thread {
-private:
-    using allocator_type = hardware_heap_allocator<void>;
+public:
+    using allocator_type = polymorphic_hardware_memory_allocator<void>;
 
+private:
     NS::SharedPtr<MTL::CommandQueue> _m_queue;
     NS::SharedPtr<MTL::Event> _m_event;
 
     std::size_t _m_thread_id;
     std::size_t _m_thread_capacity;
-    std::shared_ptr<kernel_thread> _m_this_thread;
 
+    std::shared_ptr<kernel_thread> _m_this_thread;
     allocator_type _m_allocator;
 
 public:
     shared_kernel_thread(const shared_kernel_thread&) noexcept = default;
 
     shared_kernel_thread(
-        NS::SharedPtr<MTL::CommandQueue> queue,
-        std::size_t thread_capacity,
-        hardware_heap_allocator<void> alloc
+        NS::SharedPtr<MTL::CommandQueue> queue, std::size_t thread_capacity, allocator_type alloc
     )
     : _m_queue(queue),
       _m_event(NS::TransferPtr(queue->device()->newEvent())),

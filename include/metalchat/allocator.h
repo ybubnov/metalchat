@@ -44,10 +44,62 @@ concept hardware_allocator_t
       && std::same_as<typename Allocator::container_type, hardware_memory_container<T>>;
 
 
-template <typename T, hardware_allocator_t<void> Allocator> class rebind_hardware_allocator {
+template <typename T> struct basic_hardware_memory_allocator {
+    using value_type = T;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+    using size_type = std::size_t;
+    using container_type = hardware_memory_container<value_type>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    virtual container_pointer allocate(size_type) = 0;
+    virtual container_pointer allocate(const_pointer, size_type) = 0;
+};
+
+
+/// The class template `polymorphic_hardware_memory_allocator` is an `allocator` which
+/// exhibits different allocation behaviour depending on a particular implementation of
+/// the `basic_hardware_memory_allocator`.
+///
+/// This allocator is used in order to avoid creating separate instances of device and
+/// thread, when kernel of different types (bf16, float, double) are expected to be scheduled
+/// within a single device.
+template <typename T> class polymorphic_hardware_memory_allocator {
 public:
     using value_type = T;
-    using pointer = T*;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+    using size_type = std::size_t;
+    using container_type = hardware_memory_container<value_type>;
+    using container_pointer = std::shared_ptr<container_type>;
+    using allocator_type = basic_hardware_memory_allocator<T>;
+
+    polymorphic_hardware_memory_allocator(std::shared_ptr<allocator_type> alloc)
+    : _m_alloc(alloc)
+    {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        return _m_alloc->allocate(size);
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        return _m_alloc->allocate(ptr, size);
+    }
+
+private:
+    std::shared_ptr<allocator_type> _m_alloc;
+};
+
+
+template <typename T, hardware_allocator_t<void> Allocator>
+class rebind_hardware_allocator : public basic_hardware_memory_allocator<T> {
+public:
+    using value_type = T;
+    using pointer = value_type*;
     using const_pointer = const pointer;
     using size_type = std::size_t;
     using container_type = hardware_memory_container<value_type>;
@@ -58,7 +110,7 @@ public:
     {}
 
     container_pointer
-    allocate(size_type size)
+    allocate(size_type size) override
     {
         // It is totally fine to use reinterpret pointer case here, since the template
         // value type of a hardware memory container does not influence on a memory layout
@@ -67,7 +119,7 @@ public:
     }
 
     container_pointer
-    allocate(const_pointer ptr, size_type size)
+    allocate(const_pointer ptr, size_type size) override
     {
         return std::reinterpret_pointer_cast<container_type>(
             _m_alloc.allocate(ptr, sizeof(T) * size)
@@ -79,7 +131,9 @@ private:
 };
 
 
-template <hardware_allocator Allocator> class hardware_nocopy_allocator {
+template <hardware_allocator Allocator>
+class hardware_nocopy_allocator
+: public basic_hardware_memory_allocator<typename Allocator::value_type> {
 public:
     using value_type = typename Allocator::value_type;
     using pointer = value_type*;
@@ -94,13 +148,13 @@ public:
     {}
 
     container_pointer
-    allocate(size_type size)
+    allocate(size_type size) override
     {
         return _m_alloc.allocate(size);
     }
 
     container_pointer
-    allocate(const_pointer ptr, size_type size)
+    allocate(const_pointer ptr, size_type size) override
     {
         auto options = MTL::ResourceStorageModeManaged | MTL::ResourceHazardTrackingModeUntracked;
         auto memory_ptr = _m_device->newBuffer(ptr, size * sizeof(value_type), options, nullptr);
@@ -153,7 +207,18 @@ template <typename T> struct __hardware_complete_residence_deleter {
 };
 
 
-template <hardware_allocator Allocator> class hardware_resident_allocator {
+/// This class template moves all allocations to the residency set. On container destruction
+/// allocations are removed from the residency set. When all allocations are remove, the set
+/// ends it's residency.
+///
+/// All containers produced by this allocator keep pointers to the residency set, so it is
+/// safe to use this class within a scope.
+///
+/// Users should explicitly call `wire_memory`, when the underlying set is supposed to be
+/// made resident. End of residency will happen automatically, once all allocations are removed.
+template <hardware_allocator Allocator>
+class hardware_resident_allocator
+: public basic_hardware_memory_allocator<typename Allocator::value_type> {
 public:
     using value_type = typename Allocator::value_type;
     using pointer = value_type*;
@@ -178,10 +243,13 @@ public:
         _m_rset = NS::TransferPtr(device->newResidencySet(rset_options.get(), &error_ptr));
         if (!_m_rset) {
             auto failure_reason = error_ptr->localizedDescription();
-            throw std::runtime_error(failure_reason->utf8String());
+            throw std::runtime_error(std::format(
+                "metalchat::hardware_resident_allocator: {}", failure_reason->utf8String()
+            ));
         }
     }
 
+    /// Commits set and requests residency.
     void
     wire_memory()
     {
@@ -190,13 +258,13 @@ public:
     }
 
     container_pointer
-    allocate(size_type size)
+    allocate(size_type size) override
     {
         return _m_memory_move(_m_alloc.allocate(size));
     }
 
     container_pointer
-    allocate(const_pointer ptr, size_type size)
+    allocate(const_pointer ptr, size_type size) override
     {
         return _m_memory_move(_m_alloc.allocate(ptr, size));
     }
@@ -220,7 +288,7 @@ private:
 };
 
 
-template <typename T> class hardware_memory_allocator {
+template <typename T> class hardware_memory_allocator : public basic_hardware_memory_allocator<T> {
 public:
     using value_type = T;
     using pointer = T*;
@@ -234,7 +302,7 @@ public:
     {}
 
     container_pointer
-    allocate(size_type size)
+    allocate(size_type size) override
     {
         auto memory_size = size * sizeof(value_type);
         auto memory_ptr = _m_device->newBuffer(memory_size, MTL::ResourceStorageModeShared);
@@ -243,7 +311,7 @@ public:
     }
 
     container_pointer
-    allocate(const_pointer ptr, size_type size)
+    allocate(const_pointer ptr, size_type size) override
     {
         auto memory_size = size * sizeof(value_type);
         auto memory_ptr = _m_device->newBuffer(ptr, memory_size, MTL::ResourceStorageModeShared);
@@ -259,7 +327,7 @@ private:
 template <typename T> class hardware_heap_allocator {};
 
 
-template <> class hardware_heap_allocator<void> {
+template <> class hardware_heap_allocator<void> : public basic_hardware_memory_allocator<void> {
 public:
     using value_type = void;
     using pointer = value_type*;
@@ -310,13 +378,13 @@ public:
     }
 
     container_pointer
-    allocate(size_type size)
+    allocate(size_type size) override
     {
         return _m_allocate(size);
     }
 
     container_pointer
-    allocate(const_pointer ptr, size_type size)
+    allocate(const_pointer ptr, size_type size) override
     {
         auto container = _m_allocate(size);
         std::memcpy(container->storage()->contents(), ptr, size);
@@ -356,7 +424,7 @@ private:
 };
 
 
-template <> class hardware_memory_allocator<void> {
+template <> class hardware_memory_allocator<void> : public basic_hardware_memory_allocator<void> {
 public:
     using value_type = void;
     using pointer = value_type*;
@@ -370,14 +438,14 @@ public:
     {}
 
     container_pointer
-    allocate(size_type size)
+    allocate(size_type size) override
     {
         auto memory_ptr = _m_device->newBuffer(size, MTL::ResourceStorageModeShared);
         return std::make_shared<container_type>(memory_ptr);
     }
 
     container_pointer
-    allocate(const_pointer ptr, size_type size)
+    allocate(const_pointer ptr, size_type size) override
     {
         auto memory_ptr = _m_device->newBuffer(ptr, size, MTL::ResourceStorageModeShared);
         return std::make_shared<container_type>(memory_ptr);
