@@ -55,7 +55,7 @@ private:
     auto
     contiguous(Input input, std::size_t dim)
     {
-        auto output = future_tensor(empty_like<T>(input, _m_device.allocator()));
+        auto output = future_tensor(empty_like<T>(input, _m_device.get_allocator()));
 
         for (std::size_t offset = 0; offset < output.size(dim); offset++) {
             auto future = _m_cpy(input.narrow(dim, offset, 1), output.narrow(dim, offset, 1));
@@ -112,11 +112,11 @@ public:
       m_scale(1.0 / std::sqrt(float(options.head_dim))),
       _m_cache_k(empty<T>(
           {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
-          device.allocator()
+          device.get_allocator()
       )),
       _m_cache_v(empty<T>(
           {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
-          device.allocator()
+          device.get_allocator()
       )),
       _m_cpy(device),
       _m_device(device)

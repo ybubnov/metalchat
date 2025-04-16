@@ -12,6 +12,9 @@ namespace metalchat {
 
 
 class device {
+public:
+    using allocator_type = polymorphic_hardware_memory_allocator<void>;
+
 private:
     NS::SharedPtr<MTL::Device> _m_device;
     NS::SharedPtr<MTL::Library> _m_library;
@@ -32,17 +35,12 @@ private:
         auto label = NS::TransferPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
         queue->setLabel(label.get());
 
-        auto capacity = std::size_t(1024) * 1024 * 1024;
-        auto alloc = polymorphic_hardware_memory_allocator<void>(
-            std::make_shared<hardware_heap_allocator<void>>(_m_device, capacity)
-        );
+        auto alloc_ptr = std::make_shared<hardware_memory_allocator<void>>(_m_device);
 
-        return shared_kernel_thread(queue, thread_capacity, alloc);
+        return shared_kernel_thread(queue, thread_capacity, allocator_type(alloc_ptr));
     }
 
 public:
-    using allocator_type = polymorphic_hardware_memory_allocator<void>;
-
     device(device&&) noexcept = default;
     device(const device&) = delete;
 
@@ -82,9 +80,22 @@ public:
     }
 
     allocator_type
-    allocator()
+    get_allocator() const
     {
-        return _m_this_thread.allocator();
+        return _m_this_thread.get_allocator();
+    }
+
+    void
+    set_allocator(std::shared_ptr<allocator_type::outer_allocator_type> alloc)
+    {
+        _m_this_thread.set_allocator(alloc);
+    }
+
+    template <basic_hardware_allocator_t<void> Allocator>
+    void
+    set_allocator(Allocator&& alloc)
+    {
+        _m_this_thread.set_allocator(std::move(alloc));
     }
 
     kernel_base

@@ -73,9 +73,9 @@ public:
     }
 
     allocator_type
-    allocator()
+    get_allocator()
     {
-        return _m_kernel_thread.get().allocator();
+        return _m_kernel_thread.get().get_allocator();
     }
 
     std::size_t
@@ -88,12 +88,6 @@ public:
     get_this_thread()
     {
         return _m_kernel_thread.get().get_this_thread();
-    }
-
-    MTL::Device*
-    device()
-    {
-        return _m_function->device();
     }
 
     MTL::ComputePipelineState*

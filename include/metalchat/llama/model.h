@@ -35,7 +35,7 @@ private:
 
         if (size > 1) {
             const T infinity = T(std::numeric_limits<float>::infinity());
-            auto m = full<T>({size, size}, -infinity, _m_device.get().allocator());
+            auto m = full<T>({size, size}, -infinity, _m_device.get().get_allocator());
             triu(m);
 
             mask = std::make_optional(std::move(m));
@@ -90,7 +90,7 @@ make_model(const metalchat::safetensor_file& tensors, device& gpu, std::size_t n
     using allocator_type = rebind_hardware_allocator<T, device::allocator_type>;
     using container_type = allocator_type::container_type;
 
-    auto alloc0 = allocator_type(gpu.allocator());
+    auto alloc0 = allocator_type(gpu.get_allocator());
     auto alloc1 = hardware_nocopy_allocator(alloc0, gpu.get_hardware_device());
     auto alloc = hardware_resident_allocator(alloc1, gpu.get_hardware_device());
 

@@ -96,12 +96,6 @@ public:
     : kernel_task(kernel, grid, thread, std::make_tuple(args...))
     {}
 
-    MTL::Device*
-    device()
-    {
-        return _m_kernel.device();
-    }
-
     std::shared_future<void>
     operator()()
     {
@@ -137,14 +131,12 @@ public:
     encode(hardware_function_encoder encoder, std::index_sequence<Indices...>)
     {
         encoder.initialize(_m_kernel.name(), _m_kernel.pipeline());
-        // std::cout << _m_kernel.name() << "(" << sizeof...(Indices) << ")" << std::endl;
 
         ([&] {
             using tensor_type = std::tuple_element<Indices, arguments_type>::type;
             using value_type = tensor_type::value_type;
 
             const auto& arg = std::get<Indices>(_m_args);
-            // std::cout << "  arg[" << Indices << "]: " << arg.layout() << std::endl;
             encoder.encode<value_type>(arg);
         }(), ...);
 

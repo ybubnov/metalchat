@@ -119,7 +119,7 @@ public:
 
         auto input_view = flatten<2>(input);
         auto index_view = flatten<2>(index);
-        auto output_view = shared_empty_like<T>(index_view, _m_kernel.allocator());
+        auto output_view = shared_empty_like<T>(index_view, _m_kernel.get_allocator());
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto task_future = task.bind_front(output_view, input_view, index_view);

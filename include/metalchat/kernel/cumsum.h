@@ -29,7 +29,7 @@ public:
         auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
 
         auto input_view = flatten<2>(input);
-        auto output_view = shared_empty_like<T>(input_view, _m_kernel.allocator());
+        auto output_view = shared_empty_like<T>(input_view, _m_kernel.get_allocator());
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto task_future = task.bind_front(output_view, input_view);

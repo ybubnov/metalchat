@@ -31,7 +31,7 @@ public:
         auto num_rows = input.numel() / dim_size;
 
         auto input_view = flatten<2>(input);
-        auto output_view = shared_empty_like<T>(input_view, _m_kernel.allocator());
+        auto output_view = shared_empty_like<T>(input_view, _m_kernel.get_allocator());
 
         auto [grid, thread] = make_kernel_grid_1d(input_view, BlockSize);
 

@@ -64,7 +64,7 @@ public:
         }
 
         auto input1_view = input1.view({-1, int(dim0_size), int(dim1_size)});
-        auto output_view = shared_empty_like<T>(input1_view, _m_kernel.allocator());
+        auto output_view = shared_empty_like<T>(input1_view, _m_kernel.get_allocator());
 
         auto thread_size_x = ceil_div(dim0_size, BlockSize);
         auto thread_size_z = ceil_div(dim1_size, BlockSize);

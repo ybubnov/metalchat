@@ -54,7 +54,14 @@ template <typename T> struct basic_hardware_memory_allocator {
 
     virtual container_pointer allocate(size_type) = 0;
     virtual container_pointer allocate(const_pointer, size_type) = 0;
+    virtual ~basic_hardware_memory_allocator() {};
 };
+
+
+template <typename Allocator, typename T>
+concept basic_hardware_allocator_t
+    = hardware_allocator_t<Allocator, T>
+      && std::derived_from<Allocator, basic_hardware_memory_allocator<T>>;
 
 
 /// The class template `polymorphic_hardware_memory_allocator` is an `allocator` which
@@ -72,9 +79,9 @@ public:
     using size_type = std::size_t;
     using container_type = hardware_memory_container<value_type>;
     using container_pointer = std::shared_ptr<container_type>;
-    using allocator_type = basic_hardware_memory_allocator<T>;
+    using outer_allocator_type = basic_hardware_memory_allocator<T>;
 
-    polymorphic_hardware_memory_allocator(std::shared_ptr<allocator_type> alloc)
+    polymorphic_hardware_memory_allocator(std::shared_ptr<outer_allocator_type> alloc)
     : _m_alloc(alloc)
     {}
 
@@ -91,7 +98,7 @@ public:
     }
 
 private:
-    std::shared_ptr<allocator_type> _m_alloc;
+    std::shared_ptr<outer_allocator_type> _m_alloc;
 };
 
 
