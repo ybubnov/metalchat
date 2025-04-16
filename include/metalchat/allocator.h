@@ -8,6 +8,14 @@
 namespace metalchat {
 
 
+/// The concept `allocator` specifies the requirements for a type to allocate elements
+/// contiguously stored in the memory. The allocator is used to allocate underlying memory
+/// for a tensor.
+///
+/// Depending on the tensor type, memory could be allocated on stack with
+/// `scalar_memory_allocator`, on random accessible memory with `random_memory_allocator`,
+/// or memory, that is shared between CPU and GPU, using different implementations of
+/// hardware allocators.
 template <typename Allocator>
 concept allocator = requires(std::remove_reference_t<Allocator> a) {
     typename Allocator::value_type;
@@ -18,19 +26,26 @@ concept allocator = requires(std::remove_reference_t<Allocator> a) {
     typename Allocator::container_pointer;
 
     {
-        a.allocate(typename Allocator::size_type())
+        a.allocate(std::declval<typename Allocator::size_type>())
     } -> std::same_as<typename Allocator::container_pointer>;
 
     {
-        a.allocate(typename Allocator::const_pointer(), typename Allocator::size_type())
+        a.allocate(
+            std::declval<typename Allocator::const_pointer>(),
+            std::declval<typename Allocator::size_type>()
+        )
     } -> std::same_as<typename Allocator::container_pointer>;
 } && contiguous_container<typename Allocator::container_type>;
 
 
+/// The concept `allocator_t` specifies the requirements for a type to allocate elements
+/// of type `T` contiguously stored in the memory.
 template <typename Allocator, typename T>
 concept allocator_t = allocator<Allocator> && std::same_as<typename Allocator::value_type, T>;
 
 
+/// The concept `hardware_allocator` specifies the requirements for a type to allocate
+/// elements contiguously stored in the hardware (Metal) memory.
 template <typename Allocator>
 concept hardware_allocator = allocator<Allocator>
                              && std::same_as<
@@ -38,12 +53,19 @@ concept hardware_allocator = allocator<Allocator>
                                  hardware_memory_container<typename Allocator::value_type>>;
 
 
+/// The concept `hardware_allocator_t` specifies the requirements for a type to allocate
+/// elements of a type `T` conguously stored in the hardware (Metal) memory.
 template <typename Allocator, typename T>
 concept hardware_allocator_t
     = allocator_t<Allocator, T>
       && std::same_as<typename Allocator::container_type, hardware_memory_container<T>>;
 
 
+/// The class template `basic_hardware_memory_allocator` is a virtual class that should
+/// inherit allocator implementations that are expected to used within a polymorphic
+/// hardware memory allocator. Essentially, all virtual methods presented in this class
+/// represent all necessary methods that are requested by `allocator` concept, so all
+/// allocators should automatically implement this virtual class.
 template <typename T> struct basic_hardware_memory_allocator {
     using value_type = T;
     using pointer = value_type*;
@@ -102,6 +124,12 @@ private:
 };
 
 
+/// The `rebind_hardware_allocator` is used to cast type of elements allocated in the contiguous
+/// hardware memory, that are allocated with incomplete allocator type. Allocator is incomplete,
+/// when `Allocator::value_type` is equal to `void`.
+///
+/// The implementation only allows cast from incomplete allocator type, since the parent
+/// allocator might exploit different memory alignment depending from the underlying type.
 template <typename T, hardware_allocator_t<void> Allocator>
 class rebind_hardware_allocator : public basic_hardware_memory_allocator<T> {
 public:
@@ -138,6 +166,9 @@ private:
 };
 
 
+/// The hardware allocator that creates a shallow buffer resource for allocations with memory-move
+/// semantic. All buffers created with that method do not manage the underlying memory (specified
+/// by a `const_pointer`). And caller is responsible for a proper memory management.
 template <hardware_allocator Allocator>
 class hardware_nocopy_allocator
 : public basic_hardware_memory_allocator<typename Allocator::value_type> {
@@ -295,6 +326,11 @@ private:
 };
 
 
+/// The `hardware_memory_allocator` creates tracked buffer resources directly from the device.
+///
+/// This is the default implementation of the hardware memory allocator, all resources are
+/// tracked and shared with CPU. In some workloads this is implementation might provide
+/// suboptimal results due to frequent allocation/deallocation/wiring of the memory.
 template <typename T> class hardware_memory_allocator : public basic_hardware_memory_allocator<T> {
 public:
     using value_type = T;
