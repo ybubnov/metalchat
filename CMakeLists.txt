@@ -30,4 +30,10 @@ target_link_libraries(metalama_main ${QUARTZCORE})
 
 set(metalama_TENSOR_SOURCES src/safetensor.cc)
 add_executable(metalama_parse ${metalama_TENSOR_SOURCES})
+add_dependencies(metalama_parse ${metalama_METALLIB})
+
 target_link_libraries(metalama_parse simdjson::simdjson)
+target_link_libraries(metalama_parse ${FOUNDATION})
+target_link_libraries(metalama_parse ${METAL})
+target_link_libraries(metalama_parse ${METALFX})
+target_link_libraries(metalama_parse ${QUARTZCORE})

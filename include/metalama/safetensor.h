@@ -183,6 +183,12 @@ public:
         return m_tensors.end();
     }
 
+    safetensor&
+    operator[](const std::string& tensor_name)
+    {
+        return m_tensors.at(tensor_name);
+    }
+
     ~safetensor_file()
     {
         if (m_map != MAP_FAILED) {

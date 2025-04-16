@@ -1,8 +1,7 @@
 #pragma once
 
+#include <format>
 #include <iostream>
-
-#include <metalama/tensor.h>
 
 
 namespace fmt {
