@@ -31,6 +31,12 @@ template <typename T, std::size_t N, ContiguousContainer Container> class tensor
 public:
     using traits = tensor_traits<T, Container>;
 
+    using value_type = T;
+
+    using pointer_type = T*;
+
+    using container_type = Container;
+
     using iterator = tensor_iterator<T, N>;
 
     using const_iterator = const iterator;
@@ -76,8 +82,8 @@ public:
       )
     {}
 
-    inline std::size_t
-    dim() const noexcept
+    static constexpr std::size_t
+    dim()
     {
         return N;
     }
