@@ -117,6 +117,7 @@ public:
     void
     encode(MTL::ComputeCommandEncoder* encoder, std::index_sequence<Indices...>)
     {
+        // std::cout << " + `" << _m_kernel.name() << "`" << std::endl;
         auto device_ptr = device();
         encoder->setComputePipelineState(_m_kernel.pipeline());
 

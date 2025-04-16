@@ -29,6 +29,9 @@ private:
     _m_make_kernel_thread(NS::SharedPtr<MTL::Device>, std::size_t thread_capacity)
     {
         auto queue = NS::TransferPtr(_m_device->newCommandQueue());
+        auto label = NS::TransferPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
+        queue->setLabel(label.get());
+
         return shared_kernel_thread(queue, thread_capacity);
     }
 
