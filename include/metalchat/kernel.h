@@ -97,8 +97,8 @@ public:
     void
     operator()(const tensor<T, N, Container>&... args)
     {
-        std::cout << "blocking_kernel<" << m_threads << ", " << m_thread << ">"
-                  << "(" << m_op << ", args[" << sizeof...(args) << "])" << std::endl;
+        // std::cout << "blocking_kernel<" << m_threads << ", " << m_thread << ">"
+        //           << "(" << m_op << ", args[" << sizeof...(args) << "])" << std::endl;
 
         auto command_buf = NS::TransferPtr(m_queue->commandBuffer());
         auto command_encoder = NS::TransferPtr(command_buf->computeCommandEncoder());

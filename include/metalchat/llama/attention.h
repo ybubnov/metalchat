@@ -109,11 +109,17 @@ public:
         values = values.transpose({0, 2, 1, 3});
 
         auto scores = m_mul(m_matmul(queries, keys.transpose({0, 1, 3, 2})), m_scale);
+
         scores = m_sum(scores, mask);
         scores = m_softmax(scores);
 
-        auto output = m_matmul(scores, values).transpose({0, 2, 1, 3}).reshape({bs, len, -1});
-        return m_wo(output);
+        auto output = m_matmul(scores, values).transpose({0, 2, 1, 3});
+        // Simulation of "contiguous()" method.
+        auto output_ = empty_like(output);
+        std::copy(output.begin(), output.end(), output_.begin());
+
+        auto output__ = output_.reshape({bs, len, -1});
+        return m_wo(output__);
     }
 
     friend std::ostream&

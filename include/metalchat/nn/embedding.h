@@ -93,7 +93,7 @@ public:
             freqs[i] = 1.0f / std::powf(_m_theta, 2.0 * i / _m_dim);
         }
 
-        scale_freqs(freqs);
+        // scale_freqs(freqs);
 
         for (auto i = 0; i < _m_max_seq_len * 2; i++) {
             for (auto j = 0; j < _m_dim / 2; j++) {
