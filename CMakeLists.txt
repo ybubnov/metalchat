@@ -9,7 +9,6 @@ include_directories(${PROJECT_SOURCE_DIR}/lib)
 
 find_library(FOUNDATION Foundation REQUIRED)
 find_library(METAL Metal REQUIRED)
-find_library(METALFX MetalFX REQUIRED)
 find_library(QUARTZCORE QuartzCore REQUIRED)
 
 find_package(simdjson CONFIG REQUIRED)
@@ -25,5 +24,4 @@ add_dependencies(metalchat_main ${metalchat_METALLIB})
 target_link_libraries(metalchat_main simdjson::simdjson)
 target_link_libraries(metalchat_main ${FOUNDATION})
 target_link_libraries(metalchat_main ${METAL})
-target_link_libraries(metalchat_main ${METALFX})
 target_link_libraries(metalchat_main ${QUARTZCORE})
