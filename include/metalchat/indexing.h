@@ -47,7 +47,7 @@ struct slice {
 
 
 template <class T>
-concept SliceConvertible = std::is_convertible_v<T, slice>;
+concept slice_convertible = std::is_convertible_v<T, slice>;
 
 
 template <class T>

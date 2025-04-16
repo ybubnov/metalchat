@@ -31,7 +31,7 @@ TEST_CASE("Iterate 3d tensor slice", "[tensor_iterator]")
     for (std::size_t i = 0; i < s.size(0); i++) {
         for (std::size_t j = 0; j < s.size(1); j++) {
             for (std::size_t k = 0; k < s.size(2); k++) {
-                REQUIRE(s[i][j][k] == (*first));
+                REQUIRE(s[i, j, k] == (*first));
                 ++first;
             }
         }
