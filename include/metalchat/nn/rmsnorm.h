@@ -35,7 +35,7 @@ public:
         auto groups = dim3(1);
         auto threads = dim3(input.size(0) / 4);
 
-        blocking_kernel(groups, threads, input, weight, eps_, input_size, output);
+        blocking(groups, threads)(input, weight, eps_, input_size, output);
         return output;
     }
 };
