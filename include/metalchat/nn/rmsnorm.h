@@ -30,7 +30,7 @@ public:
         auto output = empty<T>({input.size(0)}, m_device);
 
         auto eps_ = full<T>({1}, eps);
-        auto input_size = full<int32_t>({1}, int32_t(input.size(0)));
+        auto input_size = full<int32_t>({1}, input.size(0));
 
         auto groups = dim3(1);
         auto threads = dim3(input.size(0) / 4);
