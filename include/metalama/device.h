@@ -80,9 +80,13 @@ private:
 
     std::string m_op;
 
+protected:
+    device& m_device;
+
 public:
-    op(const std::string& op)
-    : m_op(op)
+    op(const std::string& op, device& device)
+    : m_op(op),
+      m_device(device)
     {}
 
     std::string
@@ -114,66 +118,60 @@ struct device_ref : public array_ref<T> {
 
 
 class embedding : public op {
+
 public:
-    embedding(const std::string& opname)
-    : op(opname)
+    embedding(const std::string& opname, device& device)
+    : op(opname, device)
     {}
 
     template <typename T>
     tensor<T, 2>
-    operator()(const tensor<int32_t, 1>& input, const tensor<T, 2>& weight, device& device)
+    operator()(const tensor<int32_t, 1>& input, const tensor<T, 2>& weight)
     {
-        auto op_kernel = device.make_fn(this->name());
+        auto op_kernel = this->m_device.make_fn(this->name());
 
         NS::Error* error = nullptr;
-        auto pipeline = NS::TransferPtr(device->newComputePipelineState(op_kernel.get(), &error));
+        auto pipeline
+            = NS::TransferPtr(this->m_device->newComputePipelineState(op_kernel.get(), &error));
         if (error != nullptr) {
             throw std::runtime_error("failed to create compute pipeline");
         }
-        std::cout << "created pipeline" << std::endl;
 
-        auto command_queue = NS::TransferPtr(device->newCommandQueue());
-        std::cout << "created queue" << std::endl;
+        auto command_queue = NS::TransferPtr(this->m_device->newCommandQueue());
 
-        auto input_buf = device.make_buf(input);
-        auto weight_buf = device.make_buf(weight);
+        auto input_buf = this->m_device.make_buf(input);
+        auto weight_buf = this->m_device.make_buf(weight);
+        auto weight_stride = weight.stride(0);
 
         auto result_buf = NS::TransferPtr(
-            device->newBuffer(input.numel() * sizeof(T), MTL::ResourceStorageModeShared)
+            this->m_device->newBuffer(input.numel() * sizeof(T), MTL::ResourceStorageModeShared)
         );
-        std::cout << "created buffers" << std::endl;
 
         auto command_buf = NS::TransferPtr(command_queue->commandBuffer());
         auto command_encoder = NS::TransferPtr(command_buf->computeCommandEncoder());
 
-        std::cout << "computing pipeline" << std::endl;
         command_encoder->setComputePipelineState(pipeline.get());
         command_encoder->setBuffer(input_buf.get(), 0, 0);
         command_encoder->setBuffer(weight_buf.get(), 0, 1);
-        command_encoder->setBuffer(result_buf.get(), 0, 2);
+        command_encoder->setBytes(&weight_stride, sizeof(weight_stride), 0, 2);
+        command_encoder->setBuffer(result_buf.get(), 0, 3);
 
-        MTL::Size grid_size(input.numel(), 1, 1);
-        MTL::Size thread_group_size(
-            std::min(input.numel(), pipeline->maxTotalThreadsPerThreadgroup()), 1, 1
-        );
+        MTL::Size grid_size(input.size(0), weight.size(1), 1);
+        MTL::Size thread_group_size(1, 1, 1);
         command_encoder->dispatchThreadgroups(grid_size, thread_group_size);
 
         command_encoder->endEncoding();
         command_buf->commit();
         command_buf->waitUntilCompleted();
 
-        auto shape = new std::size_t[2];
-        shape[0] = input.size(0);
-        shape[1] = weight.size(1);
-        auto strides = new std::size_t[2];
-        strides[0] = shape[1];
-        strides[1] = 1;
+        auto shape = new std::size_t[2]{input.size(0), weight.size(1)};
+        auto strides = new std::size_t[2]{shape[1], 1};
 
-        std::cout << "contents(ptr)=" << result_buf->contents() << std::endl;
-        return tensor<T, 2>(
+        using tensor_type = tensor<T, 2>;
+
+        return tensor_type(
             std::move(std::make_unique<device_ref<T>>(result_buf)),
-            std::move(std::make_unique<owned_ref<std::size_t>>(shape)),
-            std::move(std::make_unique<owned_ref<std::size_t>>(strides))
+            tensor_type::traits::borrow(shape), tensor_type::traits::borrow(strides)
         );
     }
 };

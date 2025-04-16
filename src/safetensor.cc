@@ -33,8 +33,8 @@ main()
         std::cout << input << std::endl;
         std::cout << weight << std::endl;
 
-        metalama::embedding embedding("embedding_bf16");
-        auto result = embedding(input, weight, /*device=*/gpu0);
+        metalama::embedding embedding("embedding_bf16", /*device=*/gpu0);
+        auto result = embedding(input, weight);
         std::cout << result << std::endl;
     }
 

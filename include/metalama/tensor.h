@@ -156,6 +156,12 @@ public:
     }
 
     inline std::size_t
+    stride(std::size_t dim) const
+    {
+        return m_strides->data()[dim];
+    }
+
+    inline std::size_t
     size(std::size_t dim) const
     {
         return m_shape->data()[dim];
