@@ -124,6 +124,12 @@ template <typename T> struct device_ref : public array_ref<T> {
     {
         return static_cast<T*>(m_buf->contents());
     }
+
+    ptr_type
+    storage()
+    {
+        return m_buf;
+    }
 };
 
 

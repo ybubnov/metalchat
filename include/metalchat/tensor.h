@@ -132,10 +132,10 @@ public:
         os << "[...]";
     }
 
-    inline const traits::data_type&
-    storage() const
+    inline traits::data_type::element_type&
+    container() const
     {
-        return m_data;
+        return *m_data;
     }
 
 protected:
