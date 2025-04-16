@@ -48,9 +48,9 @@ __lib_metalchat_kernel2(add, float, 32);
 
 
 template <typename T> struct __add2_parameters {
-    constant tensor_layout<3>& output_layout;
+    constant layout3& output_layout;
     device T* output;
-    constant tensor_layout<3>& input1_layout;
+    constant layout3& input1_layout;
     device const T* input1;
     constant layout2& input2_layout;
     device const T* input2;
@@ -66,9 +66,9 @@ add2(
     uint3 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    tensor<const T, 3> in1{params.input1, params.input1_layout};
+    tensor3<const T> in1(params.input1_layout, params.input1);
     tensor2<const T> in2(params.input2_layout, params.input2);
-    tensor<T, 3> out{params.output, params.output_layout};
+    tensor3<T> out(params.output_layout, params.output);
 
     const uint dim0_size = in2.size(0);
     const uint dim1_size = in2.size(1);
@@ -79,6 +79,7 @@ add2(
     const uint end_z = begin_z + BlockSize;
 
     if (j < dim0_size) {
+#pragma unroll(BlockSize)
         for (uint k = begin_z; k < end_z && k < dim1_size; k++) {
             out.at(i, j, k) = in1.at(i, j, k) + in2.at(j, k);
         }

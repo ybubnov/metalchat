@@ -4,19 +4,18 @@
 #include <metal_simdgroup>
 #include <metal_stdlib>
 
+#include "kernel.h"
 #include "tensor.h"
 
 
-#define __embedding_parameters(T)                               \
-    constant tensor_layout<3>& output_layout     [[buffer(0)]], \
-    device T* output                             [[buffer(1)]], \
-    constant layout2& input_layout               [[buffer(2)]], \
-    device const int32_t* input                  [[buffer(3)]], \
-    constant layout2& weight_layout              [[buffer(4)]], \
-    device const T* weight                       [[buffer(5)]], \
-    uint3 gid [[threadgroup_position_in_grid]],                 \
-    uint3 tid [[thread_position_in_threadgroup]],               \
-    uint3 threadgroup_size [[threads_per_threadgroup]]
+template <typename T> struct __embedding_parameters {
+    constant layout3& output_layout;
+    device T* output;
+    constant layout2& input_layout;
+    device const int32_t* input;
+    constant layout2& weight_layout;
+    device const T* weight;
+};
 
 
 /// Batched implementation of the embedding operation.
@@ -33,11 +32,16 @@
 ///
 template <typename T, uint BlockSize>
 kernel void
-embedding(__embedding_parameters(T))
+embedding(
+    __embedding_parameters<T> params,
+    uint3 gid [[threadgroup_position_in_grid]],
+    uint3 tid [[thread_position_in_threadgroup]],
+    uint3 threadgroup_size [[threads_per_threadgroup]]
+)
 {
-    tensor2<const int32_t> in(input_layout, input);
-    tensor2<const T> w(weight_layout, weight);
-    tensor<T, 3> out{output, output_layout};
+    tensor2<const int32_t> in(params.input_layout, params.input);
+    tensor2<const T> w(params.weight_layout, params.weight);
+    tensor3<T> out(params.output_layout, params.output);
 
     const uint dim_size = in.size(1);
     const uint emb_size = w.size(1);
@@ -49,6 +53,7 @@ embedding(__embedding_parameters(T))
     const uint k = tid.y + gid.z * threadgroup_size.y;
 
     if (k < emb_size) {
+#pragma unroll(BlockSize)
         for (uint j = begin; j < end && j < dim_size; j++) {
             out.at(i, j, k) = w.at(in.at(i, j), k);
         }
@@ -56,15 +61,8 @@ embedding(__embedding_parameters(T))
 }
 
 
-template [[host_name("embedding_4_bfloat")]]
-kernel void embedding<bfloat, 4>(__embedding_parameters(bfloat));
+__lib_metalchat_kernel3(embedding, bfloat, 4);
+__lib_metalchat_kernel3(embedding, bfloat, 16);
 
-template [[host_name("embedding_16_bfloat")]]
-kernel void embedding<bfloat, 16>(__embedding_parameters(bfloat));
-
-
-template [[host_name("embedding_4_float")]]
-kernel void embedding<float, 4>(__embedding_parameters(float));
-
-template [[host_name("embedding_16_float")]]
-kernel void embedding<float, 16>(__embedding_parameters(float));
+__lib_metalchat_kernel3(embedding, float, 4);
+__lib_metalchat_kernel3(embedding, float, 16);
