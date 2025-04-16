@@ -4,7 +4,6 @@
 #include <array>
 #include <cstddef>
 #include <iomanip>
-#include <span>
 #include <sstream>
 #include <type_traits>
 #include <utility>
@@ -234,16 +233,22 @@ public:
         return m_strides->data()[dim];
     }
 
+    inline std::vector<std::size_t>
+    strides() const
+    {
+        return std::vector(m_strides->data(), m_strides->data() + N);
+    }
+
     inline std::size_t
     size(std::size_t dim) const
     {
         return m_shape->data()[dim];
     }
 
-    std::span<std::size_t, N> const
+    std::vector<std::size_t> const
     sizes() const
     {
-        return std::span(m_shape->data(), N);
+        return std::vector(m_shape->data(), m_shape->data() + N);
     }
 
     std::size_t
@@ -327,7 +332,7 @@ public:
         auto new_data = this->data_ptr() + this->m_strides->data()[0] * i;
         auto new_shape = this->m_shape->data() + 1;
         auto new_strides = this->m_strides->data() + 1;
-        return tensor(new_data, new_shape, new_strides);
+        return tensor<T, N - 1>(new_data, new_shape, new_strides);
     }
 
     const tensor<const T, N - 1>
@@ -412,15 +417,27 @@ public:
     {}
 
     T&
+    at(std::size_t i)
+    {
+        return *(this->data_ptr() + this->m_strides->data()[0] * i);
+    }
+
+    const T&
+    at(std::size_t i) const
+    {
+        return *(this->data_ptr() + this->m_strides->data()[0] * i);
+    }
+
+    T&
     operator[](std::size_t i)
     {
-        return this->data_ptr()[i];
+        return at(i);
     }
 
     const T&
     operator[](std::size_t i) const
     {
-        return this->data_ptr()[i];
+        return at(i);
     }
 
     auto
@@ -439,13 +456,18 @@ public:
 
         os << "[";
         if (size > max_size) {
-            os << std::vector<T>(this->data_ptr(), this->data_ptr() + fmt::edgeitems);
+            for (std::size_t i = 0; i < fmt::edgeitems; i++) {
+                os << at(i) << fmt::comma(i, size);
+            }
             os << ", ..., ";
-            os << std::vector<T>(this->data_ptr() + size - fmt::edgeitems, this->data_ptr() + size);
+            for (std::size_t i = size - fmt::edgeitems; i < size; i++) {
+                os << at(i) << fmt::comma(i, size);
+            }
         } else {
-            os << std::vector<T>(this->data_ptr(), this->data_ptr() + size);
+            for (std::size_t i = 0; i < size; i++) {
+                os << at(i) << fmt::comma(i, size);
+            }
         }
-
         os << "]";
     }
 };

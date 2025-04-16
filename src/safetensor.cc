@@ -23,11 +23,11 @@ main()
              std::cout << name << ": ";
 
             if (tensor.dim() == 1) {
-                auto t = tensor.as<__fp16, 1>();
+                auto t = tensor.as<bf16, 1>();
                 std::cout << t << std::endl;
             }
             if (tensor.dim() == 2) {
-                auto t = tensor.as<__fp16, 2>();
+                auto t = tensor.as<bf16, 2>();
                 std::cout << t << std::endl;
             }
         }
@@ -46,19 +46,30 @@ main()
         */
     }
 
-    {
-        auto weight = metalchat::full<bf16>({1024}, /*fill_value=*/2.0);
-        auto input = metalchat::full<bf16>({1024}, /*fill_value=*/5.0);
+    //{
+    //    auto weight = metalchat::full<bf16>({1024}, /*fill_value=*/2.0);
+    //    auto input = metalchat::full<bf16>({1024}, /*fill_value=*/5.0);
 
-        metalchat::nn::rmsnorm<bf16> rmsnorm(gpu0);
-        auto result = rmsnorm(input, weight);
-        std::cout << result << std::endl;
+    //    metalchat::nn::rmsnorm<bf16> rmsnorm(gpu0);
+    //    auto result = rmsnorm(input, weight);
+    //    std::cout << result << std::endl;
+    //}
+
+    {
+        auto input = metalchat::full<bf16>({128, 2048}, 2.0);
+        auto weight = model_file["model.layers.0.mlp.gate_proj.weight"].as<bf16, 2>();
+
+        std::cout << input.size(0) << "x" << input.size(1) << " * ";
+        std::cout << weight.size(0) << "x" << weight.size(1) << std::endl;
+        std::cout << input << std::endl;
+        std::cout << weight << std::endl;
+
+        metalchat::nn::sgemm<bf16> sgemm(gpu0);
+        auto result = sgemm(input, weight.t());
+
+        std::cout << "result=" << result << std::endl;
     }
 
-    std::cout << "----" << std::endl;
-    auto t = metalchat::empty<int32_t>({4, 3});
-    std::cout << t.t() << std::endl;
-    std::cout << "free" << std::endl;
 
     return 0;
 }
