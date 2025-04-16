@@ -101,16 +101,22 @@ public:
     }
 
     bool
+    operator==(const iterator& rhs)
+    {
+        return ((m_data.get().data() == rhs.m_data.get().data()) && (m_num == rhs.m_num));
+    }
+
+    bool
     operator!=(const iterator& rhs)
     {
-        return !((m_data.data() == rhs.m_data.data()) && (m_num == rhs.m_num));
+        return !operator==(rhs);
     }
 
 private:
-    array_ref<T>& m_data;
-    array_ref<std::size_t>& m_sizes;
-    array_ref<std::size_t>& m_strides;
-    array_ref<std::size_t>& m_offsets;
+    std::reference_wrapper<array_ref<T>> m_data;
+    std::reference_wrapper<array_ref<std::size_t>> m_sizes;
+    std::reference_wrapper<array_ref<std::size_t>> m_strides;
+    std::reference_wrapper<array_ref<std::size_t>> m_offsets;
 
     std::size_t m_index;
     std::size_t m_num;
@@ -120,25 +126,25 @@ private:
     inline std::size_t
     size(std::size_t dim)
     {
-        return m_sizes.data()[dim];
+        return m_sizes.get().data()[dim];
     }
 
     inline std::size_t
     stride(std::size_t dim)
     {
-        return m_strides.data()[dim];
+        return m_strides.get().data()[dim];
     }
 
     inline std::size_t
     offset(std::size_t dim)
     {
-        return m_offsets.data()[dim];
+        return m_offsets.get().data()[dim];
     }
 
     inline reference
     data(std::size_t index)
     {
-        return m_data.data()[index];
+        return m_data.get().data()[index];
     }
 
     std::size_t
