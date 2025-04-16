@@ -6,59 +6,67 @@
 namespace metalchat {
 
 
-template <typename T> struct array_ref {
-    using ptr_type = T*;
+template <typename T> struct memory_container {
     using value_type = T;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
 
-    virtual ptr_type
+    virtual pointer
     data()
         = 0;
 
-    virtual const T*
+    virtual const_pointer
     data() const
         = 0;
 
-    T*
+    pointer
     operator*()
     {
         return data();
     }
 
-    virtual ~array_ref() {}
+    virtual ~memory_container() {}
 };
 
 
-template <typename T>
-concept contiguous_container = requires { typename T::value_type; }
-                               && std::derived_from<T, array_ref<typename T::value_type>>;
+template <typename Container>
+concept contiguous_container = requires(Container c) {
+    typename Container::value_type;
+
+    std::derived_from<Container, memory_container<typename Container::value_type>>;
+};
 
 
-template <typename T> struct weak_ref : public array_ref<T> {
+template <typename T> struct reference_memory_container : public memory_container<T> {
 private:
-    T* m_data = nullptr;
+    T* _m_data = nullptr;
 
 public:
-    weak_ref(T* data)
-    : m_data(data)
+    using value_type = T;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+
+    reference_memory_container(pointer data)
+    : _m_data(data)
     {}
 
-    weak_ref(const weak_ref& ref)
-    : weak_ref(ref.m_data)
+    reference_memory_container(const reference_memory_container& ref)
+    : reference_memory_container(ref._m_data)
     {}
 
-    T*
+    inline pointer
     data() override
     {
-        return m_data;
+        return _m_data;
     }
 
-    const T*
+    inline const_pointer
     data() const override
     {
-        return m_data;
+        return _m_data;
     }
 
-    ~weak_ref() { m_data = nullptr; }
+    ~reference_memory_container() { _m_data = nullptr; }
 };
 
 
@@ -66,73 +74,71 @@ template <typename T>
 auto
 make_weak(T* data)
 {
-    return std::make_unique<weak_ref<T>>(data);
+    return std::make_shared<reference_memory_container<T>>(data);
 }
 
 
-template <typename T> struct owning_ref : public array_ref<T> {
+template <typename T> struct random_memory_container : public memory_container<T> {
 private:
-    T* m_data = nullptr;
+    T* _m_data = nullptr;
 
 public:
-    owning_ref(T* data)
-    : m_data(data)
+    using value_type = T;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+
+    random_memory_container(T* data)
+    : _m_data(data)
     {}
 
-    owning_ref(const owning_ref& ref) = delete;
+    random_memory_container(const random_memory_container& ref) = delete;
 
-    ~owning_ref()
+    ~random_memory_container()
     {
-        delete[] m_data;
-        m_data = nullptr;
+        delete[] _m_data;
+        _m_data = nullptr;
     }
 
-    inline T*
+    inline pointer
     data() override
     {
-        return m_data;
+        return _m_data;
     }
 
-    inline const T*
+    inline const_pointer
     data() const override
     {
-        return m_data;
+        return _m_data;
     }
 };
 
 
-template <typename T>
-auto
-make_owning(T* data)
-{
-    return std::make_unique<owning_ref<T>>(data);
-}
+template <typename T> struct hardware_memory_container : public memory_container<T> {
+    using value_type = T;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
 
+    NS::SharedPtr<MTL::Buffer> m_buf;
 
-template <typename T> struct device_ref : public array_ref<T> {
-    using ptr_type = NS::SharedPtr<MTL::Buffer>;
-
-    ptr_type m_buf;
-
-    device_ref(NS::SharedPtr<MTL::Buffer> buf)
+    hardware_memory_container(NS::SharedPtr<MTL::Buffer> buf)
     : m_buf(buf)
     {}
 
-    ~device_ref() { m_buf.reset(); }
+    ~hardware_memory_container() { m_buf.reset(); }
 
-    T*
+    pointer
     data() override
     {
         return static_cast<T*>(m_buf->contents());
     }
 
-    const T*
+    const_pointer
     data() const override
     {
         return static_cast<T*>(m_buf->contents());
     }
 
-    ptr_type
+    NS::SharedPtr<MTL::Buffer>
     storage()
     {
         return m_buf;
@@ -140,27 +146,29 @@ template <typename T> struct device_ref : public array_ref<T> {
 };
 
 
-template <typename T> struct value_ref : public array_ref<T> {
+template <typename T> struct scalar_memory_container : public memory_container<T> {
 private:
-    T m_data;
+    T _m_data;
 
 public:
-    using ptr_type = T*;
+    using value_type = T;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
 
-    value_ref(T data)
-    : m_data(data)
+    scalar_memory_container(T data)
+    : _m_data(data)
     {}
 
-    T*
+    pointer
     data() override
     {
-        return &m_data;
+        return &_m_data;
     }
 
-    const T*
+    const_pointer
     data() const override
     {
-        return &m_data;
+        return const_pointer(&_m_data);
     }
 };
 
@@ -169,7 +177,7 @@ template <typename T>
 auto
 make_value(T data)
 {
-    return std::make_unique<value_ref<T>>(data);
+    return std::make_shared<scalar_memory_container<T>>(data);
 }
 
 

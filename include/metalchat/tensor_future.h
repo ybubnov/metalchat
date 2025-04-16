@@ -39,7 +39,7 @@ concept asynchronously_invocable = requires(std::remove_reference_t<T> t) {
 /// narrowing, dimensionality expansion, etc.
 template <typename T, std::size_t N> class future_tensor {
 public:
-    using result_type = shared_tensor<T, N, device_ref<T>>;
+    using result_type = shared_tensor<T, N, hardware_memory_container<T>>;
 
     using future_type = std::shared_ptr<std::function<void()>>;
 
@@ -359,11 +359,12 @@ private:
 
 /// Deduction guide for the future tensor type.
 template <typename T, std::size_t N, asynchronously_invocable Task>
-future_tensor(shared_tensor<T, N, device_ref<T>> t, Task&& task) -> future_tensor<T, N>;
+future_tensor(shared_tensor<T, N, hardware_memory_container<T>> t, Task&& task)
+    -> future_tensor<T, N>;
 
 
 template <typename T, std::size_t N>
-future_tensor(tensor<T, N, device_ref<T>>&& t) -> future_tensor<T, N>;
+future_tensor(tensor<T, N, hardware_memory_container<T>>&& t) -> future_tensor<T, N>;
 
 
 template <typename T, std::size_t N, asynchronously_invocable Task>

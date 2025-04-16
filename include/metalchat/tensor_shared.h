@@ -219,7 +219,7 @@ public:
     auto
     operator[](std::size_t i) requires(N > 1)
     {
-        return shared_tensor<T, N - 1, weak_ref<T>>(_m_value->at(i));
+        return shared_tensor<T, N - 1, reference_memory_container<T>>(_m_value->at(i));
     }
 
 private:

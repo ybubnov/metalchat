@@ -63,7 +63,7 @@ struct tensor_format : public tensor_format_base<T, N, Container> {
         auto size = tf.t.size(0);
         auto max_size = fmt::edgeitems * 2 + 1;
 
-        using format_type = tensor_format<T, N - 1, weak_ref<T>>;
+        using format_type = tensor_format<T, N - 1, reference_memory_container<T>>;
 
         os << "[";
         if (size > max_size) {
@@ -106,7 +106,7 @@ struct tensor_format<T, 1, Container> : public tensor_format_base<T, 1, Containe
         auto size = tf.t.size(0);
         auto max_size = fmt::edgeitems * 2 + 1;
 
-        using format_type = tensor_format<T, 0, weak_ref<T>>;
+        using format_type = tensor_format<T, 0, reference_memory_container<T>>;
 
         os << "[";
         if (size > max_size) {

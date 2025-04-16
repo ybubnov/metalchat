@@ -59,7 +59,7 @@ public:
     ///
     /// The operation is executed asynchronously on GPU, therefore output tensor should be
     /// allocated on GPU memory.
-    template <immutable_tensor_t<T> Input, immutable_device_tensor_t<T> Output>
+    template <immutable_tensor_t<T> Input, immutable_hardware_tensor_t<T> Output>
     auto
     operator()(Input input, Output output)
     {

@@ -42,8 +42,10 @@ public:
     {
         assert((N == _m_shape.size()));
 
-        auto data = std::make_shared<weak_ref<T>>(static_cast<T*>(_m_data));
-        return tensor<T, N, weak_ref<T>>(_m_shape.cbegin(), _m_shape.cend(), data);
+        auto data = std::make_shared<reference_memory_container<T>>(static_cast<T*>(_m_data));
+        return tensor<T, N, reference_memory_container<T>>(
+            _m_shape.cbegin(), _m_shape.cend(), data
+        );
     }
 
     template <typename T, std::size_t N>
@@ -61,8 +63,8 @@ public:
         auto buf
             = NS::TransferPtr(device->newBuffer(_m_data, buf_size, MTL::ResourceStorageModeShared));
 
-        auto data = std::make_shared<device_ref<T>>(buf);
-        return tensor<T, N, device_ref<T>>(_m_shape.cbegin(), _m_shape.cend(), data);
+        auto data = std::make_shared<hardware_memory_container<T>>(buf);
+        return tensor<T, N, hardware_memory_container<T>>(_m_shape.cbegin(), _m_shape.cend(), data);
     }
 
     friend std::ostream&

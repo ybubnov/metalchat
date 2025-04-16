@@ -51,8 +51,8 @@ private:
     std::size_t _m_max_seq_len;
     float _m_theta;
 
-    shared_tensor<float, 2, device_ref<float>> _m_freqs_cos;
-    shared_tensor<float, 2, device_ref<float>> _m_freqs_sin;
+    shared_tensor<float, 2, hardware_memory_container<float>> _m_freqs_cos;
+    shared_tensor<float, 2, hardware_memory_container<float>> _m_freqs_sin;
 
     metalchat::rope<T> _m_rope;
 
