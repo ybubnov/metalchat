@@ -30,7 +30,7 @@ template <uint32_t N> struct tensor_layout {
 
 
 template <typename Tensor>
-concept is_tensor = requires(std::remove_reference_t<Tensor> const t) {
+concept immutable_tensor = requires(std::remove_reference_t<Tensor> const t) {
     /// The type of the elements.
     typename Tensor::value_type;
     typename Tensor::pointer_type;
@@ -39,16 +39,32 @@ concept is_tensor = requires(std::remove_reference_t<Tensor> const t) {
     typename Tensor::const_iterator;
 
     { Tensor::dim() } -> std::convertible_to<std::size_t>;
-    // Ensure that tensor type returns layout information as a span with a fixed extent.
     { t.sizes() } -> std::same_as<const std::span<std::size_t, Tensor::dim()>>;
     { t.strides() } -> std::same_as<const std::span<std::size_t, Tensor::dim()>>;
     { t.offsets() } -> std::same_as<const std::span<std::size_t, Tensor::dim()>>;
     { t.numel() } -> std::same_as<std::size_t>;
+
+    { t.container() } -> std::same_as<typename Tensor::container_type&>;
+    { t.layout() } -> std::same_as<tensor_layout<Tensor::dim()>>;
+
+    { t.narrow(std::size_t(), std::size_t(), std::size_t()) } -> std::same_as<Tensor>;
+
     { t.data_ptr() } -> std::same_as<typename Tensor::pointer_type>;
     { t.begin() } -> std::same_as<typename Tensor::const_iterator>;
     { t.end() } -> std::same_as<typename Tensor::const_iterator>;
-    { t.layout() } -> std::same_as<tensor_layout<Tensor::dim()>>;
 };
+
+
+template <typename Tensor>
+concept immutable_tensor2d = immutable_tensor<Tensor> && Tensor::dim() == 2;
+
+
+template <typename Tensor>
+concept immutable_tensor3d = immutable_tensor<Tensor> && Tensor::dim() == 3;
+
+
+template <typename Tensor>
+concept immutable_tensor4d = immutable_tensor<Tensor> && Tensor::dim() == 4;
 
 
 } // namespace metalchat

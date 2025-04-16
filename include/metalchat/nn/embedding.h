@@ -107,9 +107,9 @@ public:
         }
     }
 
-    template <ContiguousContainer InputContainer>
+    template <immutable_tensor4d InputTensor>
     auto
-    operator()(shared_tensor<T, 4, InputContainer> input, std::size_t start_pos = 0)
+    operator()(InputTensor input, std::size_t start_pos = 0)
     {
         if (_m_dim != input.sizes().back()) {
             throw std::invalid_argument(std::format(

@@ -8,29 +8,6 @@
 namespace metalchat {
 
 
-template <typename T, std::size_t N, ContiguousContainer Container>
-NS::SharedPtr<MTL::Buffer>
-make_buffer(MTL::Device* device, const shared_tensor<T, N, Container>& t)
-{
-    auto size = t.numel() * sizeof(T);
-    return NS::TransferPtr(device->newBuffer(t.data_ptr(), size, MTL::ResourceStorageModeShared));
-}
-
-template <typename T, std::size_t N>
-NS::SharedPtr<MTL::Buffer>
-make_buffer(MTL::Device* device, const shared_tensor<T, N, device_ref<T>>& t)
-{
-    return t.container().storage();
-}
-
-template <typename T>
-NS::SharedPtr<MTL::Buffer>
-make_buffer(MTL::Device* device, const shared_tensor<T, 0, value_ref<T>>& t)
-{
-    return NS::SharedPtr<MTL::Buffer>();
-}
-
-
 inline std::size_t
 ceil_div(std::size_t a, std::size_t b)
 {
@@ -38,7 +15,7 @@ ceil_div(std::size_t a, std::size_t b)
 }
 
 
-template <is_tensor Tensor>
+template <immutable_tensor Tensor>
 std::tuple<dim3, dim3>
 make_kernel_grid_1d(const Tensor& t, std::size_t block_size)
 {
@@ -54,7 +31,7 @@ make_kernel_grid_1d(const Tensor& t, std::size_t block_size)
 }
 
 
-template <is_tensor... Args> class kernel_task {
+template <immutable_tensor... Args> class kernel_task {
 private:
     kernel_base _m_kernel;
 
@@ -128,7 +105,7 @@ public:
 
         ([&] {
             auto& arg = std::get<Indices>(_m_args);
-            if (auto buf = make_buffer(device_ptr, arg); buf) {
+            if (auto buf = arg.memory_move(device_ptr); buf) {
                 auto layout = arg.layout();
                 command_encoder->setBytes(&layout, sizeof(layout), i++);
 
@@ -161,7 +138,7 @@ public:
         operator()(promise, std::index_sequence_for<Args...>{});
     }
 
-    template <is_tensor... FrontArgs>
+    template <immutable_tensor... FrontArgs>
     kernel_task<FrontArgs..., Args...>
     bind_front(FrontArgs... front_args)
     {
@@ -170,7 +147,7 @@ public:
         );
     }
 
-    template <is_tensor... BackArgs>
+    template <immutable_tensor... BackArgs>
     kernel_task<Args..., BackArgs...>
     bind_back(BackArgs... back_args)
     {

@@ -7,7 +7,6 @@
 #include <metalchat/kernel.h>
 #include <metalchat/tensor.h>
 #include <metalchat/tensor_future.h>
-#include <metalchat/tensor_shared.h>
 
 
 namespace metalchat {
@@ -24,11 +23,9 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <ContiguousContainer InputContainer, ContiguousContainer WeightContainer>
+    template <immutable_tensor3d InputTensor, immutable_tensor3d WeightTensor>
     auto
-    operator()(
-        shared_tensor<T, 3, InputContainer> input, shared_tensor<T, 3, WeightContainer> weight
-    )
+    operator()(InputTensor input, WeightTensor weight)
     {
         constexpr std::size_t block_size = 32;
 
@@ -65,11 +62,9 @@ public:
         return empty_future<T>({num_batches, input_size1, weight_size2}, std::move(fn));
     }
 
-    template <ContiguousContainer InputContainer, ContiguousContainer WeightContainer>
+    template <immutable_tensor3d InputTensor, immutable_tensor2d WeightTensor>
     auto
-    operator()(
-        shared_tensor<T, 3, InputContainer> input, shared_tensor<T, 2, WeightContainer> weight
-    )
+    operator()(InputTensor input, WeightTensor weight)
     {
         int weight_size0 = weight.size(0);
         int weight_size1 = weight.size(1);
@@ -79,11 +74,9 @@ public:
         return operator()(input, weight_view);
     }
 
-    template <ContiguousContainer InputContainer, ContiguousContainer WeightContainer>
+    template <immutable_tensor2d InputTensor, immutable_tensor2d WeightTensor>
     auto
-    operator()(
-        shared_tensor<T, 2, InputContainer> input, shared_tensor<T, 2, WeightContainer> weight
-    )
+    operator()(InputTensor input, WeightTensor weight)
     {
         int input_size0 = input.size(0);
         int input_size1 = input.size(1);
@@ -97,15 +90,13 @@ public:
         return output.view({input_size0, weight_size1});
     }
 
-    template <
-        std::size_t N,
-        ContiguousContainer InputContainer,
-        ContiguousContainer WeightContainer>
+    template <immutable_tensor InputTensor, immutable_tensor WeightTensor>
     auto
-    operator()(
-        shared_tensor<T, N, InputContainer> input, shared_tensor<T, N, WeightContainer> weight
-    )
+    operator()(InputTensor input, WeightTensor weight)
+        requires(InputTensor::dim() == WeightTensor::dim() && InputTensor::dim() > 3)
     {
+        constexpr std::size_t N = InputTensor::dim();
+
         int input_size0 = input.size(N - 2);
         int input_size1 = input.size(N - 1);
         int weight_size0 = weight.size(N - 2);
@@ -122,7 +113,6 @@ public:
         auto weight_view = weight.view({-1, weight_size0, weight_size1});
 
         auto output = operator()(input_view, weight_view);
-
         return output.view(std::move(output_sizes));
     }
 };
