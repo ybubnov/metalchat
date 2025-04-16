@@ -11,7 +11,7 @@
 namespace metalchat {
 
 
-class device {
+class hardware_accelerator {
 public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
 
@@ -41,10 +41,10 @@ private:
     }
 
 public:
-    device(device&&) noexcept = default;
-    device(const device&) = delete;
+    hardware_accelerator(hardware_accelerator&&) noexcept = default;
+    hardware_accelerator(const hardware_accelerator&) = delete;
 
-    device(const std::filesystem::path& path, std::size_t thread_capacity = 64)
+    hardware_accelerator(const std::filesystem::path& path, std::size_t thread_capacity = 64)
     : _m_device(_m_make_device()),
       _m_library(),
       _m_kernels(),

@@ -4,7 +4,7 @@
 #include <concepts>
 #include <type_traits>
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel.h>
@@ -24,8 +24,8 @@ private:
     kernel_base _m_kernel;
 
 public:
-    embedding(device& device)
-    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    embedding(hardware_accelerator& gpu)
+    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
     {}
 
     template <immutable_tensor2_t<int32_t> Input, immutable_tensor2_t<T> WeightTensor>
@@ -60,8 +60,8 @@ private:
     kernel_base _m_kernel;
 
 public:
-    rope(device& device)
-    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    rope(hardware_accelerator& gpu)
+    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
     {}
 
     template <

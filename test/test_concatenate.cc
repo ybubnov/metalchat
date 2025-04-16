@@ -3,7 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/functional.h>
@@ -11,7 +11,6 @@
 
 
 using namespace metalchat;
-using namespace metalchat::kernel;
 
 
 TEST_CASE("Tensor concatenate", "[concatenate]")
@@ -22,7 +21,7 @@ TEST_CASE("Tensor concatenate", "[concatenate]")
     auto t3 = shared_tensor(full<float>({3, 4, 2}, 4.0));
     auto t4 = shared_tensor(full<float>({3, 4, 2}, 5.0));
 
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
 
     auto tensors = {t0, t1, t2, t3, t4};
 

@@ -3,7 +3,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel/rmsnorm.h>
@@ -19,8 +19,8 @@ TEST_CASE("RMSNorm array of ones", "[kernel::rmsnorm]")
     auto input = shared_tensor(full<bf16>({4, 3, 5, 7}, 1.0));
     auto weight = shared_tensor(full<bf16>({7}, 3.0));
 
-    metalchat::device device("metalchat.metallib");
-    kernel::rmsnorm<bf16> rms(device);
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    kernel::rmsnorm<bf16> rms(gpu0);
 
     auto output = rms(input, weight).get();
     REQUIRE(output.numel() == input.numel());
@@ -38,8 +38,8 @@ TEST_CASE("RMSNorm array of ones", "[kernel::rmsnorm]")
 
 TEST_CASE("RMSNorm array of random numbers", "[kernel::rmsnorm]")
 {
-    metalchat::device device("metalchat.metallib");
-    kernel::rmsnorm<float> rms(device);
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    kernel::rmsnorm<float> rms(gpu0);
 
     auto input = shared_tensor(rand<float>({3, 5, 2048}));
     auto weight = shared_tensor(rand<float>({2048}));

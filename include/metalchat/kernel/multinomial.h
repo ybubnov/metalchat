@@ -1,6 +1,6 @@
 #pragma once
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_task.h>
@@ -22,8 +22,8 @@ private:
     std::uniform_int_distribution<uint64_t> _m_seed;
 
 public:
-    multinomial(device& device)
-    : _m_kernel(device.load(operation_name, type_traits<T>::name())),
+    multinomial(hardware_accelerator& gpu)
+    : _m_kernel(gpu.load(operation_name, type_traits<T>::name())),
       _m_random_device(),
       _m_generator(_m_random_device()),
       _m_seed(0, std::numeric_limits<uint64_t>::max())

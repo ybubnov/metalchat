@@ -17,9 +17,9 @@ public:
     rmsnorm(rmsnorm&&) = default;
     rmsnorm(const rmsnorm&) = delete;
 
-    rmsnorm(tensor<T, 1, Container>&& weight, device& device)
+    rmsnorm(tensor<T, 1, Container>&& weight, hardware_accelerator& gpu)
     : _m_weight(std::move(weight)),
-      _m_norm(device)
+      _m_norm(gpu)
     {}
 
     template <immutable_tensor_t<T> Input>

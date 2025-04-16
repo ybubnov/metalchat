@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_vector.hpp>
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel/cumsum.h>
@@ -13,7 +13,7 @@ using namespace metalchat;
 
 TEST_CASE("Cumulative sum", "[kernel::cumsum]")
 {
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
     kernel::cumsum<float, 16> cumsum(gpu0);
 
     auto input = shared_tensor(rand<float>({1, 1, 400}));

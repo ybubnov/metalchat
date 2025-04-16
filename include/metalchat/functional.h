@@ -24,7 +24,7 @@ namespace metalchat {
 
 template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 16>
 auto
-matmul(Tensor1 t1, Tensor2 t2, device& gpu)
+matmul(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 {
     kernel::bmm<typename Tensor1::value_type, BlockSize> op(gpu);
     return op(t1, t2);
@@ -33,7 +33,7 @@ matmul(Tensor1 t1, Tensor2 t2, device& gpu)
 
 template <typename T, immutable_tensor_t<T> Tensor, std::size_t BlockSize = 16>
 auto
-mul(Tensor t, const T multiplier, device& gpu)
+mul(Tensor t, const T multiplier, hardware_accelerator& gpu)
 {
     kernel::scalar_mul<typename Tensor::value_type, BlockSize> op(gpu);
     return op(t, multiplier);
@@ -42,7 +42,7 @@ mul(Tensor t, const T multiplier, device& gpu)
 
 template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 8>
 auto
-hadamard(Tensor1 t1, Tensor2 t2, device& gpu)
+hadamard(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 {
     kernel::hadamard<typename Tensor1::value_type, BlockSize> op(gpu);
     return op(t1, t2);
@@ -51,7 +51,7 @@ hadamard(Tensor1 t1, Tensor2 t2, device& gpu)
 
 template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 16>
 auto
-add(Tensor1 t1, Tensor2 t2, device& gpu)
+add(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 {
     kernel::add<typename Tensor1::value_type, BlockSize> op(gpu);
     return op(t1, t2);
@@ -60,7 +60,7 @@ add(Tensor1 t1, Tensor2 t2, device& gpu)
 
 template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 8>
 auto
-add2(Tensor1 t1, Tensor2 t2, device& gpu)
+add2(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 {
     kernel::add2<typename Tensor1::value_type, BlockSize> op(gpu);
     return op(t1, t2);
@@ -69,7 +69,7 @@ add2(Tensor1 t1, Tensor2 t2, device& gpu)
 
 template <immutable_tensor Tensor, std::size_t BlockSize = 16>
 auto
-softmax(Tensor t, device& gpu)
+softmax(Tensor t, hardware_accelerator& gpu)
 {
     kernel::softmax<typename Tensor::value_type, BlockSize> op(gpu);
     return op(t);
@@ -78,7 +78,7 @@ softmax(Tensor t, device& gpu)
 
 template <immutable_tensor Tensor, std::size_t BlockSize = 16>
 auto
-silu(Tensor t, device& gpu)
+silu(Tensor t, hardware_accelerator& gpu)
 {
     kernel::silu<typename Tensor::value_type, BlockSize> op(gpu);
     return op(t);
@@ -86,7 +86,7 @@ silu(Tensor t, device& gpu)
 
 template <immutable_tensor Tensor, std::size_t BlockSize = 128>
 auto
-sort(Tensor t, device& gpu)
+sort(Tensor t, hardware_accelerator& gpu)
 {
     kernel::sort<typename Tensor::value_type, BlockSize> op(gpu);
     return op(t);
@@ -94,7 +94,7 @@ sort(Tensor t, device& gpu)
 
 template <immutable_tensor Tensor, std::size_t BlockSize = 16>
 auto
-cumsum(Tensor t, device& gpu)
+cumsum(Tensor t, hardware_accelerator& gpu)
 {
     kernel::cumsum<typename Tensor::value_type, BlockSize> op(gpu);
     return op(t);
@@ -107,7 +107,7 @@ template <
     immutable_tensor_t<bool> Mask,
     std::size_t BlockSize = 128>
 auto
-scatter(Tensor t, Mask m, T value, device& gpu)
+scatter(Tensor t, Mask m, T value, hardware_accelerator& gpu)
 {
     kernel::scatter<T, BlockSize> op(gpu);
     return op(t, m, value);
@@ -116,7 +116,7 @@ scatter(Tensor t, Mask m, T value, device& gpu)
 
 template <immutable_tensor Tensor, immutable_tensor_t<int32_t> Index, std::size_t BlockSize = 16>
 auto
-gather(Tensor t, Index index, device& gpu)
+gather(Tensor t, Index index, hardware_accelerator& gpu)
 {
     kernel::gather<typename Tensor::value_type, BlockSize> op(gpu);
     return op(t, index);
@@ -126,7 +126,7 @@ gather(Tensor t, Index index, device& gpu)
 template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 16>
 requires(std::same_as<typename Tensor1::value_type, typename Tensor2::value_type>)
 auto
-sub(Tensor1 t1, Tensor2 t2, device& gpu)
+sub(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 {
     kernel::sub<typename Tensor1::value_type, BlockSize> op(gpu);
     return op(t1, t2);
@@ -135,7 +135,7 @@ sub(Tensor1 t1, Tensor2 t2, device& gpu)
 
 template <typename T, immutable_tensor_t<T> Tensor, std::size_t BlockSize = 128>
 auto
-gt(Tensor t, T value, device& gpu)
+gt(Tensor t, T value, hardware_accelerator& gpu)
 {
     kernel::gt<T, BlockSize> op(gpu);
     return op(t, value);
@@ -144,7 +144,7 @@ gt(Tensor t, T value, device& gpu)
 
 template <immutable_tensor Tensor, std::size_t BlockSize = 16>
 auto
-multinomial(Tensor t, std::size_t sample_size, device& gpu)
+multinomial(Tensor t, std::size_t sample_size, hardware_accelerator& gpu)
 {
     kernel::multinomial<typename Tensor::value_type, BlockSize> op(gpu);
     return op(t, sample_size);
@@ -153,7 +153,7 @@ multinomial(Tensor t, std::size_t sample_size, device& gpu)
 
 template <typename T, immutable_tensor2_t<T> Tensor, std::size_t BlockSize = 128>
 auto
-top_p(Tensor logits, T temperature, T p, device& gpu)
+top_p(Tensor logits, T temperature, T p, hardware_accelerator& gpu)
 {
     logits = mul<T, Tensor, BlockSize>(logits, T(1) / temperature, gpu);
     auto probs = softmax<Tensor, BlockSize>(logits, gpu);
@@ -172,7 +172,7 @@ top_p(Tensor logits, T temperature, T p, device& gpu)
 
 template <typename T, forward_tensor_iterator_t<T> ForwardIt>
 auto
-concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, device& device)
+concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, hardware_accelerator& gpu)
 {
     using tensor_type = std::iterator_traits<ForwardIt>::value_type;
 
@@ -203,10 +203,10 @@ concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, device& device)
         }
     }
 
-    auto output = future_tensor(empty<T>(std::move(size0), device.get_allocator()));
+    auto output = future_tensor(empty<T>(std::move(size0), gpu.get_allocator()));
     std::size_t offset = 0;
 
-    auto copy_kernel = kernel::cpy<T>(device);
+    auto copy_kernel = kernel::cpy<T>(gpu);
 
     for (auto first = begin; first != end; ++first) {
         const auto& input = (*first);
@@ -223,21 +223,21 @@ concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, device& device)
 
 template <immutable_tensor Tensor>
 auto
-concatenate(const std::initializer_list<Tensor> tensors, std::size_t dim, device& device)
+concatenate(const std::initializer_list<Tensor> tensors, std::size_t dim, hardware_accelerator& gpu)
 {
     using T = Tensor::value_type;
-    return concatenate<T>(tensors.begin(), tensors.end(), dim, device);
+    return concatenate<T>(tensors.begin(), tensors.end(), dim, gpu);
 }
 
 template <immutable_tensor Tensor>
 auto
-repeat_interleave(Tensor t, std::size_t repeats, std::size_t dim, device& device)
+repeat_interleave(Tensor t, std::size_t repeats, std::size_t dim, hardware_accelerator& gpu)
 {
     using T = Tensor::value_type;
 
     auto expanded_tensor = t.expand_dims(dim + 1);
     auto rep_tensor = std::views::repeat(expanded_tensor, repeats);
-    auto output = concatenate<T>(rep_tensor.begin(), rep_tensor.end(), dim + 1, device);
+    auto output = concatenate<T>(rep_tensor.begin(), rep_tensor.end(), dim + 1, gpu);
     return output;
 }
 

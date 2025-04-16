@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel/embedding.h>
 #include <metalchat/nn/embedding.h>
@@ -14,7 +14,7 @@ using namespace metalchat::dtype;
 
 TEST_CASE("Embedding batched", "[kernel::embedding]")
 {
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
     kernel::embedding<float, 16, 128> emb(gpu0);
 
     auto input = shared_tensor(full<int32_t>({3, 4}, 0.0));

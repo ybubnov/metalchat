@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel/logical.h>
@@ -11,7 +11,7 @@ using namespace metalchat;
 
 TEST_CASE("Greater-than for 3-dimensional tensors", "[kernel::gt]")
 {
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0("metalchat.metallib");
     kernel::gt<float> gt(gpu0);
 
     auto input = shared_tensor(rand<float>({1, 4, 2048}));

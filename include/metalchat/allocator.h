@@ -133,7 +133,7 @@ private:
 ///
 /// Example:
 /// ```cpp
-/// auto gpu = device("metalchat.metallib");
+/// auto gpu = hardware_accelerator("metalchat.metallib");
 /// auto alloc = rebind_hardware_allocator<float>(gpu.get_allocator());
 /// auto floats_container_ptr = alloc.allocate(10);
 /// ```

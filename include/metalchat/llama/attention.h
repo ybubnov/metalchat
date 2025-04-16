@@ -49,13 +49,13 @@ private:
     shared_tensor<T, input_size, hardware_memory_container<T>> _m_cache_v;
 
     kernel::cpy<T> _m_cpy;
-    device& _m_device;
+    hardware_accelerator& _m_gpu;
 
     template <immutable_tensor_t<T> Input>
     auto
     contiguous(Input input, std::size_t dim)
     {
-        auto output = future_tensor(empty_like<T>(input, _m_device.get_allocator()));
+        auto output = future_tensor(empty_like<T>(input, _m_gpu.get_allocator()));
 
         for (std::size_t offset = 0; offset < output.size(dim); offset++) {
             auto future = _m_cpy(input.narrow(dim, offset, 1), output.narrow(dim, offset, 1));
@@ -100,26 +100,26 @@ public:
         tensor<T, 2, Container>&& wv,
         tensor<T, 2, Container>&& wo,
         attention_options& options,
-        device& device,
+        hardware_accelerator& gpu,
         std::size_t max_batch_size = 1
     )
-    : m_wq(std::move(wq), device),
-      m_wk(std::move(wk), device),
-      m_wv(std::move(wv), device),
-      m_wo(std::move(wo), device),
-      m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, device),
+    : m_wq(std::move(wq), gpu),
+      m_wk(std::move(wk), gpu),
+      m_wv(std::move(wv), gpu),
+      m_wo(std::move(wo), gpu),
+      m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, gpu),
       m_options(options),
       m_scale(1.0 / std::sqrt(float(options.head_dim))),
       _m_cache_k(empty<T>(
           {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
-          device.get_allocator()
+          gpu.get_allocator()
       )),
       _m_cache_v(empty<T>(
           {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
-          device.get_allocator()
+          gpu.get_allocator()
       )),
-      _m_cpy(device),
-      _m_device(device)
+      _m_cpy(gpu),
+      _m_gpu(gpu)
     {}
 
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
@@ -145,7 +145,7 @@ public:
 
         auto repeat_kv = [&]<immutable_tensor4_t<T> Tensor>(Tensor&& t) -> auto {
             int slen = t.size(1);
-            auto reps = repeat_interleave(t, n_reps, /*dim=*/2, _m_device);
+            auto reps = repeat_interleave(t, n_reps, /*dim=*/2, _m_gpu);
             return reps.view({bs, slen, n_heads, head_dim});
         };
 
@@ -157,13 +157,13 @@ public:
         keys = keys.transpose({0, 2, 3, 1});
         values = values.transpose({0, 2, 1, 3});
 
-        auto scores = mul(matmul(queries, keys, _m_device), m_scale, _m_device);
+        auto scores = mul(matmul(queries, keys, _m_gpu), m_scale, _m_gpu);
         if (mask.has_value()) {
-            scores = add2(scores, mask.value(), _m_device);
+            scores = add2(scores, mask.value(), _m_gpu);
         }
-        scores = softmax(scores, _m_device);
+        scores = softmax(scores, _m_gpu);
 
-        auto output = matmul(scores, values, _m_device).transpose({0, 2, 1, 3});
+        auto output = matmul(scores, values, _m_gpu).transpose({0, 2, 1, 3});
         output = contiguous(output, /*dim=*/1);
 
         return m_wo(output.view({bs, len, -1}));

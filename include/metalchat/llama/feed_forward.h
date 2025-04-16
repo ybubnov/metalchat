@@ -16,7 +16,7 @@ private:
     nn::linear<T, Container> _m_w2;
     nn::linear<T, Container> _m_w3;
 
-    device& _m_device;
+    hardware_accelerator& _m_gpu;
 
 public:
     feed_forward(feed_forward&&) = default;
@@ -26,12 +26,12 @@ public:
         tensor<T, 2, Container>&& w1,
         tensor<T, 2, Container>&& w2,
         tensor<T, 2, Container>&& w3,
-        device& device
+        hardware_accelerator& gpu
     )
-    : _m_w1(std::move(w1), device),
-      _m_w2(std::move(w2), device),
-      _m_w3(std::move(w3), device),
-      _m_device(device)
+    : _m_w1(std::move(w1), gpu),
+      _m_w2(std::move(w2), gpu),
+      _m_w3(std::move(w3), gpu),
+      _m_gpu(gpu)
     {}
 
     template <immutable_tensor3_t<T> Input>
@@ -39,9 +39,9 @@ public:
     operator()(Input input)
     {
         auto input2 = _m_w3(input);
-        auto input1 = silu(_m_w1(input), _m_device);
+        auto input1 = silu(_m_w1(input), _m_gpu);
 
-        return _m_w2(hadamard(input1, input2, _m_device));
+        return _m_w2(hadamard(input1, input2, _m_gpu));
     }
 
     friend std::ostream&

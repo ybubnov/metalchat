@@ -10,8 +10,8 @@
 #include <simdjson.h>
 #include <sys/mman.h>
 
+#include <metalchat/accelerator.h>
 #include <metalchat/container.h>
-#include <metalchat/device.h>
 #include <metalchat/format.h>
 #include <metalchat/tensor.h>
 

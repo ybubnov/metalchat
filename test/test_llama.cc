@@ -2,8 +2,8 @@
 #include <chrono>
 
 
+#include <metalchat/accelerator.h>
 #include <metalchat/bpe.h>
-#include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/functional.h>
 #include <metalchat/kernel/sort.h>
@@ -18,7 +18,7 @@ using namespace metalchat::dtype;
 TEST_CASE("Test make model", "[llama]")
 {
     metalchat::bpe bpe("../Llama-3.2-1B/original/tokenizer.model");
-    metalchat::device gpu0("metalchat.metallib", 16);
+    metalchat::hardware_accelerator gpu0("metalchat.metallib", 16);
 
     hardware_heap_allocator<void> heap_alloc(
         gpu0.get_hardware_device(), std::size_t(512) * 1024 * 1024

@@ -17,16 +17,16 @@ namespace nn {
 template <typename T, contiguous_container WeightContainer> class linear {
 private:
     shared_tensor<T, 2, WeightContainer> _m_weight;
-    device& _m_device;
+    hardware_accelerator& _m_device;
 
 public:
-    linear(shared_tensor<T, 2, WeightContainer> weight, device& device)
+    linear(shared_tensor<T, 2, WeightContainer> weight, hardware_accelerator& gpu)
     : _m_weight(weight.transpose({1, 0})),
-      _m_device(device)
+      _m_device(gpu)
     {}
 
-    linear(tensor<T, 2, WeightContainer>&& weight, device& device)
-    : linear(shared_tensor(std::move(weight)), device)
+    linear(tensor<T, 2, WeightContainer>&& weight, hardware_accelerator& gpu)
+    : linear(shared_tensor(std::move(weight)), gpu)
     {}
 
     template <immutable_tensor_t<T> Input>

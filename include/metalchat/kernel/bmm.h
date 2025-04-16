@@ -1,6 +1,6 @@
 #pragma once
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel.h>
@@ -20,8 +20,8 @@ private:
     kernel_base _m_kernel;
 
 public:
-    bmm(device& device)
-    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    bmm(hardware_accelerator& gpu)
+    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
     {}
 
     template <immutable_tensor3_t<T> Input, immutable_tensor3_t<T> Weight>

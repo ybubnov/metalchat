@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel/arithmetic.h>
 #include <metalchat/tensor_shared.h>
@@ -12,7 +12,7 @@ using namespace metalchat;
 
 TEST_CASE("Kernel thread", "[kernel::thread]")
 {
-    metalchat::device gpu0("metalchat.metallib", 2);
+    metalchat::hardware_accelerator gpu0("metalchat.metallib", 2);
     kernel::add<float> add(gpu0);
 
     auto input1 = shared_tensor(full<float>({3, 4, 15}, 1.0));

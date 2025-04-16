@@ -2,8 +2,8 @@
 
 #include <optional>
 
+#include <metalchat/accelerator.h>
 #include <metalchat/container.h>
-#include <metalchat/device.h>
 #include <metalchat/functional.h>
 #include <metalchat/llama/attention.h>
 #include <metalchat/llama/feed_forward.h>
@@ -22,7 +22,7 @@ private:
     feed_forward<T, Container> _m_ff;
     nn::rmsnorm<T, Container> _m_ff_norm;
 
-    device& _m_device;
+    hardware_accelerator& _m_gpu;
 
 public:
     transformer(transformer&&) = default;
@@ -33,13 +33,13 @@ public:
         nn::rmsnorm<T, Container>&& attention_norm,
         feed_forward<T, Container>&& ff,
         nn::rmsnorm<T, Container>&& ff_norm,
-        device& device
+        hardware_accelerator& gpu
     )
     : _m_attention(std::move(attention)),
       _m_attention_norm(std::move(attention_norm)),
       _m_ff(std::move(ff)),
       _m_ff_norm(std::move(ff_norm)),
-      _m_device(device)
+      _m_gpu(gpu)
     {}
 
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
@@ -47,10 +47,10 @@ public:
     operator()(Input input, const std::optional<Mask> mask, std::size_t start_pos = 0)
     {
         auto norm = _m_attention_norm(input);
-        auto h = add(input, _m_attention(norm, mask, start_pos), _m_device);
+        auto h = add(input, _m_attention(norm, mask, start_pos), _m_gpu);
 
         auto ff_norm = _m_ff_norm(h);
-        return add(h, _m_ff(ff_norm), _m_device);
+        return add(h, _m_ff(ff_norm), _m_gpu);
     }
 
     friend std::ostream&

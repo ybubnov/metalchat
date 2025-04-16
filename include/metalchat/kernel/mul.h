@@ -1,6 +1,6 @@
 #pragma once
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_task.h>
@@ -19,8 +19,8 @@ private:
     binary_kernel_wrapper<T, BlockSize> _m_kernel;
 
 public:
-    hadamard(device& device)
-    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    hadamard(hardware_accelerator& gpu)
+    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
     {}
 
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
@@ -39,8 +39,8 @@ private:
     binary_kernel_wrapper<T, BlockSize> _m_kernel;
 
 public:
-    scalar_mul(device& device)
-    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    scalar_mul(hardware_accelerator& gpu)
+    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
     {}
 
     template <immutable_tensor_t<T> Input, immutable_scalar_t<T> Multiplier>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <metalchat/device.h>
+#include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_task.h>
@@ -44,8 +44,8 @@ private:
     }
 
 public:
-    cpy(device& device)
-    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    cpy(hardware_accelerator& gpu)
+    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
     {}
 
     /// Copy values from input to the output.
@@ -76,8 +76,8 @@ private:
     kernel_base _m_kernel;
 
 public:
-    scatter(device& device)
-    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    scatter(hardware_accelerator& gpu)
+    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
     {}
 
     template <immutable_tensor_t<T> Input, immutable_tensor_t<bool> Mask>
@@ -106,8 +106,8 @@ private:
     kernel_base _m_kernel;
 
 public:
-    gather(device& device)
-    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    gather(hardware_accelerator& gpu)
+    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
     {}
 
     template <immutable_tensor_t<T> Input, immutable_tensor_t<int32_t> Index>
