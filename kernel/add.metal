@@ -8,7 +8,7 @@
 using namespace metal;
 
 
-#define __sum_parameters(T)                                    \
+#define __add_parameters(T)                                    \
     constant tensor_layout<2>& output_layout    [[buffer(0)]], \
     device T* output                            [[buffer(1)]], \
     constant tensor_layout<2>& input1_layout    [[buffer(2)]], \
@@ -21,7 +21,7 @@ using namespace metal;
 
 template <typename T, uint BlockSize>
 kernel void
-sum(__sum_parameters(T))
+add(__add_parameters(T))
 {
     tensor<const T, 2> in1{input1, input1_layout};
     tensor<const T, 2> in2{input2, input2_layout};
@@ -39,45 +39,45 @@ sum(__sum_parameters(T))
 }
 
 
-template [[host_name("sum_1_bf16")]]
-kernel void sum<bfloat, 1>(__sum_parameters(bfloat));
+template [[host_name("add_1_bf16")]]
+kernel void add<bfloat, 1>(__add_parameters(bfloat));
 
-template [[host_name("sum_2_bf16")]]
-kernel void sum<bfloat, 2>(__sum_parameters(bfloat));
+template [[host_name("add_2_bf16")]]
+kernel void add<bfloat, 2>(__add_parameters(bfloat));
 
-template [[host_name("sum_4_bf16")]]
-kernel void sum<bfloat, 4>(__sum_parameters(bfloat));
+template [[host_name("add_4_bf16")]]
+kernel void add<bfloat, 4>(__add_parameters(bfloat));
 
-template [[host_name("sum_8_bf16")]]
-kernel void sum<bfloat, 8>(__sum_parameters(bfloat));
+template [[host_name("add_8_bf16")]]
+kernel void add<bfloat, 8>(__add_parameters(bfloat));
 
-template [[host_name("sum_16_bf16")]]
-kernel void sum<bfloat, 16>(__sum_parameters(bfloat));
+template [[host_name("add_16_bf16")]]
+kernel void add<bfloat, 16>(__add_parameters(bfloat));
 
-template [[host_name("sum_32_bf16")]]
-kernel void sum<bfloat, 32>(__sum_parameters(bfloat));
-
-
-template [[host_name("sum_1_float")]]
-kernel void sum<float, 1>(__sum_parameters(float));
-
-template [[host_name("sum_2_float")]]
-kernel void sum<float, 2>(__sum_parameters(float));
-
-template [[host_name("sum_4_float")]]
-kernel void sum<float, 4>(__sum_parameters(float));
-
-template [[host_name("sum_8_float")]]
-kernel void sum<float, 8>(__sum_parameters(float));
-
-template [[host_name("sum_16_float")]]
-kernel void sum<float, 16>(__sum_parameters(float));
-
-template [[host_name("sum_32_float")]]
-kernel void sum<float, 32>(__sum_parameters(float));
+template [[host_name("add_32_bf16")]]
+kernel void add<bfloat, 32>(__add_parameters(bfloat));
 
 
-#define __sum2_parameters(T)                                \
+template [[host_name("add_1_float")]]
+kernel void add<float, 1>(__add_parameters(float));
+
+template [[host_name("add_2_float")]]
+kernel void add<float, 2>(__add_parameters(float));
+
+template [[host_name("add_4_float")]]
+kernel void add<float, 4>(__add_parameters(float));
+
+template [[host_name("add_8_float")]]
+kernel void add<float, 8>(__add_parameters(float));
+
+template [[host_name("add_16_float")]]
+kernel void add<float, 16>(__add_parameters(float));
+
+template [[host_name("add_32_float")]]
+kernel void add<float, 32>(__add_parameters(float));
+
+
+#define __add2_parameters(T)                                \
     constant tensor_layout<3>& output_layout [[buffer(0)]], \
     device T* output                         [[buffer(1)]], \
     constant tensor_layout<3>& input1_layout [[buffer(2)]], \
@@ -90,7 +90,7 @@ kernel void sum<float, 32>(__sum_parameters(float));
 
 template <typename T>
 kernel void
-sum2(__sum2_parameters(T))
+add2(__add2_parameters(T))
 {
     constexpr uint BLOCK_SIZE_X = 4;
     constexpr uint BLOCK_SIZE_Y = 4;
@@ -117,9 +117,9 @@ sum2(__sum2_parameters(T))
 }
 
 
-template [[host_name("sum2_bf16")]]
-kernel void sum2<bfloat>(__sum2_parameters(bfloat));
+template [[host_name("add2_bf16")]]
+kernel void add2<bfloat>(__add2_parameters(bfloat));
 
 
-template [[host_name("sum2_float")]]
-kernel void sum2<float>(__sum2_parameters(float));
+template [[host_name("add2_float")]]
+kernel void add2<float>(__add2_parameters(float));

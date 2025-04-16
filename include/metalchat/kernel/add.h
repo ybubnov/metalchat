@@ -12,14 +12,14 @@
 namespace metalchat {
 
 
-template <typename T, std::size_t BlockSize = 32> class sum {
+template <typename T, std::size_t BlockSize = 32> class add {
 private:
-    inline static const std::string operation_name = "sum_" + std::to_string(BlockSize);
+    inline static const std::string operation_name = "add_" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 
 public:
-    sum(device& device)
+    add(device& device)
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
@@ -33,14 +33,14 @@ public:
 
         if (auto dim_size2 = input2.sizes().back(); dim_size != dim_size2) {
             throw std::invalid_argument(std::format(
-                "sum: last dimension should be the same for both tensors {} != {}", dim_size,
+                "add: last dimension should be the same for both tensors {} != {}", dim_size,
                 dim_size2
             ));
         }
 
         if (auto data_size2 = input2.numel(); data_size != data_size2) {
             throw std::invalid_argument(std::format(
-                "sum: data size should be the same for both tensors {} != {}", data_size, data_size2
+                "add: data size should be the same for both tensors {} != {}", data_size, data_size2
             ));
         }
 
@@ -58,14 +58,14 @@ public:
 };
 
 
-template <typename T> class sum2 {
+template <typename T> class add2 {
 private:
-    inline static const std::string operation_name = "sum2";
+    inline static const std::string operation_name = "add2";
 
     kernel_base _m_kernel;
 
 public:
-    sum2(device& device)
+    add2(device& device)
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
@@ -86,7 +86,7 @@ public:
 
         if (dim0_size != input1.size(M - 2) || dim1_size != input1.size(M - 1)) {
             throw std::invalid_argument(std::format(
-                "sum2: last dimensions should be the same for both tensors {}x{} != {}x{}",
+                "add2: last dimensions should be the same for both tensors {}x{} != {}x{}",
                 input1.size(M - 2), input1.size(M - 1), dim0_size, dim1_size
             ));
         }

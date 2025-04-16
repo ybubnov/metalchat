@@ -157,7 +157,7 @@ public:
 
         auto scores = fn::mul(fn::matmul(queries, keys, _m_device), m_scale, _m_device);
         if (mask.has_value()) {
-            scores = fn::sum2(scores, mask.value(), _m_device);
+            scores = fn::add2(scores, mask.value(), _m_device);
         }
         scores = fn::softmax(scores, _m_device);
 

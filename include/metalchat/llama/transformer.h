@@ -47,10 +47,10 @@ public:
     operator()(Input input, const std::optional<Mask> mask, std::size_t start_pos = 0)
     {
         auto norm = _m_attention_norm(input);
-        auto h = fn::sum(input, _m_attention(norm, mask, start_pos), _m_device);
+        auto h = fn::add(input, _m_attention(norm, mask, start_pos), _m_device);
 
         auto ff_norm = _m_ff_norm(h);
-        return fn::sum(h, _m_ff(ff_norm), _m_device);
+        return fn::add(h, _m_ff(ff_norm), _m_device);
     }
 
     friend std::ostream&

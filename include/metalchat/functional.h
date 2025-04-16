@@ -6,12 +6,12 @@
 #include <ranges>
 #include <span>
 
+#include <metalchat/kernel/add.h>
 #include <metalchat/kernel/bmm.h>
 #include <metalchat/kernel/copy.h>
 #include <metalchat/kernel/mul.h>
 #include <metalchat/kernel/silu.h>
 #include <metalchat/kernel/softmax.h>
-#include <metalchat/kernel/sum.h>
 #include <metalchat/tensor_future.h>
 
 
@@ -48,18 +48,18 @@ hadamard(Tensor1 t1, Tensor2 t2, device& gpu)
 
 template <immutable_tensor Tensor1, immutable_tensor Tensor2>
 auto
-sum(Tensor1 t1, Tensor2 t2, device& gpu)
+add(Tensor1 t1, Tensor2 t2, device& gpu)
 {
-    metalchat::sum<typename Tensor1::value_type> op(gpu);
+    metalchat::add<typename Tensor1::value_type> op(gpu);
     return op(t1, t2);
 }
 
 
 template <immutable_tensor Tensor1, immutable_tensor Tensor2>
 auto
-sum2(Tensor1 t1, Tensor2 t2, device& gpu)
+add2(Tensor1 t1, Tensor2 t2, device& gpu)
 {
-    metalchat::sum2<typename Tensor1::value_type> op(gpu);
+    metalchat::add2<typename Tensor1::value_type> op(gpu);
     return op(t1, t2);
 }
 
