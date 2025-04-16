@@ -10,7 +10,7 @@ using namespace metal;
 
 
 kernel void
-rmsnorm_f16(
+rmsnorm_bf16(
     device const bfloat* input [[buffer(0)]],
     device const bfloat* weight [[buffer(1)]],
     constant bfloat& eps [[buffer(2)]],

@@ -9,7 +9,7 @@ using namespace metal;
 
 
 kernel void
-embedding_f16(
+embedding_bf16(
     device const int32_t* input [[buffer(0)]],
     device const bfloat* weight [[buffer(1)]],
     constant uint& stride [[buffer(2)]],

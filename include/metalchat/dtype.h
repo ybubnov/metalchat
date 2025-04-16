@@ -6,6 +6,10 @@
 #include <iostream>
 
 
+namespace metalchat {
+namespace dtype {
+
+
 struct bf16 {
     using bits_type = std::array<uint16_t, 2>;
 
@@ -56,3 +60,20 @@ struct bf16 {
         return os;
     }
 };
+
+
+} // namespace dtype
+
+
+template <typename T> struct type_traits;
+
+template <> struct type_traits<dtype::bf16> {
+    static std::string
+    name()
+    {
+        return "bf16";
+    }
+};
+
+
+} // namespace metalchat
