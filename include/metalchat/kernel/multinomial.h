@@ -10,7 +10,7 @@
 namespace metalchat {
 
 
-template <typename T, std::size_t BlockSize = 16> class multinomial {
+template <typename T, std::size_t BlockSize = 32> class multinomial {
 private:
     inline static const std::string operation_name = "multinomial_" + std::to_string(BlockSize);
 
