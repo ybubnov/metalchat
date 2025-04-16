@@ -21,7 +21,21 @@ namespace metalchat {
 
 
 template <typename T, ContiguousContainer Container> struct tensor_traits {
-    using data_type = std::unique_ptr<Container>;
+    // Here is the twist with the transposition operation: if this method returns a weak
+    // reference, then this object cannot outlive the original one (for example, in case
+    // of a return from the function), but in case of owning reference, the object should
+    // outlive the original tensor, moreover, original tensor should not wipe out the
+    // memory it holds, since it could be use by another tensor.
+    //
+    // All this drama could be solved by forbidding returning transposed tensors, but RVO
+    // (return value optimization) erases the control of what is possible to return from
+    // a function.
+    //
+    // So exactly this function dictates the implementation of the tensor: data polymorphism
+    // is implemented using a shared pointer (and so could be shared across multiple tensors),
+    // while tensor info (shape, strides, offsets) are always unique reference.
+    using data_type = std::shared_ptr<Container>;
+
     using size_type = std::unique_ptr<array_ref<std::size_t>>;
 };
 
@@ -35,14 +49,16 @@ public:
     using const_iterator = const iterator;
 
     tensor_base(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
-    : m_data(make_weak(data)),
+    : m_data(std::make_shared<weak_ref<T>>(data)),
       m_shape(make_weak(shape)),
       m_strides(make_weak(strides)),
       m_offsets(make_weak(offsets))
     {}
 
-    tensor_base(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
-    : m_data(std::move(data)),
+    tensor_base(
+        const traits::data_type& data, traits::size_type&& shape, traits::size_type&& strides
+    )
+    : m_data(data),
       m_shape(std::move(shape)),
       m_strides(std::move(strides))
     {
@@ -50,12 +66,12 @@ public:
     }
 
     tensor_base(
-        traits::data_type&& data,
+        const traits::data_type& data,
         traits::size_type&& shape,
         traits::size_type&& strides,
         traits::size_type&& offsets
     )
-    : m_data(std::move(data)),
+    : m_data(data),
       m_shape(std::move(shape)),
       m_strides(std::move(strides)),
       m_offsets(std::move(offsets))
@@ -66,7 +82,12 @@ public:
       m_shape(std::move(t.m_shape)),
       m_strides(std::move(t.m_strides)),
       m_offsets(std::move(t.m_offsets))
-    {}
+    {
+        t.m_data = nullptr;
+        t.m_shape = nullptr;
+        t.m_strides = nullptr;
+        t.m_offsets = nullptr;
+    }
 
     inline std::size_t
     dim() const noexcept
@@ -239,19 +260,17 @@ public:
     : tensor_base<T, N, Container>(data, shape, strides, offsets)
     {}
 
-    tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
-    : tensor_base<T, N, Container>(std::move(data), std::move(shape), std::move(strides))
+    tensor(const traits::data_type& data, traits::size_type&& shape, traits::size_type&& strides)
+    : tensor_base<T, N, Container>(data, std::move(shape), std::move(strides))
     {}
 
     tensor(
-        traits::data_type&& data,
+        const traits::data_type& data,
         traits::size_type&& shape,
         traits::size_type&& strides,
         traits::size_type&& offsets
     )
-    : tensor_base<T, N, Container>(
-          std::move(data), std::move(shape), std::move(strides), std::move(offsets)
-      )
+    : tensor_base<T, N, Container>(data, std::move(shape), std::move(strides), std::move(offsets))
     {}
 
     tensor<T, N - 1>
@@ -327,16 +346,15 @@ public:
         auto strides = new std::size_t[N]{this->stride(static_cast<std::size_t>(dims))...};
         auto offsets = new std::size_t[N]{this->offset(static_cast<std::size_t>(dims))...};
 
-        return tensor<T, N, weak_ref<T>>(
-            make_weak(this->data_ptr()), make_owning(shape), make_owning(strides),
-            make_owning(offsets)
+        return tensor<T, N, Container>(
+            this->m_data, make_owning(shape), make_owning(strides), make_owning(offsets)
         );
     }
 
     auto
     t() requires(N == 2)
     {
-        return std::move(transpose(0, 1));
+        return transpose(0, 1);
     }
 
     void
@@ -382,19 +400,17 @@ public:
     : tensor_base<T, 1, Container>(data, shape, strides, offsets)
     {}
 
-    tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
+    tensor(const traits::data_type& data, traits::size_type&& shape, traits::size_type&& strides)
     : tensor_base<T, 1, Container>(std::move(data), std::move(shape), std::move(strides))
     {}
 
     tensor(
-        traits::data_type&& data,
+        const traits::data_type& data,
         traits::size_type&& shape,
         traits::size_type&& strides,
         traits::size_type&& offsets
     )
-    : tensor_base<T, 1, Container>(
-          std::move(data), std::move(shape), std::move(strides), std::move(offsets)
-      )
+    : tensor_base<T, 1, Container>(data, std::move(shape), std::move(strides), std::move(offsets))
     {}
 
     T&
@@ -484,19 +500,17 @@ class tensor<T, 0, Container> : public tensor_base<T, 0, Container> {
 public:
     using traits = tensor_traits<T, Container>;
 
-    tensor(traits::data_type&& data, traits::size_type&& shape, traits::size_type&& strides)
-    : tensor_base<T, 0, Container>(std::move(data), std::move(shape), std::move(strides))
+    tensor(const traits::data_type& data, traits::size_type&& shape, traits::size_type&& strides)
+    : tensor_base<T, 0, Container>(data, std::move(shape), std::move(strides))
     {}
 
     tensor(
-        traits::data_type&& data,
+        const traits::data_type& data,
         traits::size_type&& shape,
         traits::size_type&& strides,
         traits::size_type&& offsets
     )
-    : tensor_base<T, 0, Container>(
-          std::move(data), std::move(shape), std::move(strides), std::move(offsets)
-      )
+    : tensor_base<T, 0, Container>(data, std::move(shape), std::move(strides), std::move(offsets))
     {}
 
     void
@@ -529,7 +543,9 @@ empty(std::size_t (&&sizes)[N])
 
     using tensor_type = tensor<T, N, owning_ref<T>>;
 
-    return tensor_type(make_owning(data), make_owning(shape), make_owning(strides));
+    return tensor_type(
+        std::make_shared<owning_ref<T>>(data), make_owning(shape), make_owning(strides)
+    );
 }
 
 
@@ -569,7 +585,7 @@ empty(std::size_t (&&sizes)[N], device& device)
     using tensor_type = tensor<T, N, device_ref<T>>;
 
     return tensor_type(
-        std::make_unique<device_ref<T>>(data), make_owning(shape), make_owning(strides)
+        std::make_shared<device_ref<T>>(data), make_owning(shape), make_owning(strides)
     );
 }
 
