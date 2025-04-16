@@ -163,6 +163,8 @@ public:
       _m_capacity(capacity),
       _m_committed(false)
     {
+        _m_commands->enqueue();
+
         if (_m_id > 0) {
             _m_commands->encodeWait(_m_event.get(), _m_id);
         }

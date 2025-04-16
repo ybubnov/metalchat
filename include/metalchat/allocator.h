@@ -31,6 +31,13 @@ template <typename Allocator, typename T>
 concept allocator_t = allocator<Allocator> && std::same_as<typename Allocator::value_type, T>;
 
 
+template <typename Allocator>
+concept hardware_allocator = allocator<Allocator>
+                             && std::same_as<
+                                 typename Allocator::container_type,
+                                 hardware_memory_container<typename Allocator::value_type>>;
+
+
 template <typename Allocator, typename T>
 concept hardware_allocator_t
     = allocator_t<Allocator, T>
@@ -72,6 +79,46 @@ private:
 };
 
 
+template <hardware_allocator Allocator> class nocopy_hardware_allocator {
+public:
+    using value_type = typename Allocator::value_type;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+    using size_type = std::size_t;
+    using container_type = hardware_memory_container<value_type>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    nocopy_hardware_allocator(Allocator alloc, NS::SharedPtr<MTL::Device> device)
+    : _m_alloc(alloc),
+      _m_device(device)
+    {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        return _m_alloc.allocate(size);
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        auto options = MTL::ResourceStorageModeManaged | MTL::ResourceHazardTrackingModeUntracked;
+        auto memory_ptr = _m_device->newBuffer(ptr, size * sizeof(value_type), options, nullptr);
+
+        if (memory_ptr == nullptr) {
+            throw std::runtime_error(std::format(
+                "metalchat::nocopy_hardware_allocator: failed to allocate no-copy buffer"
+            ));
+        }
+        return std::make_shared<container_type>(NS::TransferPtr(memory_ptr));
+    }
+
+private:
+    Allocator _m_alloc;
+    NS::SharedPtr<MTL::Device> _m_device;
+};
+
+
 template <typename T> class hardware_memory_allocator {
 public:
     using value_type = T;
@@ -101,6 +148,7 @@ public:
         auto memory_ptr
             = NS::TransferPtr(_m_device->newBuffer(ptr, memory_size, MTL::ResourceStorageModeShared)
             );
+
         return std::make_shared<container_type>(memory_ptr);
     }
 
@@ -181,7 +229,7 @@ public:
             _m_heap->device()->newBuffer(ptr, size, MTL::ResourceStorageModeShared, nullptr)
         );
 
-        _m_rset->addAllocation(memory_ptr.get());
+        //_m_rset->addAllocation(memory_ptr.get());
         return std::make_shared<container_type>(memory_ptr);
     }
 
@@ -206,7 +254,17 @@ private:
         size_type mask = placement.align - 1;
         size_type alloc_size = ((placement.size + mask) & (~mask));
 
-        return NS::TransferPtr(_m_heap->newBuffer(alloc_size, MTL::ResourceStorageModeShared));
+        auto buf_ptr = _m_heap->newBuffer(alloc_size, MTL::ResourceStorageModeShared);
+        if (buf_ptr == nullptr) {
+            auto cap = _m_heap->maxAvailableSize(placement.align);
+            throw std::runtime_error(std::format(
+                "metalchat::hardware_heap_allocator: failed to allocate buffer of size={}, "
+                "heap remaining capacity={}",
+                size, cap
+            ));
+        }
+
+        return NS::TransferPtr(buf_ptr);
     }
 };
 

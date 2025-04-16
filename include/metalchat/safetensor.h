@@ -36,14 +36,18 @@ public:
         return _m_shape.size();
     }
 
-    template <typename T, std::size_t N, allocator Allocator>
+    template <std::size_t N, allocator Allocator>
     auto
     as(Allocator alloc) const
     {
         using container_type = Allocator::container_type;
-        auto data_ptr = static_cast<T*>(_m_data);
+        using value_type = Allocator::value_type;
 
-        return tensor<T, N, container_type>(_m_shape.cbegin(), _m_shape.cend(), data_ptr, alloc);
+        auto data_ptr = static_cast<value_type*>(_m_data);
+
+        return tensor<value_type, N, container_type>(
+            _m_shape.cbegin(), _m_shape.cend(), data_ptr, alloc
+        );
     }
 
     friend std::ostream&
