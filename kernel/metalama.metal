@@ -20,11 +20,12 @@ mul(
 
 kernel void
 embedding_bf16(
-    device const int32_t* input,
-    device const bfloat* weight,
-    device bfloat* output,
-    uint index [[thread_position_in_grid]]
+    device const int32_t* input [[buffer(0)]],
+    device const bfloat* weight [[buffer(1)]],
+    device const int64_t& stride [[buffer(2)]],
+    device bfloat* output [[buffer(3)]],
+    uint2 index [[thread_position_in_grid]]
 )
 {
-    output[index] = weight[input[index]];
+    output[index.x * stride + index.y] = weight[input[index.x] * stride + index.y];
 }
