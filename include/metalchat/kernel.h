@@ -24,7 +24,7 @@ struct kernel_traits {
 
 template <typename T, std::size_t N, ContiguousContainer Container>
 kernel_traits::buffer_type
-make_buffer(device& device, const tensor_base<T, N, Container>& t)
+make_buffer(device& device, const tensor<T, N, Container>& t)
 {
     auto size = t.numel() * sizeof(T);
     return NS::TransferPtr(device->newBuffer(t.data_ptr(), size, MTL::ResourceStorageModeShared));
@@ -32,14 +32,14 @@ make_buffer(device& device, const tensor_base<T, N, Container>& t)
 
 template <typename T, std::size_t N>
 kernel_traits::buffer_type
-make_buffer(device& device, const tensor_base<T, N, device_ref<T>>& t)
+make_buffer(device& device, const tensor<T, N, device_ref<T>>& t)
 {
     return t.container().storage();
 }
 
 template <typename T>
 kernel_traits::buffer_type
-make_buffer(device& device, const tensor_base<T, 0, value_ref<T>>& t)
+make_buffer(device& device, const tensor<T, 0, value_ref<T>>& t)
 {
     return kernel_traits::buffer_type();
 }
@@ -47,7 +47,7 @@ make_buffer(device& device, const tensor_base<T, 0, value_ref<T>>& t)
 
 template <std::size_t N>
 kernel_traits::buffer_type
-make_buffer(device& device, const tensor_base<tensor_layout<N>, 0, value_ref<tensor_layout<N>>>& t)
+make_buffer(device& device, const tensor<tensor_layout<N>, 0, value_ref<tensor_layout<N>>>& t)
 {
     auto size = sizeof(tensor_layout<N>);
     return NS::TransferPtr(device->newBuffer(t.data_ptr(), size, MTL::ResourceStorageModeShared));
@@ -102,7 +102,7 @@ public:
 
     template <typename... T, std::size_t... N, ContiguousContainer... Container>
     kernel_traits::command_buffer_type
-    initialize(const tensor_base<T, N, Container>&... args)
+    initialize(const tensor<T, N, Container>&... args)
     {
         std::size_t i = 0;
         auto command_buf = NS::TransferPtr(_m_queue->commandBuffer());
@@ -139,7 +139,7 @@ public:
 
     template <typename... T, std::size_t... N, ContiguousContainer... Container>
     void
-    operator()(const tensor_base<T, N, Container>&... args)
+    operator()(const tensor<T, N, Container>&... args)
     {
         auto command_buf = initialize(args...);
         command_buf->commit();
@@ -176,7 +176,7 @@ public:
 
     template <typename... U, std::size_t... M, ContiguousContainer... Container>
     void
-    operator()(const tensor_base<U, M, Container>&... args)
+    operator()(const tensor<U, M, Container>&... args)
     {
         auto command_buf = initialize(args...);
         command_buf->addCompletedHandler([promise

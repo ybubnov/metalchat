@@ -16,8 +16,8 @@ TEST_CASE("Read-write 2d tensor slicing", "[tensor::operator]")
     auto t = full<bf16>({4, 5}, 5.0);
     for (auto i = 0; i < t.size(0); i++) {
         for (auto j = 0; j < t.size(1); j++) {
-            REQUIRE(t[i][j] == 5.0);
-            t[i][j] = bf16((i + 1) * 10 + j);
+            REQUIRE(t[i, j] == 5.0);
+            t[i, j] = bf16((i + 1) * 10 + j);
         }
     }
 
@@ -31,7 +31,7 @@ TEST_CASE("Read-write 2d tensor slicing", "[tensor::operator]")
 
     for (auto i = 0; i < s.size(0); i++) {
         for (auto j = 0; j < s.size(1); j++) {
-            s[i][j] = 0.0;
+            s[i, j] = 0.0;
         }
     }
 
@@ -39,7 +39,7 @@ TEST_CASE("Read-write 2d tensor slicing", "[tensor::operator]")
     // underlying storage.
     for (auto i = 1; i < 3; i++) {
         for (auto j = 1; j < 4; j++) {
-            REQUIRE(t[i][j] == 0.0);
+            REQUIRE(t[i, j] == 0.0);
         }
     }
 }
@@ -76,7 +76,7 @@ TEST_CASE("Copy 2d tensor through slicing", "[tensor::operator=]")
 
     for (std::size_t i = 4; i < 7; i++) {
         for (std::size_t j = 6; j < 8; j++) {
-            REQUIRE(t0[i][j] == t1[i - 4][j - 6]);
+            REQUIRE(t0[i, j] == t1[i - 4, j - 6]);
         }
     }
 }

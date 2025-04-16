@@ -20,10 +20,7 @@ public:
 
     template <ContiguousContainer InputContainer, ContiguousContainer OutputContainer>
     void
-    copy(
-        const tensor_base<T, 2, InputContainer>& input,
-        const tensor_base<T, 2, OutputContainer>& output
-    )
+    copy(const tensor<T, 2, InputContainer>& input, const tensor<T, 2, OutputContainer>& output)
     {
         constexpr std::size_t block_size = 32;
 
@@ -59,8 +56,7 @@ public:
         ContiguousContainer OutputContainer>
     void
     operator()(
-        const tensor_base<T, N, InputContainer>& input,
-        const tensor_base<T, M, OutputContainer>& output
+        const tensor<T, N, InputContainer>& input, const tensor<T, M, OutputContainer>& output
     )
     {
         int input_dim = input.sizes().back();

@@ -34,7 +34,7 @@ template <uint32_t N> struct tensor_layout {
 };
 
 
-template <typename T, std::size_t N, ContiguousContainer Container> class tensor_base {
+template <typename T, std::size_t N, ContiguousContainer Container> class tensor {
 public:
     using traits_type = tensor_traits<T, Container>;
 
@@ -52,31 +52,37 @@ public:
     ///
     /// The newly-created tensor contains the exact contents of the moved instance.
     /// The contents of the moved instance are a valid, but unspecified tensor.
-    tensor_base(tensor_base&& t) noexcept = default;
+    tensor(tensor&& t) noexcept = default;
 
-    tensor_base(const tensor_base& t) noexcept = default;
+    tensor(const tensor& t) noexcept = default;
 
-    tensor_base(const std::size_t (&&sizes)[N])
-        requires(std::same_as<Container, owning_ref<T>> && N > 0)
+    tensor(const T& value) requires(std::same_as<Container, value_ref<T>> && N == 0)
+    : m_data(std::make_shared<Container>(value)),
+      m_shape(make_value<std::size_t>(0)),
+      m_strides(make_value<std::size_t>(0)),
+      m_offsets(make_value<std::size_t>(0))
+    {}
+
+    tensor(const std::size_t (&&sizes)[N]) requires(std::same_as<Container, owning_ref<T>> && N > 0)
     {
         _m_initialize(std::move(sizes));
         m_data = std::make_shared<owning_ref<T>>(new T[numel()]);
     }
 
-    tensor_base(const std::size_t (&&sizes)[N], const traits_type::data_type& data)
+    tensor(const std::size_t (&&sizes)[N], const traits_type::data_type& data)
     : m_data(data)
     {
         _m_initialize(std::move(sizes));
     }
 
     template <std::forward_iterator ForwardIt>
-    tensor_base(ForwardIt first, ForwardIt last, const traits_type::data_type& data)
+    tensor(ForwardIt first, ForwardIt last, const traits_type::data_type& data)
     : m_data(data)
     {
         _m_initialize(first, last);
     }
 
-    tensor_base(const std::size_t (&&sizes)[N], device& device)
+    tensor(const std::size_t (&&sizes)[N], device& device)
         requires(std::same_as<Container, device_ref<T>> && N > 0)
     {
         _m_initialize(std::move(sizes));
@@ -87,8 +93,8 @@ public:
         m_data = std::make_shared<device_ref<T>>(buf);
     }
 
-    tensor_base(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
-    : tensor_base(
+    tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
+    : tensor(
           std::make_shared<weak_ref<T>>(data),
           make_weak(shape),
           make_weak(strides),
@@ -125,7 +131,7 @@ public:
     {
         if (dim >= N) {
             throw std::out_of_range(
-                std::format("tensor_base::stride: dim {} exceeds tensor dimensionality {}", dim, N)
+                std::format("tensor::stride: dim {} exceeds tensor dimensionality {}", dim, N)
             );
         }
         return m_strides->data()[dim];
@@ -148,7 +154,7 @@ public:
     {
         if (dim >= N) {
             throw std::out_of_range(
-                std::format("tensor_base::size: dim {} exceeds tensor dimensionality {}", dim, N)
+                std::format("tensor::size: dim {} exceeds tensor dimensionality {}", dim, N)
             );
         }
         return m_shape->data()[dim];
@@ -165,7 +171,7 @@ public:
     {
         if (dim >= N) {
             throw std::out_of_range(
-                std::format("tensor_base::offset: dim {} exceed tensor dimensionality {}", dim, N)
+                std::format("tensor::offset: dim {} exceed tensor dimensionality {}", dim, N)
             );
         }
         return m_offsets->data()[dim];
@@ -258,8 +264,7 @@ public:
     at(std::size_t i) const
     {
         if (auto size0 = size(0); i >= size0) {
-            std::out_of_range(
-                std::format("tensor_base::at: index {} is out of tensor size {}", i, size0)
+            std::out_of_range(std::format("tensor::at: index {} is out of tensor size {}", i, size0)
             );
         }
 
@@ -267,21 +272,21 @@ public:
         auto sizes = m_shape->data() + 1;
         auto strides = m_strides->data() + 1;
         auto offsets = m_offsets->data() + 1;
-        return tensor_base<T, N - 1, weak_ref<T>>(data, sizes, strides, offsets);
+        return tensor<T, N - 1, weak_ref<T>>(data, sizes, strides, offsets);
     }
 
     auto
     at(std::size_t i)
     {
-        using tensor_type = tensor_base<T, N - 1, weak_ref<T>>;
-        return const_cast<tensor_base const&>(*this).at(i);
+        using tensor_type = tensor<T, N - 1, weak_ref<T>>;
+        return const_cast<tensor const&>(*this).at(i);
     }
 
-    template <indexing::SliceConvertible... S>
+    template <indexing::slice_convertible... S>
     auto
     index_select(const S&... slices) requires(sizeof...(slices) == N)
     {
-        tensor_base t(m_data);
+        tensor t(m_data);
         std::size_t dim = 0;
 
         ([&] {
@@ -325,13 +330,13 @@ public:
     T&
     value_select(const S&... sizes) requires(sizeof...(sizes) == N)
     {
-        return const_cast<T&>(const_cast<tensor_base const&>(*this).value_select(sizes...));
+        return const_cast<T&>(const_cast<tensor const&>(*this).value_select(sizes...));
     }
 
     auto
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
-        tensor_base t(m_data);
+        tensor t(m_data);
         for (auto i = 0; i < N; i++) {
             t.set_size(i, size(i));
             t.set_stride(i, stride(i));
@@ -342,8 +347,8 @@ public:
         return t;
     }
 
-    tensor_base&
-    operator=(const tensor_base& other)
+    tensor&
+    operator=(const tensor& other)
     {
         if (this == &other) {
             return *this;
@@ -355,22 +360,42 @@ public:
         return *this;
     }
 
-    tensor_base&
-    operator=(tensor_base&& other)
+    tensor&
+    operator=(tensor&& other)
         = default;
 
     template <indexing::size_convertible... S>
     T&
-    operator[](const S&... sizes)
+    operator[](const S&... sizes) requires(sizeof...(sizes) == N)
     {
         return value_select(sizes...);
+    }
+
+    template <indexing::size_convertible... S>
+    const T&
+    operator[](const S&... sizes) const requires(sizeof...(sizes) == N)
+    {
+        return value_select(sizes...);
+    }
+
+    template <indexing::slice_convertible... S>
+    auto
+    operator[](const S&... slices) requires(sizeof...(slices) == N)
+    {
+        return index_select(slices...);
+    }
+
+    auto
+    operator[](std::size_t i) requires(N > 1)
+    {
+        return at(i);
     }
 
     /// Returns a tensor with dimensions transposed.
     auto
     transpose(const std::size_t (&&dims)[N]) const
     {
-        tensor_base t(m_data);
+        tensor t(m_data);
         for (auto i = 0; i < N; i++) {
             t.set_size(i, size(dims[i]));
             t.set_stride(i, stride(dims[i]));
@@ -379,7 +404,13 @@ public:
         return t;
     }
 
-    tensor_base<T, N + 1, Container>
+    auto
+    t() const requires(N == 2)
+    {
+        return transpose({1, 0});
+    }
+
+    tensor<T, N + 1, Container>
     expand_dims(const std::size_t dim) const
     {
         assert(dim <= N);
@@ -398,7 +429,7 @@ public:
     }
 
     template <std::size_t M>
-    tensor_base<T, M, Container>
+    tensor<T, M, Container>
     view(const int (&&dims)[M]) const requires(M > 0)
     {
         auto tensor_numel = numel();
@@ -471,7 +502,7 @@ public:
             }
         }
 
-        auto t = tensor_base<T, M, Container>(std::move(view_sizes), m_data);
+        auto t = tensor<T, M, Container>(std::move(view_sizes), m_data);
         t.set_offset(0, container_offset());
         for (std::size_t dim = 0; dim < M; dim++) {
             t.set_stride(dim, view_strides[dim]);
@@ -527,13 +558,13 @@ protected:
         _m_initialize_strides();
     }
 
-    tensor_base(const traits_type::data_type& data)
+    tensor(const traits_type::data_type& data)
     : m_data(data)
     {
         _m_initialize();
     }
 
-    tensor_base(
+    tensor(
         const traits_type::data_type& data,
         traits_type::size_type&& shape,
         traits_type::size_type&& strides,
@@ -545,168 +576,6 @@ protected:
       m_offsets(std::move(offsets))
     {}
 };
-
-/*
-template <typename T, std::size_t N, ContiguousContainer Container = weak_ref<T>>
-class tensor : public tensor_base<T, N, Container> {
-private:
-    using _Base = tensor_base<T, N, Container>;
-
-public:
-    using traits_type = tensor_traits<T, Container>;
-
-    using tensor_base<T, N, Container>::tensor_base;
-
-    tensor(_Base&& t)
-    : _Base(std::move(t))
-    {}
-
-    tensor<T, N - 1>
-    operator[](std::size_t i)
-    {
-        return this->at(i);
-    }
-
-    const auto
-    operator[](std::size_t i) const
-    {
-        return this->at(i);
-    }
-
-    template <indexing::SliceConvertible... S>
-    tensor
-    operator[](const S&... slices)
-    {
-        return tensor(_Base::index_select(slices...));
-    }
-
-    template <indexing::size_convertible... S> requires(sizeof...(S) > 1)
-    T&
-    operator[](const S&... sizes)
-    {
-        return _Base::value_select(sizes...);
-    }
-
-    template <indexing::size_convertible... S> requires(sizeof...(S) > 1)
-    const T&
-    operator[](const S&... sizes) const
-    {
-        return _Base::value_select(sizes...);
-    }
-
-    auto
-    transpose(const std::size_t (&&dims)[N])
-    {
-        return tensor(_Base::transpose(std::move(dims)));
-    }
-
-    auto
-    t() requires(N == 2)
-    {
-        return transpose({1, 0});
-    }
-
-    template <std::size_t M>
-    tensor<T, M, Container>
-    view(const int (&&dims)[M]) const requires(M > 0)
-    {
-        return tensor<T, M, Container>(_Base::view(std::move(dims)));
-    }
-};
-
-
-template <typename T, ContiguousContainer Container>
-class tensor<T, 1, Container> : public tensor_base<T, 1, Container> {
-private:
-    using _Base = tensor_base<T, 1, Container>;
-
-public:
-    using traits_type = tensor_traits<T, Container>;
-
-    using tensor_base<T, 1, Container>::tensor_base;
-
-    tensor(_Base&& t)
-    : _Base(std::move(t))
-    {}
-
-    T&
-    at(std::size_t i)
-    {
-        if (i >= this->size(0)) {
-            throw std::out_of_range("tensor::at");
-        }
-        const auto n = this->stride(0) * i + this->offset(0);
-        return *(this->data_ptr() + n);
-    }
-
-    const T&
-    at(std::size_t i) const
-    {
-        if (i >= this->size(0)) {
-            throw std::out_of_range("tensor::at");
-        }
-        const auto n = this->stride(0) * i + this->offset(0);
-        return *(this->data_ptr() + n);
-    }
-
-    T&
-    operator[](std::size_t i)
-    {
-        return at(i);
-    }
-
-    const T&
-    operator[](std::size_t i) const
-    {
-        return at(i);
-    }
-
-    template <indexing::SliceConvertible... S>
-    auto
-    operator[](const S&... slices)
-    {
-        return tensor(_Base::index_select(slices...));
-    }
-
-    auto
-    t() const
-    {
-        return tensor(this->m_data->data(), this->m_shape->data(), this->m_strides->data());
-    }
-
-    template <std::size_t M>
-    tensor<T, M, Container>
-    view(const int (&&dims)[M]) const
-    {
-        return tensor<T, M, Container>(_Base::view(std::move(dims)));
-    }
-};
-
-
-template <typename T, ContiguousContainer Container>
-class tensor<T, 0, Container> : public tensor_base<T, 0, Container> {
-private:
-    using _Base = tensor_base<T, 0, Container>;
-
-public:
-    // using traits_type = tensor_traits<T, Container>;
-
-    using tensor_base<T, 0, Container>::tensor_base;
-
-    tensor(_Base&& t)
-    : _Base(std::move(t))
-    {}
-
-    tensor(const T& value)
-    : _Base(
-          std::make_shared<value_ref<T>>(value),
-          make_value<std::size_t>(0),
-          make_value<std::size_t>(0),
-          make_value<std::size_t>(0)
-      )
-    {}
-};
-*/
 
 
 template <typename T, std::size_t N> requires(N > 0)

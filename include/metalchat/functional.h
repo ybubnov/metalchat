@@ -43,9 +43,7 @@ struct std_copy {
         ContiguousContainer InputContainer,
         ContiguousContainer OutputContainer>
     void
-    operator()(
-        const tensor_base<T, N, InputContainer>& input, tensor_base<T, M, OutputContainer>& output
-    )
+    operator()(const tensor<T, N, InputContainer>& input, tensor<T, M, OutputContainer>& output)
     {
         std::copy(input.begin(), input.end(), output.begin());
     }
