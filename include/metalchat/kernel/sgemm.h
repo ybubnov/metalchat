@@ -111,7 +111,10 @@ public:
             for (auto i = 0; i < input.size(1); i++) {
                 for (auto k = 0; k < input.size(2); k++) {
                     for (auto j = 0; j < weight.size(1); j++) {
-                        output[b0][i][j] += input[b0][i][k] * weight[k][j];
+                        output[b0, i, j] += input[b0, i, k] * weight[k, j];
+                    }
+                    if (k % 100 == 0) {
+                        std::cout << "b0=" << b0 << ", i=" << i << ", k=" << k << std::endl;
                     }
                 }
             }
