@@ -83,11 +83,25 @@ public:
 
     template <std::size_t M>
     future_tensor<T, M>
-    view(const int (&&dims)[M]) const requires(M > 0)
+    view(int (&&dims)[M]) const requires(M > 0)
     {
         return future_tensor<T, M>(
             _m_result.view(std::move(dims)), _m_kernel_task, _m_promise, _m_future
         );
+    }
+
+    template <std::size_t M>
+    future_tensor<T, M>
+    view(const std::span<int, M> dims) const
+    {
+        return future_tensor<T, M>(_m_result.view(dims), _m_kernel_task, _m_promise, _m_future);
+    }
+
+    template <std::size_t M>
+    future_tensor<T, M>
+    view(const std::span<std::size_t, M> dims) const
+    {
+        return future_tensor<T, M>(_m_result.view(dims), _m_kernel_task, _m_promise, _m_future);
     }
 
     future_tensor
@@ -137,7 +151,7 @@ make_shared(future_tensor<T, N>&& tensor)
 
 template <typename T, std::size_t N, is_tensor... Args>
 auto
-empty_future(const std::size_t (&&sizes)[N], kernel_task<Args...>&& task)
+empty_future(std::size_t (&&sizes)[N], kernel_task<Args...>&& task)
 {
     auto result = shared_tensor(empty<T>(std::move(sizes), task.device()));
     auto fn = task.bind_front(result);

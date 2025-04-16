@@ -55,16 +55,18 @@ public:
       m_offsets(make_value<std::size_t>(0))
     {}
 
-    tensor(const std::size_t (&&sizes)[N]) requires(std::same_as<Container, owning_ref<T>> && N > 0)
-    {
-        _m_initialize(std::move(sizes));
-        m_data = std::make_shared<owning_ref<T>>(new T[numel()]);
-    }
-
-    tensor(const std::size_t (&&sizes)[N], const traits_type::data_type& data)
+    tensor(const std::span<std::size_t, N> sizes, const traits_type::data_type& data)
     : m_data(data)
     {
-        _m_initialize(std::move(sizes));
+        _m_initialize(sizes);
+    }
+
+    template <std::forward_iterator ForwardIt>
+    tensor(ForwardIt first, ForwardIt last)
+        requires(std::same_as<Container, owning_ref<T>> && N > 0)
+    {
+        _m_initialize(first, last);
+        m_data = std::make_shared<owning_ref<T>>(new T[numel()]);
     }
 
     template <std::forward_iterator ForwardIt>
@@ -74,10 +76,11 @@ public:
         _m_initialize(first, last);
     }
 
-    tensor(const std::size_t (&&sizes)[N], MTL::Device* device)
+    template <std::forward_iterator ForwardIt>
+    tensor(ForwardIt first, ForwardIt last, MTL::Device* device)
         requires(std::same_as<Container, device_ref<T>> && N > 0)
     {
-        _m_initialize(std::move(sizes));
+        _m_initialize(first, last);
 
         auto buf_size = numel() * sizeof(T);
         auto buf = NS::TransferPtr(device->newBuffer(buf_size, MTL::ResourceStorageModeShared));
@@ -85,7 +88,29 @@ public:
         m_data = std::make_shared<device_ref<T>>(buf);
     }
 
-    tensor(const std::size_t (&&sizes)[N], device& device)
+    tensor(const std::span<std::size_t, N> sizes)
+    : tensor(sizes.begin(), sizes.end())
+    {}
+
+    tensor(std::size_t (&&sizes)[N]) requires(std::same_as<Container, owning_ref<T>> && N > 0)
+    : tensor(std::span<std::size_t, N>(sizes, N))
+    {}
+
+    tensor(std::size_t (&&sizes)[N], const traits_type::data_type& data)
+    : tensor(std::span<std::size_t, N>(sizes, N), data)
+    {}
+
+    tensor(const std::span<std::size_t, N> sizes, MTL::Device* device)
+        requires(std::same_as<Container, device_ref<T>> && N > 0)
+    : tensor(sizes.begin(), sizes.end(), device)
+    {}
+
+    tensor(std::size_t (&&sizes)[N], MTL::Device* device)
+        requires(std::same_as<Container, device_ref<T>> && N > 0)
+    : tensor(std::span<std::size_t, N>(sizes, N), device)
+    {}
+
+    tensor(std::size_t (&&sizes)[N], device& device)
         requires(std::same_as<Container, device_ref<T>> && N > 0)
     : tensor(std::move(sizes), (*device))
     {}
@@ -143,7 +168,7 @@ public:
     inline const auto
     strides() const noexcept
     {
-        return std::span(m_strides->data(), N);
+        return std::span<std::size_t, N>(m_strides->data(), N);
     }
 
     inline std::size_t
@@ -160,7 +185,7 @@ public:
     inline const auto
     sizes() const noexcept
     {
-        return std::span(m_shape->data(), N);
+        return std::span<std::size_t, N>(m_shape->data(), N);
     }
 
     inline std::size_t
@@ -183,7 +208,7 @@ public:
     inline const auto
     offsets() const noexcept
     {
-        return std::span(m_offsets->data(), N);
+        return std::span<std::size_t, N>(m_offsets->data(), N);
     }
 
     bool
@@ -427,7 +452,15 @@ public:
 
     template <std::size_t M>
     tensor<T, M, Container>
-    view(const int (&&dims)[M]) const requires(M > 0)
+    view(int (&&dims)[M]) const requires(M > 0)
+    {
+        const std::span<int, M> sizes(dims, M);
+        return view(sizes);
+    }
+
+    template <std::size_t M>
+    tensor<T, M, Container>
+    view(const std::span<int, M> dims) const requires(M > 0)
     {
         auto tensor_numel = numel();
         auto view_numel = 1;
@@ -436,7 +469,6 @@ public:
         auto inferred_dim = -1;
 
         std::size_t view_sizes[M];
-        std::size_t view_strides[M];
 
         for (auto i = 0; i < M; i++) {
             if (dims[i] == -1) {
@@ -462,8 +494,17 @@ public:
             ));
         }
 
-        tensor_numel = 1;
-        view_numel = 1;
+        return view(std::span<std::size_t, M>(view_sizes));
+    }
+
+    template <std::size_t M>
+    tensor<T, M, Container>
+    view(const std::span<std::size_t, M> view_sizes) const requires(M > 0)
+    {
+        std::size_t view_strides[M];
+        std::size_t tensor_numel = 1;
+        std::size_t view_numel = 1;
+
         int view_i = M - 1;
         auto base_stride = stride(N - 1);
 
@@ -499,7 +540,7 @@ public:
             }
         }
 
-        auto t = tensor<T, M, Container>(std::move(view_sizes), m_data);
+        auto t = tensor<T, M, Container>(view_sizes, m_data);
         t.set_offset(0, container_offset());
         for (std::size_t dim = 0; dim < M; dim++) {
             t.set_stride(dim, view_strides[dim]);
@@ -538,10 +579,16 @@ protected:
     }
 
     void
-    _m_initialize(const std::size_t (&&sizes)[N])
+    _m_initialize(const std::span<std::size_t, N> sizes)
     {
-        _m_initialize(sizes, sizes + N);
+        _m_initialize(sizes.begin(), sizes.end());
         _m_initialize_strides();
+    }
+
+    void
+    _m_initialize(std::size_t (&&sizes)[N])
+    {
+        _m_initialize(std::span<std::size_t, N>(sizes, N));
     }
 
     template <std::forward_iterator ForwardIt>
@@ -577,7 +624,7 @@ protected:
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-empty(const std::size_t (&&sizes)[N])
+empty(std::size_t (&&sizes)[N])
 {
     return tensor<T, N, owning_ref<T>>(std::move(sizes));
 }
@@ -593,7 +640,7 @@ scalar(const T& value)
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-empty(const std::size_t (&&sizes)[N], device& device)
+empty(std::size_t (&&sizes)[N], device& device)
 {
     return tensor<T, N, device_ref<T>>(std::move(sizes), device);
 }
@@ -601,41 +648,25 @@ empty(const std::size_t (&&sizes)[N], device& device)
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-empty(const std::size_t (&&sizes)[N], MTL::Device* device)
+empty(std::size_t (&&sizes)[N], MTL::Device* device)
 {
     return tensor<T, N, device_ref<T>>(std::move(sizes), device);
 }
 
 
-template <typename T, std::size_t N, class InputIt> requires(N > 0)
+template <typename T, std::size_t N, std::forward_iterator InputIt> requires(N > 0)
 auto
 empty(InputIt begin, InputIt end)
 {
-    assert((end - begin) == N);
-
-    std::size_t new_shape[N];
-    for (std::size_t i = 0; i < N; i++) {
-        new_shape[i] = *begin;
-        ++begin;
-    }
-
-    return empty<T>(std::move(new_shape));
+    return empty<T>(begin, end);
 }
 
 
-template <typename T, std::size_t N, class InputIt> requires(N > 0)
+template <typename T, std::size_t N, std::forward_iterator InputIt> requires(N > 0)
 auto
 empty(InputIt begin, InputIt end, device& device)
 {
-    assert((end - begin) == N);
-
-    std::size_t new_shape[N];
-    for (std::size_t i = 0; i < N; i++) {
-        new_shape[i] = *begin;
-        ++begin;
-    }
-
-    return empty<T>(std::move(new_shape), device);
+    return tensor<T, N, device_ref<T>>(begin, end, *device);
 }
 
 
@@ -659,7 +690,7 @@ empty_like(const tensor<T, N, Container>& like, device& device)
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-full(const std::size_t (&&sizes)[N], const T& fill_value)
+full(std::size_t (&&sizes)[N], const T& fill_value)
 {
     auto t = empty<T>(std::move(sizes));
     std::fill_n(t.data_ptr(), t.numel(), fill_value);
@@ -669,7 +700,7 @@ full(const std::size_t (&&sizes)[N], const T& fill_value)
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-full(const std::size_t (&&sizes)[N], const T& fill_value, device& device)
+full(std::size_t (&&sizes)[N], const T& fill_value, device& device)
 {
     auto t = empty<T>(std::move(sizes), device);
     std::fill_n(t.data_ptr(), t.numel(), fill_value);
@@ -679,7 +710,7 @@ full(const std::size_t (&&sizes)[N], const T& fill_value, device& device)
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-zeros(const std::size_t (&&sizes)[N])
+zeros(std::size_t (&&sizes)[N])
 {
     return full<T>(std::move(sizes), 0);
 }
@@ -691,7 +722,7 @@ zeros(const std::size_t (&&sizes)[N])
 /// The shape of the tensor is defined by the variable argument `sizes`.
 template <typename T, std::size_t N> requires(N > 0)
 auto
-rand(const std::size_t (&&sizes)[N])
+rand(std::size_t (&&sizes)[N])
 {
     std::random_device rd;
     std::mt19937 generator(rd());
@@ -706,7 +737,7 @@ rand(const std::size_t (&&sizes)[N])
 
 template <typename T, std::size_t N, std::forward_iterator ForwardIt> requires(N > 0)
 auto
-to_tensor(const std::size_t (&&sizes)[N], ForwardIt first, ForwardIt last)
+to_tensor(std::size_t (&&sizes)[N], ForwardIt first, ForwardIt last)
 {
     auto t = empty<T>(std::move(sizes));
     auto distance = std::distance(first, last);

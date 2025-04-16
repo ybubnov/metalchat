@@ -61,12 +61,7 @@ public:
         auto fn = task.bind_back(input1_view, input2_view);
 
         auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
-        int output_sizes[N];
-        for (auto i = 0; i < N; i++) {
-            output_sizes[i] = input1.size(i);
-        }
-
-        return output.view(std::move(output_sizes));
+        return output.view(input1.sizes());
     }
 };
 
@@ -97,7 +92,6 @@ public:
         auto dim0_size = input2.size(0);
         auto dim1_size = input2.size(1);
         auto num_rows = data_size / (dim0_size * dim1_size);
-        // auto num_cols = dim1_size /
 
         if (dim0_size != input1.size(M - 2) || dim1_size != input1.size(M - 1)) {
             throw std::invalid_argument(std::format(

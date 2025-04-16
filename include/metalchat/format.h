@@ -143,9 +143,9 @@ struct tensor_format<T, 0, Container> : public tensor_format_base<T, 0, Containe
 };
 
 
-template <typename T>
+template <typename T, std::size_t N>
 std::ostream&
-operator<<(std::ostream& os, const std::span<T>& arr)
+operator<<(std::ostream& os, const std::span<T, N>& arr)
 {
     for (auto it = arr.begin(); it != arr.end(); ++it) {
         os << *it;
