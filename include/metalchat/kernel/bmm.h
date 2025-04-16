@@ -34,9 +34,9 @@ public:
         }
         // A(MxK) @ B(KxN) -> C(MxN)
         auto output = empty<T>({input.size(0), weight.size(1)}, m_device);
-        std::cout << "A(" << input.size(0) << "x" << input.size(1) << ") @ ";
-        std::cout << "B(" << weight.size(0) << "x" << weight.size(1) << ") -> ";
-        std::cout << "C(" << input.size(0) << "x" << weight.size(1) << ")";
+        // std::cout << "A(" << input.size(0) << "x" << input.size(1) << ") @ ";
+        // std::cout << "B(" << weight.size(0) << "x" << weight.size(1) << ") -> ";
+        // std::cout << "C(" << input.size(0) << "x" << weight.size(1) << ")";
 
         auto m = scalar<int32_t>(input.size(0));
         auto k = scalar<int32_t>(input.size(1));

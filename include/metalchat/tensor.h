@@ -611,6 +611,13 @@ public:
     {
         return tensor(this->m_data->data(), this->m_shape->data(), this->m_strides->data());
     }
+
+    template <std::size_t M>
+    tensor<T, M, Container>
+    reshape(const int (&&dims)[M]) const
+    {
+        return tensor<T, M, Container>(_Base::reshape(std::move(dims)));
+    }
 };
 
 
