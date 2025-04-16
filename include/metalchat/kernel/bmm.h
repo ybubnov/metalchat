@@ -44,8 +44,8 @@ public:
         auto thread = dim3(block_size, block_size);
 
         blocking(threads, thread)(
-            input, weight, output, scalar(input.layout()), scalar(weight.layout()),
-            scalar(output.layout())
+            scalar(input.layout()), scalar(weight.layout()), scalar(output.layout()), input, weight,
+            output
         );
         return output;
     }

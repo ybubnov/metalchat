@@ -7,48 +7,40 @@
 using namespace metal;
 
 
-template <uint64_t N> struct tensor_layout {
-    uint64_t sizes[N];
-    uint64_t strides[N];
-    uint64_t offsets[N];
+template <uint N> struct tensor_layout {
+    uint sizes[N];
+    uint strides[N];
+    uint offsets[N];
 };
 
 
-template <typename T, uint64_t N> struct tensor {
+template <typename T, uint N> struct tensor {
     device T* data;
     constant tensor_layout<N>& layout;
 
-    template <typename... I>
-    device T&
-    at(const I... indices)
+    inline device T&
+    at(uint i, uint j)
     {
-        static_assert(
-            sizeof...(indices) == N,
-            "matrix::at expects the same number of indices as matrix dimensionality"
-        );
-
-        uint64_t ptr_offset = 0;
-        uint64_t i = 0;
-
-        ((ptr_offset += layout.strides[i] * (layout.offsets[i] + indices), ++i), ...);
-
+        auto ptr_offset = 0;
+        ptr_offset += layout.strides[0] * (layout.offsets[0] + i);
+        ptr_offset += layout.strides[1] * (layout.offsets[1] + j);
         return *(data + ptr_offset);
     }
 
-    inline uint64_t
-    size(uint64_t dim)
+    inline uint
+    size(uint dim)
     {
         return layout.sizes[dim];
     }
 
-    inline uint64_t
-    stride(uint64_t dim)
+    inline uint
+    stride(uint dim)
     {
         return layout.strides[dim];
     }
 
-    inline uint64_t
-    offset(uint64_t dim)
+    inline uint
+    offset(uint dim)
     {
         return layout.offsets[dim];
     }
