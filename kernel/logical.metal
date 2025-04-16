@@ -7,12 +7,9 @@
 
 
 template <typename T> struct __gt_parameters {
-    constant tensor_layout<2>& output_layout;
-    device bool* output;
-    constant tensor_layout<2>& input1_layout;
-    device const T* input1;
-    constant tensor_layout<2>& input2_layout;
-    device const T* input2;
+    tensor2<bool> output;
+    tensor2<const T> input;
+    constant T& value;
 };
 
 
@@ -22,18 +19,14 @@ gt(__gt_parameters<T> params,
    uint gid [[threadgroup_position_in_grid]],
    uint tid [[thread_index_in_threadgroup]])
 {
-    tensor<const T, 2> in1{params.input1, params.input1_layout};
-    tensor<const T, 2> in2{params.input2, params.input2_layout};
-    tensor<bool, 2> out{params.output, params.output_layout};
-
-    const uint dim_size = in1.size(1);
+    const uint dim_size = params.input.size(1);
     const uint i = gid;
 
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
     for (uint k = 0; k < end && k < dim_size; k++) {
-        out.at(i, k) = in1.at(i, k) > in2.at(i, k);
+        params.output.at(i, k) = (params.input.at(i, k) > params.value);
     }
 }
 
@@ -41,6 +34,7 @@ gt(__gt_parameters<T> params,
 __lib_metalchat_kernel(gt, bfloat, 8);
 __lib_metalchat_kernel(gt, bfloat, 16);
 __lib_metalchat_kernel(gt, bfloat, 32);
+__lib_metalchat_kernel(gt, bfloat, 256);
 
 __lib_metalchat_kernel(gt, float, 8);
 __lib_metalchat_kernel(gt, float, 16);

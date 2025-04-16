@@ -59,8 +59,9 @@ public:
         auto max_threads = kernel.max_threads_per_threadgroup();
         if (thread.numel() > max_threads) {
             throw std::invalid_argument(std::format(
-                "kernel: <{}, {}, {}> exceeds maximum number of threads per group {}", thread.x,
-                thread.y, thread.z, max_threads
+                "kernel: `{}` <{}, {}, {}> configuration exceeds maximum number of threads per "
+                "group {}",
+                kernel.name(), thread.x, thread.y, thread.z, max_threads
             ));
         }
 

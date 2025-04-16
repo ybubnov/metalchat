@@ -102,4 +102,13 @@ template <> struct type_traits<float> {
 };
 
 
+template <> struct type_traits<int32_t> {
+    static std::string
+    name()
+    {
+        return "int32_t";
+    }
+};
+
+
 } // namespace metalchat
