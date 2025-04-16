@@ -47,23 +47,6 @@ public:
 
     using const_iterator = const iterator;
 
-    tensor_base(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
-    : m_data(std::make_shared<weak_ref<T>>(data)),
-      m_shape(make_weak(shape)),
-      m_strides(make_weak(strides)),
-      m_offsets(make_weak(offsets))
-    {}
-
-    tensor_base(
-        const traits::data_type& data, traits::size_type&& shape, traits::size_type&& strides
-    )
-    : m_data(data),
-      m_shape(std::move(shape)),
-      m_strides(std::move(strides))
-    {
-        m_offsets = make_owning(new std::size_t[N]);
-    }
-
     tensor_base(
         const traits::data_type& data,
         traits::size_type&& shape,
@@ -76,16 +59,49 @@ public:
       m_offsets(std::move(offsets))
     {}
 
-    tensor_base(tensor_base<T, N, Container>&& t)
-    : m_data(std::move(t.m_data)),
-      m_shape(std::move(t.m_shape)),
-      m_strides(std::move(t.m_strides)),
-      m_offsets(std::move(t.m_offsets))
+    tensor_base(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
+    : tensor_base(
+          std::make_shared<weak_ref<T>>(data),
+          make_weak(shape),
+          make_weak(strides),
+          make_weak(offsets)
+      )
+    {}
+
+    tensor_base(
+        const traits::data_type& data, traits::size_type&& shape, traits::size_type&& strides
+    )
+    : tensor_base(data, std::move(shape), std::move(strides), make_owning(new std::size_t[N]()))
+    {}
+
+    /// Tensor move constructor
+    ///
+    /// The newly-created tensor contains the exact contents of the moved instance.
+    /// The contents of the moved instance are a valid, but unspecified tensor.
+    tensor_base(tensor_base&& t) noexcept = default;
+
+    tensor_base(std::size_t (&&sizes)[N]) requires(std::same_as<Container, owning_ref<T>> && N > 0)
     {
-        t.m_data = nullptr;
-        t.m_shape = nullptr;
-        t.m_strides = nullptr;
-        t.m_offsets = nullptr;
+        auto shape = new std::size_t[N]();
+        auto strides = new std::size_t[N]();
+        auto offsets = new std::size_t[N]();
+
+        std::size_t numel = 1;
+        for (auto i = 0; i < N; i++) {
+            numel *= sizes[i];
+            shape[i] = sizes[i];
+        }
+
+        auto data = new T[numel];
+        strides[N - 1] = 1;
+        for (auto i = N - 2; i < N; --i) {
+            strides[i] = strides[i + 1] * shape[i + 1];
+        }
+
+        m_data = std::make_shared<owning_ref<T>>(data);
+        m_shape = make_owning(shape);
+        m_strides = make_owning(strides);
+        m_offsets = make_owning(offsets);
     }
 
     inline std::size_t
@@ -121,7 +137,7 @@ public:
         return m_strides->data()[dim];
     }
 
-    inline constexpr const auto
+    inline const auto
     strides() const noexcept
     {
         return std::span(m_strides->data(), N);
@@ -136,16 +152,10 @@ public:
         return m_shape->data()[dim];
     }
 
-    inline constexpr const auto
+    inline const auto
     sizes() const noexcept
     {
         return std::span(m_shape->data(), N);
-    }
-
-    inline constexpr const auto
-    offsets() const noexcept
-    {
-        return std::span(m_offsets->data(), N);
     }
 
     inline std::size_t
@@ -155,6 +165,12 @@ public:
             throw std::out_of_range("tensor");
         }
         return m_offsets->data()[dim];
+    }
+
+    inline const auto
+    offsets() const noexcept
+    {
+        return std::span(m_offsets->data(), N);
     }
 
     bool
@@ -208,6 +224,45 @@ public:
         return const_iterator(*m_data, *m_shape, *m_strides, *m_offsets, numel());
     }
 
+    template <indexing::SliceConvertible... S>
+    auto
+    operator[](const S&... slices) requires(sizeof...(slices) <= N)
+    {
+        constexpr auto slices_size = sizeof...(slices);
+        std::array<indexing::slice, slices_size> slices_array
+            = {(static_cast<indexing::slice>(slices))...};
+
+        auto shape = new std::size_t[N];
+        auto offsets = new std::size_t[N];
+
+        for (std::size_t i = 0; i < slices_size; i++) {
+            auto slice = slices_array[i];
+
+            auto stop = std::min(slice.stop.value_or(size(i)), size(i));
+            auto start = std::min(slice.start.value_or(0), stop);
+
+            shape[i] = stop - start;
+            offsets[i] = start;
+        }
+
+        return tensor_base<T, N, weak_ref<T>>(
+            make_weak(data_ptr()), make_owning(shape), make_weak(m_strides->data()),
+            make_owning(offsets)
+        );
+    }
+
+    /// Returns a tensor with dimensions transposed.
+    template <indexing::SizeConvertible... Dimensions>
+    auto
+    transpose(const Dimensions... dims) requires(sizeof...(dims) == N)
+    {
+        auto shape = new std::size_t[N]{size(static_cast<std::size_t>(dims))...};
+        auto strides = new std::size_t[N]{stride(static_cast<std::size_t>(dims))...};
+        auto offsets = new std::size_t[N]{offset(static_cast<std::size_t>(dims))...};
+
+        return tensor_base(m_data, make_owning(shape), make_owning(strides), make_owning(offsets));
+    }
+
 protected:
     traits::data_type m_data = nullptr;
     traits::size_type m_shape = nullptr;
@@ -218,15 +273,22 @@ protected:
 
 template <typename T, std::size_t N, ContiguousContainer Container = weak_ref<T>>
 class tensor : public tensor_base<T, N, Container> {
+private:
+    using _Base = tensor_base<T, N, Container>;
+
 public:
     using traits = tensor_traits<T, Container>;
 
+    tensor(_Base&& t)
+    : _Base(std::move(t))
+    {}
+
     tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
-    : tensor_base<T, N, Container>(data, shape, strides, offsets)
+    : _Base(data, shape, strides, offsets)
     {}
 
     tensor(const traits::data_type& data, traits::size_type&& shape, traits::size_type&& strides)
-    : tensor_base<T, N, Container>(data, std::move(shape), std::move(strides))
+    : _Base(data, std::move(shape), std::move(strides))
     {}
 
     tensor(
@@ -235,7 +297,7 @@ public:
         traits::size_type&& strides,
         traits::size_type&& offsets
     )
-    : tensor_base<T, N, Container>(data, std::move(shape), std::move(strides), std::move(offsets))
+    : _Base(data, std::move(shape), std::move(strides), std::move(offsets))
     {}
 
     auto
@@ -268,29 +330,9 @@ public:
 
     template <indexing::SliceConvertible... S>
     auto
-    operator[](const S&... slices) requires(sizeof...(slices) <= N)
+    operator[](const S&... slices)
     {
-        constexpr auto slices_size = sizeof...(slices);
-        std::array<indexing::slice, slices_size> slices_array
-            = {(static_cast<indexing::slice>(slices))...};
-
-        auto shape = new std::size_t[N];
-        auto offsets = new std::size_t[N];
-
-        for (std::size_t i = 0; i < slices_size; i++) {
-            auto slice = slices_array[i];
-
-            auto stop = std::min(slice.stop.value_or(this->size(i)), this->size(i));
-            auto start = std::min(slice.start.value_or(0), stop);
-
-            shape[i] = stop - start;
-            offsets[i] = start;
-        }
-
-        return tensor<T, N, weak_ref<T>>(
-            make_weak(this->data_ptr()), make_owning(shape), make_weak(this->m_strides->data()),
-            make_owning(offsets)
-        );
+        return tensor<T, N, weak_ref<T>>(_Base::operator[](slices...));
     }
 
     template <ContiguousContainer OtherContainer>
@@ -307,15 +349,9 @@ public:
 
     template <indexing::SizeConvertible... Dimensions>
     auto
-    transpose(const Dimensions... dims) requires(sizeof...(dims) == N)
+    transpose(const Dimensions... dims)
     {
-        auto shape = new std::size_t[N]{this->size(static_cast<std::size_t>(dims))...};
-        auto strides = new std::size_t[N]{this->stride(static_cast<std::size_t>(dims))...};
-        auto offsets = new std::size_t[N]{this->offset(static_cast<std::size_t>(dims))...};
-
-        return tensor<T, N, Container>(
-            this->m_data, make_owning(shape), make_owning(strides), make_owning(offsets)
-        );
+        return tensor(_Base::transpose(dims...));
     }
 
     auto
@@ -328,15 +364,22 @@ public:
 
 template <typename T, ContiguousContainer Container>
 class tensor<T, 1, Container> : public tensor_base<T, 1, Container> {
+private:
+    using _Base = tensor_base<T, 1, Container>;
+
 public:
     using traits = tensor_traits<T, Container>;
 
+    tensor(_Base&& t)
+    : _Base(std::move(t))
+    {}
+
     tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
-    : tensor_base<T, 1, Container>(data, shape, strides, offsets)
+    : _Base(data, shape, strides, offsets)
     {}
 
     tensor(const traits::data_type& data, traits::size_type&& shape, traits::size_type&& strides)
-    : tensor_base<T, 1, Container>(std::move(data), std::move(shape), std::move(strides))
+    : _Base(std::move(data), std::move(shape), std::move(strides))
     {}
 
     tensor(
@@ -345,7 +388,7 @@ public:
         traits::size_type&& strides,
         traits::size_type&& offsets
     )
-    : tensor_base<T, 1, Container>(data, std::move(shape), std::move(strides), std::move(offsets))
+    : _Base(data, std::move(shape), std::move(strides), std::move(offsets))
     {}
 
     T&
@@ -380,23 +423,11 @@ public:
         return at(i);
     }
 
-    template <indexing::SliceConvertible S>
+    template <indexing::SliceConvertible... S>
     auto
-    operator[](const S& slice)
+    operator[](const S&... slices)
     {
-        auto shape = new std::size_t[1];
-        auto offsets = new std::size_t[1];
-
-        auto stop = std::min(slice.stop.value_or(this->size(0)), this->size(0));
-        auto start = std::min(slice.start.value_or(0), stop);
-
-        shape[0] = stop - start;
-        offsets[0] = start;
-
-        return tensor<T, 1, weak_ref<T>>(
-            make_weak(this->data_ptr()), make_owning(shape), make_weak(this->m_strides->data()),
-            make_owning(offsets)
-        );
+        return tensor<T, 1, weak_ref<T>>(_Base::operator[](slices...));
     }
 
     auto
@@ -409,11 +440,18 @@ public:
 
 template <typename T, ContiguousContainer Container>
 class tensor<T, 0, Container> : public tensor_base<T, 0, Container> {
+private:
+    using _Base = tensor_base<T, 0, Container>;
+
 public:
     using traits = tensor_traits<T, Container>;
 
+    tensor(tensor_base<T, 0, Container>&& t)
+    : _Base(std::move(t))
+    {}
+
     tensor(const traits::data_type& data, traits::size_type&& shape, traits::size_type&& strides)
-    : tensor_base<T, 0, Container>(data, std::move(shape), std::move(strides))
+    : _Base(data, std::move(shape), std::move(strides))
     {}
 
     tensor(
@@ -422,7 +460,16 @@ public:
         traits::size_type&& strides,
         traits::size_type&& offsets
     )
-    : tensor_base<T, 0, Container>(data, std::move(shape), std::move(strides), std::move(offsets))
+    : _Base(data, std::move(shape), std::move(strides), std::move(offsets))
+    {}
+
+    tensor(const T& value)
+    : _Base(
+          make_value(value),
+          make_value<std::size_t>(0),
+          make_value<std::size_t>(0),
+          make_value<std::size_t>(0)
+      )
     {}
 };
 
@@ -431,27 +478,7 @@ template <typename T, std::size_t N> requires(N > 0)
 auto
 empty(std::size_t (&&sizes)[N])
 {
-    auto shape = new std::size_t[N];
-    auto strides = new std::size_t[N];
-
-    std::size_t numel = 1;
-    for (auto i = 0; i < N; i++) {
-        numel *= sizes[i];
-        shape[i] = sizes[i];
-    }
-
-    auto data = new T[numel];
-
-    strides[N - 1] = 1;
-    for (auto i = N - 2; i < N; --i) {
-        strides[i] = strides[i + 1] * shape[i + 1];
-    }
-
-    using tensor_type = tensor<T, N, owning_ref<T>>;
-
-    return tensor_type(
-        std::make_shared<owning_ref<T>>(data), make_owning(shape), make_owning(strides)
-    );
+    return tensor<T, N, owning_ref<T>>(std::move(sizes));
 }
 
 

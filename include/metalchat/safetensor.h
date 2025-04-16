@@ -99,6 +99,8 @@ simdjson::ondemand::value::get() noexcept
         if ((error = v.get_int64().get(val))) {
             return error;
         }
+        // TODO: rework this implementation, so that vector is created with a
+        // fixed number of elements and does not grow too much.
         vec.push_back(static_cast<std::size_t>(val));
     }
     return vec;
