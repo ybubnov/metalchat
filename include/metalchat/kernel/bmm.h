@@ -51,24 +51,21 @@ public:
         auto output
             = shared_empty<T>({num_batches, input_size1, weight_size2}, _m_kernel.get_allocator());
 
-        constexpr std::size_t BM = 64;
-        constexpr std::size_t BN = 64;
-        constexpr std::size_t BK = 8;
-        constexpr std::size_t TM = 8;
-        constexpr std::size_t TN = 8;
+        constexpr std::size_t BM = 16;
+        constexpr std::size_t BN = 16;
+        constexpr std::size_t BK = 4;
+        constexpr std::size_t TM = 4;
+        constexpr std::size_t TN = 4;
 
-        // auto grid = dim3(
-        //     ceil_div(input_size1, BlockSize) * BlockSize,
-        //     ceil_div(weight_size2, BlockSize) * BlockSize, num_batches
-        //);
-        // auto thread = dim3(BlockSize, BlockSize);
         auto block_size = (BM * BN) / (TM * TN);
-        auto N = weight.size(2);
         auto M = input.size(1);
+        auto K = input.size(2);
+        auto N = weight.size(2);
 
         auto grid = dim3(ceil_div(N, BN) * BN, ceil_div(M, BM) * BM, num_batches);
-        // auto grid = dim3(N, M, num_batches);
         auto thread = dim3(block_size);
+        std::cout << "bmm<" << grid << "," << thread << "> (" << M << "x" << K << " * " << K << "x"
+                  << N << ")" << std::endl;
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto task_future = task.bind_front(output, input, weight);

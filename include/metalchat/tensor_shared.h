@@ -95,7 +95,7 @@ public:
     }
 
     std::size_t
-    offset(std::size_t dim)
+    offset(std::size_t dim) const
     {
         return _m_value->offset(dim);
     }

@@ -33,11 +33,11 @@ bmm(__bmm_parameters<T> params,
     const uint K = m1.size(2);
     const uint N = m2.size(2);
 
-    constexpr uint BM = 64;
-    constexpr uint BN = 64;
-    constexpr uint BK = 8;
-    constexpr uint TM = 8;
-    constexpr uint TN = 8;
+    constexpr uint BM = 16;
+    constexpr uint BN = 16;
+    constexpr uint BK = 4;
+    constexpr uint TM = 4;
+    constexpr uint TN = 4;
 
     const uint block_row = group_id.y * BM;
     const uint block_col = group_id.x * BN;
@@ -58,12 +58,14 @@ bmm(__bmm_parameters<T> params,
     const uint inner_c2 = thread_id.x % BN;
     const uint stride2 = thread_size / BN;
 
-    float partial[TM][TN] = {};
-    float cache_m[TM] = {};
-    float cache_n[TN] = {};
+    // T partial[TM][TN] = {};
+    metal::float4x4 partial = {};
+    T cache_m[TM] = {};
+    T cache_n[TN] = {};
 
     for (uint k = 0; k < K; k += BK) {
 
+#pragma unroll(BM)
         for (uint off = 0; off < BM; off += stride1) {
             uint r1 = inner_r1 + block_row + off;
             uint c1 = inner_c1 + k;
@@ -75,6 +77,7 @@ bmm(__bmm_parameters<T> params,
             }
         }
 
+#pragma unroll(BK)
         for (uint off = 0; off < BK; off += stride2) {
             uint r2 = inner_r2 + k + off;
             uint c2 = inner_c2 + block_col;
@@ -88,6 +91,7 @@ bmm(__bmm_parameters<T> params,
 
         threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
+#pragma unroll(BK)
         for (uint b = 0; b < BK; b++) {
             for (uint i = 0; i < TM; i++) {
                 cache_m[i] = tile1[thread_row * TM + i][b];
