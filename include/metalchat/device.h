@@ -11,7 +11,7 @@
 #include <filesystem>
 
 
-namespace metalama {
+namespace metalchat {
 
 
 class device {
@@ -61,4 +61,4 @@ public:
 };
 
 
-} // namespace metalama
+} // namespace metalchat

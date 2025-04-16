@@ -10,11 +10,11 @@
 #include <simdjson.h>
 #include <sys/mman.h>
 
-#include <metalama/format.h>
-#include <metalama/tensor.h>
+#include <metalchat/format.h>
+#include <metalchat/tensor.h>
 
 
-namespace metalama {
+namespace metalchat {
 
 
 class safetensor {
@@ -74,7 +74,7 @@ struct safetensor_ptr {
 };
 
 
-} // namespace metalama
+} // namespace metalchat
 
 
 using namespace simdjson;
@@ -105,7 +105,7 @@ simdjson::ondemand::value::get() noexcept
 
 
 template <>
-simdjson_inline simdjson_result<metalama::safetensor_ptr>
+simdjson_inline simdjson_result<metalchat::safetensor_ptr>
 simdjson::ondemand::value::get() noexcept
 {
     ondemand::object object;
@@ -114,7 +114,7 @@ simdjson::ondemand::value::get() noexcept
         return error;
     }
 
-    metalama::safetensor_ptr ptr;
+    metalchat::safetensor_ptr ptr;
     if ((error = object["dtype"].get_string(ptr.dtype))) {
         return error;
     }
@@ -129,7 +129,7 @@ simdjson::ondemand::value::get() noexcept
 }
 
 
-namespace metalama {
+namespace metalchat {
 
 
 class safetensor_file {
@@ -269,4 +269,4 @@ private:
 };
 
 
-} // namespace metalama
+} // namespace metalchat

@@ -4,10 +4,10 @@
 #include <Foundation/Foundation.hpp>
 #include <Metal/Metal.hpp>
 
-#include <metalama/tensor.h>
+#include <metalchat/tensor.h>
 
 
-namespace metalama {
+namespace metalchat {
 namespace nn {
 
 
@@ -51,4 +51,4 @@ public:
 
 
 } // namespace nn
-} // namespace metalama
+} // namespace metalchat

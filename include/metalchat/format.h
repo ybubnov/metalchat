@@ -4,7 +4,7 @@
 #include <iostream>
 
 
-namespace metalama {
+namespace metalchat {
 namespace fmt {
 
 constexpr int precision = 3;
@@ -58,4 +58,4 @@ operator<<(std::ostream& os, const std::vector<__fp16>& vec)
 }
 
 
-} // namespace metalama
+} // namespace metalchat

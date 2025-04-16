@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 
-project(metalama, CXX)
+project(metalchat, CXX)
 set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(kernel)
@@ -15,25 +15,25 @@ find_library(QUARTZCORE QuartzCore REQUIRED)
 find_package(simdjson CONFIG REQUIRED)
 
 
-#aux_source_directory(src metalama_SOURCES)
-set(metalama_METALLIB metalama.metallib)
-set(metalama_SOURCES src/main.cc)
+#aux_source_directory(src metalchat_SOURCES)
+set(metalchat_METALLIB metalchat.metallib)
+set(metalchat_SOURCES src/main.cc)
 
-add_executable(metalama_main ${metalama_SOURCES})
-add_dependencies(metalama_main ${metalama_METALLIB})
+add_executable(metalchat_main ${metalchat_SOURCES})
+add_dependencies(metalchat_main ${metalchat_METALLIB})
 
-target_link_libraries(metalama_main ${FOUNDATION})
-target_link_libraries(metalama_main ${METAL})
-target_link_libraries(metalama_main ${METALFX})
-target_link_libraries(metalama_main ${QUARTZCORE})
+target_link_libraries(metalchat_main ${FOUNDATION})
+target_link_libraries(metalchat_main ${METAL})
+target_link_libraries(metalchat_main ${METALFX})
+target_link_libraries(metalchat_main ${QUARTZCORE})
 
 
-set(metalama_TENSOR_SOURCES src/safetensor.cc)
-add_executable(metalama_parse ${metalama_TENSOR_SOURCES})
-add_dependencies(metalama_parse ${metalama_METALLIB})
+set(metalchat_TENSOR_SOURCES src/safetensor.cc)
+add_executable(metalchat_parse ${metalchat_TENSOR_SOURCES})
+add_dependencies(metalchat_parse ${metalchat_METALLIB})
 
-target_link_libraries(metalama_parse simdjson::simdjson)
-target_link_libraries(metalama_parse ${FOUNDATION})
-target_link_libraries(metalama_parse ${METAL})
-target_link_libraries(metalama_parse ${METALFX})
-target_link_libraries(metalama_parse ${QUARTZCORE})
+target_link_libraries(metalchat_parse simdjson::simdjson)
+target_link_libraries(metalchat_parse ${FOUNDATION})
+target_link_libraries(metalchat_parse ${METAL})
+target_link_libraries(metalchat_parse ${METALFX})
+target_link_libraries(metalchat_parse ${QUARTZCORE})

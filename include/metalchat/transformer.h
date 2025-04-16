@@ -1,10 +1,10 @@
 #pragma once
 
 
-#include "metalama/tensor.h"
+#include "metalchat/tensor.h"
 
 
-namespace metalama {
+namespace metalchat {
 
 
 template <typename T>
@@ -16,4 +16,4 @@ struct attention {
 };
 
 
-} // namespace metalama
+} // namespace metalchat
