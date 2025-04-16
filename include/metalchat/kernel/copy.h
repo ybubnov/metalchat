@@ -9,13 +9,13 @@
 namespace metalchat {
 
 
-template <typename T> class cpy : public kernel {
+template <typename T> class cpy : public base_kernel {
 private:
     inline static const std::string operation_name = "copy";
 
 public:
     cpy(device& device)
-    : kernel(operation_name, type_traits<T>::name(), device)
+    : base_kernel(operation_name, type_traits<T>::name(), device)
     {}
 
     template <ContiguousContainer InputContainer, ContiguousContainer OutputContainer>

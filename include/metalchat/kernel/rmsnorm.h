@@ -10,13 +10,13 @@
 namespace metalchat {
 
 
-template <typename T> class rmsnorm : public kernel {
+template <typename T> class rmsnorm : public base_kernel {
 private:
     inline static const std::string operation_name = "rmsnorm";
 
 public:
     rmsnorm(device& device)
-    : kernel(operation_name, type_traits<T>::name(), device)
+    : base_kernel(operation_name, type_traits<T>::name(), device)
     {}
 
     template <

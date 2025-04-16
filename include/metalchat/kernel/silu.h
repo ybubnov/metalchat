@@ -10,13 +10,13 @@
 namespace metalchat {
 
 
-template <typename T> class silu : public kernel {
+template <typename T> class silu : public base_kernel {
 private:
     inline static const std::string operation_name = "silu";
 
 public:
     silu(device& device)
-    : kernel(operation_name, type_traits<T>::name(), device)
+    : base_kernel(operation_name, type_traits<T>::name(), device)
     {}
 
     template <std::size_t N, ContiguousContainer InputContainer>

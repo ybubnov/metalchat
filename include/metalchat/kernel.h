@@ -17,6 +17,7 @@ struct kernel_traits {
     using queue_type = NS::SharedPtr<MTL::CommandQueue>;
     using kernel_type = NS::SharedPtr<MTL::Function>;
     using buffer_type = NS::SharedPtr<MTL::Buffer>;
+    using command_buffer_type = NS::SharedPtr<MTL::CommandBuffer>;
 };
 
 
@@ -59,31 +60,28 @@ ceil_div(std::size_t a, std::size_t b)
 }
 
 
-class blocking_kernel {
+class base_kernel_runtime {
 private:
-    const std::string m_op;
-    device& m_device;
-    kernel_traits::pipeline_type m_pipeline;
-    kernel_traits::queue_type m_queue;
+    kernel_traits::pipeline_type _m_pipeline;
+    kernel_traits::queue_type _m_queue;
+    device& _m_device;
 
-    const dim3 m_threads;
-    const dim3 m_thread;
+    const dim3 _m_threads;
+    const dim3 _m_thread;
 
 public:
-    blocking_kernel(
-        const std::string& op,
-        device& device,
+    base_kernel_runtime(
         kernel_traits::pipeline_type pipeline,
         kernel_traits::queue_type queue,
+        device& device,
         const dim3& threads,
         const dim3& thread
     )
-    : m_op(op),
-      m_device(device),
-      m_pipeline(pipeline),
-      m_queue(queue),
-      m_threads(threads),
-      m_thread(thread)
+    : _m_pipeline(pipeline),
+      _m_queue(queue),
+      _m_device(device),
+      _m_threads(threads),
+      _m_thread(thread)
     {
         auto max_threadgroup_size = pipeline->maxTotalThreadsPerThreadgroup();
         if (thread.numel() > max_threadgroup_size) {
@@ -102,43 +100,62 @@ public:
     }
 
     template <typename... T, std::size_t... N, ContiguousContainer... Container>
+    kernel_traits::command_buffer_type
+    initialize(const tensor_base<T, N, Container>&... args)
+    {
+        std::size_t i = 0;
+        auto command_buf = NS::TransferPtr(_m_queue->commandBuffer());
+        auto command_encoder = NS::TransferPtr(command_buf->computeCommandEncoder());
+
+        command_encoder->setComputePipelineState(_m_pipeline.get());
+        std::vector<NS::SharedPtr<MTL::Buffer>> buffers;
+
+        ([&] {
+            if (auto buf = make_buffer(_m_device, args); buf) {
+                buffers.push_back(buf);
+                command_encoder->setBuffer(buf.get(), 0, i);
+            } else {
+                const void* data_ptr = args.data_ptr();
+                std::size_t data_size = sizeof(T);
+                command_encoder->setBytes(data_ptr, data_size, 0, i);
+            }
+            i++;
+        }(), ...);
+
+        MTL::Size threads_per_grid(_m_threads.x, _m_threads.y, _m_threads.z);
+        MTL::Size threads_per_group(_m_thread.x, _m_thread.y, _m_thread.z);
+        command_encoder->dispatchThreads(threads_per_grid, threads_per_group);
+        command_encoder->endEncoding();
+
+        return command_buf;
+    }
+};
+
+
+class blocking_kernel_runtime : public base_kernel_runtime {
+public:
+    blocking_kernel_runtime(
+        kernel_traits::pipeline_type pipeline,
+        kernel_traits::queue_type queue,
+        device& device,
+        const dim3& threads,
+        const dim3& thread
+    )
+    : base_kernel_runtime(pipeline, queue, device, threads, thread)
+    {}
+
+    template <typename... T, std::size_t... N, ContiguousContainer... Container>
     void
     operator()(const tensor_base<T, N, Container>&... args)
     {
-        // std::cout << "blocking_kernel<" << m_threads << ", " << m_thread << ">"
-        //           << "(" << m_op << ", args[" << sizeof...(args) << "])" << std::endl;
-
-        auto command_buf = NS::TransferPtr(m_queue->commandBuffer());
-        auto command_encoder = NS::TransferPtr(command_buf->computeCommandEncoder());
-
-        constexpr auto args_size = sizeof...(args);
-        std::array<kernel_traits::buffer_type, args_size> buffers
-            = {(make_buffer(m_device, args))...};
-
-        std::array<const void*, args_size> data_ptrs = {(args.data_ptr())...};
-        std::array<std::size_t, args_size> data_sizes = {(sizeof(T))...};
-
-        command_encoder->setComputePipelineState(m_pipeline.get());
-        for (std::size_t i = 0; i < args_size; i++) {
-            if (buffers[i]) {
-                command_encoder->setBuffer(buffers[i].get(), 0, i);
-            } else {
-                command_encoder->setBytes(data_ptrs[i], data_sizes[i], 0, i);
-            }
-        }
-
-        MTL::Size threads_per_grid(m_threads.x, m_threads.y, m_threads.z);
-        MTL::Size threads_per_group(m_thread.x, m_thread.y, m_thread.z);
-        command_encoder->dispatchThreads(threads_per_grid, threads_per_group);
-
-        command_encoder->endEncoding();
+        auto command_buf = initialize(args...);
         command_buf->commit();
         command_buf->waitUntilCompleted();
     }
 };
 
 
-class kernel {
+class base_kernel {
 protected:
     std::string m_op;
     device& m_device;
@@ -148,12 +165,11 @@ protected:
     kernel_traits::queue_type m_queue;
 
 public:
-    kernel(const std::string& op, device& device)
+    base_kernel(const std::string& op, device& device)
     : m_op(op),
       m_device(device),
       m_fn(device.make_fn(op))
     {
-        // std::cout << "init func<" << op << ">" << std::endl;
         NS::Error* error = nullptr;
         m_pipeline = NS::TransferPtr(device->newComputePipelineState(m_fn.get(), &error));
         if (error != nullptr) {
@@ -163,8 +179,8 @@ public:
         m_queue = NS::TransferPtr(device->newCommandQueue());
     }
 
-    kernel(const std::string& op, const std::string& type, device& device)
-    : kernel(std::format("{}_{}", op, type), device)
+    base_kernel(const std::string& op, const std::string& type, device& device)
+    : base_kernel(std::format("{}_{}", op, type), device)
     {}
 
     std::string
@@ -173,10 +189,10 @@ public:
         return m_op;
     }
 
-    blocking_kernel
+    blocking_kernel_runtime
     blocking(dim3 threads, dim3 thread)
     {
-        return blocking_kernel(m_op, m_device, m_pipeline, m_queue, threads, thread);
+        return blocking_kernel_runtime(m_pipeline, m_queue, m_device, threads, thread);
     }
 };
 
