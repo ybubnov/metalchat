@@ -151,7 +151,7 @@ public:
             if (auto it = _m_fmap.find(key); it != _m_fmap.end()) {
                 ids.push_back(it->second);
             } else {
-                throw std::runtime_error(std::format("bpe: byte-pair merging is not implemented"));
+                throw std::runtime_error(std::format("bpe: key '{}' is missing", key));
             }
             // TODO: else, concatenate byte pairs.
         }

@@ -11,7 +11,7 @@ CMakeToolchain
 
 [options]
 catch2/*:shared=True
-icu/*:shared=True
+icu/*:shared=False
 cppcodec/*:shared=True
 metal-cpp/*:shared=True
 simdjson/*:shared=True

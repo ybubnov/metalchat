@@ -77,7 +77,10 @@ public:
 
     template <ContiguousContainer InputContainer, ContiguousContainer MaskContainer>
     auto
-    operator()(const tensor<T, 3, InputContainer>& input, const tensor<T, 2, MaskContainer>& mask)
+    operator()(
+        const tensor<T, 3, InputContainer>& input,
+        const std::optional<tensor<T, 2, MaskContainer>>& mask
+    )
     {
         int bs = input.size(0);
         int len = input.size(1);
@@ -110,7 +113,9 @@ public:
 
         auto scores = m_mul(m_matmul(queries, keys.transpose({0, 1, 3, 2})), m_scale);
 
-        scores = m_sum(scores, mask);
+        if (mask.has_value()) {
+            scores = m_sum(scores, mask.value());
+        }
         scores = m_softmax(scores);
 
         auto output = m_matmul(scores, values).transpose({0, 2, 1, 3});
