@@ -20,13 +20,11 @@ using namespace metal;
     uint3 thread_id                             [[thread_position_in_threadgroup]]
 
 
-/// Matrix multiplication mat1(MxK) @ mat2(KxN) -> C(MxN)
-template <typename T>
+/// Matrix multiplication mat1(b x M x K) @ mat2(b x K x N) -> C(b x M x N)
+template <typename T, uint BlockSize>
 kernel void
 bmm(__bmm_parameters(T))
 {
-    constexpr uint BLOCK_SIZE = 32;
-
     tensor<const T, 3> m1{mat1, mat1_layout};
     tensor<const T, 3> m2{mat2, mat2_layout};
     tensor<T, 3> out{output, output_layout};
@@ -35,23 +33,86 @@ bmm(__bmm_parameters(T))
     const uint K = m1.size(2);
     const uint N = m2.size(2);
 
-    const uint batch = group_id.z;
-    const uint i = group_id.x * BLOCK_SIZE + thread_id.x;
-    const uint j = group_id.y * BLOCK_SIZE + thread_id.y;
+    threadgroup T m1_local[BlockSize][BlockSize];
+    threadgroup T m2_local[BlockSize][BlockSize];
 
-    if (i < M && j < N) {
-        float partial = 0.0;
-        for (uint k = 0; k < K; k++) {
-            partial += float(m1.at(batch, i, k)) * float(m2.at(batch, k, j));
+    const uint block_row = group_id.x * BlockSize;
+    const uint block_col = group_id.y * BlockSize;
+
+    const uint batch = group_id.z;
+    const uint thread_row = thread_id.x;
+    const uint thread_col = thread_id.y;
+
+    float partial = 0.0;
+
+    for (uint k = 0; k < K; k += BlockSize) {
+        uint r1 = block_row + thread_row;
+        uint c1 = k + thread_col;
+        if (r1 < M && c1 < K) {
+            m1_local[thread_row][thread_col] = m1.at(batch, r1, c1);
+        } else {
+            m1_local[thread_row][thread_col] = T(0.0);
         }
-        out.at(batch, i, j) = T(partial);
+
+        uint r2 = k + thread_row;
+        uint c2 = block_col + thread_col;
+        if (r2 < K && c2 < N) {
+            m2_local[thread_row][thread_col] = m2.at(batch, r2, c2);
+        } else {
+            m2_local[thread_row][thread_col] = T(0.0);
+        }
+
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+
+        for (uint b = 0; b < BlockSize; b++) {
+            partial += m1_local[thread_row][b] * m2_local[b][thread_col];
+        }
+
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+
+    uint row = block_row + thread_row;
+    uint col = block_col + thread_col;
+
+    if (row < M && col < N) {
+        out.at(batch, row, col) = T(partial);
     }
 }
 
 
-template [[host_name("bmm_bf16")]]
-kernel void bmm<bfloat>(__bmm_parameters(bfloat));
+template [[host_name("bmm1_bf16")]]
+kernel void bmm<bfloat, 1>(__bmm_parameters(bfloat));
+
+template [[host_name("bmm2_bf16")]]
+kernel void bmm<bfloat, 2>(__bmm_parameters(bfloat));
+
+template [[host_name("bmm4_bf16")]]
+kernel void bmm<bfloat, 4>(__bmm_parameters(bfloat));
+
+template [[host_name("bmm8_bf16")]]
+kernel void bmm<bfloat, 8>(__bmm_parameters(bfloat));
+
+template [[host_name("bmm16_bf16")]]
+kernel void bmm<bfloat, 16>(__bmm_parameters(bfloat));
+
+template [[host_name("bmm32_bf16")]]
+kernel void bmm<bfloat, 32>(__bmm_parameters(bfloat));
 
 
-template [[host_name("bmm_float")]]
-kernel void bmm<float>(__bmm_parameters(float));
+template [[host_name("bmm1_float")]]
+kernel void bmm<float, 1>(__bmm_parameters(float));
+
+template [[host_name("bmm2_float")]]
+kernel void bmm<float, 2>(__bmm_parameters(float));
+
+template [[host_name("bmm4_float")]]
+kernel void bmm<float, 4>(__bmm_parameters(float));
+
+template [[host_name("bmm8_float")]]
+kernel void bmm<float, 8>(__bmm_parameters(float));
+
+template [[host_name("bmm16_float")]]
+kernel void bmm<float, 16>(__bmm_parameters(float));
+
+template [[host_name("bmm32_float")]]
+kernel void bmm<float, 32>(__bmm_parameters(float));

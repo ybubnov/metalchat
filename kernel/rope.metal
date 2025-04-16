@@ -24,12 +24,10 @@
     uint tid [[thread_position_in_threadgroup]]
 
 
-template <typename T>
+template <typename T, uint BlockSize>
 kernel void
 rope(__rope_parameters(T))
 {
-    constexpr uint BLOCK_SIZE = 32;
-
     tensor<const float, 2> f_cos{freqs_cos, freqs_cos_layout};
     tensor<const float, 2> f_sin{freqs_sin, freqs_sin_layout};
     tensor<const T, 2> in{input, input_layout};
@@ -39,8 +37,8 @@ rope(__rope_parameters(T))
     const uint head_dim = f_cos.size(1);
     const uint i = gid;
 
-    const uint begin = tid * BLOCK_SIZE;
-    const uint end = begin + BLOCK_SIZE;
+    const uint begin = tid * BlockSize;
+    const uint end = begin + BlockSize;
 
     // numel = bs * seq_len * n_head * head_dim
     const uint pos = i / (batch_size * n_head);
@@ -58,9 +56,39 @@ rope(__rope_parameters(T))
 }
 
 
-template [[host_name("rope_bf16")]]
-kernel void rope<bfloat>(__rope_parameters(bfloat));
+template [[host_name("rope1_bf16")]]
+kernel void rope<bfloat, 1>(__rope_parameters(bfloat));
+
+template [[host_name("rope2_bf16")]]
+kernel void rope<bfloat, 2>(__rope_parameters(bfloat));
+
+template [[host_name("rope4_bf16")]]
+kernel void rope<bfloat, 4>(__rope_parameters(bfloat));
+
+template [[host_name("rope8_bf16")]]
+kernel void rope<bfloat, 8>(__rope_parameters(bfloat));
+
+template [[host_name("rope16_bf16")]]
+kernel void rope<bfloat, 16>(__rope_parameters(bfloat));
+
+template [[host_name("rope32_bf16")]]
+kernel void rope<bfloat, 32>(__rope_parameters(bfloat));
 
 
-template [[host_name("rope_float")]]
-kernel void rope<float>(__rope_parameters(float));
+template [[host_name("rope1_float")]]
+kernel void rope<float, 1>(__rope_parameters(float));
+
+template [[host_name("rope2_float")]]
+kernel void rope<float, 2>(__rope_parameters(float));
+
+template [[host_name("rope4_float")]]
+kernel void rope<float, 4>(__rope_parameters(float));
+
+template [[host_name("rope8_float")]]
+kernel void rope<float, 8>(__rope_parameters(float));
+
+template [[host_name("rope16_float")]]
+kernel void rope<float, 16>(__rope_parameters(float));
+
+template [[host_name("rope32_float")]]
+kernel void rope<float, 32>(__rope_parameters(float));

@@ -18,20 +18,18 @@ using namespace metal;
     uint tid [[thread_position_in_threadgroup]]
 
 
-template <typename T>
+template <typename T, uint BlockSize>
 kernel void
 copy(__copy_parameters(T))
 {
-    constexpr uint BLOCK_SIZE = 32;
-
     tensor<const T, 2> in{input, input_layout};
     tensor<T, 2> out{output, output_layout};
 
     const uint dim_size = in.size(1);
     const uint i = gid;
 
-    const uint begin = tid * BLOCK_SIZE;
-    const uint end = begin + BLOCK_SIZE;
+    const uint begin = tid * BlockSize;
+    const uint end = begin + BlockSize;
 
     for (uint k = begin; k < end && k < dim_size; k++) {
         out.at(i, k) = in.at(i, k);
@@ -39,9 +37,39 @@ copy(__copy_parameters(T))
 }
 
 
-template [[host_name("copy_bf16")]]
-kernel void copy<bfloat>(__copy_parameters(bfloat));
+template [[host_name("copy1_bf16")]]
+kernel void copy<bfloat, 1>(__copy_parameters(bfloat));
+
+template [[host_name("copy2_bf16")]]
+kernel void copy<bfloat, 2>(__copy_parameters(bfloat));
+
+template [[host_name("copy4_bf16")]]
+kernel void copy<bfloat, 4>(__copy_parameters(bfloat));
+
+template [[host_name("copy8_bf16")]]
+kernel void copy<bfloat, 8>(__copy_parameters(bfloat));
+
+template [[host_name("copy16_bf16")]]
+kernel void copy<bfloat, 16>(__copy_parameters(bfloat));
+
+template [[host_name("copy32_bf16")]]
+kernel void copy<bfloat, 32>(__copy_parameters(bfloat));
 
 
-template [[host_name("copy_float")]]
-kernel void copy<float>(__copy_parameters(float));
+template [[host_name("copy1_float")]]
+kernel void copy<float, 1>(__copy_parameters(float));
+
+template [[host_name("copy2_float")]]
+kernel void copy<float, 2>(__copy_parameters(float));
+
+template [[host_name("copy4_float")]]
+kernel void copy<float, 4>(__copy_parameters(float));
+
+template [[host_name("copy8_float")]]
+kernel void copy<float, 8>(__copy_parameters(float));
+
+template [[host_name("copy16_float")]]
+kernel void copy<float, 16>(__copy_parameters(float));
+
+template [[host_name("copy32_float")]]
+kernel void copy<float, 32>(__copy_parameters(float));

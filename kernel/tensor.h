@@ -11,6 +11,12 @@ template <uint N> struct tensor_layout {
     uint sizes[N];
     uint strides[N];
     uint offsets[N];
+
+    inline uint
+    size(uint dim)
+    {
+        return sizes[dim];
+    }
 };
 
 

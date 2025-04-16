@@ -13,23 +13,19 @@ using namespace metalchat;
 using namespace metalchat::dtype;
 
 
-/*
-TEST_CASE("Matmul 4d predefined", "[kernel::bmm]")
+TEST_CASE("Matmul simple", "[kernel::bmm]")
 {
     metalchat::device gpu0("metalchat.metallib");
     metalchat::bmm<bf16> mm(gpu0);
 
-    auto input1 = rand<bf16>({3, 3, 3, 5});
-    auto input2 = rand<bf16>({3, 3, 5, 7});
-    auto output = mm(input1, input2);
+    auto input1 = shared_tensor(full<bf16>({32, 32}, 2.0));
+    auto input2 = shared_tensor(full<bf16>({32, 32}, 3.0));
+    auto output = mm(input1, input2).get();
 
-    REQUIRE(output.dim() == 4);
-    REQUIRE(output.size(0) == 3);
-    REQUIRE(output.size(1) == 3);
-    REQUIRE(output.size(2) == 3);
-    REQUIRE(output.size(3) == 7);
+    REQUIRE(output.dim() == 2);
+    REQUIRE(output.size(0) == 32);
+    REQUIRE(output.size(1) == 32);
 }
-*/
 
 
 TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
@@ -41,6 +37,7 @@ TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
     auto input2 = shared_tensor(rand<float>({8192, 2048}).t()); // j, k
 
     auto output = mm(input1, input2).get();
+    std::cout << output << std::endl;
 
     REQUIRE(output.dim() == 3);
     REQUIRE(output.size(0) == 1);

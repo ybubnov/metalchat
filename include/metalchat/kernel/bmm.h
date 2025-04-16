@@ -12,9 +12,9 @@
 namespace metalchat {
 
 
-template <typename T> class bmm {
+template <typename T, std::size_t BlockSize = 16> class bmm {
 private:
-    inline static const std::string operation_name = "bmm";
+    inline static const std::string operation_name = "bmm" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 
@@ -27,8 +27,6 @@ public:
     auto
     operator()(InputTensor input, WeightTensor weight)
     {
-        constexpr std::size_t block_size = 32;
-
         auto num_batches = input.size(0);
         auto input_size1 = input.size(1);
         auto weight_size2 = weight.size(2);
@@ -50,10 +48,10 @@ public:
         }
 
         auto grid = dim3(
-            ceil_div(input_size1, block_size) * block_size,
-            ceil_div(weight_size2, block_size) * block_size, num_batches
+            ceil_div(input_size1, BlockSize) * BlockSize,
+            ceil_div(weight_size2, BlockSize) * BlockSize, num_batches
         );
-        auto thread = dim3(block_size, block_size);
+        auto thread = dim3(BlockSize, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto fn = task.bind_back(input, weight);
