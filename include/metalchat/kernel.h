@@ -25,7 +25,7 @@ kernel_traits::buffer_type
 make_buffer(device& device, const tensor<T, N, Container>& t)
 {
     auto size = t.numel() * sizeof(T);
-    std::cout << "buffer(ptr)=" << t.data_ptr() << "; [0]=" << t.data_ptr()[0] << std::endl;
+    // std::cout << "buffer(ptr)=" << t.data_ptr() << "; [0]=" << t.data_ptr()[0] << std::endl;
     return NS::TransferPtr(device->newBuffer(t.data_ptr(), size, MTL::ResourceStorageModeShared));
 }
 

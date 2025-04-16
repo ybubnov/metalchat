@@ -34,11 +34,7 @@ public:
       m_w3(std::move(w3), device),
       m_hadamard(device),
       m_silu(device)
-    {
-        // std::cout << "transformer(\n";
-        // std::cout << "\t" << m_w1 << std::endl << "\t" << m_w2 << std::endl << "\t" << m_w3;
-        // std::cout << ")" << std::endl;
-    }
+    {}
 
     template <ContiguousContainer InputContainer>
     auto

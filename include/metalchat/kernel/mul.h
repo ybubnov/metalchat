@@ -49,9 +49,6 @@ public:
             ));
         }
 
-        auto input1_numel = input1.numel();
-        auto input2_numel = input2.numel();
-
         auto output = empty_like(input1, m_device);
 
         auto thread_size = ceil_div(dim_size, block_size);
