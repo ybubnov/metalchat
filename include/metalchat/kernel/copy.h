@@ -18,14 +18,11 @@ public:
     : kernel(operation_name, type_traits<T>::name(), device)
     {}
 
-    template <
-        std::size_t N,
-        ContiguousContainer InputContainer,
-        ContiguousContainer OutputContainer>
-    auto
+    template <ContiguousContainer InputContainer, ContiguousContainer OutputContainer>
+    void
     copy(
-        const tensor_base<T, N, InputContainer>& input,
-        const tensor_base<T, N, OutputContainer>& output
+        const tensor_base<T, 2, InputContainer>& input,
+        const tensor_base<T, 2, OutputContainer>& output
     )
     {
         constexpr std::size_t block_size = 32;
@@ -60,7 +57,7 @@ public:
         std::size_t M,
         ContiguousContainer InputContainer,
         ContiguousContainer OutputContainer>
-    auto
+    void
     operator()(
         const tensor_base<T, N, InputContainer>& input,
         const tensor_base<T, M, OutputContainer>& output
@@ -69,7 +66,7 @@ public:
         int input_dim = input.sizes().back();
         int output_dim = output.sizes().back();
 
-        return copy(input.view({-1, input_dim}), output.view({-1, output_dim}));
+        copy(input.view({-1, input_dim}), output.view({-1, output_dim}));
     }
 };
 
