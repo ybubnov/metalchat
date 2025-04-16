@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <iomanip>
+#include <span>
 #include <sstream>
 #include <type_traits>
 #include <utility>
@@ -221,34 +222,40 @@ public:
         return m_data->data();
     }
 
-    inline std::vector<std::size_t>
+    inline std::span<std::size_t>
     shape() const
     {
-        return std::vector(m_shape->data(), m_shape->data() + N);
+        return std::span(m_shape->data(), N);
     }
 
     inline std::size_t
     stride(std::size_t dim) const
     {
+        if (dim >= N) {
+            throw std::out_of_range("tensor");
+        }
         return m_strides->data()[dim];
     }
 
-    inline std::vector<std::size_t>
-    strides() const
+    inline constexpr const std::span<std::size_t>
+    strides() const noexcept
     {
-        return std::vector(m_strides->data(), m_strides->data() + N);
+        return std::span(m_strides->data(), N);
     }
 
     inline std::size_t
     size(std::size_t dim) const
     {
+        if (dim >= N) {
+            throw std::out_of_range("tensor");
+        }
         return m_shape->data()[dim];
     }
 
-    std::vector<std::size_t> const
-    sizes() const
+    inline constexpr const std::span<std::size_t>
+    sizes() const noexcept
     {
-        return std::vector(m_shape->data(), m_shape->data() + N);
+        return std::span(m_shape->data(), N);
     }
 
     std::size_t
@@ -260,7 +267,7 @@ public:
 
         std::size_t n = 1;
         for (std::size_t i = 0; i < N; i++) {
-            n *= m_shape->data()[i];
+            n *= size(i);
         }
         return n;
     }
@@ -419,8 +426,8 @@ public:
     T&
     at(std::size_t i)
     {
-        const auto n = this->m_strides->data()[0] * i;
-        if (n >= this->m_shape->data()[0]) {
+        const auto n = this->stride(0) * i;
+        if (n >= this->size(0)) {
             throw std::out_of_range("tensor");
         }
         return *(this->data_ptr() + n);
@@ -429,8 +436,8 @@ public:
     const T&
     at(std::size_t i) const
     {
-        const auto n = this->m_strides->data()[0] * i;
-        if (n >= this->m_shape->data()[0]) {
+        const auto n = this->stride(0) * i;
+        if (n >= this->size(0)) {
             throw std::out_of_range("tensor");
         }
         return *(this->data_ptr() + n);
