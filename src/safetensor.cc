@@ -29,7 +29,7 @@ main()
         std::cout << "device = " << gpu0.name() << std::endl;
 
         auto weight = model_file["model.embed_tokens.weight"].as<__fp16, 2>();
-        auto input = metalama::full<int32_t, 1>({12}, 1);
+        auto input = metalama::full<int32_t>(/*fill_value=*/1, 12);
         std::cout << input << std::endl;
         std::cout << weight << std::endl;
 
@@ -39,6 +39,7 @@ main()
     }
 
     std::cout << "free" << std::endl;
+    std::cout << metalama::empty<int32_t>(1, 2, 3) << std::endl;
 
     return 0;
 }
