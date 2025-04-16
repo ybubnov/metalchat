@@ -22,7 +22,7 @@ TEST_CASE("Test make model", "[llama]")
 
     std::vector<int32_t> ids;
     bpe.encode(special_token::begin_text, ids);
-    bpe.encode("The capital of Germany is ", ids);
+    bpe.encode("I believe that you are ", ids);
     // bpe.encode("I believe life means ", ids);
 
     auto input = to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end());

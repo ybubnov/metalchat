@@ -10,6 +10,7 @@
 #include <metalchat/kernel/mul.h>
 #include <metalchat/kernel/softmax.h>
 #include <metalchat/kernel/sum.h>
+#include <metalchat/nn/embedding.h>
 #include <metalchat/nn/linear.h>
 
 
@@ -21,7 +22,8 @@ struct attention_options {
     std::size_t head_dim;
     std::size_t n_heads;
     std::size_t n_kv_heads;
-    float base;
+    std::size_t max_seq_len;
+    float rope_theta;
 
     inline std::size_t
     repeats()
@@ -38,7 +40,8 @@ private:
     nn::linear<T, Container> m_wv;
     nn::linear<T, Container> m_wo;
 
-    rope<T> m_rope;
+    // rope<T> m_rope;
+    nn::rope<T> m_rope;
     scalar_mul<T> m_mul;
     bmm<T> m_matmul;
     sum2<T> m_sum;
@@ -63,7 +66,7 @@ public:
       m_wk(std::move(wk), device),
       m_wv(std::move(wv), device),
       m_wo(std::move(wo), device),
-      m_rope(device, options.head_dim, /*base=*/options.base),
+      m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta),
       m_mul(device),
       m_matmul(device),
       m_sum(device),
@@ -71,7 +74,6 @@ public:
       m_options(options),
       m_scale(1.0 / std::sqrt(float(options.head_dim)))
     {}
-
 
     template <ContiguousContainer InputContainer, ContiguousContainer MaskContainer>
     auto
@@ -83,23 +85,31 @@ public:
         int n_kv_heads = m_options.n_kv_heads;
         auto n_reps = m_options.repeats();
 
-        auto q = m_wq(input).reshape({bs, len, n_heads, -1}).transpose({0, 2, 1, 3});
-        auto k = m_wk(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
-        auto v = m_wv(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
+        auto q = m_wq(input).reshape({bs, len, n_heads, -1});
+        auto k = m_wk(input).reshape({bs, len, n_kv_heads, -1});
+        auto v = m_wv(input).reshape({bs, len, n_kv_heads, -1});
 
-        auto repeat_kv = [&](tensor<T, 4, device_ref<T>>&& t) -> auto {
-            auto reps = repeat_interleave(std::move(t), n_reps, /*dim=*/2);
-            return reps.reshape({bs, n_heads, len, -1});
-        };
-
-        auto keys = repeat_kv(std::move(k));
-        auto values = repeat_kv(std::move(v));
+        std::cout << "ROPE (Q) input=" << q.sizes() << std::endl;
+        auto queries = m_rope(q);
+        std::cout << "ROPE (K) input=" << k.sizes() << std::endl;
+        auto k_rot = m_rope(k);
 
         // TODO: cache queries and keys.
-        auto q_rot = m_rope(q);
-        auto k_rot = m_rope(keys);
+        auto repeat_kv
+            = [&]<ContiguousContainer TensorContainer>(tensor<T, 4, TensorContainer>&& t) -> auto {
+            auto reps = repeat_interleave(std::move(t), n_reps, /*dim=*/2);
+            return reps.reshape({bs, len, n_heads, -1});
+        };
 
-        auto scores = m_matmul(m_mul(q_rot, m_scale), k_rot.transpose({0, 1, 3, 2}));
+        // shape: bs, len, n_heads, head_dim.
+        auto keys = repeat_kv(std::move(k_rot));
+        auto values = repeat_kv(std::move(v));
+
+        queries = queries.transpose({0, 2, 1, 3});
+        keys = keys.transpose({0, 2, 1, 3});
+        values = values.transpose({0, 2, 1, 3});
+
+        auto scores = m_matmul(m_mul(queries, m_scale), keys.transpose({0, 1, 3, 2}));
         auto scores_ = m_sum(scores, mask);
 
         scores_ = m_softmax(scores_);

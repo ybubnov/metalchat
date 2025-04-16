@@ -60,14 +60,14 @@ private:
     inline static const std::string operation_name = "rope";
 
     std::size_t m_dim;
-    float m_base;
+    float m_theta;
     float m_scale;
 
 public:
-    rope(device& device, std::size_t dim, float base = 500000.0, float scale = 1.0)
+    rope(device& device, std::size_t dim, float theta = 500000.0, float scale = 1.0)
     : kernel(operation_name, type_traits<T>::name(), device),
       m_dim(dim),
-      m_base(base),
+      m_theta(theta),
       m_scale(scale)
     {}
 
@@ -85,6 +85,7 @@ public:
         const tensor<int32_t, 0, MultiplierContainer>& offset
     )
     {
+        std::cout << "ROPE input=" << input.sizes() << std::endl;
         assert((input.is_contiguous()));
         assert((input.size(3) % 2 == 0));
 
@@ -122,7 +123,7 @@ public:
 
         blocking(threads, thread)(
             input, input_strides, output, output_strides, offset, scalar<float>(m_scale),
-            scalar<float>(std::log2(m_base)), scalar<uint32_t>(n_batch)
+            scalar<float>(m_theta), scalar<uint32_t>(n_batch)
         );
 
         return output;
