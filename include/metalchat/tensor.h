@@ -47,7 +47,7 @@ public:
 
     tensor(const tensor& t) noexcept = delete;
 
-    template <allocator Allocator = scalar_memory_allocator<T>>
+    template <allocator_t<T> Allocator = scalar_memory_allocator<T>>
     tensor(const T& value, Allocator alloc = Allocator())
     : m_data(alloc.allocate(1)),
       m_shape(make_value<std::size_t>(0)),
@@ -57,16 +57,16 @@ public:
         *data_ptr() = value;
     }
 
-    template <std::forward_iterator ForwardIt, allocator Allocator>
-    requires std::same_as<typename Allocator::value_type, value_type> && (N > 0)
+    template <std::forward_iterator ForwardIt, allocator_t<T> Allocator> requires(N > 0)
     tensor(ForwardIt first, ForwardIt last, Allocator alloc)
     {
         _m_initialize(first, last);
         m_data = alloc.allocate(numel());
     }
 
-    template <std::forward_iterator ForwardIt, allocator Allocator = random_memory_allocator<T>>
-    requires std::same_as<typename Allocator::value_type, value_type>
+    template <
+        std::forward_iterator ForwardIt,
+        allocator_t<T> Allocator = random_memory_allocator<T>>
     tensor(ForwardIt first, ForwardIt last, T* data, Allocator alloc = Allocator())
     {
         _m_initialize(first, last);
@@ -80,7 +80,7 @@ public:
         m_data = data;
     }
 
-    template <allocator Allocator = random_memory_allocator<T>>
+    template <allocator_t<T> Allocator = random_memory_allocator<T>>
     tensor(const std::span<std::size_t, N> sizes, Allocator alloc = Allocator())
     : tensor(sizes.begin(), sizes.end(), alloc)
     {}
@@ -89,7 +89,7 @@ public:
     : tensor(sizes.begin(), sizes.end(), data)
     {}
 
-    template <allocator Allocator = random_memory_allocator<T>>
+    template <allocator_t<T> Allocator = random_memory_allocator<T>>
     tensor(std::size_t (&&sizes)[N], Allocator alloc = Allocator())
     : tensor(std::span<std::size_t, N>(sizes, N), alloc)
     {}
@@ -662,7 +662,7 @@ scalar(const T& value)
 }
 
 
-template <typename T, std::size_t N, allocator Allocator>
+template <typename T, std::size_t N, allocator_t<T> Allocator>
 auto
 empty(std::size_t (&&sizes)[N], Allocator alloc)
 {
