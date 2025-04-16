@@ -230,6 +230,38 @@ public:
         return t;
     }
 
+    template <indexing::size_convertible... S>
+    T&
+    value_select(const S&... sizes) requires(sizeof...(sizes) == N)
+    {
+        std::size_t ptr_offset = 0;
+        std::size_t dim = 0;
+
+        ([&] {
+            auto i = static_cast<std::size_t>(sizes);
+            ptr_offset += stride(dim) * (offset(dim) + i);
+            dim++;
+        }(), ...);
+
+        return *(data_ptr() + ptr_offset);
+    }
+
+    template <indexing::size_convertible... S>
+    const T&
+    value_select(const S&... sizes) const requires(sizeof...(sizes) == N)
+    {
+        std::size_t ptr_offset = 0;
+        std::size_t dim = 0;
+
+        ([&] {
+            auto i = static_cast<std::size_t>(sizes);
+            ptr_offset += stride(dim) * (offset(dim) + i);
+            dim++;
+        }(), ...);
+
+        return *(data_ptr() + ptr_offset);
+    }
+
     auto
     narrow(std::size_t dim, std::size_t start, std::size_t length)
     {
@@ -260,6 +292,13 @@ public:
     tensor_base&
     operator=(tensor_base&& other)
         = default;
+
+    template <indexing::size_convertible... S>
+    T&
+    operator[](const S&... sizes)
+    {
+        return value_select(sizes...);
+    }
 
     /// Returns a tensor with dimensions transposed.
     auto
@@ -470,6 +509,20 @@ public:
     operator[](const S&... slices)
     {
         return tensor(_Base::index_select(slices...));
+    }
+
+    template <indexing::size_convertible... S> requires(sizeof...(S) > 1)
+    T&
+    operator[](const S&... sizes)
+    {
+        return _Base::value_select(sizes...);
+    }
+
+    template <indexing::size_convertible... S> requires(sizeof...(S) > 1)
+    const T&
+    operator[](const S&... sizes) const
+    {
+        return _Base::value_select(sizes...);
     }
 
     auto
