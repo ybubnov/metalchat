@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include <metalchat/container.h>
 #include <metalchat/device.h>
 #include <metalchat/kernel/sum.h>
@@ -42,9 +44,11 @@ public:
 
     template <ContiguousContainer InputContainer, ContiguousContainer MaskContainer>
     auto
-    operator()(const tensor<T, 3, InputContainer>& input, const tensor<T, 2, MaskContainer>& mask)
+    operator()(
+        const tensor<T, 3, InputContainer>& input,
+        const std::optional<tensor<T, 2, MaskContainer>>& mask
+    )
     {
-        std::cout << ">>>transformer" << std::endl;
         auto norm = _m_attention_norm(input);
 
         auto r = _m_attention(norm, mask);
@@ -52,7 +56,6 @@ public:
 
         r = _m_ff(_m_ff_norm(h));
         auto output = _m_sum(h, r);
-        std::cout << "<<<transformer" << std::endl;
         return output;
     }
 

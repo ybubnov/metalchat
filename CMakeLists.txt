@@ -34,7 +34,9 @@ target_link_libraries(metalchat simdjson::simdjson)
 target_link_libraries(metalchat cppcodec::cppcodec)
 target_link_libraries(metalchat metal-cpp::metal-cpp)
 target_link_libraries(metalchat ICU::uc)
-target_link_libraries(metalchat ICU::i18n)
+target_link_libraries(metalchat ICU::tu)
+target_link_libraries(metalchat ICU::data)
+target_link_libraries(metalchat ICU::dt)
 
 
 # Install the library files.
