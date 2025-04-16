@@ -17,7 +17,7 @@ private:
     nn::linear<T, Container> m_w2;
     nn::linear<T, Container> m_w3;
 
-    mul<T> m_mul;
+    hadamard<T> m_hadamard;
     silu<T> m_silu;
 
 public:
@@ -32,15 +32,19 @@ public:
     : m_w1(std::move(w1), device),
       m_w2(std::move(w2), device),
       m_w3(std::move(w3), device),
-      m_mul(device),
+      m_hadamard(device),
       m_silu(device)
-    {}
+    {
+        // std::cout << "transformer(\n";
+        // std::cout << "\t" << m_w1 << std::endl << "\t" << m_w2 << std::endl << "\t" << m_w3;
+        // std::cout << ")" << std::endl;
+    }
 
     template <ContiguousContainer InputContainer>
     auto
     operator()(const tensor<T, 3, InputContainer>& input)
     {
-        return m_w2(m_mul(m_silu(m_w1(input)), m_w3(input)));
+        return m_w2(m_hadamard(m_silu(m_w1(input)), m_w3(input)));
     }
 
     friend std::ostream&
