@@ -151,10 +151,6 @@ public:
     std::size_t
     numel() const
     {
-        if (N == 0) {
-            return 0;
-        }
-
         std::size_t n = 1;
         for (std::size_t i = 0; i < N; i++) {
             n *= size(i);
