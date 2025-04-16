@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 
 #include <metalchat/kernel/mul.h>
 #include <metalchat/kernel/silu.h>
@@ -20,24 +21,33 @@ private:
     silu<T> m_silu;
 
 public:
+    feed_forward(feed_forward&&) = default;
+
     feed_forward(
-        const tensor<T, 2, Container>& w1,
-        const tensor<T, 2, Container>& w2,
-        const tensor<T, 2, Container>& w3,
+        tensor<T, 2, Container>&& w1,
+        tensor<T, 2, Container>&& w2,
+        tensor<T, 2, Container>&& w3,
         device& device
     )
-    : m_w1(w1, device),
-      m_w2(w2, device),
-      m_w3(w3, device),
+    : m_w1(std::move(w1), device),
+      m_w2(std::move(w2), device),
+      m_w3(std::move(w3), device),
       m_mul(device),
       m_silu(device)
     {}
 
     template <ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<T, 2, InputContainer>& input)
+    operator()(const tensor<T, 3, InputContainer>& input)
     {
         return m_w2(m_mul(m_silu(m_w1(input)), m_w3(input)));
+    }
+
+    friend std::ostream&
+    operator<<(std::ostream& os, const feed_forward& ff)
+    {
+        os << "llama::feed_forward<" << type_traits<T>::name() << ">()";
+        return os;
     }
 };
 

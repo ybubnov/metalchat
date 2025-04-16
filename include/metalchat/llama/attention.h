@@ -6,7 +6,9 @@
 
 #include <metalchat/functional.h>
 #include <metalchat/kernel/embedding.h>
+#include <metalchat/kernel/mul.h>
 #include <metalchat/kernel/sgemm.h>
+#include <metalchat/kernel/softmax.h>
 #include <metalchat/kernel/sum.h>
 #include <metalchat/nn/linear.h>
 
@@ -21,7 +23,7 @@ struct attention_options {
     std::size_t n_kv_heads;
     float base;
 
-    inline std::size_t
+    inline int
     repeats()
     {
         return n_heads / n_kv_heads;
@@ -40,69 +42,74 @@ private:
     scalar_mul<T> m_mul;
     sgemm<T> m_matmul;
     sum<T> m_sum;
+    softmax<T> m_softmax;
 
     attention_options m_options;
     float m_scale;
 
 public:
+    attention(attention&&) = default;
+
     attention(
-        const tensor<T, 2, Container>& wq,
-        const tensor<T, 2, Container>& wk,
-        const tensor<T, 2, Container>& wv,
-        const tensor<T, 2, Container>& wo,
-        const attention_options& options,
+        tensor<T, 2, Container>&& wq,
+        tensor<T, 2, Container>&& wk,
+        tensor<T, 2, Container>&& wv,
+        tensor<T, 2, Container>&& wo,
+        attention_options& options,
         device& device
     )
-    : m_wq(wq, device),
-      m_wk(wk, device),
-      m_wv(wv, device),
-      m_wo(wo, device),
-      m_rope(device, options.head_dim, /*base=*/options.base, /*scale=?*/),
+    : m_wq(std::move(wq), device),
+      m_wk(std::move(wk), device),
+      m_wv(std::move(wv), device),
+      m_wo(std::move(wo), device),
+      m_rope(device, options.head_dim, /*base=*/options.base),
       m_mul(device),
       m_matmul(device),
       m_sum(device),
+      m_softmax(device),
       m_options(options),
       m_scale(std::pow(options.head_dim, -0.5))
     {}
+
 
     template <ContiguousContainer InputContainer, ContiguousContainer MaskContainer>
     auto
     operator()(const tensor<T, 3, InputContainer>& input, const tensor<T, 2, MaskContainer>& mask)
     {
-        auto bs = input.size(0);
-        auto len = input.size(1);
+        int bs = input.size(0);
+        int len = input.size(1);
+        int n_heads = m_options.n_heads;
+        int n_kv_heads = m_options.n_kv_heads;
 
-        auto queries = m_wq(input);
-        auto keys = m_wk(input);
-        auto values = m_wv(input);
-
-        queries = queries.reshape({bs, len, m_options.n_heads, -1}).transpose({0, 2, 1, 3});
-        keys = keys.reshape({bs, len, m_options.n_kv_heads, -1}).transpose({0, 2, 1, 3});
-        values = values.reshape({bs, len, m_options.n_kv_heads, -1}).transpose({0, 2, 1, 3});
+        auto queries = m_wq(input).reshape({bs, len, n_heads, -1}).transpose({0, 2, 1, 3});
+        auto keys = m_wk(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
+        auto values = m_wv(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
 
         // TODO: cache queries and keys.
         //
         // TODO: does it even make sense to make the repetition, would it be better
         // to adjust the implementation of the "rope", so it uses the same memory?
-        queries = queries.expand_dims(queries, 2);
-        auto n_queries = std::views::repeat(std::move(queries), m_options.repeats());
-        queries = concatenate(n_queries, 2).reshape({bs, m_options.n_heads, len, -1});
+        auto queries_rep = repeat_interleave(std::move(queries), m_options.repeats(), /*dim=*/2);
+        auto Q = queries_rep.reshape({bs, n_heads, len, -1});
 
-        keys = keys.expand_dims(keys, 2);
-        auto n_keys = std::views::repeat(std::move(keys), m_options.repeats());
-        keys = concatenate(n_keys, 2).reshape({bs, m_options.n_heads, len, -1});
+        auto keys_rep = repeat_interleave(std::move(keys), m_options.repeats(), /*dim=*/2);
+        auto K = keys_rep.reshape({bs, n_heads, len, -1});
 
-        queries = m_rope(queries);
-        keys = m_rope(keys);
+        auto scores = m_matmul(m_mul(m_rope(Q), m_scale), m_rope(K).transpose({0, 1, 3, 2}));
+        auto scores_ = m_sum(scores, mask);
 
-        auto scores = m_matmul(m_mul(queries, m_scale), keys.transpose({0, 1, 3, 2}));
-        scores = m_sum(scores, mask);
+        scores_ = m_softmax(scores_);
+        auto output = m_matmul(scores_, values).transpose({0, 2, 1, 3}).reshape({bs, len, -1});
+        auto output_cpu = m_wo(output);
 
-        scores = m_softmax(scores);
-        auto output = m_matmul(scores, values).transpose({0, 2, 1, 3}).reshape({bs, len, -1});
-        output = m_wo(output);
+        return output_cpu;
+    }
 
-        return output;
+    friend std::ostream&
+    operator<<(std::ostream& os, const attention& a)
+    {
+        os << "llama::attention<" << type_traits<T>::name() << ">()";
+        return os;
     }
 };
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include <metalchat/container.h>
 #include <metalchat/kernel/rmsnorm.h>
 #include <metalchat/tensor.h>
@@ -10,12 +12,15 @@ namespace nn {
 
 template <typename T, ContiguousContainer Container> class rmsnorm {
 private:
+    tensor<T, 1, Container> _m_weight;
     metalchat::rmsnorm<T> _m_norm;
-    const tensor<T, 1, Container>& _m_weight;
 
 public:
-    rmsnorm(const tensor<T, 1, Container>& weight)
-    : _m_weight(weight)
+    rmsnorm(rmsnorm&&) = default;
+
+    rmsnorm(tensor<T, 1, Container>&& weight, device& device)
+    : _m_weight(std::move(weight)),
+      _m_norm(device)
     {}
 
     template <std::size_t N, ContiguousContainer InputContainer>
@@ -23,6 +28,14 @@ public:
     operator()(const tensor<T, N, InputContainer>& input, T eps = T(1e-5))
     {
         return _m_norm(input, _m_weight, eps);
+    }
+
+    friend std::ostream&
+    operator<<(std::ostream& os, const rmsnorm& n)
+    {
+        os << "nn::rmsnorm<" << type_traits<T>::name() << ">";
+        os << "(" << n._m_weight.size(0) << ")";
+        return os;
     }
 };
 

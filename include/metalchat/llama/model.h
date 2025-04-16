@@ -5,6 +5,7 @@
 #include <metalchat/container.h>
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
+#include <metalchat/format.h>
 #include <metalchat/functional.h>
 #include <metalchat/llama/transformer.h>
 #include <metalchat/nn/embedding.h>
@@ -25,32 +26,36 @@ private:
     std::vector<transformer<T, Container>> _m_layers;
 
 public:
+    model(model&&) = default;
+
     model(
-        nn::embedding<T, Container> embedding,
-        nn::rmsnorm<T, Container> norm,
-        nn::linear<T, Container> output,
-        const std::vector<transformer<T, Container>> layers
+        nn::embedding<T, Container>&& embedding,
+        nn::rmsnorm<T, Container>&& norm,
+        nn::linear<T, Container>&& output,
+        std::vector<transformer<T, Container>>&& layers
     )
-    : _m_embedding(embedding),
-      _m_norm(norm),
-      _m_output(output),
-      _m_layers(layers)
+    : _m_embedding(std::move(embedding)),
+      _m_norm(std::move(norm)),
+      _m_output(std::move(output)),
+      _m_layers(std::move(layers))
     {}
 
-    template <ContiguousContainer InputContainer>
+    template <integral IndexType, ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<T, 2, InputContainer>& input)
+    operator()(const tensor<IndexType, 2, InputContainer>& input)
     {
-        auto mask = full({input.size(1), input.size(1)}, -1e9);
+        auto mask = full<T>({input.size(1), input.size(1)}, -1e9);
         triu(mask);
 
-        auto emb = _m_embedding(input);
-        for (const auto& l : _m_layers) {
-            input = l(input, mask);
+        auto x = _m_embedding(input);
+        for (auto& layer : _m_layers) {
+            x = to_tensor(layer(x, mask));
         }
 
-        input = _m_norm(input);
-        return _m_output(input); // _m_output(input[:, -1]) - take only the last dimension;
+        auto output = _m_norm(x);
+        std::cout << output.sizes() << std::endl;
+        std::cout << _m_output << std::endl;
+        return _m_output(output); // _m_output(input[:, -1]) - take only the last dimension;
     }
 };
 

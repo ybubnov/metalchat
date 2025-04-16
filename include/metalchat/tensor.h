@@ -10,7 +10,6 @@
 #include <sstream>
 #include <type_traits>
 #include <utility>
-#include <vector>
 
 #include <metalchat/container.h>
 #include <metalchat/device.h>
@@ -63,6 +62,13 @@ public:
         _m_initialize(std::move(sizes));
     }
 
+    template <std::forward_iterator ForwardIt>
+    tensor_base(ForwardIt first, ForwardIt last, const traits::data_type& data)
+    : m_data(data)
+    {
+        _m_initialize(first, last);
+    }
+
     tensor_base(const std::size_t (&&sizes)[N], device& device)
         requires(std::same_as<Container, device_ref<T>> && N > 0)
     {
@@ -72,12 +78,6 @@ public:
         auto buf = NS::TransferPtr(device->newBuffer(buf_size, MTL::ResourceStorageModeShared));
 
         m_data = std::make_shared<device_ref<T>>(buf);
-    }
-
-    tensor_base(std::vector<T>&& data) requires(std::same_as<Container, owning_ref<T>> && N == 1)
-    : tensor_base({data.size()})
-    {
-        std::copy(data.cbegin(), data.cend(), data_ptr());
     }
 
     tensor_base(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
@@ -376,8 +376,18 @@ protected:
     void
     _m_initialize(const std::size_t (&&sizes)[N])
     {
+        _m_initialize(sizes, sizes + N);
+        _m_initialize_strides();
+    }
+
+    template <std::forward_iterator ForwardIt>
+    void
+    _m_initialize(ForwardIt first, ForwardIt last)
+    {
+        assert(std::distance(first, last) == N);
+
         _m_initialize();
-        std::copy_n(sizes, N, m_shape->data());
+        std::copy(first, last, m_shape->data());
         _m_initialize_strides();
     }
 
@@ -471,7 +481,7 @@ public:
     auto
     t() requires(N == 2)
     {
-        return transpose({0, 1});
+        return transpose({1, 0});
     }
 
     template <std::size_t M>
@@ -564,7 +574,7 @@ public:
 
     tensor(const T& value)
     : _Base(
-          make_value(value),
+          std::make_shared<value_ref<T>>(value),
           make_value<std::size_t>(0),
           make_value<std::size_t>(0),
           make_value<std::size_t>(0)
@@ -585,7 +595,7 @@ template <typename T>
 auto
 scalar(const T& value)
 {
-    return tensor<T, 0, value_ref<T>>(value);
+    return tensor<T, 0, value_ref<T>>(T(value));
 }
 
 
@@ -595,6 +605,23 @@ empty(const std::size_t (&&sizes)[N], device& device)
 {
     return tensor<T, N, device_ref<T>>(std::move(sizes), device);
 }
+
+
+template <typename T, std::size_t N, class InputIt> requires(N > 0)
+auto
+empty(InputIt begin, InputIt end)
+{
+    assert((end - begin) == N);
+
+    std::size_t new_shape[N];
+    for (std::size_t i = 0; i < N; i++) {
+        new_shape[i] = *begin;
+        ++begin;
+    }
+
+    return empty<T>(std::move(new_shape));
+}
+
 
 template <typename T, std::size_t N, class InputIt> requires(N > 0)
 auto
@@ -609,6 +636,15 @@ empty(InputIt begin, InputIt end, device& device)
     }
 
     return empty<T>(std::move(new_shape), device);
+}
+
+
+template <typename T, std::size_t N, ContiguousContainer Container> requires(N > 0)
+auto
+empty_like(const tensor<T, N, Container>& like)
+{
+    auto shape = like.shape();
+    return empty<T, N>(shape.begin(), shape.end());
 }
 
 
@@ -665,6 +701,29 @@ rand(const std::size_t (&&sizes)[N])
     std::generate_n(t.data_ptr(), t.numel(), [&]() { return distribution(generator); });
 
     return t;
+}
+
+
+template <typename T, std::size_t N, std::forward_iterator ForwardIt> requires(N > 0)
+auto
+to_tensor(const std::size_t (&&sizes)[N], ForwardIt first, ForwardIt last)
+{
+    auto t = empty<T>(std::move(sizes));
+    auto distance = std::distance(first, last);
+
+    assert(distance == t.numel());
+    std::copy(first, last, t.data_ptr());
+    return t;
+}
+
+
+template <typename T, std::size_t N, ContiguousContainer Container>
+auto
+to_tensor(const tensor<T, N, Container>& t)
+{
+    auto tt = empty_like(t);
+    std::copy_n(t.data_ptr(), t.numel(), tt.data_ptr());
+    return tt;
 }
 
 

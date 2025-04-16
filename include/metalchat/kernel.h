@@ -78,7 +78,6 @@ public:
       m_thread(thread)
     {
         auto max_threadgroup_size = pipeline->maxTotalThreadsPerThreadgroup();
-        std::cout << "!!!" << threads << " !! " << thread << std::endl;
         if (thread.numel() > max_threadgroup_size) {
             throw std::invalid_argument(std::format(
                 "<{}, {}, {}> exceeds maximum number of threads per threadgroup {}", thread.x,
@@ -148,7 +147,7 @@ public:
       m_device(device),
       m_fn(device.make_fn(op))
     {
-        std::cout << "init func<" << op << ">" << std::endl;
+        // std::cout << "init func<" << op << ">" << std::endl;
         NS::Error* error = nullptr;
         m_pipeline = NS::TransferPtr(device->newComputePipelineState(m_fn.get(), &error));
         if (error != nullptr) {

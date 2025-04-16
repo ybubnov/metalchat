@@ -28,24 +28,25 @@ concept push_back_container = requires(T t) {
 };
 
 
+enum special_token {
+    begin_text,
+    end_text,
+    reserved0,
+    reserved1,
+    finetune_right_pad,
+    reserved2,
+    begin_header,
+    end_header,
+    end_message,
+    end_turn,
+    python,
+};
+
+
 class bpe {
 public:
     using string_type = std::string;
     using index_type = int32_t;
-
-    enum special_token {
-        begin_text,
-        end_text,
-        reserved0,
-        reserved1,
-        finetune_right_pad,
-        reserved2,
-        begin_header,
-        end_header,
-        end_message,
-        end_turn,
-        python,
-    };
 
     static std::string
     make_reserved_token(const index_type& token_id)
@@ -159,7 +160,7 @@ public:
     encode(const special_token& s, PushBackContainer& ids)
     {
         auto index = static_cast<index_type>(s);
-        if (_m_fmap.size() + nspecial > index) {
+        if (index > nspecial) {
             throw std::invalid_argument(std::format("unknown special token '{}'", index));
         }
 
@@ -171,7 +172,7 @@ public:
     {
         std::vector<index_type> ids;
         encode(s, ids);
-        return tensor(tensor_base<index_type, 1, owning_ref<index_type>>(std::move(ids)));
+        return to_tensor<index_type>({ids.size()}, ids.cbegin(), ids.cend());
     }
 
     template <std::forward_iterator ForwardIt, push_back_container PushBackContainer>

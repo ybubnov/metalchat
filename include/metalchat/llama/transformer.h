@@ -23,23 +23,25 @@ private:
     sum<T> _m_sum;
 
 public:
+    transformer(transformer&&) = default;
+
     transformer(
-        const attention<T, Container>& attention,
-        const nn::rmsnorm<T, Container>& attention_norm,
-        const feed_forward<T, Container>& ff,
-        const nn::rmsnorm<T, Container>& ff_norm,
-        device& device,
+        attention<T, Container>&& attention,
+        nn::rmsnorm<T, Container>&& attention_norm,
+        feed_forward<T, Container>&& ff,
+        nn::rmsnorm<T, Container>&& ff_norm,
+        device& device
     )
-    : _m_attention(attention),
-      _m_attention_norm(attention_norm),
-      _m_ff(ff),
-      _m_ff_norm(ff_norm),
-      _m_sum(device),
+    : _m_attention(std::move(attention)),
+      _m_attention_norm(std::move(attention_norm)),
+      _m_ff(std::move(ff)),
+      _m_ff_norm(std::move(ff_norm)),
+      _m_sum(device)
     {}
 
     template <ContiguousContainer InputContainer, ContiguousContainer MaskContainer>
     auto
-    operator(const tensor<T, 3, InputContainer>& input, const tensor<T, 2, MaksContainer>& mask)
+    operator()(const tensor<T, 3, InputContainer>& input, const tensor<T, 2, MaskContainer>& mask)
     {
         auto r = _m_attention(_m_attention_norm(input), mask);
         auto h = _m_sum(input, r);
@@ -47,6 +49,13 @@ public:
         r = _m_ff(_m_ff_norm(h));
         auto output = _m_sum(h, r);
         return output;
+    }
+
+    friend std::ostream&
+    operator<<(std::ostream& os, const transformer& t)
+    {
+        os << "llama::transformer<" << type_traits<T>::name() << ">()";
+        return os;
     }
 };
 
