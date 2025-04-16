@@ -6,9 +6,6 @@
 #include "tensor.h"
 
 
-using namespace metal;
-
-
 template <typename T>
 inline void
 __swap(device T& a, device T& b)
@@ -57,7 +54,7 @@ sort(
     for (uint k = 2; k <= dim_size_aligned; k = k * 2) {
         // j is halved at every iteration, with truncation of fractional parts
         for (uint j = k >> 1; j > 0; j = j >> 1) {
-            threadgroup_barrier(mem_flags::mem_device);
+            threadgroup_barrier(metal::mem_flags::mem_device);
 
             for (uint i = begin; i < end; i++) {
                 uint ij = i ^ j;

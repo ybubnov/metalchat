@@ -6,9 +6,6 @@
 #include "tensor.h"
 
 
-using namespace metal;
-
-
 #define __cumsum_parameters(T)                              \
     constant tensor_layout<2>& output_layout [[buffer(0)]], \
     device T* output                         [[buffer(1)]], \
@@ -45,7 +42,7 @@ cumsum(__cumsum_parameters(T))
     }
 
     group_sums[tid] = local_sums[block_size - 1];
-    threadgroup_barrier(mem_flags::mem_threadgroup);
+    threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     for (uint active_thread = 1; active_thread < threadgroup_size; active_thread++) {
         if (tid >= active_thread) {

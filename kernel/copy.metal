@@ -7,9 +7,6 @@
 #include "tensor.h"
 
 
-using namespace metal;
-
-
 template <typename T> struct __copy_parameters {
     tensor2<T> output;
     tensor2<const T> input;

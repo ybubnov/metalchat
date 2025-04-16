@@ -6,9 +6,6 @@
 #include "tensor.h"
 
 
-using namespace metal;
-
-
 template <typename T> struct __silu_parameters {
     tensor2<T> output;
     tensor2<const T> input;
@@ -31,7 +28,7 @@ silu(
 
     for (uint k = begin; k < end && k < dim_size; k++) {
         T x = params.input.at(i, k);
-        params.output.at(i, k) = x / (T(1.0) + T(exp(-x)));
+        params.output.at(i, k) = x / (T(1.0) + T(metal::exp(-x)));
     }
 }
 

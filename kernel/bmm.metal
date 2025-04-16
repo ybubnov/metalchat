@@ -7,9 +7,6 @@
 #include "tensor.h"
 
 
-using namespace metal;
-
-
 template <typename T> struct __bmm_parameters {
     constant tensor_layout<3>& output_layout;
     device T* output;
@@ -64,13 +61,13 @@ bmm(__bmm_parameters<T> params,
             m2_local[thread_row][thread_col] = T(0.0);
         }
 
-        threadgroup_barrier(mem_flags::mem_threadgroup);
+        threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
         for (uint b = 0; b < BlockSize; b++) {
             partial += m1_local[thread_row][b] * m2_local[b][thread_col];
         }
 
-        threadgroup_barrier(mem_flags::mem_threadgroup);
+        threadgroup_barrier(metal::mem_flags::mem_threadgroup);
     }
 
     uint row = block_row + thread_row;

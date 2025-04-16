@@ -30,8 +30,8 @@ rope(
     uint tid [[thread_position_in_threadgroup]]
 )
 {
-    tensor2<const float> f_cos{params.freqs_cos_layout, params.freqs_cos};
-    tensor2<const float> f_sin{params.freqs_sin_layout, params.freqs_sin};
+    tensor<const float, 2> f_cos{params.freqs_cos, params.freqs_cos_layout};
+    tensor<const float, 2> f_sin{params.freqs_sin, params.freqs_sin_layout};
 
     const uint head_dim = f_cos.size(1);
     const uint i = gid;
