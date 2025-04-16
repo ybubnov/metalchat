@@ -45,21 +45,21 @@ bmm(__bmm_parameters<T> params,
 
     float partial = 0.0;
 
+    uint r1 = metal::min(block_row + thread_row, M - 1);
+    uint c2 = metal::min(block_col + thread_col, N - 1);
+
+    m1_local[thread_row][thread_col] = T(0.0);
+    m2_local[thread_row][thread_col] = T(0.0);
+
     for (uint k = 0; k < K; k += BlockSize) {
-        uint r1 = block_row + thread_row;
         uint c1 = k + thread_col;
-        if (r1 < M && c1 < K) {
+        if (c1 < K) {
             m1_local[thread_row][thread_col] = m1.at(batch, r1, c1);
-        } else {
-            m1_local[thread_row][thread_col] = T(0.0);
         }
 
         uint r2 = k + thread_row;
-        uint c2 = block_col + thread_col;
-        if (r2 < K && c2 < N) {
+        if (r2 < K) {
             m2_local[thread_row][thread_col] = m2.at(batch, r2, c2);
-        } else {
-            m2_local[thread_row][thread_col] = T(0.0);
         }
 
         threadgroup_barrier(metal::mem_flags::mem_threadgroup);
