@@ -2,13 +2,15 @@
 
 #include <format>
 #include <iostream>
+#include <span>
+#include <vector>
 
 
 namespace metalchat {
 namespace fmt {
 
-constexpr int precision = 3;
-constexpr int edgeitems = 3;
+constexpr std::size_t precision = 3;
+constexpr std::size_t edgeitems = 3;
 
 
 struct comma {
