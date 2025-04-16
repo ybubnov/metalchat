@@ -8,6 +8,8 @@
 #include <metalchat/format.h>
 #include <metalchat/kernel.h>
 #include <metalchat/tensor.h>
+#include <metalchat/tensor_future.h>
+#include <metalchat/tensor_shared.h>
 
 
 namespace metalchat {
@@ -55,21 +57,23 @@ public:
 };
 
 
-template <typename T> class rope : public base_kernel {
+template <typename T> class rope {
 private:
     inline static const std::string operation_name = "rope";
 
+    kernel_base _m_kernel;
+
 public:
     rope(device& device)
-    : base_kernel(operation_name, type_traits<T>::name(), device)
+    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
     template <ContiguousContainer InputContainer, ContiguousContainer FrequenciesContainer>
     auto
     operator()(
-        const tensor<T, 4, InputContainer>& input,
-        const tensor<float, 2, FrequenciesContainer>& freqs_cos,
-        const tensor<float, 2, FrequenciesContainer>& freqs_sin,
+        shared_tensor<T, 4, InputContainer> input,
+        shared_tensor<float, 2, FrequenciesContainer> freqs_cos,
+        shared_tensor<float, 2, FrequenciesContainer> freqs_sin,
         std::size_t start_pos
     )
     {
@@ -90,19 +94,24 @@ public:
         }
 
         auto thread_size = ceil_div(dim_size, block_size);
+        auto grid = dim3(thread_size * num_rows);
         auto thread = dim3(thread_size);
-        auto threads = dim3(thread_size * num_rows);
 
-        auto input_view = input.view({-1, int(dim_size)});
-        auto output = empty_like(input, m_device);
-        auto output_view = output.view({-1, int(dim_size)});
-
-        blocking(threads, thread)(
-            scalar<int32_t>(bs), scalar<int32_t>(n_head), scalar<int32_t>(start_pos),
-            scalar(freqs_cos.layout()), scalar(freqs_sin.layout()), scalar(input_view.layout()),
-            scalar(output_view.layout()), freqs_cos, freqs_sin, input_view, output_view
+        auto task = kernel_task(_m_kernel, grid, thread);
+        auto fn = task.bind_front(
+            shared_tensor(input.view({-1, int(dim_size)})), freqs_cos, freqs_sin,
+            shared_tensor(scalar<int32_t>(bs)), shared_tensor(scalar<int32_t>(n_head)),
+            shared_tensor(scalar<int32_t>(start_pos))
         );
-        return output;
+
+        auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
+        int input_sizes[4] = {
+            int(input.size(0)),
+            int(input.size(1)),
+            int(input.size(2)),
+            int(input.size(3)),
+        };
+        return output.view(std::move(input_sizes));
     }
 };
 

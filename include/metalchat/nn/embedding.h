@@ -49,8 +49,8 @@ private:
     std::size_t _m_max_seq_len;
     float _m_theta;
 
-    tensor<float, 2, device_ref<float>> _m_freqs_cos;
-    tensor<float, 2, device_ref<float>> _m_freqs_sin;
+    shared_tensor<float, 2, device_ref<float>> _m_freqs_cos;
+    shared_tensor<float, 2, device_ref<float>> _m_freqs_sin;
 
     metalchat::rope<T> _m_rope;
 
@@ -109,7 +109,7 @@ public:
 
     template <ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<T, 4, InputContainer>& input, std::size_t start_pos = 0)
+    operator()(shared_tensor<T, 4, InputContainer> input, std::size_t start_pos = 0)
     {
         if (_m_dim != input.sizes().back()) {
             throw std::invalid_argument(std::format(

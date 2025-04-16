@@ -82,6 +82,14 @@ public:
         );
     }
 
+    future_tensor
+    transpose(const std::size_t (&&dims)[N]) const
+    {
+        return future_tensor(
+            _m_result.transpose(std::move(dims)), _m_kernel_task, _m_promise, _m_future
+        );
+    }
+
 private:
     future_tensor(
         result_type result,
