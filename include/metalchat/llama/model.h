@@ -74,7 +74,7 @@ public:
         auto seqlen = output.size(1);
         output = output[s(), s(seqlen - 1, seqlen), s()];
 
-        return _m_output(output);
+        return _m_output(shared_tensor(std::move(output)));
     }
 };
 

@@ -37,11 +37,10 @@ TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::bmm<float> mm(gpu0);
 
-    auto input1 = rand<float>({1, 5, 2048});     // b, i, j
-    auto input2 = rand<float>({8192, 2048}).t(); // j, k
-    // auto input2 = rand<float>({2048, 8192}); // j, k
+    auto input1 = shared_tensor(rand<float>({1, 5, 2048}));     // b, i, j
+    auto input2 = shared_tensor(rand<float>({8192, 2048}).t()); // j, k
 
-    auto output = mm(input1, input2);
+    auto output = mm(input1, input2).get();
 
     REQUIRE(output.dim() == 3);
     REQUIRE(output.size(0) == 1);
@@ -68,27 +67,16 @@ TEST_CASE("Matmul large 2d", "[kernel::bmm]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::bmm<float> mm(gpu0);
 
-    auto input1 = full<float>({8, 2048}, 2.0);
-    auto input2 = full<float>({2048, 128256}, 1.0);
-    auto output = mm(input1, input2);
+    auto input1 = shared_tensor(full<float>({8, 2048}, 2.0));
+    auto input2 = shared_tensor(full<float>({2048, 128256}, 1.0));
+    auto output = mm(input1, input2).get();
 
     REQUIRE(output.dim() == 2);
     REQUIRE(output.size(0) == 8);
     REQUIRE(output.size(1) == 128256);
 
     std::cout << output << std::endl;
-}
-
-
-TEST_CASE("Matmul async", "[kernel::bmm]")
-{
-    metalchat::device gpu0("metalchat.metallib");
-    metalchat::bmm<float> mm(gpu0);
-
-    auto input1 = shared_tensor(full<float>({1, 8, 16}, 2.0));
-    auto input2 = shared_tensor(full<float>({16, 32}, 16.0));
-    std::cout << input1.sizes() << " x " << input2.sizes() << std::endl;
-
-    auto output_future = mm(input1, input2);
-    std::cout << output_future.get() << std::endl;
+    for (auto it = output.begin(); it != output.end(); ++it) {
+        REQUIRE_THAT(*it, Catch::Matchers::WithinAbs(4096.0, 1e-5));
+    }
 }
