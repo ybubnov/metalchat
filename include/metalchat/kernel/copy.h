@@ -68,4 +68,35 @@ public:
 };
 
 
+template <typename T, std::size_t BlockSize = 16> class inplace_index_set {
+private:
+    inline static const std::string operation_name
+        = "inplace_index_set_" + std::to_string(BlockSize);
+
+    kernel_base _m_kernel;
+
+public:
+    inplace_index_set(device& device)
+    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    {}
+
+    template <immutable_tensor_t<T> Input, immutable_tensor_t<bool> Mask>
+    auto
+    operator()(Input input, Mask mask, T value)
+    {
+        // TODO: ensure that input is the same shape as mask.
+        auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
+
+        auto input_view = input.template flatten<2>();
+        auto mask_view = mask.template flatten<2>();
+
+        auto task = kernel_task(_m_kernel, grid, thread);
+        auto fn = task.bind_front(input_view, mask_view, shared_tensor(scalar(value)));
+
+        auto output = future_tensor(input, std::move(fn));
+        return output.view(input.sizes());
+    }
+};
+
+
 } // namespace metalchat
