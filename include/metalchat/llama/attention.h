@@ -84,9 +84,11 @@ private:
     {
         using s = indexing::slice;
         auto target = cache[s(0, bs), s(start_pos, start_pos + size), s(), s()];
-        _m_cpy(input, target);
+        auto output = _m_cpy.maybe_compute(input, target);
 
-        return cache[s(0, bs), s(0, start_pos + size), s(), s()];
+        return std::make_tuple(
+            std::move(cache[s(0, bs), s(0, start_pos + size), s(), s()]), std::move(output)
+        );
     }
 
     template <ContiguousContainer InputContainer>
@@ -177,8 +179,10 @@ public:
         auto queries = m_rope(q, /*start_pos=*/start_pos);
         k = m_rope(k, /*start_pos=*/start_pos);
 
-        k = cache_keys(k, bs, start_pos, len);
-        v = cache_values(v, bs, start_pos, len);
+        auto [kk, k_promise] = cache_keys(k, bs, start_pos, len);
+        auto [vv, v_promise] = cache_values(v, bs, start_pos, len);
+        k_promise.wait();
+        v_promise.wait();
 
         auto repeat_kv
             = [&]<ContiguousContainer TensorContainer>(tensor<T, 4, TensorContainer>&& t) -> auto {
@@ -188,8 +192,8 @@ public:
         };
 
         // shape: bs, cache + len, n_heads, head_dim.
-        auto values = repeat_kv(std::move(v));
-        auto keys = repeat_kv(std::move(k));
+        auto keys = repeat_kv(std::move(kk));
+        auto values = repeat_kv(std::move(vv));
 
         queries = queries.transpose({0, 2, 1, 3});
         keys = keys.transpose({0, 2, 1, 3});

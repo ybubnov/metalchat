@@ -194,6 +194,12 @@ public:
         }
         throw std::runtime_error("METAL ERROR");
     }
+
+    void
+    wait()
+    {
+        _m_future.wait();
+    }
 };
 
 

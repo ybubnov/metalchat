@@ -54,7 +54,7 @@ public:
     /// The contents of the moved instance are a valid, but unspecified tensor.
     tensor_base(tensor_base&& t) noexcept = default;
 
-    tensor_base(const tensor_base& t) = delete;
+    tensor_base(const tensor_base& t) noexcept = default;
 
     tensor_base(const std::size_t (&&sizes)[N])
         requires(std::same_as<Container, owning_ref<T>> && N > 0)
