@@ -1,15 +1,16 @@
 #pragma once
 
 
+#include <optional>
+
+
 #include <metalchat/container.h>
 
 
 namespace metalchat {
 
 
-template <typename T, std::size_t N>
-    requires(N > 0)
-class tensor_iterator {
+template <typename T, std::size_t N> class tensor_iterator {
 public:
     using iterator = tensor_iterator<T, N>;
 
@@ -23,30 +24,52 @@ public:
         array_ref<T>& data,
         array_ref<std::size_t>& sizes,
         array_ref<std::size_t>& strides,
-        array_ref<std::size_t>& offsets
+        array_ref<std::size_t>& offsets,
+        std::optional<std::size_t> start = std::nullopt
     )
     : m_data(data),
       m_sizes(sizes),
       m_strides(strides),
       m_offsets(offsets),
       m_index(0),
-      m_numel(1),
       m_num(0),
       m_indices({0})
     {
-        for (std::size_t i = 0; i < N; i++) {
-            m_numel *= size(i);
+        if (start) {
+            auto start_num = start.value() - 1;
+            m_num = start_num + 1;
+
+            // Calculate the total number of elements in the given tensor.
+            std::size_t numel = 1;
+            for (std::size_t i = 0; i < N; i++) {
+                numel *= size(i);
+            }
+
+            // Generate the index of the element in multidimensional tensor, so
+            // that increment operator could start from the correct position.
+            for (std::size_t i = 0; i < N; i++) {
+                numel = numel / size(i);
+                m_indices[i] = start_num / numel;
+                start_num = start_num % numel;
+            }
+        } else {
+            m_index = next();
         }
-        m_index = next();
     }
+
+    tensor_iterator(const iterator& it)
+    : m_data(it.m_data),
+      m_sizes(it.m_sizes),
+      m_strides(it.m_strides),
+      m_offsets(it.m_offsets),
+      m_index(it.m_index),
+      m_num(it.m_num),
+      m_indices(it.m_indices)
+    {}
 
     iterator&
     operator++()
     {
-        if (m_num >= m_numel) {
-            return *this;
-        }
-
         m_index = next();
         m_num++;
         return *this;
@@ -67,14 +90,7 @@ public:
     bool
     operator!=(const iterator& rhs)
     {
-        return m_num != rhs.m_numel;
-    }
-
-    iterator
-    end()
-    {
-        m_num = m_numel;
-        return *this;
+        return !((m_data.data() == rhs.m_data.data()) && (m_num == rhs.m_num));
     }
 
 private:
@@ -84,7 +100,6 @@ private:
     array_ref<std::size_t>& m_offsets;
 
     std::size_t m_index;
-    std::size_t m_numel;
     std::size_t m_num;
 
     std::array<std::size_t, N> m_indices;
@@ -122,12 +137,11 @@ private:
         }
 
         // Update indices in the array.
+        std::size_t carry = 1;
         for (std::size_t i = N - 1; i < N; i--) {
-            if (m_indices[i] + 1 < size(i)) {
-                m_indices[i] += 1;
-                break;
-            }
-            m_indices[i] = 0;
+            auto sum = m_indices[i] + carry;
+            m_indices[i] = sum % size(i);
+            carry = sum / size(i);
         }
 
         return index;

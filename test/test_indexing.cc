@@ -63,13 +63,16 @@ TEST_CASE("Read-write 1d tensor slicing", "[tensor::operator]")
 }
 
 
-/*
 TEST_CASE("Copy 2d tensor through slicing", "[tensor::operator=]")
 {
-    auto T0 = full<bf16>({9, 10}, 2.0);
-    auto T1 = full<bf16>({3, 2}, 10.0);
+    auto T0 = full<bf16>({7, 8}, 2.0);
+    auto T1 = rand<bf16>({3, 2});
 
     T0[slice(4, 7), slice(6, 8)] = T1;
-    std::cout << T0 << std::endl;
+
+    for (std::size_t i = 4; i < 7; i++) {
+        for (std::size_t j = 6; j < 8; j++) {
+            REQUIRE(T0[i][j] == T1[i - 4][j - 6]);
+        }
+    }
 }
-*/
