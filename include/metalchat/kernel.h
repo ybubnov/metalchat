@@ -78,10 +78,11 @@ public:
       m_thread(thread)
     {
         auto max_threadgroup_size = pipeline->maxTotalThreadsPerThreadgroup();
+        std::cout << "!!!" << threads << " !! " << thread << std::endl;
         if (thread.numel() > max_threadgroup_size) {
             throw std::invalid_argument(std::format(
                 "<{}, {}, {}> exceeds maximum number of threads per threadgroup {}",
-                threads.x, threads.y, threads.z, max_threadgroup_size
+                thread.x, thread.y, thread.z, max_threadgroup_size
             ));
         }
 
