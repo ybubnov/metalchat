@@ -1,10 +1,12 @@
 #pragma once
+#define PCRE2_CODE_UNIT_WIDTH 8
 
 #include <cstdlib>
 #include <filesystem>
 #include <format>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -12,13 +14,157 @@
 #include <vector>
 
 #include <cppcodec/base64_rfc4648.hpp>
-#include <unicode/regex.h>
+#include <pcre2.h>
 
 #include <metalchat/container.h>
 #include <metalchat/tensor.h>
 
 
 namespace metalchat {
+
+
+class re3_iterator {
+public:
+    using iterator_category = std::forward_iterator_tag;
+    using iterator = re3_iterator;
+    using value_type = std::string;
+    using reference = value_type&;
+    using pointer = value_type*;
+    using difference_type = std::ptrdiff_t;
+
+    re3_iterator(pcre2_code* re, const std::string& input)
+    : _m_re(re),
+      _m_data(pcre2_match_data_create_from_pattern(re, nullptr)),
+      _m_subject(reinterpret_cast<PCRE2_SPTR>(input.c_str())),
+      _m_subject_length(input.size()),
+      _m_offset(0),
+      _m_end(false)
+    {
+        next();
+    }
+
+    re3_iterator()
+    : _m_re(nullptr),
+      _m_data(nullptr),
+      _m_subject(nullptr),
+      _m_subject_length(0),
+      _m_offset(0),
+      _m_end(true)
+    {}
+
+    ~re3_iterator()
+    {
+        if (_m_data != nullptr) {
+            pcre2_match_data_free(_m_data);
+        }
+    }
+
+    iterator&
+    operator++()
+    {
+        if (!_m_end) {
+            next();
+        }
+        return *this;
+    }
+
+    value_type
+    operator*()
+    {
+        return get();
+    }
+
+    bool
+    operator!=(const iterator& rhs)
+    {
+        return _m_end != rhs._m_end;
+    }
+
+private:
+    pcre2_code* _m_re = nullptr;
+    pcre2_match_data* _m_data = nullptr;
+    const PCRE2_SPTR _m_subject = nullptr;
+    const PCRE2_SIZE _m_subject_length = 0;
+    PCRE2_SIZE _m_offset = 0;
+    bool _m_end = false;
+
+    value_type
+    get()
+    {
+        if (_m_end) {
+            throw std::runtime_error(
+                std::format("re3_iterator: terminated iterator cannot be accessed")
+            );
+        }
+
+        PCRE2_SIZE* ovector = pcre2_get_ovector_pointer(_m_data);
+        PCRE2_SIZE length = ovector[1] - ovector[0];
+
+        _m_offset = ovector[1];
+
+        value_type result(reinterpret_cast<const char*>(_m_subject + ovector[0]), length);
+        return result;
+    }
+
+    void
+    next()
+    {
+        auto rc = pcre2_match(_m_re, _m_subject, _m_subject_length, _m_offset, 0, _m_data, NULL);
+        if (rc < 0) {
+            _m_end = true;
+            if (rc != PCRE2_ERROR_NOMATCH) {
+                throw std::runtime_error(std::format("re3_iterator: matching error {}", rc));
+            }
+        }
+    }
+};
+
+
+class re3 {
+private:
+    pcre2_code* _m_re = nullptr;
+
+    static constexpr std::size_t error_buffer_size = 256;
+
+public:
+    re3(const std::string& regex)
+    {
+        int error_code;
+        PCRE2_SIZE error_offset;
+
+        _m_re = pcre2_compile(
+            reinterpret_cast<PCRE2_SPTR>(regex.c_str()), PCRE2_ZERO_TERMINATED, 0, &error_code,
+            &error_offset, nullptr
+        );
+
+        if (_m_re == nullptr) {
+            PCRE2_UCHAR message[error_buffer_size];
+            pcre2_get_error_message(error_code, message, sizeof(message));
+
+            throw std::invalid_argument(std::format("re3: invalid regular expression: {}", message)
+            );
+        }
+    }
+
+    re3_iterator
+    begin(const std::string& input)
+    {
+        return re3_iterator(_m_re, input);
+    }
+
+    re3_iterator
+    end()
+    {
+        return re3_iterator();
+    }
+
+    ~re3()
+    {
+        if (_m_re != nullptr) {
+            pcre2_code_free(_m_re);
+        }
+    }
+};
 
 
 template <typename T>
@@ -74,10 +220,7 @@ private:
     std::unordered_map<string_type, index_type> _m_fmap;
     std::unordered_map<index_type, string_type> _m_rmap;
 
-    std::unique_ptr<icu::RegexMatcher> _m_re;
-
-public:
-    static constexpr index_type pad = -1;
+    re3 _m_re;
 
     /// A regular expression string that is used to split the input text into tokens.
     static constexpr const char* token_regex = (R"((?i:'s|'t|'re|'ve|'m|'ll|'d)|)"
@@ -88,23 +231,17 @@ public:
                                                 R"(\s+(?!\S)|)"
                                                 R"(\s+)");
 
+public:
+    static constexpr index_type pad = -1;
+
     /// Number of special tokens used to prepare the input for the model.
     static constexpr const std::size_t nspecial = 256;
 
     bpe(const std::filesystem::path& p)
     : _m_fmap(),
       _m_rmap(),
-      _m_re(nullptr)
+      _m_re(token_regex)
     {
-        UErrorCode status = U_ZERO_ERROR;
-        _m_re = std::make_unique<icu::RegexMatcher>(token_regex, 0, status);
-
-        if (U_FAILURE(status)) {
-            throw std::invalid_argument(
-                std::format("unable to compile regexp '{}'", u_errorName(status))
-            );
-        }
-
         std::ifstream file(p, std::ios::binary);
         if (!file.is_open()) {
             throw std::invalid_argument(std::format("unable to open file '{}'", p.string()));
@@ -128,26 +265,8 @@ public:
     void
     encode(const std::string& s, PushBackContainer& ids)
     {
-        _m_re->reset(icu::UnicodeString::fromUTF8(s));
-
-        UErrorCode status = U_ZERO_ERROR;
-        while (_m_re->find(status)) {
-            if (U_FAILURE(status)) {
-                throw std::runtime_error(
-                    std::format("unable to find next token '{}'", u_errorName(status))
-                );
-            }
-
-            auto match = _m_re->group(status);
-            if (U_FAILURE(status)) {
-                throw std::runtime_error(
-                    std::format("unable to match a token '{}'", u_errorName(status))
-                );
-            }
-
-            std::string key;
-            key = match.toUTF8String(key);
-
+        for (auto match = _m_re.begin(s); match != _m_re.end(); ++match) {
+            auto key = (*match);
             if (auto it = _m_fmap.find(key); it != _m_fmap.end()) {
                 ids.push_back(it->second);
             } else {
@@ -163,7 +282,7 @@ public:
     {
         auto index = static_cast<index_type>(s);
         if (index > nspecial) {
-            throw std::invalid_argument(std::format("unknown special token '{}'", index));
+            throw std::invalid_argument(std::format("bpe: unknown special token '{}'", index));
         }
 
         ids.push_back(_m_fmap.size() + index);
@@ -183,7 +302,7 @@ public:
         if (auto tok = _m_rmap.find(id); tok != _m_rmap.end()) {
             return tok->second;
         }
-        throw std::runtime_error(std::format("unable to decode id '{}'", id));
+        throw std::runtime_error(std::format("bpe: unable to decode id '{}'", id));
     }
 
     template <std::forward_iterator ForwardIt, push_back_container PushBackContainer>

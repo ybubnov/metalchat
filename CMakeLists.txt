@@ -18,7 +18,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 find_package(cppcodec CONFIG REQUIRED)
 find_package(simdjson CONFIG REQUIRED)
 find_package(metal-cpp CONFIG REQUIRED)
-find_package(ICU CONFIG REQUIRED)
+find_package(PCRE2 CONFIG REQUIRED)
 
 
 set(metalchat_METALLIB metalchat.metallib)
@@ -33,10 +33,7 @@ set_target_properties(metalchat PROPERTIES SOVERSION ${metalchat_LIBRARY_SOVERSI
 target_link_libraries(metalchat simdjson::simdjson)
 target_link_libraries(metalchat cppcodec::cppcodec)
 target_link_libraries(metalchat metal-cpp::metal-cpp)
-target_link_libraries(metalchat ICU::uc)
-target_link_libraries(metalchat ICU::tu)
-target_link_libraries(metalchat ICU::data)
-target_link_libraries(metalchat ICU::dt)
+target_link_libraries(metalchat PCRE2::8BIT)
 
 
 # Install the library files.
