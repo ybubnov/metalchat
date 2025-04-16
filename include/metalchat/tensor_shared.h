@@ -172,6 +172,13 @@ public:
         return shared_tensor<T, M, Container>(_m_value->view(dims));
     }
 
+    template <std::size_t M>
+    shared_tensor<T, M, Container>
+    flatten() const
+    {
+        return shared_tensor<T, M, Container>(_m_value->template flatten<M>());
+    }
+
     shared_tensor
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {

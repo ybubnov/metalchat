@@ -205,6 +205,15 @@ public:
         return future_tensor<T, M>(_m_result.view(dims), _m_kernel_task, _m_promise, _m_future);
     }
 
+    template <std::size_t M>
+    future_tensor<T, M>
+    flatten() const
+    {
+        return future_tensor<T, M>(
+            _m_result.template flatten<M>(), _m_kernel_task, _m_promise, _m_future
+        );
+    }
+
     future_tensor
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {

@@ -65,10 +65,7 @@ public:
     auto
     operator()(shared_tensor<T, N, InputContainer> input, shared_tensor<T, M, device_ref<T>> output)
     {
-        int input_dim = input.sizes().back();
-        int output_dim = output.sizes().back();
-
-        return copy(input.view({-1, input_dim}), output.view({-1, output_dim}));
+        return copy(input.template flatten<2>(), output.template flatten<2>());
     }
 };
 

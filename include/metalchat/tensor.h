@@ -571,6 +571,18 @@ public:
         return t;
     }
 
+    template <std::size_t M>
+    tensor<T, M, Container>
+    flatten() const requires(M <= N)
+    {
+        std::size_t sizes[M]{numel()};
+        for (auto i = 1; i <= M - 1; i++) {
+            sizes[M - i] = size(N - i);
+            sizes[0] /= sizes[M - i];
+        }
+        return view(std::span<std::size_t, M>(sizes, M));
+    }
+
 protected:
     traits_type::data_type m_data = nullptr;
     traits_type::size_type m_shape = nullptr;
