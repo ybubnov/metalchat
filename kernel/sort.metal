@@ -81,6 +81,7 @@ sort(
 __lib_metalchat_kernel2(sort, bfloat, 8);
 __lib_metalchat_kernel2(sort, bfloat, 16);
 __lib_metalchat_kernel2(sort, bfloat, 32);
+__lib_metalchat_kernel2(sort, bfloat, 256);
 __lib_metalchat_kernel2(sort, bfloat, 512);
 __lib_metalchat_kernel2(sort, bfloat, 1024);
 __lib_metalchat_kernel2(sort, bfloat, 2048);

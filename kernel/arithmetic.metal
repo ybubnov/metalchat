@@ -131,6 +131,7 @@ sub(__sub_parameters<T> params,
 __lib_metalchat_kernel(sub, bfloat, 8);
 __lib_metalchat_kernel(sub, bfloat, 16);
 __lib_metalchat_kernel(sub, bfloat, 32);
+__lib_metalchat_kernel(sub, bfloat, 256);
 
 __lib_metalchat_kernel(sub, float, 8);
 __lib_metalchat_kernel(sub, float, 16);

@@ -14,9 +14,8 @@ TEST_CASE("Greater-than for 3-dimensional tensors", "[kernel::gt]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::gt<float> gt(gpu0);
 
-    auto input1 = shared_tensor(rand<float>({1, 4, 2048}));
-    auto input2 = shared_tensor(rand<float>({1, 4, 2048}));
-    auto output = gt(input1, input2).get();
+    auto input = shared_tensor(rand<float>({1, 4, 2048}));
+    auto output = gt(input, 0.5f).get();
 
     REQUIRE(output.dim() == 3);
     REQUIRE(output.size(0) == 1);
@@ -26,7 +25,7 @@ TEST_CASE("Greater-than for 3-dimensional tensors", "[kernel::gt]")
     for (std::size_t i = 0; i < output.size(0); i++) {
         for (std::size_t j = 0; j < output.size(1); j++) {
             for (std::size_t k = 0; k < output.size(2); k++) {
-                REQUIRE((output[i, j, k]) == (input1[i, j, k] > input2[i, j, k]));
+                REQUIRE((output[i, j, k]) == (input[i, j, k] > 0.5f));
             }
         }
     }

@@ -38,6 +38,7 @@ struct dim3 {
 
 class kernel_base {
 private:
+    std::string _m_name;
     NS::SharedPtr<MTL::Function> _m_function;
     NS::SharedPtr<MTL::ComputePipelineState> _m_pipeline;
 
@@ -50,7 +51,8 @@ public:
         NS::SharedPtr<MTL::Library> library,
         shared_kernel_thread& kernel_thread
     )
-    : _m_function(),
+    : _m_name(name),
+      _m_function(),
       _m_pipeline(),
       _m_kernel_thread(kernel_thread)
     {
@@ -74,6 +76,12 @@ public:
                 error_ptr->localizedDescription()->utf8String()
             ));
         }
+    }
+
+    std::string
+    name() const
+    {
+        return _m_name;
     }
 
     std::size_t

@@ -9,9 +9,13 @@
 #include <metalchat/kernel/arithmetic.h>
 #include <metalchat/kernel/bmm.h>
 #include <metalchat/kernel/copy.h>
+#include <metalchat/kernel/cumsum.h>
+#include <metalchat/kernel/logical.h>
 #include <metalchat/kernel/mul.h>
+#include <metalchat/kernel/multinomial.h>
 #include <metalchat/kernel/silu.h>
 #include <metalchat/kernel/softmax.h>
+#include <metalchat/kernel/sort.h>
 #include <metalchat/tensor_future.h>
 
 
@@ -19,66 +23,151 @@ namespace metalchat {
 namespace fn {
 
 
-template <immutable_tensor Tensor1, immutable_tensor Tensor2>
+template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 16>
 auto
 matmul(Tensor1 t1, Tensor2 t2, device& gpu)
 {
-    bmm<typename Tensor1::value_type> op(gpu);
+    bmm<typename Tensor1::value_type, BlockSize> op(gpu);
     return op(t1, t2);
 }
 
 
-template <immutable_tensor Tensor, typename T>
+template <typename T, immutable_tensor_t<T> Tensor, std::size_t BlockSize = 16>
 auto
 mul(Tensor t, const T multiplier, device& gpu)
 {
-    scalar_mul<typename Tensor::value_type> op(gpu);
+    scalar_mul<typename Tensor::value_type, BlockSize> op(gpu);
     return op(t, multiplier);
 }
 
 
-template <immutable_tensor Tensor1, immutable_tensor Tensor2>
+template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 16>
 auto
 hadamard(Tensor1 t1, Tensor2 t2, device& gpu)
 {
-    metalchat::hadamard<typename Tensor1::value_type> op(gpu);
+    metalchat::hadamard<typename Tensor1::value_type, BlockSize> op(gpu);
     return op(t1, t2);
 }
 
 
-template <immutable_tensor Tensor1, immutable_tensor Tensor2>
+template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 16>
 auto
 add(Tensor1 t1, Tensor2 t2, device& gpu)
 {
-    metalchat::add<typename Tensor1::value_type> op(gpu);
+    metalchat::add<typename Tensor1::value_type, BlockSize> op(gpu);
     return op(t1, t2);
 }
 
 
-template <immutable_tensor Tensor1, immutable_tensor Tensor2>
+template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 8>
 auto
 add2(Tensor1 t1, Tensor2 t2, device& gpu)
 {
-    metalchat::add2<typename Tensor1::value_type> op(gpu);
+    metalchat::add2<typename Tensor1::value_type, BlockSize> op(gpu);
     return op(t1, t2);
 }
 
 
-template <immutable_tensor Tensor>
+template <immutable_tensor Tensor, std::size_t BlockSize = 16>
 auto
 softmax(Tensor t, device& gpu)
 {
-    metalchat::softmax<typename Tensor::value_type> op(gpu);
+    metalchat::softmax<typename Tensor::value_type, BlockSize> op(gpu);
     return op(t);
 }
 
 
-template <immutable_tensor Tensor>
+template <immutable_tensor Tensor, std::size_t BlockSize = 16>
 auto
 silu(Tensor t, device& gpu)
 {
-    metalchat::silu<typename Tensor::value_type> op(gpu);
+    metalchat::silu<typename Tensor::value_type, BlockSize> op(gpu);
     return op(t);
+}
+
+template <immutable_tensor Tensor, std::size_t BlockSize = 256>
+auto
+sort(Tensor t, device& gpu)
+{
+    metalchat::sort<typename Tensor::value_type, BlockSize> op(gpu);
+    return op(t);
+}
+
+template <immutable_tensor Tensor, std::size_t BlockSize = 16>
+auto
+cumsum(Tensor t, device& gpu)
+{
+    metalchat::cumsum<typename Tensor::value_type, BlockSize> op(gpu);
+    return op(t);
+}
+
+
+template <
+    typename T,
+    immutable_tensor_t<T> Tensor,
+    immutable_tensor_t<bool> Mask,
+    std::size_t BlockSize = 256>
+auto
+scatter(Tensor t, Mask m, T value, device& gpu)
+{
+    metalchat::scatter<T, BlockSize> op(gpu);
+    return op(t, m, value);
+}
+
+
+template <immutable_tensor Tensor, immutable_tensor_t<int32_t> Index, std::size_t BlockSize = 256>
+auto
+gather(Tensor t, Index index, device& gpu)
+{
+    metalchat::gather<typename Tensor::value_type, BlockSize> op(gpu);
+    return op(t, index);
+}
+
+
+template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 16>
+requires(std::same_as<typename Tensor1::value_type, typename Tensor2::value_type>)
+auto
+sub(Tensor1 t1, Tensor2 t2, device& gpu)
+{
+    metalchat::sub<typename Tensor1::value_type, BlockSize> op(gpu);
+    return op(t1, t2);
+}
+
+
+template <typename T, immutable_tensor_t<T> Tensor, std::size_t BlockSize = 16>
+auto
+gt(Tensor t, T value, device& gpu)
+{
+    metalchat::gt<T, BlockSize> op(gpu);
+    return op(t, value);
+}
+
+
+template <immutable_tensor Tensor, std::size_t BlockSize = 256>
+auto
+multinomial(Tensor t, std::size_t sample_size, device& gpu)
+{
+    metalchat::multinomial<typename Tensor::value_type> op(gpu);
+    return op(t, sample_size);
+}
+
+
+template <typename T, immutable_tensor2_t<T> Tensor, std::size_t BlockSize = 256>
+auto
+top_p(Tensor logits, T temperature, T p, device& gpu)
+{
+    logits = mul<T, Tensor, BlockSize>(logits, T(1) / temperature, gpu);
+    auto probs = softmax<Tensor, BlockSize>(logits, gpu);
+
+    auto [probs_sort, probs_idx] = sort(probs, gpu);
+    auto probs_sum = cumsum<Tensor, BlockSize>(probs_sort, gpu);
+    auto probs_diff = sub<Tensor, Tensor, BlockSize>(probs_sum, probs_sort, gpu);
+
+    auto mask = gt<T, Tensor, BlockSize>(probs_diff, p, gpu);
+    probs_sort = scatter(probs_sort, mask, T(0), gpu);
+
+    auto next_token = multinomial(probs_sort, /*sample_size=*/1, gpu);
+    return gather(probs_idx, next_token, gpu);
 }
 
 

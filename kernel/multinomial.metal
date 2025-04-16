@@ -52,20 +52,20 @@ uint
 __binary_search(thread tensor2<const T> data, uint batch, T value)
 {
     int low = 0;
-    int high = data.size(1) - 1;
+    int high = data.size(1);
 
     while (low < high) {
         uint mid = (low + high) / 2;
         T value_m = data.at(batch, mid);
 
-        if (value_m < value) {
+        if (value_m > value) {
             low = mid + 1;
         } else {
             high = mid;
         }
     }
 
-    return low;
+    return low-1;
 }
 
 
@@ -81,6 +81,8 @@ template <typename T> struct __multinomial_parameters {
 ///
 /// Input of this method should a cumulative distribution function of a multinomial
 /// distribution, which means that sum of each row of the input should be a equal to 1.0.
+///
+/// The kernel expects input probabilities to be in reverse order.
 template <typename T, uint BlockSize>
 kernel void
 multinomial(
