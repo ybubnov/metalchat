@@ -108,7 +108,11 @@ private:
     NS::SharedPtr<MTL::Device> _m_device;
 };
 
-class hardware_heap_allocator {
+
+template <typename T> class hardware_heap_allocator {};
+
+
+template <> class hardware_heap_allocator<void> {
 public:
     using value_type = void;
     using pointer = value_type*;
@@ -124,20 +128,34 @@ public:
     container_pointer
     allocate(size_type size)
     {
-        auto memory_ptr = NS::TransferPtr(_m_heap->newBuffer(size, MTL::ResourceStorageModeShared));
+        auto memory_ptr = _allocate(size);
         return std::make_shared<container_type>(memory_ptr);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto memory_ptr = NS::TransferPtr(_m_heap->newBuffer(size, MTL::ResourceStorageModeShared));
+        auto memory_ptr = _allocate(size);
         std::memcpy(memory_ptr->contents(), ptr, size);
         return std::make_shared<container_type>(memory_ptr);
     }
 
 private:
     NS::SharedPtr<MTL::Heap> _m_heap;
+
+    NS::SharedPtr<MTL::Buffer>
+    _allocate(size_type size)
+    {
+        // std::cout << "alloc=" << size << "(bytes)";
+        auto placement
+            = _m_heap->device()->heapBufferSizeAndAlign(size, MTL::ResourceStorageModeShared);
+        // std::cout << " placement=" << placement.size << ", align=" << placement.align;
+        auto buf
+            = NS::TransferPtr(_m_heap->newBuffer(placement.size, MTL::ResourceStorageModeShared));
+        // std::cout << "  mem=" << buf->contents() << ", gpu_add=" << buf->gpuAddress() <<
+        // std::endl;
+        return buf;
+    }
 };
 
 

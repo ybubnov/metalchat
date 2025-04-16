@@ -120,13 +120,15 @@ public:
     void
     encode(hardware_function_encoder<> encoder, std::index_sequence<Indices...>)
     {
-        encoder.initialize(_m_kernel.pipeline());
+        encoder.initialize(_m_kernel.name(), _m_kernel.pipeline());
+        // std::cout << _m_kernel.name() << "(" << sizeof...(Indices) << ")" << std::endl;
 
         ([&] {
             using tensor_type = std::tuple_element<Indices, arguments_type>::type;
             using value_type = tensor_type::value_type;
 
             const auto& arg = std::get<Indices>(_m_args);
+            // std::cout << "  arg[" << Indices << "]: " << arg.layout() << std::endl;
             encoder.encode<value_type>(arg);
         }(), ...);
 
@@ -159,6 +161,12 @@ public:
         return kernel_task<Args..., BackArgs...>(
             _m_kernel, _m_grid, _m_thread, std::tuple_cat(_m_args, std::make_tuple(back_args...))
         );
+    }
+
+    std::string
+    name()
+    {
+        return _m_kernel.name();
     }
 };
 

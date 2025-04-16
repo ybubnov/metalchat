@@ -7,12 +7,12 @@
 
 
 template <typename T> struct __add_parameters {
-    constant tensor_layout<2>& output_layout;
-    device T* output;
-    constant tensor_layout<2>& input1_layout;
-    device const T* input1;
-    constant tensor_layout<2>& input2_layout;
-    device const T* input2;
+    constant tensor_layout<2>& output_layout [[buffer(0)]];
+    device T* output [[buffer(1)]];
+    constant tensor_layout<2>& input1_layout [[buffer(2)]];
+    device const T* input1 [[buffer(3)]];
+    constant tensor_layout<2>& input2_layout [[buffer(4)]];
+    device const T* input2 [[buffer(5)]];
 };
 
 
@@ -32,7 +32,7 @@ add(__add_parameters<T> params,
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
-#pragma unroll
+    // #pragma unroll(BlockSize)
     for (uint k = 0; k < end && k < dim_size; k++) {
         out.at(i, k) = in1.at(i, k) + in2.at(i, k);
     }
