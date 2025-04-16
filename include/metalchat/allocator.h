@@ -221,15 +221,8 @@ public:
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        // auto memory_ptr = _m_allocate(size);
-        // std::memcpy(memory_ptr->contents(), ptr, size);
-        // return std::make_shared<container_type>(memory_ptr);
-
-        auto memory_ptr = NS::TransferPtr(
-            _m_heap->device()->newBuffer(ptr, size, MTL::ResourceStorageModeShared, nullptr)
-        );
-
-        //_m_rset->addAllocation(memory_ptr.get());
+        auto memory_ptr = _m_allocate(size);
+        std::memcpy(memory_ptr->contents(), ptr, size);
         return std::make_shared<container_type>(memory_ptr);
     }
 
