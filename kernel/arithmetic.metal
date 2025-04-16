@@ -61,8 +61,9 @@ template <typename T, uint BlockSize>
 kernel void
 add2(
     __add2_parameters<T> params,
-    uint2 gid [[threadgroup_position_in_grid]],
-    uint2 tid [[thread_position_in_threadgroup]]
+    uint3 gid [[threadgroup_position_in_grid]],
+    uint3 tid [[thread_position_in_threadgroup]],
+    uint3 threadgroup_size [[threads_per_threadgroup]]
 )
 {
     tensor<const T, 3> in1{params.input1, params.input1_layout};
@@ -72,28 +73,26 @@ add2(
     const uint dim0_size = in2.size(0);
     const uint dim1_size = in2.size(1);
     const uint i = gid.x;
+    const uint j = tid.x + gid.y * threadgroup_size.x;
 
-    const uint begin_x = tid.x * BlockSize;
-    const uint end_x = begin_x + BlockSize;
+    const uint begin_z = tid.z * BlockSize;
+    const uint end_z = begin_z + BlockSize;
 
-    const uint begin_y = tid.y * BlockSize;
-    const uint end_y = begin_y + BlockSize;
-
-    for (uint j = begin_x; j < end_x && j < dim0_size; j++) {
-        for (uint k = begin_y; k < end_y && k < dim1_size; k++) {
+    if (j < dim0_size) {
+        for (uint k = begin_z; k < end_z && k < dim1_size; k++) {
             out.at(i, j, k) = in1.at(i, j, k) + in2.at(j, k);
         }
     }
 }
 
 
-__lib_metalchat_kernel2(add2, bfloat, 8);
-__lib_metalchat_kernel2(add2, bfloat, 16);
-__lib_metalchat_kernel2(add2, bfloat, 32);
+__lib_metalchat_kernel3(add2, bfloat, 8);
+__lib_metalchat_kernel3(add2, bfloat, 16);
+__lib_metalchat_kernel3(add2, bfloat, 32);
 
-__lib_metalchat_kernel2(add2, float, 8);
-__lib_metalchat_kernel2(add2, float, 16);
-__lib_metalchat_kernel2(add2, float, 32);
+__lib_metalchat_kernel3(add2, float, 8);
+__lib_metalchat_kernel3(add2, float, 16);
+__lib_metalchat_kernel3(add2, float, 32);
 
 
 template <typename T> struct __sub_parameters {

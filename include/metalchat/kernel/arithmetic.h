@@ -67,9 +67,9 @@ public:
         auto output_view = shared_empty_like<T>(input1_view, _m_kernel.allocator());
 
         auto thread_size_x = ceil_div(dim0_size, BlockSize);
-        auto thread_size_y = ceil_div(dim1_size, BlockSize);
-        auto thread = dim3(thread_size_x, thread_size_y);
-        auto grid = dim3(thread_size_x * num_rows, thread_size_y);
+        auto thread_size_z = ceil_div(dim1_size, BlockSize);
+        auto thread = dim3(thread_size_x, 1, thread_size_z);
+        auto grid = dim3(thread_size_x * num_rows, BlockSize, thread_size_z);
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto task_future = task.bind_front(output_view, input1_view, input2);
