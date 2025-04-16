@@ -22,7 +22,7 @@
 namespace metalchat {
 
 
-template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 16>
+template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 8>
 auto
 matmul(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 {
