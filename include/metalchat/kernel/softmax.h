@@ -5,42 +5,42 @@
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel.h>
+#include <metalchat/kernel_task.h>
 #include <metalchat/tensor.h>
+#include <metalchat/tensor_future.h>
 
 
 namespace metalchat {
 
 
-template <typename T> class softmax : public base_kernel {
+template <typename T> class softmax {
 private:
     inline static const std::string operation_name = "softmax";
 
+    kernel_base _m_kernel;
+
 public:
     softmax(device& device)
-    : base_kernel(operation_name, type_traits<T>::name(), device)
+    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
     template <std::size_t N, ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<T, N, InputContainer>& input)
+    operator()(shared_tensor<T, N, InputContainer> input)
     {
-        auto data_size = input.numel();
-        auto dim_size = input.sizes().back();
-        auto num_rows = data_size / dim_size;
-
         constexpr std::size_t block_size = 4;
 
-        assert((dim_size <= block_size * 1024)); // 1024 = max total threads per tg.
+        auto dim_size = input.sizes().back();
+        auto num_rows = input.numel() / dim_size;
+        auto input_view = input.view({-1, int(dim_size)});
 
-        auto thread_size = ceil_div(dim_size, block_size);
+        auto [grid, thread] = make_kernel_grid_1d(input, block_size);
 
-        auto thread = dim3(thread_size);
-        auto threads = dim3(thread_size * num_rows);
+        auto task = kernel_task(_m_kernel, grid, thread);
+        auto fn = task.bind_back(input_view);
 
-        auto output = empty_like(input, m_device);
-
-        blocking(threads, thread)(scalar<int32_t>(dim_size), input, output);
-        return output;
+        auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
+        return output.view(input.sizes());
     }
 };
 
