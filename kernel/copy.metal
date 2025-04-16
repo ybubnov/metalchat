@@ -11,10 +11,10 @@ using namespace metal;
 
 
 template <typename T> struct __copy_parameters {
-    constant tensor_layout<2>& output_layout [[buffer(0)]];
-    device T* output [[buffer(1)]];
-    constant tensor_layout<2>& input_layout [[buffer(2)]];
-    device const T* input [[buffer(3)]];
+    constant tensor_layout<2>& output_layout;
+    device T* output;
+    constant tensor_layout<2>& input_layout;
+    device const T* input;
 };
 
 

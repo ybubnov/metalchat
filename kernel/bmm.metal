@@ -11,12 +11,12 @@ using namespace metal;
 
 
 template <typename T> struct __bmm_parameters {
-    constant tensor_layout<3>& output_layout [[buffer(0)]];
-    device T* output [[buffer(1)]];
-    constant tensor_layout<3>& mat1_layout [[buffer(2)]];
-    device const T* mat1 [[buffer(3)]];
-    constant tensor_layout<3>& mat2_layout [[buffer(4)]];
-    device const T* mat2 [[buffer(5)]];
+    constant tensor_layout<3>& output_layout;
+    device T* output;
+    constant tensor_layout<3>& mat1_layout;
+    device const T* mat1;
+    constant tensor_layout<3>& mat2_layout;
+    device const T* mat2;
 };
 
 
