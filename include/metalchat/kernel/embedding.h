@@ -95,6 +95,8 @@ public:
             ));
         }
 
+        constexpr std::size_t block_size = 4;
+
         auto input_strides = empty<uint32_t>({3});
         auto output_strides = empty<uint32_t>({3});
 
@@ -113,10 +115,10 @@ public:
 
         auto dim0 = m_dim / 2;
         auto dim1 = input.size(2);
-        auto dim2 = ceil_div(n_batch, 4);
+        auto dim2 = ceil_div(n_batch, block_size);
 
         auto threads = dim3(dim0, dim1, dim2);
-        auto thread = dim3(1, 1, 4);
+        auto thread = dim3(1, 1, block_size);
 
         blocking(threads, thread)(
             input, input_strides, output, output_strides, offset, scalar<float>(m_scale),

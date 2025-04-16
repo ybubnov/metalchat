@@ -279,7 +279,6 @@ public:
     tensor_base&
     operator=(const tensor_base& other)
     {
-        throw std::runtime_error("no copy assignment");
         if (this == &other) {
             return *this;
         }

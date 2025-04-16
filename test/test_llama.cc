@@ -19,7 +19,13 @@ TEST_CASE("Test make model", "[llama]")
     metalchat::device gpu0("metalchat.metallib");
 
     auto m = make_llama<bf16>(tensors, gpu0);
-    auto input = bpe.encode("Capital of Germany is ").reshape({1, -1});
+
+    std::vector<int32_t> ids;
+    bpe.encode(special_token::begin_text, ids);
+    bpe.encode("The capital of Germany is ", ids);
+    // bpe.encode("I believe life means ", ids);
+
+    auto input = to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end());
 
     auto output = m(input);
     std::cout << output << std::endl;
@@ -27,12 +33,13 @@ TEST_CASE("Test make model", "[llama]")
     REQUIRE(output.dim() == 3);
 
     std::size_t id = 0;
-    bf16 max = output[0, input.size(1) - 1, 0];
+    auto last = input.size(1) - 1;
+    bf16 max = output[0, last, 0];
 
     for (auto i = 0; i < output.size(2); i++) {
-        if (output[0, input.size(1) - 1, i] > max) {
+        if (output[0, last, i] > max) {
             id = i;
-            max = output[0, input.size(1) - 1, i];
+            max = output[0, last, i];
         }
     }
 

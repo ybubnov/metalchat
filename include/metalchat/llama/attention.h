@@ -100,7 +100,6 @@ public:
         auto scores = m_matmul(m_mul(Q_, m_scale), K_.transpose({0, 1, 3, 2}));
         auto scores_ = m_sum(scores, mask);
 
-        std::cout << "SCORES sizes = " << scores.sizes() << std::endl;
         scores_ = m_softmax(scores_);
         auto output = m_matmul(scores_, V).transpose({0, 2, 1, 3}).reshape({bs, len, -1});
 
