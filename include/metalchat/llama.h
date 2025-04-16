@@ -58,9 +58,11 @@ make_llama(const metalchat::safetensor_file& tensors, device& device, std::size_
         layers.push_back(std::move(transformer));
     }
 
+    // Re-use the same linear module (or even a tensor) in both, embeddings computation
+    // and in output layer computation.
     return llama::model(
         std::move(embedding), std::move(norm),
-        nn::linear(tensors["tok_embeddings.weight"].as<T, 2>(), device), std::move(layers)
+        nn::linear(tensors["tok_embeddings.weight"].as<T, 2>(device), device), std::move(layers)
     );
 }
 

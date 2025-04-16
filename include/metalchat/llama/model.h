@@ -22,7 +22,7 @@ template <typename T, ContiguousContainer Container> class model {
 private:
     nn::embedding<T, device_ref<T>> _m_embedding;
     nn::rmsnorm<T, Container> _m_norm;
-    nn::linear<T, Container> _m_output;
+    nn::linear<T, device_ref<T>> _m_output;
 
     std::vector<transformer<T, Container>> _m_layers;
 
@@ -48,7 +48,7 @@ public:
     model(
         nn::embedding<T, device_ref<T>>&& embedding,
         nn::rmsnorm<T, Container>&& norm,
-        nn::linear<T, Container>&& output,
+        nn::linear<T, device_ref<T>>&& output,
         std::vector<transformer<T, Container>>&& layers
     )
     : _m_embedding(std::move(embedding)),
@@ -69,8 +69,12 @@ public:
         }
 
         auto output = _m_norm(x);
+
+        using s = indexing::slice;
+        auto seqlen = output.size(1);
+        output = output[s(), s(seqlen - 1, seqlen), s()];
+
         return _m_output(output);
-        // _m_output(input[:, -1]) - take only the last dimension;
     }
 };
 

@@ -59,6 +59,19 @@ private:
     cpy<T> _m_cpy;
     device& _m_device;
 
+    template <std::size_t M, ContiguousContainer InputContainer>
+    auto
+    contiguous(const tensor<T, M, InputContainer>& input, std::size_t dim)
+    {
+        auto output = empty_like(input, _m_device);
+
+        for (std::size_t offset = 0; offset < output.size(dim); offset++) {
+            _m_cpy(input.narrow(dim, offset, 1), output.narrow(dim, offset, 1));
+        }
+
+        return output;
+    }
+
 public:
     attention(attention&&) = default;
     attention(const attention&) = default;
@@ -143,13 +156,9 @@ public:
         scores = m_softmax(scores);
 
         auto output = m_matmul(scores, values).transpose({0, 2, 1, 3});
-        auto output_ = empty_like(output, _m_device);
+        output = contiguous(output, /*dim=*/1);
 
-        for (std::size_t offset = 0; offset < output.size(1); offset++) {
-            _m_cpy(output.narrow(1, offset, 1), output_.narrow(1, offset, 1));
-        }
-
-        auto output__ = output_.view({bs, len, -1});
+        auto output__ = output.view({bs, len, -1});
         return m_wo(output__);
     }
 
