@@ -21,7 +21,7 @@ public:
     {}
 
     template <ContiguousContainer InputContainer, ContiguousContainer WeightContainer>
-    tensor<T, 1, device_ref>
+    auto
     operator()(
         const tensor<T, 1, InputContainer>& input,
         const tensor<T, 1, WeightContainer>& weight,

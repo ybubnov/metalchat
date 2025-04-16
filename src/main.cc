@@ -2,6 +2,7 @@
 
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
+#include <metalchat/functional.h>
 #include <metalchat/llama.h>
 #include <metalchat/nn.h>
 #include <metalchat/safetensor.h>
@@ -61,11 +62,6 @@ main()
         auto up = model_file["model.layers.0.mlp.up_proj.weight"].as<bf16, 2>();
         auto down = model_file["model.layers.0.mlp.down_proj.weight"].as<bf16, 2>();
         auto gate = model_file["model.layers.0.mlp.gate_proj.weight"].as<bf16, 2>();
-
-        std::cout << input << std::endl;
-        std::cout << gate << std::endl;
-        std::cout << up << std::endl;
-        std::cout << down << std::endl;
 
         metalchat::llama::mlp mlp(gate, up, down, gpu0);
         auto result = mlp(input);
