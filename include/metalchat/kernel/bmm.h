@@ -32,10 +32,6 @@ public:
                 input.size(0), input.size(1), weight.size(0), weight.size(1)
             ));
         }
-        std::cout << "BMM BEGIN" << std::endl;
-        std::cout << input << std::endl;
-        std::cout << weight << std::endl;
-
         // A(MxK) @ B(KxN) -> C(MxN)
         auto output = empty<T>({input.size(0), weight.size(1)}, m_device);
 
@@ -43,10 +39,19 @@ public:
         auto k = scalar<int32_t>(input.size(1));
         auto n = scalar<int32_t>(weight.size(1));
 
-        auto threads = dim3(weight.size(1), input.size(0));
-        auto thread = dim3(1, 1, 1);
+        constexpr std::size_t block_size = 32;
 
-        blocking(threads, thread)(m, n, k, input, weight, output);
+        auto threads = dim3(
+            ceil_div(input.size(0), block_size) * block_size,
+            ceil_div(weight.size(1), block_size) * block_size
+        );
+        auto thread = dim3(block_size, block_size);
+
+        blocking(threads, thread)(
+            m, n, k, input, weight, output, scalar<int32_t>(input.stride(0)),
+            scalar<int32_t>(input.stride(1)), scalar<int32_t>(weight.stride(0)),
+            scalar<int32_t>(weight.stride(1))
+        );
         return output;
     }
 
