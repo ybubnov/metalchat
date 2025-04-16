@@ -14,12 +14,6 @@ template <typename T> class sum : public kernel {
 private:
     inline static const std::string operation_name = "sum";
 
-    std::size_t
-    ceil_div(std::size_t a, std::size_t b)
-    {
-        return (a + b - 1) / b;
-    }
-
 public:
     sum(device& device)
     : kernel(operation_name, type_traits<T>::name(), device)

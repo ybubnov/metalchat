@@ -44,6 +44,13 @@ make_buffer(device& device, const tensor<T, 0, value_ref<T>>& t)
 }
 
 
+inline std::size_t
+ceil_div(std::size_t a, std::size_t b)
+{
+    return (a + b - 1) / b;
+}
+
+
 class blocking_kernel {
 private:
     const std::string m_op;

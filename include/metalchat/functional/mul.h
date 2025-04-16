@@ -14,12 +14,6 @@ template <typename T> class mul : public kernel {
 private:
     inline static const std::string operation_name = "mul";
 
-    std::size_t
-    ceil_div(std::size_t a, std::size_t b)
-    {
-        return (a + b - 1) / b;
-    }
-
 public:
     mul(device& device)
     : kernel(operation_name, type_traits<T>::name(), device)
@@ -45,6 +39,44 @@ public:
 
         blocking(groups, threads)(n, input1, input2, output);
         return output;
+    }
+};
+
+
+template <typename T> class scalar_mul : public kernel {
+private:
+    inline static const std::string operation_name = "scalar_mul";
+
+public:
+    scalar_mul(device& device)
+    : kernel(operation_name, type_traits<T>::name(), device)
+    {}
+
+    template <
+        std::size_t N,
+        ContiguousContainer InputContainer,
+        ContiguousContainer MultiplierContainer>
+    auto
+    operator()(
+        const tensor<T, N, InputContainer>& input,
+        const tensor<T, 0, MultiplierContainer>& multiplier
+    )
+    {
+        auto output = empty_like(input, m_device);
+        auto n = scalar<int32_t>(input.numel());
+
+        auto groups = dim3(ceil_div(input.numel(), 32));
+        auto threads = dim3(32);
+
+        blocking(groups, threads)(n, input, multiplier, output);
+        return output;
+    }
+
+    template <std::size_t N, ContiguousContainer InputContainer>
+    auto
+    operator()(const tensor<T, N, InputContainer>& input, const T multiplier)
+    {
+        return operator()(input, scalar(multiplier));
     }
 };
 

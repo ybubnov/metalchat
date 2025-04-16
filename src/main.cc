@@ -61,12 +61,11 @@ main()
     // }
 
     {
-        auto input1 = metalchat::full<bf16>({4, 4}, 25.0);
-        auto input2 = metalchat::full<bf16>({4, 4}, 10.0);
+        auto input1 = metalchat::full<bf16>({4, 16}, 10.0);
 
-        metalchat::sum<bf16> sum(gpu0);
+        metalchat::scalar_mul<bf16> scalar_mul(gpu0);
 
-        auto result = sum(input1, input2);
+        auto result = scalar_mul(input1, 5.1);
         std::cout << result << std::endl;
     }
 
