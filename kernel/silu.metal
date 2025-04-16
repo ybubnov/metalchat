@@ -10,10 +10,8 @@ using namespace metal;
 
 
 template <typename T> struct __silu_parameters {
-    constant tensor_layout<2>& output_layout;
-    device T* output;
-    constant tensor_layout<2>& input_layout;
-    device const T* input;
+    tensor2<T> output;
+    tensor2<const T> input;
 };
 
 
@@ -25,18 +23,15 @@ silu(
     uint tid [[thread_index_in_threadgroup]]
 )
 {
-    tensor<const T, 2> in{params.input, params.input_layout};
-    tensor<T, 2> out{params.output, params.output_layout};
-
-    const uint dim_size = in.size(1);
+    const uint dim_size = params.input.size(1);
     const uint i = gid;
 
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
     for (uint k = begin; k < end && k < dim_size; k++) {
-        T x = in.at(i, k);
-        out.at(i, k) = x / (T(1.0) + T(exp(-x)));
+        T x = params.input.at(i, k);
+        params.output.at(i, k) = x / (T(1.0) + T(exp(-x)));
     }
 }
 

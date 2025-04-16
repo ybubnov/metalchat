@@ -23,12 +23,9 @@ template <typename T> T inline __ceil_div(T a, T b) { return (a + b - 1) / b; }
 
 
 template <typename T> struct __sort_parameters {
-    constant tensor_layout<2>& values_layout;
-    device T* values_ptr;
-    constant tensor_layout<2>& indices_layout;
-    device int32_t* indices_ptr;
-    constant tensor_layout<2>& input_layout;
-    device const T* input_ptr;
+    tensor2<T> values;
+    tensor2<int32_t> indices;
+    tensor2<const T> input;
 };
 
 
@@ -40,14 +37,8 @@ sort(
     uint2 tid [[thread_position_in_threadgroup]]
 )
 {
-    using I = int32_t;
-
-    tensor<const T, 2> in{params.input_ptr, params.input_layout};
-    tensor<T, 2> values{params.values_ptr, params.values_layout};
-    tensor<I, 2> indices{params.indices_ptr, params.indices_layout};
-
-    const uint dim_size = in.size(1);
-    const uint dim_size_aligned = values.size(1);
+    const uint dim_size = params.input.size(1);
+    const uint dim_size_aligned = params.values.size(1);
     const uint batch = gid.x;
 
     const uint begin = tid.x * BlockSize;
@@ -55,11 +46,11 @@ sort(
 
     for (uint k = begin; k < end; k++) {
         if (k < dim_size) {
-            values.at(batch, k) = in.at(batch, k);
+            params.values.at(batch, k) = params.input.at(batch, k);
         } else {
-            values.at(batch, k) = T(-INFINITY);
+            params.values.at(batch, k) = T(-INFINITY);
         }
-        indices.at(batch, k) = k;
+        params.indices.at(batch, k) = k;
     }
 
     // k is doubled every iteration
@@ -71,17 +62,17 @@ sort(
             for (uint i = begin; i < end; i++) {
                 uint ij = i ^ j;
 
-                device T& value_i = values.at(batch, i);
-                device T& value_ij = values.at(batch, ij);
+                device T& value_i = params.values.at(batch, i);
+                device T& value_ij = params.values.at(batch, ij);
 
                 if (i < ij) {
                     if (((i & k) == 0) && (value_i < value_ij)) {
                         __swap(value_i, value_ij);
-                        __swap(indices.at(batch, i), indices.at(batch, ij));
+                        __swap(params.indices.at(batch, i), params.indices.at(batch, ij));
                     }
                     if (((i & k) != 0) && (value_i > value_ij)) {
                         __swap(value_i, value_ij);
-                        __swap(indices.at(batch, i), indices.at(batch, ij));
+                        __swap(params.indices.at(batch, i), params.indices.at(batch, ij));
                     }
                 }
             }
