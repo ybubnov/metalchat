@@ -31,6 +31,9 @@ template <uint32_t N> struct tensor_layout {
 };
 
 
+template <std::size_t> using requires_constexpr = void;
+
+
 template <typename Tensor>
 concept immutable_tensor = requires(std::remove_reference_t<Tensor> const t) {
     /// The type of the elements.
@@ -41,6 +44,9 @@ concept immutable_tensor = requires(std::remove_reference_t<Tensor> const t) {
     typename Tensor::const_iterator;
 
     { Tensor::dim() } -> std::convertible_to<std::size_t>;
+    typename requires_constexpr<Tensor::dim()>;
+
+
     { t.sizes() } -> std::same_as<const std::span<std::size_t, Tensor::dim()>>;
     { t.strides() } -> std::same_as<const std::span<std::size_t, Tensor::dim()>>;
     { t.offsets() } -> std::same_as<const std::span<std::size_t, Tensor::dim()>>;

@@ -14,31 +14,6 @@ namespace metalchat {
 
 
 template <typename T>
-concept is_waitable = requires(std::remove_reference_t<T> t) {
-    { t.wait() } -> std::same_as<void>;
-};
-
-
-class awaitable {
-public:
-    virtual void
-    wait()
-        = 0;
-
-    virtual ~awaitable() {}
-};
-
-
-void
-wait_all(const std::vector<std::shared_ptr<awaitable>>& awaitables)
-{
-    for (const auto a : awaitables) {
-        a->wait();
-    }
-}
-
-
-template <typename T>
 concept asynchronously_invocable = requires(std::remove_reference_t<T> t) {
     { t() } -> std::same_as<std::shared_future<void>>;
     { t(std::function<void()>()) } -> std::same_as<std::shared_future<void>>;
@@ -46,11 +21,11 @@ concept asynchronously_invocable = requires(std::remove_reference_t<T> t) {
 };
 
 
-template <typename T, std::size_t N> class future_tensor : public awaitable {
+template <typename T, std::size_t N> class future_tensor {
 public:
     using result_type = shared_tensor<T, N, device_ref<T>>;
 
-    using future_type = std::shared_future<void>;
+    using future_type = std::shared_ptr<std::function<void()>>;
 
     using future_mutex_type = std::shared_ptr<std::mutex>;
 
@@ -70,66 +45,102 @@ public:
 
     template <asynchronously_invocable Task>
     future_tensor(result_type result, Task&& task)
-    : _m_result(std::move(result)),
+    : _m_result(result),
       _m_future_mutex(std::make_shared<std::mutex>())
     {
-        const std::lock_guard __lock(*_m_future_mutex);
+        const std::scoped_lock __lock(*_m_future_mutex);
 
         // Enqueue the calculations to compute the tensor, upon the completion,
         // command buffers calls a callback that sets a value to the promise, so
         // all waiting routines will be unblocked.
-        // std::cout << "future_tensor::future_tensor()" << std::endl;
-        _m_future = task([ft = std::make_shared<future_tensor<T, N>>(*this)] {
-            // std::cout << "future_tensor::#lambda->wait()" << std::endl;
-            const std::lock_guard __lock(*(ft->_m_future_mutex));
+        //
+        // TODO: does it make sense to move it to the function-binding instead of lambda?
+        auto future = task([ft = std::make_shared<future_tensor<T, N>>(*this)] {
+            const std::scoped_lock __lock(*(ft->_m_future_mutex));
             ft->_m_future_wait = nullptr;
+            ft->_m_future = nullptr;
         });
 
-        // std::cout << "future_tensor::bind_wait" << std::endl;
+        _m_future = std::make_shared<future_type::element_type>(
+            std::bind(&std::shared_future<void>::wait, std::move(future))
+        );
+
         //  Erase type of the task, and simply ensure that task is ready, when a user
         //  calls either `wait` or `get` method of the future tensor.
-        _m_future_wait = std::make_shared<std::function<void()>>(
+        _m_future_wait = std::make_shared<future_wait_type::element_type>(
             std::bind(&Task::make_ready_at_thread_exit, std::move(task))
         );
     }
 
     template <typename U, std::size_t M>
     future_tensor(result_type result, future_tensor<U, M>&& future)
-    : _m_result(std::move(result)),
+    : _m_result(result),
       _m_future_mutex(std::make_shared<std::mutex>())
     {
-        const std::lock_guard __lock(*_m_future_mutex);
+        const std::scoped_lock __lock(*future._m_future_mutex);
 
         // Wait on the same future.
         _m_future = future._m_future;
-        _m_future_wait = std::make_shared<std::function<void()>>(
+        _m_future_wait = std::make_shared<future_wait_type::element_type>(
             std::bind(&future_tensor<U, M>::wait, std::move(future))
         );
     }
 
+    template <typename U, std::size_t M>
+    future_tensor(future_tensor result, future_tensor<U, M> future)
+    : _m_result(result._m_result),
+      _m_future_mutex(std::make_shared<std::mutex>())
+    {
+        _m_future = nullptr;
+        _m_future_wait = std::make_shared<future_wait_type::element_type>(
+            [result = std::make_shared<future_tensor<T, N>>(result),
+             future = std::make_shared<future_tensor<U, M>>(future)] {
+            result->wait();
+            future->wait();
+        }
+        );
+    }
+
+    template <asynchronously_invocable Task>
+    future_tensor(future_tensor result, Task&& task)
+    : future_tensor(result, future_tensor(result._m_result, std::move(task)))
+    {}
+
+    future_tensor(result_type result)
+    : _m_result(result),
+      _m_future_mutex(std::make_shared<std::mutex>()),
+      _m_future_wait(nullptr),
+      _m_future(nullptr)
+    {}
+
+    future_tensor(result_type::tensor_type&& result)
+    : future_tensor(shared_tensor(std::move(result)))
+    {}
+
     result_type
     get()
     {
-        // std::cout << "future_tensor::get" << std::endl;
         wait();
         return _m_result;
     }
 
     void
-    wait() override
+    wait()
     {
-        // std::cout << "future_tensor::wait" << std::endl;
-        const std::lock_guard __lock(*_m_future_mutex);
-        // std::cout << "future_tensor::wait::lock_guard" << std::endl;
+        const std::scoped_lock __lock(*_m_future_mutex);
+
         if (_m_future_wait) {
             (*_m_future_wait)();
         }
-        // std::cout << "future_tensor::wait::future_wait" << std::endl;
-        _m_future.wait();
+
+        if (_m_future) {
+            (*_m_future)();
+        }
 
         // Once the waiting of the future completion is done, erase associated
         // with this task, but setting an empty function (lambda), so that the
         // task could be destroyed.
+        _m_future = nullptr;
         _m_future_wait = nullptr;
     }
 
@@ -278,7 +289,7 @@ public:
     future_tensor
     transpose(const std::size_t (&&dims)[N]) const
     {
-        return future_tensor(
+        return future_tensor<T, N>(
             _m_result.transpose(std::move(dims)), _m_future_mutex, _m_future, _m_future_wait
         );
     }
@@ -313,8 +324,8 @@ private:
 
     result_type _m_result;
     future_mutex_type _m_future_mutex;
-    future_type _m_future;
     future_wait_type _m_future_wait;
+    future_type _m_future;
 
     // Make all specialization of the future tensor friends to the current specialization.
     template <typename FriendT, std::size_t FriendN> friend class future_tensor;
@@ -324,6 +335,10 @@ private:
 /// Deduction guide for the future tensor type.
 template <typename T, std::size_t N, asynchronously_invocable Task>
 future_tensor(shared_tensor<T, N, device_ref<T>> t, Task&& task) -> future_tensor<T, N>;
+
+
+template <typename T, std::size_t N>
+future_tensor(tensor<T, N, device_ref<T>>&& t) -> future_tensor<T, N>;
 
 
 template <typename T, std::size_t N>

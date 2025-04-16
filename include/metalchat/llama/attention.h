@@ -59,19 +59,17 @@ private:
     cpy<T> _m_cpy;
     device& _m_device;
 
-    template <std::size_t M, ContiguousContainer InputContainer>
+    template <immutable_tensor InputTensor>
     auto
-    contiguous(shared_tensor<T, M, InputContainer> input, std::size_t dim)
+    contiguous(InputTensor input, std::size_t dim)
     {
-        auto output = shared_tensor(empty_like(*input, _m_device));
-        std::vector<std::shared_ptr<awaitable>> futures;
+        auto output = future_tensor(empty_like(input, _m_device));
 
         for (std::size_t offset = 0; offset < output.size(dim); offset++) {
             auto future = _m_cpy(input.narrow(dim, offset, 1), output.narrow(dim, offset, 1));
-            futures.push_back(make_shared(std::move(future)));
+            output = future_tensor(output, future);
         }
 
-        wait_all(futures);
         return output;
     }
 
@@ -161,17 +159,15 @@ public:
         auto kk = cache_keys(k, bs, start_pos, len);
         auto vv = cache_values(v, bs, start_pos, len);
 
-        auto repeat_kv
-            = [&]<ContiguousContainer TensorContainer>(shared_tensor<T, 4, TensorContainer>&& t
-              ) -> auto {
+        auto repeat_kv = [&]<immutable_tensor4d Tensor>(Tensor&& t) -> auto {
             int slen = t.size(1);
             auto reps = repeat_interleave(t, n_reps, /*dim=*/2, _m_device);
             return reps.view({bs, slen, n_heads, head_dim});
         };
 
         // shape: bs, cache + len, n_heads, head_dim.
-        auto keys = repeat_kv(kk.get());
-        auto values = repeat_kv(vv.get());
+        auto keys = repeat_kv(std::move(kk));
+        auto values = repeat_kv(std::move(vv));
 
         auto queries = q.transpose({0, 2, 1, 3});
         keys = keys.transpose({0, 2, 3, 1});
@@ -185,9 +181,9 @@ public:
         scores = m_softmax(scores);
 
         auto output = m_matmul(scores, values).transpose({0, 2, 1, 3});
-        auto output_ = contiguous(output.get(), /*dim=*/1);
+        output = contiguous(output, /*dim=*/1);
 
-        return m_wo(output_.view({bs, len, -1}));
+        return m_wo(output.view({bs, len, -1}));
     }
 
     friend std::ostream&

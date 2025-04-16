@@ -16,7 +16,6 @@ std::size_t
 argmax_(shared_tensor<T, 3, Container> t)
 {
     std::size_t id = 0;
-    // return id;
     auto last = t.size(1) - 1;
     T max = t[0, last, 0];
 
@@ -32,11 +31,15 @@ argmax_(shared_tensor<T, 3, Container> t)
 
 TEST_CASE("Test make model", "[llama]")
 {
-    safetensor_file tensors("../llama32.safetensors");
     metalchat::bpe bpe("../Llama-3.2-1B/original/tokenizer.model");
-    metalchat::device gpu0("metalchat.metallib");
+    metalchat::device gpu0("metalchat.metallib", 128);
 
-    auto m = make_llama<bf16>(tensors, gpu0);
+    // Load tensors in lambda, so that all resources are cleaned up after the load.
+    auto m = [&] -> auto {
+        safetensor_file tensors("../llama32.safetensors");
+        return make_llama<bf16>(tensors, gpu0);
+    }();
+
     auto input_text = std::string("I have a dog called");
 
     std::vector<int32_t> ids;
