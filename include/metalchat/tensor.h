@@ -230,6 +230,10 @@ public:
         return *this;
     }
 
+    tensor_base&
+    operator=(tensor_base&& other)
+        = default;
+
     /// Returns a tensor with dimensions transposed.
     auto
     transpose(const std::size_t (&&dims)[N])

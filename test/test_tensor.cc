@@ -11,6 +11,17 @@ using namespace metalchat;
 using namespace metalchat::indexing;
 
 
+TEST_CASE("Tensor move assignment", "[tensor::operator=(tensor&&)]")
+{
+    auto t = rand<float>({3, 2});
+    t = rand<float>({4, 2});
+
+    REQUIRE(t.dim() == 2);
+    REQUIRE(t.size(0) == 4);
+    REQUIRE(t.size(1) == 2);
+}
+
+
 TEST_CASE("Tensor transpose", "[tensor::transpose]")
 {
     auto x = rand<float>({2, 3, 4});
