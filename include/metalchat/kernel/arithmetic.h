@@ -47,9 +47,11 @@ public:
         auto [grid, thread] = make_kernel_grid_1d(input1, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_back(input1.template flatten<2>(), input2.template flatten<2>());
+        auto fn = task.bind_back(flatten<2>(input1), flatten<2>(input2));
 
-        auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
+        auto alloc = hardware_memory_allocator<void>(_m_kernel.device());
+        auto output = empty_future<T>({num_rows, dim_size}, std::move(fn), alloc);
+
         return output.view(input1.sizes());
     }
 };
@@ -136,7 +138,7 @@ public:
         auto [grid, thread] = make_kernel_grid_1d(input1, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto fn = task.bind_back(input1.template flatten<2>(), input2.template flatten<2>());
+        auto fn = task.bind_back(flatten<2>(input1), flatten<2>(input2));
 
         auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
         return output.view(input1.sizes());

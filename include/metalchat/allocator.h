@@ -20,9 +20,58 @@ concept allocator = requires(std::remove_reference_t<Allocator> a) {
     {
         a.allocate(typename Allocator::size_type())
     } -> std::same_as<typename Allocator::container_pointer>;
+
     {
         a.allocate(typename Allocator::const_pointer(), typename Allocator::size_type())
     } -> std::same_as<typename Allocator::container_pointer>;
+} && contiguous_container<typename Allocator::container_type>;
+
+
+template <typename Allocator>
+concept hardware_allocator = allocator<Allocator>
+                             && std::same_as<
+                                 typename Allocator::container_type,
+                                 hardware_memory_container<typename Allocator::value_type>>;
+
+
+template <typename Allocator>
+concept incomplete_hardware_allocator
+    = allocator<Allocator> && std::same_as<typename Allocator::value_type, void>
+      && std::same_as<typename Allocator::container_type, hardware_memory_container<void>>;
+
+
+template <typename T, incomplete_hardware_allocator Allocator> class rebind_hardware_allocator {
+public:
+    using value_type = T;
+    using pointer = T*;
+    using const_pointer = const pointer;
+    using size_type = std::size_t;
+    using container_type = hardware_memory_container<value_type>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    rebind_hardware_allocator(Allocator alloc)
+    : _m_alloc(alloc)
+    {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        // It is totally fine to use reinterpret pointer case here, since the template
+        // value type of a hardware memory container does not influence on a memory layout
+        // of the container and only used to cast buffer contents to the necessary type.
+        return std::reinterpret_pointer_cast<container_type>(_m_alloc.allocate(sizeof(T) * size));
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        return std::reinterpret_pointer_cast<container_type>(
+            _m_alloc.allocate(ptr, sizeof(T) * size)
+        );
+    }
+
+private:
+    Allocator _m_alloc;
 };
 
 
@@ -55,6 +104,40 @@ public:
         auto memory_ptr
             = NS::TransferPtr(_m_device->newBuffer(ptr, memory_size, MTL::ResourceStorageModeShared)
             );
+        return std::make_shared<container_type>(memory_ptr);
+    }
+
+private:
+    MTL::Device* _m_device;
+};
+
+
+template <> class hardware_memory_allocator<void> {
+public:
+    using value_type = void;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+    using size_type = std::size_t;
+    using container_type = hardware_memory_container<void>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    hardware_memory_allocator(MTL::Device* device)
+    : _m_device(device)
+    {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        auto memory_ptr
+            = NS::TransferPtr(_m_device->newBuffer(size, MTL::ResourceStorageModeShared));
+        return std::make_shared<container_type>(memory_ptr);
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        auto memory_ptr
+            = NS::TransferPtr(_m_device->newBuffer(ptr, size, MTL::ResourceStorageModeShared));
         return std::make_shared<container_type>(memory_ptr);
     }
 
