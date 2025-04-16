@@ -363,9 +363,8 @@ public:
     expand_dims(const std::size_t dim)
     {
         assert(dim <= N);
-        assert(is_contiguous());
 
-        std::size_t sizes[N + 1];
+        int sizes[N + 1];
         sizes[dim] = 1;
 
         for (auto i = 0; i < dim; i++) {
@@ -375,7 +374,7 @@ public:
             sizes[i + 1] = size(i);
         }
 
-        return tensor_base<T, N + 1, Container>(std::move(sizes), m_data);
+        return view(std::move(sizes));
     }
 
     template <std::size_t M>

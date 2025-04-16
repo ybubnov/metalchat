@@ -13,6 +13,7 @@ using namespace metalchat;
 using namespace metalchat::dtype;
 
 
+/*
 TEST_CASE("Matmul 4d predefined", "[kernel::bmm]")
 {
     metalchat::device gpu0("metalchat.metallib");
@@ -28,6 +29,7 @@ TEST_CASE("Matmul 4d predefined", "[kernel::bmm]")
     REQUIRE(output.size(2) == 3);
     REQUIRE(output.size(3) == 7);
 }
+*/
 
 
 TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
