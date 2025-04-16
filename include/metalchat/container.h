@@ -64,10 +64,9 @@ public:
     : m_data(data)
     {}
 
-    // weak_ref(const weak_ref& ref)
-    //: weak_ref(ref.m_data)
-    //{}
-    weak_ref(const weak_ref& ref) = delete;
+    weak_ref(const weak_ref& ref)
+    : weak_ref(ref.m_data)
+    {}
 
     T*
     data() override

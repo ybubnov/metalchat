@@ -23,5 +23,7 @@ BreakBeforeBraces: Custom
 BraceWrapping:
   AfterFunction: true
   SplitEmptyFunction: false
+  BeforeLambdaBody: false
 
 RequiresClausePosition: WithPreceding
+LambdaBodyIndentation: OuterScope
