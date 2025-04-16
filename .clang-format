@@ -27,3 +27,5 @@ BraceWrapping:
 
 RequiresClausePosition: WithPreceding
 LambdaBodyIndentation: OuterScope
+
+SkipMacroDefinitionBody: true

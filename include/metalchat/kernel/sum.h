@@ -1,5 +1,6 @@
 #pragma once
 
+#include <format>
 
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
@@ -29,7 +30,12 @@ public:
         const tensor<T, M, Input1Container>& input1, const tensor<T, N, Input2Container>& input2
     )
     {
-        assert(input1.numel() == input2.numel());
+        if (input1.numel() != input2.numel()) {
+            throw std::invalid_argument(std::format(
+                "kernel::sum: tensor1 {} and tensor2 {} cannot be broadcasted", input1.sizes(),
+                input2.sizes()
+            ));
+        }
 
         auto output = empty_like(input1, m_device);
         auto n = scalar<int32_t>(input1.numel());

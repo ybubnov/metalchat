@@ -46,15 +46,19 @@ public:
     {
         auto mask = full<T>({input.size(1), input.size(1)}, -1e9);
         triu(mask);
+        std::cout << "MASK size = " << mask.sizes() << std::endl;
+        std::cout << _m_embedding << std::endl;
 
         auto x = _m_embedding(input);
-        std::cout << "calling layers=" << _m_layers.size() << std::endl;
+        std::cout << "EMBED =" << x << std::endl;
+
         for (auto& layer : _m_layers) {
             x = to_tensor(layer(x, mask));
         }
 
         auto output = _m_norm(x);
-        std::cout << output.sizes() << std::endl;
+        // output (bs, len, 128256).
+        std::cout << output << std::endl;
         std::cout << _m_output << std::endl;
         return _m_output(output); // _m_output(input[:, -1]) - take only the last dimension;
     }

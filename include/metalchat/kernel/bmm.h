@@ -11,12 +11,12 @@
 namespace metalchat {
 
 
-template <typename T> class sgemm : public kernel {
+template <typename T> class bmm : public kernel {
 private:
-    inline static const std::string operation_name = "sgemm";
+    inline static const std::string operation_name = "bmm";
 
 public:
-    sgemm(device& device)
+    bmm(device& device)
     : kernel(operation_name, type_traits<T>::name(), device)
     {}
 
@@ -26,18 +26,26 @@ public:
         const tensor<T, 2, InputContainer>& input, const tensor<T, 2, WeightContainer>& weight
     )
     {
-        assert(input.size(1) == weight.size(0));
+        if (input.size(1) != weight.size(0)) {
+            throw std::invalid_argument(std::format(
+                "bmm: matrices are with different inner dimension ({}x{}) and ({}x{})",
+                input.size(0), input.size(1), weight.size(0), weight.size(1)
+            ));
+        }
+        // A(MxK) @ B(KxN) -> C(MxN)
         auto output = empty<T>({input.size(0), weight.size(1)}, m_device);
+        std::cout << "A(" << input.size(0) << "x" << input.size(1) << ") @ ";
+        std::cout << "B(" << weight.size(0) << "x" << weight.size(1) << ") -> ";
+        std::cout << "C(" << input.size(0) << "x" << weight.size(1) << ")";
 
         auto m = scalar<int32_t>(input.size(0));
         auto k = scalar<int32_t>(input.size(1));
         auto n = scalar<int32_t>(weight.size(1));
 
-        auto threads = dim3(input.size(0), weight.size(1));
-        auto thread = dim3(32, 32);
+        auto threads = dim3(weight.size(1), input.size(0));
+        auto thread = dim3(1, 1, 1);
 
         blocking(threads, thread)(m, n, k, input, weight, output);
-        return output;
         return output;
     }
 
@@ -47,9 +55,9 @@ public:
         const tensor<T, 4, InputContainer>& input, const tensor<T, 4, WeightContainer>& weight
     )
     {
-        assert(input.size(0) == weight.size(0));
-        assert(input.size(1) == weight.size(1));
-        assert(input.size(3) == weight.size(2));
+        assert((input.size(0) == weight.size(0)));
+        assert((input.size(1) == weight.size(1)));
+        assert((input.size(3) == weight.size(2)));
 
         auto output
             = full<T>({input.size(0), input.size(1), input.size(2), weight.size(3)}, 0.0, m_device);
@@ -57,10 +65,12 @@ public:
         for (auto b0 = 0; b0 < input.size(0); b0++) {
             for (auto b1 = 0; b1 < input.size(1); b1++) {
                 for (auto i = 0; i < input.size(2); i++) {
-                    for (auto k = 0; k < input.size(3); k++) {
-                        for (auto j = 0; j < weight.size(3); j++) {
-                            output[b0][b1][i][j] += input[b0][b1][i][k] * weight[b0][b1][k][j];
+                    for (auto k = 0; k < weight.size(3); k++) {
+                        T partial_sum = 0;
+                        for (auto j = 0; j < input.size(3); j++) {
+                            partial_sum += input[b0, b1, i, j] * weight[b0, b1, j, k];
                         }
+                        output[b0, b1, i, k] = partial_sum;
                     }
                 }
             }
@@ -75,26 +85,10 @@ public:
         const tensor<T, 3, InputContainer>& input, const tensor<T, 2, WeightContainer>& weight
     )
     {
-        assert(input.size(2) == weight.size(0));
-        std::cout << "input=" << input.sizes() << ", weight=" << weight.sizes() << std::endl;
+        assert((input.size(2) == weight.size(0)));
+        assert((input.size(0) == 1));
 
-        auto output = empty<T>({input.size(0), input.size(1), weight.size(1)});
-        std::cout << "output=" << output.sizes() << std::endl;
-
-        for (auto b0 = 0; b0 < input.size(0); b0++) {
-            for (auto i = 0; i < input.size(1); i++) {
-                for (auto k = 0; k < weight.size(1); k++) {
-                    T partial_sum = 0;
-                    for (auto j = 0; j < input.size(2); j++) {
-                        partial_sum += input[b0, i, j] * weight[j, k];
-                    }
-                    output[b0, i, k] = partial_sum;
-                }
-            }
-        }
-        std::cout << "sgemm completed" << std::endl;
-
-        return output;
+        return operator()(input.reshape({int(input.size(1)), int(input.size(2))}), weight);
     }
 };
 

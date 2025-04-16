@@ -5,9 +5,9 @@
 #include <ranges>
 
 #include <metalchat/functional.h>
+#include <metalchat/kernel/bmm.h>
 #include <metalchat/kernel/embedding.h>
 #include <metalchat/kernel/mul.h>
-#include <metalchat/kernel/sgemm.h>
 #include <metalchat/kernel/softmax.h>
 #include <metalchat/kernel/sum.h>
 #include <metalchat/nn/linear.h>
@@ -40,7 +40,7 @@ private:
 
     rope<T> m_rope;
     scalar_mul<T> m_mul;
-    sgemm<T> m_matmul;
+    bmm<T> m_matmul;
     sum<T> m_sum;
     softmax<T> m_softmax;
 
@@ -82,6 +82,7 @@ public:
         int n_kv_heads = m_options.n_kv_heads;
 
         auto queries = m_wq(input).reshape({bs, len, n_heads, -1}).transpose({0, 2, 1, 3});
+        std::cout << "QUERIES sizes=" << queries.sizes() << std::endl;
         auto keys = m_wk(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
         auto values = m_wv(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
 
@@ -89,20 +90,23 @@ public:
         //
         // TODO: does it even make sense to make the repetition, would it be better
         // to adjust the implementation of the "rope", so it uses the same memory?
-        auto queries_rep = repeat_interleave(std::move(queries), m_options.repeats(), /*dim=*/2);
-        auto Q = queries_rep.reshape({bs, n_heads, len, -1});
-
+        std::cout << "K sizes=" << keys.sizes() << std::endl;
         auto keys_rep = repeat_interleave(std::move(keys), m_options.repeats(), /*dim=*/2);
+        std::cout << "K shape=" << keys_rep.sizes() << std::endl;
         auto K = keys_rep.reshape({bs, n_heads, len, -1});
+        auto K_ = m_rope(K);
 
-        auto scores = m_matmul(m_mul(m_rope(Q), m_scale), m_rope(K).transpose({0, 1, 3, 2}));
-        auto scores_ = m_sum(scores, mask);
+        auto values_rep = repeat_interleave(std::move(values), m_options.repeats(), /*dim=*/2);
+        auto V = values_rep.reshape({bs, n_heads, len, -1});
+        auto V_ = m_rope(V);
 
-        scores_ = m_softmax(scores_);
-        auto output = m_matmul(scores_, values).transpose({0, 2, 1, 3}).reshape({bs, len, -1});
-        auto output_cpu = m_wo(output);
+        auto scores = m_matmul(m_mul(queries, m_scale), K_.transpose({0, 1, 3, 2}));
+        // auto scores_ = m_sum(scores, mask);
 
-        return output_cpu;
+        auto scores_ = m_softmax(scores);
+        auto output = m_matmul(scores_, V_).transpose({0, 2, 1, 3}).reshape({bs, len, -1});
+
+        return m_wo(output);
     }
 
     friend std::ostream&

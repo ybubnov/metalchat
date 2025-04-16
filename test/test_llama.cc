@@ -23,4 +23,9 @@ TEST_CASE("Test make model", "[llama]")
 
     auto output = m(input);
     std::cout << output << std::endl;
+
+    // for (auto i = 0; i < 8; i++) {
+    //     std::cout << output[i][128255] << ", ";
+    // }
+    std::cout << std::endl;
 }
