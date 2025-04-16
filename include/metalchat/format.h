@@ -177,14 +177,4 @@ operator<<(std::ostream& os, const std::vector<T>& vec)
 }
 
 
-std::ostream&
-operator<<(std::ostream& os, const std::vector<__fp16>& vec)
-{
-    os.precision(fmt::precision);
-    os.setf(std::ios::showpos | std::ios::fixed);
-    operator<< <__fp16>(os, vec);
-    return os;
-}
-
-
 } // namespace metalchat
