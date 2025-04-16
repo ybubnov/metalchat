@@ -32,6 +32,7 @@ add(__add_parameters<T> params,
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
+#pragma unroll
     for (uint k = 0; k < end && k < dim_size; k++) {
         out.at(i, k) = in1.at(i, k) + in2.at(i, k);
     }
@@ -122,6 +123,7 @@ sub(__sub_parameters<T> params,
     const uint begin = tid * BlockSize;
     const uint end = begin + BlockSize;
 
+#pragma unroll
     for (uint k = 0; k < end && k < dim_size; k++) {
         out.at(i, k) = in1.at(i, k) - in2.at(i, k);
     }
@@ -131,7 +133,7 @@ sub(__sub_parameters<T> params,
 __lib_metalchat_kernel(sub, bfloat, 8);
 __lib_metalchat_kernel(sub, bfloat, 16);
 __lib_metalchat_kernel(sub, bfloat, 32);
-__lib_metalchat_kernel(sub, bfloat, 256);
+__lib_metalchat_kernel(sub, bfloat, 128);
 
 __lib_metalchat_kernel(sub, float, 8);
 __lib_metalchat_kernel(sub, float, 16);

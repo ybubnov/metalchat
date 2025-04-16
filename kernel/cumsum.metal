@@ -72,8 +72,8 @@ kernel void cumsum<bfloat, 16>(__cumsum_parameters(bfloat));
 template [[host_name("cumsum_32_bfloat")]]
 kernel void cumsum<bfloat, 32>(__cumsum_parameters(bfloat));
 
-template [[host_name("cumsum_256_bfloat")]]
-kernel void cumsum<bfloat, 256>(__cumsum_parameters(bfloat));
+template [[host_name("cumsum_128_bfloat")]]
+kernel void cumsum<bfloat, 128>(__cumsum_parameters(bfloat));
 
 
 template [[host_name("cumsum_1_float")]]

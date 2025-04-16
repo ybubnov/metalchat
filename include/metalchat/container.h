@@ -118,7 +118,7 @@ template <typename T> struct device_ref : public array_ref<T> {
     : m_buf(buf)
     {}
 
-    ~device_ref() {}
+    ~device_ref() { m_buf.reset(); }
 
     T*
     data() override

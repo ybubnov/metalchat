@@ -85,7 +85,7 @@ silu(Tensor t, device& gpu)
     return op(t);
 }
 
-template <immutable_tensor Tensor, std::size_t BlockSize = 256>
+template <immutable_tensor Tensor, std::size_t BlockSize = 128>
 auto
 sort(Tensor t, device& gpu)
 {
@@ -106,7 +106,7 @@ template <
     typename T,
     immutable_tensor_t<T> Tensor,
     immutable_tensor_t<bool> Mask,
-    std::size_t BlockSize = 256>
+    std::size_t BlockSize = 128>
 auto
 scatter(Tensor t, Mask m, T value, device& gpu)
 {
@@ -115,7 +115,7 @@ scatter(Tensor t, Mask m, T value, device& gpu)
 }
 
 
-template <immutable_tensor Tensor, immutable_tensor_t<int32_t> Index, std::size_t BlockSize = 256>
+template <immutable_tensor Tensor, immutable_tensor_t<int32_t> Index, std::size_t BlockSize = 16>
 auto
 gather(Tensor t, Index index, device& gpu)
 {
@@ -134,7 +134,7 @@ sub(Tensor1 t1, Tensor2 t2, device& gpu)
 }
 
 
-template <typename T, immutable_tensor_t<T> Tensor, std::size_t BlockSize = 16>
+template <typename T, immutable_tensor_t<T> Tensor, std::size_t BlockSize = 128>
 auto
 gt(Tensor t, T value, device& gpu)
 {
@@ -143,16 +143,16 @@ gt(Tensor t, T value, device& gpu)
 }
 
 
-template <immutable_tensor Tensor, std::size_t BlockSize = 256>
+template <immutable_tensor Tensor, std::size_t BlockSize = 16>
 auto
 multinomial(Tensor t, std::size_t sample_size, device& gpu)
 {
-    metalchat::multinomial<typename Tensor::value_type> op(gpu);
+    metalchat::multinomial<typename Tensor::value_type, BlockSize> op(gpu);
     return op(t, sample_size);
 }
 
 
-template <typename T, immutable_tensor2_t<T> Tensor, std::size_t BlockSize = 256>
+template <typename T, immutable_tensor2_t<T> Tensor, std::size_t BlockSize = 128>
 auto
 top_p(Tensor logits, T temperature, T p, device& gpu)
 {
@@ -163,7 +163,7 @@ top_p(Tensor logits, T temperature, T p, device& gpu)
     auto probs_sum = cumsum<Tensor, BlockSize>(probs_sort, gpu);
     auto probs_diff = sub<Tensor, Tensor, BlockSize>(probs_sum, probs_sort, gpu);
 
-    auto mask = gt<T, Tensor, BlockSize>(probs_diff, p, gpu);
+    auto mask = gt(probs_diff, p, gpu);
     probs_sort = scatter(probs_sort, mask, T(0), gpu);
 
     auto next_token = multinomial(probs_sort, /*sample_size=*/1, gpu);
