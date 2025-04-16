@@ -47,7 +47,9 @@ public:
     void
     blocking_kernel(dim3 blocks, dim3 threads, const tensor<T, N, Reference>&... args)
     {
-        std::cout << "blocking_kernel(" << m_op << ", args[" << sizeof...(args) << "])"
+        std::cout << "blocking_kernel<" << blocks << ", " << threads << ">"
+                  << "(" << m_op << ", args[" << sizeof...(args) << "])" << std::endl;
+        std::cout << "max threads per threadgroup=" << m_pipeline->maxTotalThreadsPerThreadgroup()
                   << std::endl;
         auto command_buf = NS::TransferPtr(m_commandq->commandBuffer());
         auto command_encoder = NS::TransferPtr(command_buf->computeCommandEncoder());
@@ -61,7 +63,7 @@ public:
         }
 
         MTL::Size grid_blocks(blocks.x, blocks.y, blocks.z);
-        MTL::Size grid_threads(threads.x, threads.y, threads.y);
+        MTL::Size grid_threads(threads.x, threads.y, threads.z);
         command_encoder->dispatchThreadgroups(grid_blocks, grid_threads);
 
         command_encoder->endEncoding();
@@ -95,9 +97,7 @@ public:
     : kernel(opname, device)
     {}
 
-    template <
-        typename T,
-        template <typename U> class InputRef>
+    template <typename T, template <typename U> class InputRef>
     auto
     operator()(const tensor<T, 1, InputRef>& input)
     {

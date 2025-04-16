@@ -3,13 +3,17 @@
 #include <metalchat/device.h>
 #include <metalchat/nn.h>
 #include <metalchat/safetensor.h>
+#include <metalchat/types.h>
 
 
 int
 main()
 {
+    metalchat::safetensor_file model_file("../Llama-3.2-1B/model.safetensors");
+    metalchat::device gpu0("metalchat.metallib");
+    std::cout << "device = " << gpu0.name() << std::endl;
+
     {
-        metalchat::safetensor_file model_file("../Llama-3.2-1B/model.safetensors");
         /*
         for (auto [name, tensor] : model_file) {
              std::cout << tensor << std::endl;
@@ -25,23 +29,27 @@ main()
             }
         }
         */
-        metalchat::device gpu0("metalchat.metallib");
-        std::cout << "device = " << gpu0.name() << std::endl;
-
-        auto weight = model_file["model.embed_tokens.weight"].as<__fp16, 2>();
+        /*
+        auto weight = model_file["model.embed_tokens.weight"].as<bf16, 2>();
         std::cout << weight << std::endl;
 
-        auto input = metalchat::full<int32_t>({12}, /*fill_value=*/1);
+        auto input = metalchat::full<int32_t>({12}, 1);
         std::cout << input << std::endl;
 
         metalchat::nn::embedding embedding("embedding_f16", gpu0);
 
         auto result = embedding(input, weight);
         std::cout << result << std::endl;
+        */
+    }
 
-        metalchat::sum sum("sum_f16", gpu0);
-        auto s = metalchat::full<__fp16>({10}, /*fill_value=*/3);
-        std::cout << "sum = " << sum(s) << std::endl;
+    {
+        auto weight = metalchat::full<bf16>({1024}, /*fill_value=*/2.0);
+        auto input = metalchat::full<bf16>({1024}, /*fill_value=*/5.0);
+
+        metalchat::nn::rmsnorm rmsnorm("rmsnorm_f16", gpu0);
+        auto result = rmsnorm(input, weight);
+        std::cout << result << std::endl;
     }
 
     auto t = metalchat::empty<int32_t>({1, 2, 3});
