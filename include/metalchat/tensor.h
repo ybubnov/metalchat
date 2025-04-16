@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <iomanip>
+#include <random>
 #include <span>
 #include <sstream>
 #include <type_traits>
@@ -572,6 +573,26 @@ auto
 zeros(std::size_t (&&sizes)[N])
 {
     return full<T>(std::move(sizes), 0);
+}
+
+
+/// Returns a tensor filled with random numbers from a uniform distribution on the
+/// interval [0, 1).
+///
+/// The shape of the tensor is defined by the variable argument `sizes`.
+template <typename T, std::size_t N>
+    requires(N > 0)
+auto
+rand(std::size_t (&&sizes)[N])
+{
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    std::uniform_real_distribution<T> distribution(0.0, 1.0);
+
+    auto t = empty<T>(std::move(sizes));
+    std::generate_n(t.data_ptr(), t.numel(), [&]() { return distribution(generator); });
+
+    return t;
 }
 
 

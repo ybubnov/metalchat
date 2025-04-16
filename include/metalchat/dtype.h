@@ -59,6 +59,20 @@ struct bf16 {
         os << float(f);
         return os;
     }
+
+    bf16
+    operator*=(const bf16& f)
+    {
+        (*this) = float{*this} * f;
+        return *this;
+    }
+
+    bf16
+    operator+=(const bf16& f)
+    {
+        (*this) = float{*this} + f;
+        return *this;
+    }
 };
 
 
