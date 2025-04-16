@@ -34,9 +34,6 @@ public:
         }
         // A(MxK) @ B(KxN) -> C(MxN)
         auto output = empty<T>({input.size(0), weight.size(1)}, m_device);
-        // std::cout << "A(" << input.size(0) << "x" << input.size(1) << ") @ ";
-        // std::cout << "B(" << weight.size(0) << "x" << weight.size(1) << ") -> ";
-        // std::cout << "C(" << input.size(0) << "x" << weight.size(1) << ")";
 
         auto m = scalar<int32_t>(input.size(0));
         auto k = scalar<int32_t>(input.size(1));
@@ -58,8 +55,6 @@ public:
         assert((input.size(0) == weight.size(0)));
         assert((input.size(1) == weight.size(1)));
         assert((input.size(3) == weight.size(2)));
-        std::cout << "bmm (4x4): {" << input.sizes() << "} x {" << weight.sizes() << "}"
-                  << std::endl;
 
         auto output = full<T>({input.size(0), input.size(1), input.size(2), weight.size(3)}, 0.0);
 
@@ -86,7 +81,6 @@ public:
         const tensor<T, 3, InputContainer>& input, const tensor<T, 2, WeightContainer>& weight
     )
     {
-        std::cout << "bmm: " << input.sizes() << " x " << weight.sizes() << std::endl;
         assert((input.size(2) == weight.size(0)));
         assert((input.size(0) == 1));
 
