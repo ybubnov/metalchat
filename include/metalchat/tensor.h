@@ -76,7 +76,7 @@ public:
         return m_data->data();
     }
 
-    inline std::span<std::size_t>
+    inline auto
     shape() const
     {
         return std::span(m_shape->data(), N);
@@ -91,7 +91,7 @@ public:
         return m_strides->data()[dim];
     }
 
-    inline constexpr const std::span<std::size_t>
+    inline constexpr const auto
     strides() const noexcept
     {
         return std::span(m_strides->data(), N);
@@ -406,13 +406,12 @@ template <typename T, std::size_t N>
 auto
 empty(std::size_t (&&sizes)[N], device& device)
 {
-    auto shape_ = std::to_array(sizes);
     auto shape = new std::size_t[N];
 
     std::size_t numel = 1;
     for (auto i = 0; i < N; i++) {
-        numel *= shape_[i];
-        shape[i] = shape_[i];
+        numel *= sizes[i];
+        shape[i] = sizes[i];
     }
 
     auto data
@@ -432,6 +431,32 @@ empty(std::size_t (&&sizes)[N], device& device)
         std::move(std::make_unique<owned_ref<std::size_t>>(shape)),
         std::move(std::make_unique<owned_ref<std::size_t>>(strides))
     );
+}
+
+template <typename T, std::size_t N, class InputIt>
+    requires(N > 0)
+auto
+empty(InputIt begin, InputIt end, device& device)
+{
+    assert((end - begin) == N);
+
+    std::size_t new_shape[N];
+    for (std::size_t i = 0; i < N; i++) {
+        new_shape[i] = *begin;
+        ++begin;
+    }
+
+    return empty<T>(std::move(new_shape), device);
+}
+
+
+template <typename T, std::size_t N, ContiguousContainer Container>
+    requires(N > 0)
+auto
+empty_like(const tensor<T, N, Container>& like, device& device)
+{
+    auto shape = like.shape();
+    return empty<T, N>(shape.begin(), shape.end(), device);
 }
 
 

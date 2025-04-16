@@ -48,17 +48,8 @@ main()
         */
     }
 
-    //{
-    //    auto weight = metalchat::full<bf16>({1024}, /*fill_value=*/2.0);
-    //    auto input = metalchat::full<bf16>({1024}, /*fill_value=*/5.0);
-
-    //    metalchat::nn::rmsnorm<bf16> rmsnorm(gpu0);
-    //    auto result = rmsnorm(input, weight);
-    //    std::cout << result << std::endl;
-    //}
-
     {
-        auto input = metalchat::full<bf16>({128, 2048}, 2.0);
+        auto input = metalchat::full<bf16>({128, 2048}, bf16(0.5));
         auto up = model_file["model.layers.0.mlp.up_proj.weight"].as<bf16, 2>();
         auto down = model_file["model.layers.0.mlp.down_proj.weight"].as<bf16, 2>();
         auto gate = model_file["model.layers.0.mlp.gate_proj.weight"].as<bf16, 2>();
