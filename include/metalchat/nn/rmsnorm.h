@@ -2,9 +2,7 @@
 
 #include <iostream>
 
-#include <metalchat/container.h>
 #include <metalchat/kernel/rmsnorm.h>
-#include <metalchat/tensor.h>
 
 
 namespace metalchat {
@@ -25,8 +23,9 @@ public:
 
     template <std::size_t N, ContiguousContainer InputContainer>
     auto
-    operator()(const tensor<T, N, InputContainer>& input, T eps = T(1e-5))
+    operator()(const tensor<T, N, InputContainer>& input, float eps = 1e-5)
     {
+        std::cout << "RMSNorm input size = " << input.sizes() << std::endl;
         return _m_norm(input, _m_weight, eps);
     }
 

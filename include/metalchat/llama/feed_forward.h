@@ -22,6 +22,7 @@ private:
 
 public:
     feed_forward(feed_forward&&) = default;
+    feed_forward(const feed_forward&) = delete;
 
     feed_forward(
         tensor<T, 2, Container>&& w1,

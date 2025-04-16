@@ -49,6 +49,7 @@ private:
 
 public:
     attention(attention&&) = default;
+    attention(const attention&) = default;
 
     attention(
         tensor<T, 2, Container>&& wq,
@@ -82,7 +83,6 @@ public:
         int n_kv_heads = m_options.n_kv_heads;
 
         auto queries = m_wq(input).reshape({bs, len, n_heads, -1}).transpose({0, 2, 1, 3});
-        std::cout << "QUERIES sizes=" << queries.sizes() << std::endl;
         auto keys = m_wk(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
         auto values = m_wv(input).reshape({bs, len, n_kv_heads, -1}).transpose({0, 2, 1, 3});
 

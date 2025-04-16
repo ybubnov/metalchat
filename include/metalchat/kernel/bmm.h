@@ -85,10 +85,12 @@ public:
         const tensor<T, 3, InputContainer>& input, const tensor<T, 2, WeightContainer>& weight
     )
     {
+        std::cout << "bmm: " << input.sizes() << " x " << weight.sizes() << std::endl;
         assert((input.size(2) == weight.size(0)));
         assert((input.size(0) == 1));
 
-        return operator()(input.reshape({int(input.size(1)), int(input.size(2))}), weight);
+        auto output = operator()(input.reshape({int(input.size(1)), int(input.size(2))}), weight);
+        return output.reshape({1, int(input.size(1)), int(weight.size(1))});
     }
 };
 

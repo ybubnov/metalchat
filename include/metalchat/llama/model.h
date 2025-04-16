@@ -48,7 +48,6 @@ public:
         triu(mask);
 
         auto x = _m_embedding(input);
-        std::cout << "EMBED =" << x << std::endl;
 
         for (auto& layer : _m_layers) {
             x = layer(x, mask);

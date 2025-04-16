@@ -16,18 +16,21 @@ TEST_CASE("Hadamard product", "[kernel::hadamard]")
     metalchat::device gpu0("metalchat.metallib");
     metalchat::hadamard<float> m(gpu0);
 
-    auto input1 = rand<float>({5, 8192});
-    auto input2 = rand<float>({5, 8192});
+    auto input1 = rand<float>({3, 5, 8192});
+    auto input2 = rand<float>({3, 5, 8192});
 
     auto output = m(input1, input2);
-    REQUIRE(output.dim() == 2);
-    REQUIRE(output.size(0) == 5);
-    REQUIRE(output.size(1) == 8192);
+    REQUIRE(output.dim() == 3);
+    REQUIRE(output.size(0) == 3);
+    REQUIRE(output.size(1) == 5);
+    REQUIRE(output.size(2) == 8192);
 
     for (auto i = 0; i < output.size(0); i++) {
         for (auto j = 0; j < output.size(1); j++) {
-            auto result = input1[i, j] * input2[i, j];
-            REQUIRE_THAT((output[i, j]), Catch::Matchers::WithinAbs(result, 0.00001));
+            for (auto k = 0; k < output.size(2); k++) {
+                auto result = input1[i, j, k] * input2[i, j, k];
+                REQUIRE_THAT((output[i, j, k]), Catch::Matchers::WithinAbs(result, 0.00001));
+            }
         }
     }
 }
