@@ -68,15 +68,14 @@ public:
 };
 
 
-template <typename T, std::size_t BlockSize = 16> class inplace_index_set {
+template <typename T, std::size_t BlockSize = 16> class scatter {
 private:
-    inline static const std::string operation_name
-        = "inplace_index_set_" + std::to_string(BlockSize);
+    inline static const std::string operation_name = "scatter_" + std::to_string(BlockSize);
 
     kernel_base _m_kernel;
 
 public:
-    inplace_index_set(device& device)
+    scatter(device& device)
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
@@ -95,6 +94,40 @@ public:
 
         auto output = future_tensor(input, std::move(fn));
         return output.view(input.sizes());
+    }
+};
+
+
+template <typename T, std::size_t BlockSize = 16> class gather {
+private:
+    inline static const std::string operation_name = "gather_" + std::to_string(BlockSize);
+
+    kernel_base _m_kernel;
+
+public:
+    gather(device& device)
+    : _m_kernel(device.load(operation_name, type_traits<T>::name()))
+    {}
+
+    template <immutable_tensor_t<T> Input, immutable_tensor_t<int32_t> Index>
+    auto
+    operator()(Input input, Index index)
+    {
+        auto data_size = index.numel();
+        auto dim_size = index.sizes().back();
+        auto num_rows = data_size / dim_size;
+
+        // TODO:: ensure that input has the same dimensions as index.
+        auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
+
+        auto input_view = input.template flatten<2>();
+        auto index_view = index.template flatten<2>();
+
+        auto task = kernel_task(_m_kernel, grid, thread);
+        auto fn = task.bind_front(input_view, index_view);
+
+        auto output = empty_future<T>({num_rows, dim_size}, std::move(fn));
+        return output.view(index.sizes());
     }
 };
 

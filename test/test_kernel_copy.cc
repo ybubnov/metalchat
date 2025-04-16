@@ -50,10 +50,10 @@ TEST_CASE("Copy into slice", "[kernel::copy]")
 }
 
 
-TEST_CASE("Inplace index set", "[kernel::inplace_index_set]")
+TEST_CASE("Inplace index set", "[kernel::scatter]")
 {
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::inplace_index_set<float> index_set(gpu0);
+    metalchat::scatter<float> scatter(gpu0);
 
     auto input = shared_tensor(empty<float>({16, 128}, gpu0));
     auto mask = shared_tensor(empty<bool>({16, 128}));
@@ -66,7 +66,7 @@ TEST_CASE("Inplace index set", "[kernel::inplace_index_set]")
         return distribution(generator) > 0.5 ? true : false;
     });
 
-    auto output = index_set(input, mask, 9.0f).get();
+    auto output = scatter(input, mask, 9.0f).get();
     REQUIRE(output.dim() == 2);
     REQUIRE(output.size(0) == input.size(0));
     REQUIRE(output.size(1) == input.size(1));
@@ -76,6 +76,35 @@ TEST_CASE("Inplace index set", "[kernel::inplace_index_set]")
             if (mask[i, j]) {
                 REQUIRE_THAT((input[i, j]), Catch::Matchers::WithinAbs(9.0f, 0.0001));
             }
+        }
+    }
+}
+
+
+TEST_CASE("Gather by index", "[kernel::gather]")
+{
+    metalchat::device gpu0("metalchat.metallib");
+    metalchat::gather<float> gather(gpu0);
+
+    auto input = shared_tensor(rand<float>({16, 128}));
+    auto index = shared_tensor(empty<int32_t>({16, 10}));
+
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    std::uniform_int_distribution<int32_t> distribution(0, 127);
+
+    std::generate_n(index.data_ptr(), index.numel(), [&]() -> int32_t {
+        return distribution(generator);
+    });
+
+    auto output = gather(input, index).get();
+    REQUIRE(output.dim() == 2);
+    REQUIRE(output.size(0) == index.size(0));
+    REQUIRE(output.size(1) == index.size(1));
+
+    for (std::size_t i = 0; i < output.size(0); i++) {
+        for (std::size_t j = 0; j < output.size(1); j++) {
+            REQUIRE((output[i, j]) == (input[i, index[i, j]]));
         }
     }
 }
