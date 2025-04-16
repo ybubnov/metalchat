@@ -42,9 +42,9 @@ public:
       _m_device(device)
     {}
 
-    template <immutable_tensor3d InputTensor, immutable_tensor2d MaskTensor>
+    template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
     auto
-    operator()(InputTensor input, const std::optional<MaskTensor> mask, std::size_t start_pos = 0)
+    operator()(Input input, const std::optional<Mask> mask, std::size_t start_pos = 0)
     {
         auto norm = _m_attention_norm(input);
         auto h = fn::sum(input, _m_attention(norm, mask, start_pos), _m_device);

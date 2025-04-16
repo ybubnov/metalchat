@@ -6,7 +6,6 @@
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_task.h>
-#include <metalchat/tensor.h>
 #include <metalchat/tensor_future.h>
 
 
@@ -24,9 +23,9 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <immutable_tensor InputTensor1, immutable_tensor InputTensor2>
+    template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
     auto
-    operator()(InputTensor1 input1, InputTensor2 input2)
+    operator()(Input1 input1, Input2 input2)
     {
         auto data_size = input1.numel();
         auto dim_size = input1.sizes().back();
@@ -70,15 +69,15 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <immutable_tensor InputTensor1, immutable_tensor2d InputTensor2>
-    requires(InputTensor1::dim() >= 2)
+    template <immutable_tensor_t<T> Input1, immutable_tensor2_t<T> Input2>
+    requires(Input1::dim() >= 2)
     auto
-    operator()(InputTensor1 input1, InputTensor2 input2)
+    operator()(Input1 input1, Input2 input2)
     {
         constexpr std::size_t block_size_x = 4;
         constexpr std::size_t block_size_y = 4;
 
-        constexpr auto M = InputTensor1::dim();
+        constexpr auto M = Input1::dim();
 
         auto data_size = input1.numel();
         auto dim0_size = input2.size(0);

@@ -1,11 +1,9 @@
 #pragma once
 
-
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_task.h>
-#include <metalchat/tensor.h>
 #include <metalchat/tensor_future.h>
 
 
@@ -23,9 +21,9 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <immutable_tensor InputTensor>
+    template <immutable_tensor_t<T> Input>
     auto
-    operator()(InputTensor input)
+    operator()(Input input)
     {
         auto dim_size = input.sizes().back();
         auto num_rows = input.numel() / dim_size;

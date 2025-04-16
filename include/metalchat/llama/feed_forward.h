@@ -2,8 +2,7 @@
 
 #include <iostream>
 
-#include <metalchat/kernel/mul.h>
-#include <metalchat/kernel/silu.h>
+#include <metalchat/functional.h>
 #include <metalchat/nn/linear.h>
 
 
@@ -13,12 +12,11 @@ namespace llama {
 
 template <typename T, ContiguousContainer Container> class feed_forward {
 private:
-    nn::linear<T, Container> m_w1;
-    nn::linear<T, Container> m_w2;
-    nn::linear<T, Container> m_w3;
+    nn::linear<T, Container> _m_w1;
+    nn::linear<T, Container> _m_w2;
+    nn::linear<T, Container> _m_w3;
 
-    hadamard<T> m_hadamard;
-    silu<T> m_silu;
+    device& _m_device;
 
 public:
     feed_forward(feed_forward&&) = default;
@@ -30,21 +28,20 @@ public:
         tensor<T, 2, Container>&& w3,
         device& device
     )
-    : m_w1(std::move(w1), device),
-      m_w2(std::move(w2), device),
-      m_w3(std::move(w3), device),
-      m_hadamard(device),
-      m_silu(device)
+    : _m_w1(std::move(w1), device),
+      _m_w2(std::move(w2), device),
+      _m_w3(std::move(w3), device),
+      _m_device(device)
     {}
 
-    template <immutable_tensor3d InputTensor>
+    template <immutable_tensor3_t<T> Input>
     auto
-    operator()(InputTensor input)
+    operator()(Input input)
     {
-        auto input2 = m_w3(input);
-        auto input1 = m_silu(m_w1(input));
+        auto input2 = _m_w3(input);
+        auto input1 = fn::silu(_m_w1(input), _m_device);
 
-        return m_w2(m_hadamard(input1, input2));
+        return _m_w2(fn::hadamard(input1, input2, _m_device));
     }
 
     friend std::ostream&

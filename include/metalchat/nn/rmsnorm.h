@@ -22,9 +22,9 @@ public:
       _m_norm(device)
     {}
 
-    template <immutable_tensor InputTensor>
+    template <immutable_tensor_t<T> Input>
     auto
-    operator()(InputTensor input, float eps = 1e-5)
+    operator()(Input input, float eps = 1e-5)
     {
         return _m_norm(input, _m_weight, eps);
     }

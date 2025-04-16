@@ -4,6 +4,7 @@
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel.h>
+#include <metalchat/kernel_task.h>
 #include <metalchat/tensor.h>
 #include <metalchat/tensor_future.h>
 
@@ -22,9 +23,9 @@ public:
     : _m_kernel(device.load(operation_name, type_traits<T>::name()))
     {}
 
-    template <immutable_tensor3d InputTensor, immutable_tensor3d WeightTensor>
+    template <immutable_tensor3_t<T> Input, immutable_tensor3_t<T> Weight>
     auto
-    operator()(InputTensor input, WeightTensor weight)
+    operator()(Input input, Weight weight)
     {
         auto num_batches = input.size(0);
         auto input_size1 = input.size(1);
@@ -59,17 +60,17 @@ public:
         return empty_future<T>({num_batches, input_size1, weight_size2}, std::move(fn));
     }
 
-    template <immutable_tensor3d InputTensor, immutable_tensor2d WeightTensor>
+    template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Weight>
     auto
-    operator()(InputTensor input, WeightTensor weight)
+    operator()(Input input, Weight weight)
     {
         // TODO: does it make sense to call repeat_interleave for the number of batches > 1?
         return operator()(input, weight.expand_dims(0));
     }
 
-    template <immutable_tensor2d InputTensor, immutable_tensor2d WeightTensor>
+    template <immutable_tensor2_t<T> Input, immutable_tensor2_t<T> Weight>
     auto
-    operator()(InputTensor input, WeightTensor weight)
+    operator()(Input input, Weight weight)
     {
         auto output = operator()(input.expand_dims(0), weight.expand_dims(0));
 
@@ -78,12 +79,12 @@ public:
         return output.view({input_size0, weight_size1});
     }
 
-    template <immutable_tensor InputTensor, immutable_tensor WeightTensor>
+    template <immutable_tensor_t<T> Input, immutable_tensor_t<T> Weight>
     auto
-    operator()(InputTensor input, WeightTensor weight)
-        requires(InputTensor::dim() == WeightTensor::dim() && InputTensor::dim() > 3)
+    operator()(Input input, Weight weight)
+        requires(Input::dim() == Weight::dim() && Input::dim() > 3)
     {
-        constexpr std::size_t N = InputTensor::dim();
+        constexpr std::size_t N = Input::dim();
 
         int input_size0 = input.size(N - 2);
         int weight_size1 = weight.size(N - 1);

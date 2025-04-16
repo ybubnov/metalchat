@@ -10,10 +10,12 @@
 namespace metalchat {
 
 
-template <typename It>
-concept forward_tensor_iterator = std::forward_iterator<It> && requires(It it) {
+template <typename It, typename T>
+concept forward_tensor_iterator_t = std::forward_iterator<It> && requires(It it) {
     typename std::iterator_traits<It>::value_type;
-    requires immutable_tensor<typename std::iterator_traits<It>::value_type>;
+
+    // Ensure that iterator yields tensors.
+    requires immutable_tensor_t<typename std::iterator_traits<It>::value_type, T>;
 };
 
 
