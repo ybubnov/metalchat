@@ -228,22 +228,22 @@ public:
     auto
     operator[](const S&... slices) requires(sizeof...(slices) <= N)
     {
-        constexpr auto slices_size = sizeof...(slices);
-        std::array<indexing::slice, slices_size> slices_array
-            = {(static_cast<indexing::slice>(slices))...};
+        auto shape = new std::size_t[N]();
+        auto offsets = new std::size_t[N]();
+        std::size_t i = 0;
 
-        auto shape = new std::size_t[N];
-        auto offsets = new std::size_t[N];
+        (
+            [&] {
+                indexing::slice slice(slices);
+                auto stop = std::min(slice.stop.value_or(size(i)), size(i));
+                auto start = std::min(slice.start.value_or(0), stop);
 
-        for (std::size_t i = 0; i < slices_size; i++) {
-            auto slice = slices_array[i];
-
-            auto stop = std::min(slice.stop.value_or(size(i)), size(i));
-            auto start = std::min(slice.start.value_or(0), stop);
-
-            shape[i] = stop - start;
-            offsets[i] = start;
-        }
+                shape[i] = stop - start;
+                offsets[i] = start;
+                i++;
+            }(),
+            ...
+        );
 
         return tensor_base<T, N, weak_ref<T>>(
             make_weak(data_ptr()), make_owning(shape), make_weak(m_strides->data()),
