@@ -110,7 +110,7 @@ struct tensor_format<T, 1, Container> : public tensor_format_base<T, 1, Containe
             for (std::size_t i = 0; i < fmt::edgeitems; i++) {
                 os << tf.t.at(i) << fmt::comma(i, size);
             }
-            os << ", ..., ";
+            os << " ..., ";
             for (std::size_t i = size - fmt::edgeitems; i < size; i++) {
                 os << tf.t.at(i) << fmt::comma(i, size);
             }
