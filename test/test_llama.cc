@@ -18,7 +18,7 @@ using namespace metalchat::dtype;
 TEST_CASE("Test make model", "[llama]")
 {
     metalchat::bpe bpe("../Llama-3.2-1B/original/tokenizer.model");
-    metalchat::device gpu0("metalchat.metallib", 32);
+    metalchat::device gpu0("metalchat.metallib", 16);
 
     safetensor_file tensors("../llama32.safetensors");
     auto m = llama::make_model<bf16>(tensors, gpu0);
