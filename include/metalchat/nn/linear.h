@@ -1,7 +1,7 @@
 #pragma once
 
 
-#include <metalchat/functional/sgemm.h>
+#include <metalchat/kernel/sgemm.h>
 
 
 namespace metalchat {

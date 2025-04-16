@@ -1,8 +1,8 @@
 #pragma once
 
 
-#include <metalchat/functional/mul.h>
-#include <metalchat/functional/silu.h>
+#include <metalchat/kernel/mul.h>
+#include <metalchat/kernel/silu.h>
 #include <metalchat/nn/linear.h>
 
 

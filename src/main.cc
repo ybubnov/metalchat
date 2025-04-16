@@ -2,7 +2,7 @@
 
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
-#include <metalchat/functional.h>
+#include <metalchat/kernel/softmax.h>
 #include <metalchat/llama.h>
 #include <metalchat/nn.h>
 #include <metalchat/safetensor.h>

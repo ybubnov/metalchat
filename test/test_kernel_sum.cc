@@ -6,7 +6,7 @@
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
-#include <metalchat/functional/sum.h>
+#include <metalchat/kernel/sum.h>
 #include <metalchat/tensor.h>
 
 

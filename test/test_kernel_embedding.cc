@@ -3,7 +3,7 @@
 
 #include <metalchat/device.h>
 #include <metalchat/dtype.h>
-#include <metalchat/functional/embedding.h>
+#include <metalchat/kernel/embedding.h>
 #include <metalchat/tensor.h>
 
 

@@ -3,9 +3,9 @@
 #include <cmath>
 #include <optional>
 
-#include <metalchat/functional/embedding.h>
-#include <metalchat/functional/sgemm.h>
-#include <metalchat/functional/sum.h>
+#include <metalchat/kernel/embedding.h>
+#include <metalchat/kernel/sgemm.h>
+#include <metalchat/kernel/sum.h>
 #include <metalchat/nn/linear.h>
 
 
