@@ -4,8 +4,7 @@
 
 #include <metalchat/device.h>
 #include <metalchat/kernel.h>
-#include <metalchat/tensor.h>
-#include <metalchat/tensor_shared.h>
+#include <metalchat/tensor_concept.h>
 
 
 namespace metalchat {

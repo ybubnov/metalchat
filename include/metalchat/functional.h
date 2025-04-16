@@ -6,15 +6,64 @@
 #include <ranges>
 #include <span>
 
-#include <metalchat/container.h>
+#include <metalchat/kernel/bmm.h>
 #include <metalchat/kernel/copy.h>
-#include <metalchat/tensor.h>
-#include <metalchat/tensor_concept.h>
+#include <metalchat/kernel/mul.h>
+#include <metalchat/kernel/softmax.h>
+#include <metalchat/kernel/sum.h>
 #include <metalchat/tensor_future.h>
-#include <metalchat/tensor_shared.h>
 
 
 namespace metalchat {
+namespace fn {
+
+
+template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 16>
+auto
+matmul(Tensor1 t1, Tensor2 t2, device& gpu)
+{
+    bmm<typename Tensor1::value_type, BlockSize> op(gpu);
+    return op(t1, t2);
+}
+
+
+template <immutable_tensor Tensor, typename T, std::size_t BlockSize = 16>
+auto
+mul(Tensor t, const T multiplier, device& gpu)
+{
+    scalar_mul<typename Tensor::value_type> op(gpu);
+    return op(t, multiplier);
+}
+
+
+template <immutable_tensor Tensor1, immutable_tensor Tensor2>
+auto
+sum(Tensor1 t1, Tensor2 t2, device& gpu)
+{
+    metalchat::sum<typename Tensor1::value_type> op(gpu);
+    return op(t1, t2);
+}
+
+
+template <immutable_tensor Tensor1, immutable_tensor2d Tensor2>
+auto
+sum2(Tensor1 t1, Tensor2 t2, device& gpu)
+{
+    metalchat::sum2<typename Tensor1::value_type> op(gpu);
+    return op(t1, t2);
+}
+
+
+template <immutable_tensor Tensor>
+auto
+softmax(Tensor t, device& gpu)
+{
+    metalchat::softmax<typename Tensor::value_type> op(gpu);
+    return op(t);
+}
+
+
+} // namespace fn
 
 
 template <forward_tensor_iterator ForwardIt>

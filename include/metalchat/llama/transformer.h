@@ -4,7 +4,7 @@
 
 #include <metalchat/container.h>
 #include <metalchat/device.h>
-#include <metalchat/kernel/sum.h>
+#include <metalchat/functional.h>
 #include <metalchat/llama/attention.h>
 #include <metalchat/llama/feed_forward.h>
 #include <metalchat/nn/rmsnorm.h>
@@ -22,7 +22,7 @@ private:
     feed_forward<T, device_ref<T>> _m_ff;
     nn::rmsnorm<T, Container> _m_ff_norm;
 
-    sum<T> _m_sum;
+    device& _m_device;
 
 public:
     transformer(transformer&&) = default;
@@ -39,7 +39,7 @@ public:
       _m_attention_norm(std::move(attention_norm)),
       _m_ff(std::move(ff)),
       _m_ff_norm(std::move(ff_norm)),
-      _m_sum(device)
+      _m_device(device)
     {}
 
     template <immutable_tensor3d InputTensor, immutable_tensor2d MaskTensor>
@@ -47,10 +47,10 @@ public:
     operator()(InputTensor input, const std::optional<MaskTensor> mask, std::size_t start_pos = 0)
     {
         auto norm = _m_attention_norm(input);
-        auto h = _m_sum(input, _m_attention(norm, mask, start_pos));
+        auto h = fn::sum(input, _m_attention(norm, mask, start_pos), _m_device);
 
         auto ff_norm = _m_ff_norm(h);
-        return _m_sum(h, _m_ff(ff_norm));
+        return fn::sum(h, _m_ff(ff_norm), _m_device);
     }
 
     friend std::ostream&

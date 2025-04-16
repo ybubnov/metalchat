@@ -5,12 +5,8 @@
 #include <ranges>
 
 #include <metalchat/functional.h>
-#include <metalchat/kernel/bmm.h>
 #include <metalchat/kernel/copy.h>
 #include <metalchat/kernel/embedding.h>
-#include <metalchat/kernel/mul.h>
-#include <metalchat/kernel/softmax.h>
-#include <metalchat/kernel/sum.h>
 #include <metalchat/nn/embedding.h>
 #include <metalchat/nn/linear.h>
 #include <metalchat/tensor_future.h>
@@ -45,10 +41,6 @@ private:
     nn::linear<T, Container> m_wo;
 
     nn::rope<T> m_rope;
-    scalar_mul<T> m_mul;
-    bmm<T> m_matmul;
-    sum2<T> m_sum;
-    softmax<T> m_softmax;
 
     attention_options m_options;
     float m_scale;
@@ -122,10 +114,6 @@ public:
       m_wv(std::move(wv), device),
       m_wo(std::move(wo), device),
       m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, device),
-      m_mul(device),
-      m_matmul(device),
-      m_sum(device),
-      m_softmax(device),
       m_options(options),
       m_scale(1.0 / std::sqrt(float(options.head_dim))),
       _m_cache_k(empty<T>(
@@ -173,14 +161,14 @@ public:
         keys = keys.transpose({0, 2, 3, 1});
         values = values.transpose({0, 2, 1, 3});
 
-        auto scores = m_mul(m_matmul(queries, keys), m_scale);
+        auto scores = fn::mul(fn::matmul(queries, keys, _m_device), m_scale, _m_device);
 
         if (mask.has_value()) {
-            scores = m_sum(scores, mask.value());
+            scores = fn::sum2(scores, mask.value(), _m_device);
         }
-        scores = m_softmax(scores);
+        scores = fn::softmax(scores, _m_device);
 
-        auto output = m_matmul(scores, values).transpose({0, 2, 1, 3});
+        auto output = fn::matmul(scores, values, _m_device).transpose({0, 2, 1, 3});
         output = contiguous(output, /*dim=*/1);
 
         return m_wo(output.view({bs, len, -1}));
