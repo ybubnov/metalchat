@@ -50,7 +50,7 @@ __lib_metalchat_kernel(copy, float, 16);
 __lib_metalchat_kernel(copy, float, 32);
 
 
-template <typename T> struct __inplace_index_set_parameters {
+template <typename T> struct __scatter_parameters {
     constant tensor_layout<2>& output_layout;
     device T* output;
     constant tensor_layout<2>& mask_layout;
@@ -61,8 +61,8 @@ template <typename T> struct __inplace_index_set_parameters {
 
 template <typename T, uint BlockSize>
 kernel void
-inplace_index_set(
-    __inplace_index_set_parameters<T> params,
+scatter(
+    __scatter_parameters<T> params,
     uint gid [[threadgroup_position_in_grid]],
     uint tid [[thread_position_in_threadgroup]]
 )
@@ -83,10 +83,52 @@ inplace_index_set(
     }
 }
 
-__lib_metalchat_kernel(inplace_index_set, bfloat, 8);
-__lib_metalchat_kernel(inplace_index_set, bfloat, 16);
-__lib_metalchat_kernel(inplace_index_set, bfloat, 32);
+__lib_metalchat_kernel(scatter, bfloat, 8);
+__lib_metalchat_kernel(scatter, bfloat, 16);
+__lib_metalchat_kernel(scatter, bfloat, 32);
 
-__lib_metalchat_kernel(inplace_index_set, float, 8);
-__lib_metalchat_kernel(inplace_index_set, float, 16);
-__lib_metalchat_kernel(inplace_index_set, float, 32);
+__lib_metalchat_kernel(scatter, float, 8);
+__lib_metalchat_kernel(scatter, float, 16);
+__lib_metalchat_kernel(scatter, float, 32);
+
+
+template <typename T> struct __gather_parameters {
+    constant tensor_layout<2>& output_layout;
+    device T* output;
+    constant tensor_layout<2>& input_layout;
+    device const T* input;
+    constant tensor_layout<2>& index_layout;
+    device const int32_t* index;
+};
+
+
+template <typename T, uint BlockSize>
+kernel void
+gather(
+    __gather_parameters<T> params,
+    uint gid [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]]
+)
+{
+    tensor<T, 2> out{params.output, params.output_layout};
+    tensor<const T, 2> in{params.input, params.input_layout};
+    tensor<const int32_t, 2> idx{params.index, params.index_layout};
+
+    const uint dim_size = idx.size(1);
+    const uint i = gid;
+
+    const uint begin = tid * BlockSize;
+    const uint end = begin + BlockSize;
+
+    for (uint k = begin; k < end && k < dim_size; k++) {
+        out.at(i, k) = in.at(i, idx.at(i, k));
+    }
+}
+
+__lib_metalchat_kernel(gather, bfloat, 8);
+__lib_metalchat_kernel(gather, bfloat, 16);
+__lib_metalchat_kernel(gather, bfloat, 32);
+
+__lib_metalchat_kernel(gather, float, 8);
+__lib_metalchat_kernel(gather, float, 16);
+__lib_metalchat_kernel(gather, float, 32);
