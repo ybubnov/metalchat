@@ -68,7 +68,7 @@ TEST_CASE("RoPE array of ones", "[kernel::rope]")
 TEST_CASE("Embedding batched", "[kernel::embedding]")
 {
     metalchat::device gpu0("metalchat.metallib");
-    metalchat::embedding<float> emb(gpu0);
+    metalchat::embedding<float, 16, 128> emb(gpu0);
 
     auto input = shared_tensor(full<int32_t>({3, 4}, 0.0));
     input[0, 0] = 0;
