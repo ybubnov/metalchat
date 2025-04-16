@@ -122,7 +122,7 @@ private:
     using promise_type = std::promise<void>;
 
     NS::SharedPtr<MTL::CommandBuffer> _m_commands;
-    // NS::SharedPtr<MTL::ComputeCommandEncoder> _m_encoder;
+    NS::SharedPtr<MTL::ComputeCommandEncoder> _m_encoder;
     hardware_heap_allocator<void> _m_allocator;
 
     std::shared_ptr<promise_type> _m_promise;
@@ -144,7 +144,7 @@ public:
         hardware_heap_allocator<void> alloc
     )
     : _m_commands(NS::TransferPtr(queue->commandBuffer())),
-      //_m_encoder(NS::TransferPtr(_m_commands->computeCommandEncoder(MTL::DispatchTypeSerial))),
+      _m_encoder(NS::TransferPtr(_m_commands->computeCommandEncoder(MTL::DispatchTypeSerial))),
       _m_allocator(alloc),
       _m_promise(std::make_shared<promise_type>()),
       _m_future(_m_promise->get_future()),
@@ -205,12 +205,7 @@ public:
                                               )](const MTL::CommandBuffer* buf) { callback(); });
         }
 
-        auto encoder = NS::TransferPtr(_m_commands->computeCommandEncoder(MTL::DispatchTypeSerial));
-        //_m_commands->pushDebugGroup(command_name.get());
-        f.encode(hardware_function_encoder(encoder, _m_allocator));
-        // f.encode(hardware_function_encoder(_m_encoder, _m_allocator));
-        encoder->endEncoding();
-        //_m_commands->popDebugGroup();
+        f.encode(hardware_function_encoder(_m_encoder, _m_allocator));
 
         _m_size++;
 
@@ -224,12 +219,12 @@ public:
     make_ready_at_thread_exit()
     {
         if (!_m_committed) {
-            // std::cout << "-- commit size=" << _m_size << "" << std::endl;
             auto label = std::format("metalchat commands (size={})", _m_size);
-            auto commands_label
-                = NS::TransferPtr(NS::String::string(label.c_str(), NS::UTF8StringEncoding));
+            auto label_ptr = NS::String::string(label.c_str(), NS::UTF8StringEncoding);
+            auto commands_label = NS::TransferPtr(label_ptr);
+
             _m_commands->setLabel(commands_label.get());
-            //_m_encoder->endEncoding();
+            _m_encoder->endEncoding();
 
             _m_commands->commit();
             _m_committed = true;
