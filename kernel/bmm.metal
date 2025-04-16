@@ -3,31 +3,33 @@
 #include <metal_common>
 #include <metal_stdlib>
 
+#include "kernel.h"
 #include "tensor.h"
 
 
 using namespace metal;
 
 
-#define __bmm_parameters(T)                                                         \
-    constant tensor_layout<3>& output_layout    [[buffer(0)]],                      \
-    device T* output                            [[buffer(1)]],                      \
-    constant tensor_layout<3>& mat1_layout      [[buffer(2)]],                      \
-    device const T* mat1                        [[buffer(3)]],                      \
-    constant tensor_layout<3>& mat2_layout      [[buffer(4)]],                      \
-    device const T* mat2                        [[buffer(5)]],                      \
-    uint3 group_id                              [[threadgroup_position_in_grid]],   \
-    uint3 thread_id                             [[thread_position_in_threadgroup]]
+template <typename T> struct __bmm_parameters {
+    constant tensor_layout<3>& output_layout [[buffer(0)]];
+    device T* output [[buffer(1)]];
+    constant tensor_layout<3>& mat1_layout [[buffer(2)]];
+    device const T* mat1 [[buffer(3)]];
+    constant tensor_layout<3>& mat2_layout [[buffer(4)]];
+    device const T* mat2 [[buffer(5)]];
+};
 
 
 /// Matrix multiplication mat1(b x M x K) @ mat2(b x K x N) -> C(b x M x N)
 template <typename T, uint BlockSize>
 kernel void
-bmm(__bmm_parameters(T))
+bmm(__bmm_parameters<T> params,
+    uint3 group_id [[threadgroup_position_in_grid]],
+    uint3 thread_id [[thread_position_in_threadgroup]])
 {
-    tensor<const T, 3> m1{mat1, mat1_layout};
-    tensor<const T, 3> m2{mat2, mat2_layout};
-    tensor<T, 3> out{output, output_layout};
+    tensor<const T, 3> m1{params.mat1, params.mat1_layout};
+    tensor<const T, 3> m2{params.mat2, params.mat2_layout};
+    tensor<T, 3> out{params.output, params.output_layout};
 
     const uint M = m1.size(1);
     const uint K = m1.size(2);
@@ -80,39 +82,10 @@ bmm(__bmm_parameters(T))
 }
 
 
-template [[host_name("bmm_1_bfloat")]]
-kernel void bmm<bfloat, 1>(__bmm_parameters(bfloat));
+__lib_metalchat_kernel3(bmm, bfloat, 8);
+__lib_metalchat_kernel3(bmm, bfloat, 16);
+__lib_metalchat_kernel3(bmm, bfloat, 32);
 
-template [[host_name("bmm_2_bfloat")]]
-kernel void bmm<bfloat, 2>(__bmm_parameters(bfloat));
-
-template [[host_name("bmm_4_bfloat")]]
-kernel void bmm<bfloat, 4>(__bmm_parameters(bfloat));
-
-template [[host_name("bmm_8_bfloat")]]
-kernel void bmm<bfloat, 8>(__bmm_parameters(bfloat));
-
-template [[host_name("bmm_16_bfloat")]]
-kernel void bmm<bfloat, 16>(__bmm_parameters(bfloat));
-
-template [[host_name("bmm_32_bfloat")]]
-kernel void bmm<bfloat, 32>(__bmm_parameters(bfloat));
-
-
-template [[host_name("bmm_1_float")]]
-kernel void bmm<float, 1>(__bmm_parameters(float));
-
-template [[host_name("bmm_2_float")]]
-kernel void bmm<float, 2>(__bmm_parameters(float));
-
-template [[host_name("bmm_4_float")]]
-kernel void bmm<float, 4>(__bmm_parameters(float));
-
-template [[host_name("bmm_8_float")]]
-kernel void bmm<float, 8>(__bmm_parameters(float));
-
-template [[host_name("bmm_16_float")]]
-kernel void bmm<float, 16>(__bmm_parameters(float));
-
-template [[host_name("bmm_32_float")]]
-kernel void bmm<float, 32>(__bmm_parameters(float));
+__lib_metalchat_kernel3(bmm, float, 8);
+__lib_metalchat_kernel3(bmm, float, 16);
+__lib_metalchat_kernel3(bmm, float, 32);

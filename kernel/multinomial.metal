@@ -2,6 +2,7 @@
 
 #include <metal_common>
 
+#include "kernel.h"
 #include "tensor.h"
 
 
@@ -69,15 +70,14 @@ __binary_search(thread tensor<const T, 2> data, uint batch, T value)
 }
 
 
-#define __multinomial_parameters(T)                         \
-    constant tensor_layout<2>& output_layout [[buffer(0)]], \
-    device int32_t* output                   [[buffer(1)]], \
-    constant tensor_layout<2>& input_layout  [[buffer(2)]], \
-    device const T* input                    [[buffer(3)]], \
-    constant uint64_t& init_state            [[buffer(4)]], \
-    constant uint64_t& init_seq              [[buffer(5)]], \
-    uint gid [[threadgroup_position_in_grid]],              \
-    uint tid [[thread_position_in_threadgroup]]
+template <typename T> struct __multinomial_parameters {
+    constant tensor_layout<2>& output_layout [[buffer(0)]];
+    device int32_t* output [[buffer(1)]];
+    constant tensor_layout<2>& input_layout [[buffer(2)]];
+    device const T* input [[buffer(3)]];
+    constant uint64_t& init_state [[buffer(4)]];
+    constant uint64_t& init_seq [[buffer(5)]];
+};
 
 
 /// Draw samples from a multinomial distribution.
@@ -86,12 +86,16 @@ __binary_search(thread tensor<const T, 2> data, uint batch, T value)
 /// distribution, which means that sum of each row of the input should be a equal to 1.0.
 template <typename T, uint BlockSize>
 kernel void
-multinomial(__multinomial_parameters(T))
+multinomial(
+    __multinomial_parameters<T> params,
+    uint gid [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]]
+)
 {
-    tensor<const T, 2> in{input, input_layout};
-    tensor<int32_t, 2> out{output, output_layout};
+    tensor<const T, 2> in{params.input, params.input_layout};
+    tensor<int32_t, 2> out{params.output, params.output_layout};
 
-    pcg32 generator(init_state + gid, init_seq + tid);
+    pcg32 generator(params.init_state + gid, params.init_seq + tid);
 
     const uint dim_size = out.size(1);
     const uint i = gid;
@@ -111,5 +115,10 @@ multinomial(__multinomial_parameters(T))
 }
 
 
-template [[host_name("multinomial_16_float")]]
-kernel void multinomial<float, 16>(__multinomial_parameters(float));
+__lib_metalchat_kernel(multinomial, bfloat, 8);
+__lib_metalchat_kernel(multinomial, bfloat, 16);
+__lib_metalchat_kernel(multinomial, bfloat, 32);
+
+__lib_metalchat_kernel(multinomial, float, 8);
+__lib_metalchat_kernel(multinomial, float, 16);
+__lib_metalchat_kernel(multinomial, float, 32);
