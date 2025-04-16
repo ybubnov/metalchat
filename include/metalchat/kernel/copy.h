@@ -113,10 +113,6 @@ public:
     auto
     operator()(Input input, Index index)
     {
-        auto data_size = index.numel();
-        auto dim_size = index.sizes().back();
-        auto num_rows = data_size / dim_size;
-
         // TODO:: ensure that input has the same dimensions as index.
         auto [grid, thread] = make_kernel_grid_2d(index, BlockSize);
 

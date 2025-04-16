@@ -45,6 +45,29 @@ public:
         auto output = future_tensor(output_view, std::move(task_future));
         return output.view(input1.sizes());
     }
+
+    template <immutable_tensor_t<T> Input1, immutable_scalar_t<T> Input2>
+    auto
+    operator()(Input1 input1, Input2 input2)
+    {
+        auto input_view = flatten<2>(input1);
+        auto output_view = shared_empty_like<T>(input_view, _m_kernel.allocator());
+
+        auto [grid, thread] = make_kernel_grid_2d(input1, BlockSize);
+
+        auto task = kernel_task(_m_kernel, grid, thread);
+        auto task_future = task.bind_front(output_view, input_view, input2);
+
+        auto output = future_tensor(output_view, std::move(task_future));
+        return output.view(input1.sizes());
+    }
+
+    template <immutable_tensor_t<T> Input1>
+    auto
+    operator()(Input1 input1, const T input2)
+    {
+        return operator()(input1, shared_tensor(scalar(input2)));
+    }
 };
 
 
