@@ -20,7 +20,7 @@ public:
         typename T,
         template <typename U> class InputRef,
         template <typename V> class WeightRef>
-    void
+    tensor<T, 1, device_ref>
     operator()(
         const tensor<T, 1, InputRef>& input,
         const tensor<T, 1, WeightRef>& weight,
@@ -28,10 +28,14 @@ public:
     )
     {
         auto output = empty<T>({input.size(0)}, m_device);
-        auto eps_ = fill<T>({1}, eps);
-        auto blocks = dim3(input.size(0));
 
-        blocking_kernel(blocks, 1, input, weight, eps_, output);
+        auto eps_ = full<T>({1}, eps);
+        auto input_size = full<int32_t>({1}, int32_t(input.size(0)));
+
+        auto groups = dim3(1);
+        auto threads = dim3(input.size(0) / 4);
+
+        blocking_kernel(groups, threads, input, weight, eps_, input_size, output);
         return output;
     }
 };

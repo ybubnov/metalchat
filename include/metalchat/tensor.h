@@ -384,13 +384,14 @@ public:
         auto max_size = fmt::edgeitems * 2 + 1;
 
         os << "[";
-        if (size > max_size) {
-            os << std::vector<T>(this->data_ptr(), this->data_ptr() + fmt::edgeitems);
-            os << ", ..., ";
-            os << std::vector<T>(this->data_ptr() + size - fmt::edgeitems, this->data_ptr() + size);
-        } else {
-            os << std::vector<T>(this->data_ptr(), this->data_ptr() + size);
-        }
+        // if (size > max_size) {
+        //     os << std::vector<T>(this->data_ptr(), this->data_ptr() + fmt::edgeitems);
+        //     os << ", ..., ";
+        //     os << std::vector<T>(this->data_ptr() + size - fmt::edgeitems, this->data_ptr() +
+        //     size);
+        // } else {
+        os << std::vector<T>(this->data_ptr(), this->data_ptr() + size);
+        //}
 
         os << "]";
     }
@@ -492,6 +493,7 @@ zeros(std::size_t (&&sizes)[N])
 {
     return full<T>(std::move(sizes), 0);
 }
+
 
 using bfloat_tensor1d = tensor<__fp16, 1>;
 using bfloat_tensor2d = tensor<__fp16, 2>;
