@@ -75,7 +75,7 @@ public:
         auto task_future = task.bind_front(output_view, input1_view, input2);
 
         auto output = future_tensor(output_view, std::move(task_future));
-        return output.view(input1.sizes());
+        return output.view(input1.shape());
     }
 };
 

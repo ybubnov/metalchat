@@ -161,7 +161,7 @@ template <typename T, std::size_t N, contiguous_container Container>
 std::ostream&
 operator<<(std::ostream& os, const tensor<T, N, Container>& t)
 {
-    os << tensor_format<T, N, Container>(t, 1) << ", shape=(" << t.shape() << ")";
+    os << tensor_format<T, N, Container>(t, 1) << ", sizes=(" << t.sizes() << ")";
     return os;
 }
 

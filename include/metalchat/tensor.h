@@ -27,7 +27,41 @@ template <typename T, contiguous_container Container> struct tensor_traits {
 };
 
 
-template <typename T, std::size_t N, contiguous_container Container> class tensor {
+class basic_tensor {
+public:
+    virtual std::size_t
+    dimensions() const
+        = 0;
+
+    virtual std::size_t
+    size(std::size_t) const
+        = 0;
+
+    virtual const std::span<std::size_t>
+    sizes() const = 0;
+
+    virtual std::size_t
+    stride(std::size_t) const
+        = 0;
+
+    virtual const std::span<std::size_t>
+    strides() const = 0;
+
+    virtual std::size_t
+    offset(std::size_t) const
+        = 0;
+
+    virtual const std::span<std::size_t>
+    offsets() const = 0;
+
+    virtual std::size_t
+    numel() const
+        = 0;
+};
+
+
+template <typename T, std::size_t N, contiguous_container Container = random_memory_container<T>>
+class tensor : public basic_tensor {
 public:
     using value_type = T;
 
@@ -42,6 +76,13 @@ public:
     using const_iterator = const iterator;
 
     using traits_type = tensor_traits<T, container_type>;
+
+    tensor()
+    {
+        _m_initialize();
+        // TODO: throw exception in methods that use data container, when it is not
+        // initialized.
+    }
 
     tensor(tensor&& t) noexcept = default;
 
@@ -104,22 +145,25 @@ public:
         return N;
     }
 
-    inline T*
-    data_ptr()
+    std::size_t
+    dimensions() const
     {
-        return m_data->data();
+        return dim();
     }
 
     inline T*
-    data_ptr() const
+    data_ptr() noexcept
     {
-        return m_data->data();
+        return const_cast<tensor const&>(*this).data_ptr();
     }
 
-    inline auto
-    shape() const
+    inline T*
+    data_ptr() const noexcept
     {
-        return std::span(m_shape->data(), N);
+        if (!m_data) {
+            return nullptr;
+        }
+        return m_data->data();
     }
 
     inline std::size_t
@@ -139,7 +183,7 @@ public:
         m_strides->data()[dim] = i;
     }
 
-    inline const auto
+    inline const std::span<std::size_t>
     strides() const noexcept
     {
         return std::span<std::size_t, N>(m_strides->data(), N);
@@ -156,8 +200,14 @@ public:
         return m_shape->data()[dim];
     }
 
-    inline const auto
+    inline const std::span<std::size_t>
     sizes() const noexcept
+    {
+        return std::span<std::size_t, N>(m_shape->data(), N);
+    }
+
+    inline const std::span<std::size_t, N>
+    shape() const noexcept
     {
         return std::span<std::size_t, N>(m_shape->data(), N);
     }
@@ -179,7 +229,7 @@ public:
         m_offsets->data()[dim] = i;
     }
 
-    inline const auto
+    inline const std::span<std::size_t>
     offsets() const noexcept
     {
         return std::span<std::size_t, N>(m_offsets->data(), N);
@@ -209,6 +259,9 @@ public:
     inline container_type&
     container() const
     {
+        if (!m_data) {
+            throw std::logic_error("tensor::container: empty container cannot be accessed");
+        }
         return *m_data;
     }
 
@@ -235,25 +288,25 @@ public:
     iterator
     begin()
     {
-        return iterator(*m_data, *m_shape, *m_strides, *m_offsets);
+        return iterator(m_data, m_shape, m_strides, m_offsets);
     }
 
     const_iterator
     begin() const
     {
-        return const_iterator(*m_data, *m_shape, *m_strides, *m_offsets);
+        return const_iterator(m_data, m_shape, m_strides, m_offsets);
     }
 
     iterator
     end()
     {
-        return iterator(*m_data, *m_shape, *m_strides, *m_offsets, numel());
+        return iterator(m_data, m_shape, m_strides, m_offsets, numel());
     }
 
     const_iterator
     end() const
     {
-        return const_iterator(*m_data, *m_shape, *m_strides, *m_offsets, numel());
+        return const_iterator(m_data, m_shape, m_strides, m_offsets, numel());
     }
 
     auto
@@ -348,6 +401,7 @@ public:
         if (this == &other) {
             return *this;
         }
+
         for (std::size_t i = 0; i < N; i++) {
             assert(other.size(i) == this->size(i));
         }

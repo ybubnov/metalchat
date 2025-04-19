@@ -10,7 +10,7 @@ TEST_CASE("Tensor polymorphic", "[tensor_polymorphic::tensor_polymorphic]")
 {
     auto t = polymorphic_tensor(rand<float>({3, 2}));
 
-    REQUIRE(t.dim() == 2);
+    REQUIRE(t.dimensions() == 2);
     REQUIRE(t.size(0) == 3);
     REQUIRE(t.size(1) == 2);
 

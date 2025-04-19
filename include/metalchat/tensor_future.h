@@ -200,10 +200,16 @@ public:
         return _m_result.size(dim);
     }
 
-    const std::span<std::size_t, N>
+    const std::span<std::size_t>
     sizes() const
     {
         return _m_result.sizes();
+    }
+
+    const std::span<std::size_t, N>
+    shape() const
+    {
+        return _m_result.shape();
     }
 
     std::size_t
@@ -212,19 +218,19 @@ public:
         return _m_result.stride(dim);
     }
 
-    const std::span<std::size_t, N>
+    const std::span<std::size_t>
     strides() const
     {
         return _m_result.strides();
     }
 
     std::size_t
-    offset(std::size_t dim)
+    offset(std::size_t dim) const
     {
         return _m_result.offset(dim);
     }
 
-    const std::span<std::size_t, N>
+    const std::span<std::size_t>
     offsets() const
     {
         return _m_result.offsets();

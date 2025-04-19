@@ -34,23 +34,23 @@ public:
     using difference_type = std::ptrdiff_t;
 
     tensor_iterator(
-        memory_container<T>& data,
-        memory_container<std::size_t>& sizes,
-        memory_container<std::size_t>& strides,
-        memory_container<std::size_t>& offsets,
+        std::shared_ptr<memory_container<T>> data,
+        std::shared_ptr<memory_container<std::size_t>> sizes,
+        std::shared_ptr<memory_container<std::size_t>> strides,
+        std::shared_ptr<memory_container<std::size_t>> offsets,
         std::optional<std::size_t> start = std::nullopt
     )
-    : m_data(data),
-      m_sizes(sizes),
-      m_strides(strides),
-      m_offsets(offsets),
-      m_index(0),
-      m_num(0),
-      m_indices({0})
+    : _m_data(data),
+      _m_sizes(sizes),
+      _m_strides(strides),
+      _m_offsets(offsets),
+      _m_index(0),
+      _m_num(0),
+      _m_indices({0})
     {
         if (start) {
             auto start_num = start.value() - 1;
-            m_num = start_num + 1;
+            _m_num = start_num + 1;
 
             // Calculate the total number of elements in the given tensor.
             std::size_t numel = 1;
@@ -62,48 +62,52 @@ public:
             // that increment operator could start from the correct position.
             for (std::size_t i = 0; i < N; i++) {
                 numel = numel / size(i);
-                m_indices[i] = start_num / numel;
+                _m_indices[i] = start_num / numel;
                 start_num = start_num % numel;
             }
         } else {
-            m_index = next();
+            _m_index = next();
         }
     }
 
     tensor_iterator(const iterator& it)
-    : m_data(it.m_data),
-      m_sizes(it.m_sizes),
-      m_strides(it.m_strides),
-      m_offsets(it.m_offsets),
-      m_index(it.m_index),
-      m_num(it.m_num),
-      m_indices(it.m_indices)
+    : _m_data(it._m_data),
+      _m_sizes(it._m_sizes),
+      _m_strides(it._m_strides),
+      _m_offsets(it._m_offsets),
+      _m_index(it._m_index),
+      _m_num(it._m_num),
+      _m_indices(it._m_indices)
     {}
 
     iterator&
     operator++()
     {
-        m_index = next();
-        m_num++;
+        _m_index = next();
+        _m_num++;
         return *this;
     }
 
     reference
     operator*()
     {
-        return data(m_index);
+        return data(_m_index);
     }
 
     pointer
     operator->()
     {
-        return &data(m_index);
+        return &data(_m_index);
     }
 
     bool
     operator==(const iterator& rhs)
     {
-        return ((m_data.get().data() == rhs.m_data.get().data()) && (m_num == rhs.m_num));
+        return (
+            (_m_data == nullptr && rhs._m_data == nullptr)
+            || ((_m_data != nullptr) && (rhs._m_data != nullptr)
+                && (_m_data->data() == rhs._m_data->data()) && (_m_num == rhs._m_num))
+        );
     }
 
     bool
@@ -113,38 +117,38 @@ public:
     }
 
 private:
-    std::reference_wrapper<memory_container<T>> m_data;
-    std::reference_wrapper<memory_container<std::size_t>> m_sizes;
-    std::reference_wrapper<memory_container<std::size_t>> m_strides;
-    std::reference_wrapper<memory_container<std::size_t>> m_offsets;
+    std::shared_ptr<memory_container<T>> _m_data;
+    std::shared_ptr<memory_container<std::size_t>> _m_sizes;
+    std::shared_ptr<memory_container<std::size_t>> _m_strides;
+    std::shared_ptr<memory_container<std::size_t>> _m_offsets;
 
-    std::size_t m_index;
-    std::size_t m_num;
+    std::size_t _m_index;
+    std::size_t _m_num;
 
-    std::array<std::size_t, N> m_indices;
+    std::array<std::size_t, N> _m_indices;
 
     inline std::size_t
     size(std::size_t dim)
     {
-        return m_sizes.get().data()[dim];
+        return _m_sizes->data()[dim];
     }
 
     inline std::size_t
     stride(std::size_t dim)
     {
-        return m_strides.get().data()[dim];
+        return _m_strides->data()[dim];
     }
 
     inline std::size_t
     offset(std::size_t dim)
     {
-        return m_offsets.get().data()[dim];
+        return _m_offsets->data()[dim];
     }
 
     inline reference
     data(std::size_t index)
     {
-        return m_data.get().data()[index];
+        return _m_data->data()[index];
     }
 
     std::size_t
@@ -152,14 +156,14 @@ private:
     {
         std::size_t index = 0;
         for (std::size_t i = 0; i < N; i++) {
-            index = index + stride(i) * m_indices[i] + offset(i);
+            index = index + stride(i) * _m_indices[i] + offset(i);
         }
 
         // Update indices in the array.
         std::size_t carry = 1;
         for (std::size_t i = N - 1; i < N; i--) {
-            auto sum = m_indices[i] + carry;
-            m_indices[i] = sum % size(i);
+            auto sum = _m_indices[i] + carry;
+            _m_indices[i] = sum % size(i);
             carry = sum / size(i);
         }
 

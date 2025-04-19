@@ -599,7 +599,7 @@ template <typename T> struct random_memory_allocator {
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto memory_ptr = new T[size];
+        auto memory_ptr = new T[size]();
         std::memcpy(memory_ptr, ptr, size);
         return std::make_shared<container_type>(memory_ptr);
     }

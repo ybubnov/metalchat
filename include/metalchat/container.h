@@ -53,13 +53,13 @@ public:
     {}
 
     inline pointer
-    data() override
+    data()
     {
         return _m_data;
     }
 
     inline const_pointer
-    data() const override
+    data() const
     {
         return _m_data;
     }
@@ -147,17 +147,19 @@ template <typename T> struct hardware_memory_container : public memory_container
         if (_m_deleter != nullptr) {
             _m_deleter(this);
         }
-        _m_buf.reset();
+        if (_m_buf) {
+            _m_buf.reset();
+        }
     }
 
     pointer
-    data() override
+    data()
     {
         return static_cast<T*>(_m_buf->contents());
     }
 
     const_pointer
-    data() const override
+    data() const
     {
         return static_cast<T*>(_m_buf->contents());
     }
@@ -190,13 +192,13 @@ public:
     {}
 
     pointer
-    data() override
+    data()
     {
         return &_m_data;
     }
 
     const_pointer
-    data() const override
+    data() const
     {
         return const_pointer(&_m_data);
     }

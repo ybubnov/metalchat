@@ -94,7 +94,7 @@ public:
         auto task_future = task.bind_front(input_view, mask_view, shared_tensor(scalar(value)));
 
         auto output = future_tensor(input, std::move(task_future));
-        return output.view(input.sizes());
+        return output.view(input.shape());
     }
 };
 
@@ -125,7 +125,7 @@ public:
         auto task_future = task.bind_front(output_view, input_view, index_view);
 
         auto output = future_tensor(output_view, std::move(task_future));
-        return output.view(index.sizes());
+        return output.view(index.shape());
     }
 };
 

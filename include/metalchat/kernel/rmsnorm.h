@@ -47,7 +47,7 @@ public:
             = task.bind_front(output_view, input_view, weight, shared_tensor(scalar<float>(eps)));
 
         auto output = future_tensor(output_view, std::move(task_future));
-        return output.view(input.sizes());
+        return output.view(input.shape());
     }
 };
 

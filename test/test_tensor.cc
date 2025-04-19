@@ -11,6 +11,40 @@ using namespace metalchat;
 using namespace metalchat::indexing;
 
 
+TEST_CASE("Tensor empty", "[tensor::tensor]")
+{
+    auto t = tensor<float, 4>();
+
+    // Ensure tensor formatting works without exceptions.
+    std::cout << t << std::endl;
+
+    REQUIRE(t.dim() == 4);
+    REQUIRE(t.numel() == 0);
+    REQUIRE(t.container_offset() == 0);
+    REQUIRE(t.data_ptr() == nullptr);
+
+    for (std::size_t i = 0; i < t.dim(); i++) {
+        REQUIRE(t.size(i) == 0);
+        REQUIRE(t.stride(i) == 0);
+        REQUIRE(t.offset(i) == 0);
+    }
+
+    // Empty tensor should output nothing, use iterator to avoid skipping the
+    // cycle by the compiler.
+    for (auto it = t.begin(); it != t.end(); ++it) {
+        REQUIRE(false);
+        std::cout << *it << std::endl;
+    }
+
+    auto tt = t.transpose({0, 2, 1, 3});
+    for (std::size_t i = 0; i < t.dim(); i++) {
+        REQUIRE(t.size(i) == 0);
+        REQUIRE(t.stride(i) == 0);
+        REQUIRE(t.offset(i) == 0);
+    }
+}
+
+
 TEST_CASE("Tensor move assignment", "[tensor::operator=(tensor&&)]")
 {
     auto t = rand<float>({3, 2});

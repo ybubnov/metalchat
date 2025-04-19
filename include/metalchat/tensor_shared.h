@@ -34,6 +34,12 @@ public:
         return tensor_type::dim();
     }
 
+    std::shared_ptr<tensor_type>
+    get()
+    {
+        return _m_value;
+    }
+
     tensor_type&
     operator*()
     {
@@ -76,10 +82,16 @@ public:
         return _m_value->size(dim);
     }
 
-    const std::span<std::size_t, N>
+    const std::span<std::size_t>
     sizes() const
     {
         return _m_value->sizes();
+    }
+
+    const std::span<std::size_t, N>
+    shape() const
+    {
+        return _m_value->shape();
     }
 
     std::size_t
@@ -88,19 +100,19 @@ public:
         return _m_value->stride(dim);
     }
 
-    const std::span<std::size_t, N>
+    const std::span<std::size_t>
     strides() const
     {
         return _m_value->strides();
     }
 
     std::size_t
-    offset(std::size_t dim)
+    offset(std::size_t dim) const
     {
         return _m_value->offset(dim);
     }
 
-    const std::span<std::size_t, N>
+    const std::span<std::size_t>
     offsets() const
     {
         return _m_value->offsets();
