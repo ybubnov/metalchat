@@ -4,6 +4,7 @@
 #include <optional>
 #include <ranges>
 
+#include <metalchat/function.h>
 #include <metalchat/functional.h>
 #include <metalchat/kernel/copy.h>
 #include <metalchat/kernel/embedding.h>
@@ -31,7 +32,7 @@ struct attention_options {
 };
 
 
-template <typename T, contiguous_container Container> class attention {
+template <typename T, contiguous_container Container> class attention : public function {
 private:
     static constexpr std::size_t input_size = 4;
 
@@ -121,6 +122,34 @@ public:
       _m_cpy(gpu),
       _m_gpu(gpu)
     {}
+
+    attention(attention_options& options, hardware_accelerator& gpu, std::size_t max_batch_size = 1)
+    : m_wq(gpu),
+      m_wk(gpu),
+      m_wv(gpu),
+      m_wo(gpu),
+      m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, gpu),
+      m_options(options),
+      m_scale(1.0 / std::sqrt(float(options.head_dim))),
+      _m_cache_k(empty<T>(
+          {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
+          gpu.get_allocator()
+      )),
+      _m_cache_v(empty<T>(
+          {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
+          gpu.get_allocator()
+      )),
+      _m_cpy(gpu),
+      _m_gpu(gpu)
+    {
+        register_function("wq", m_wq);
+        register_function("wk", m_wk);
+        register_function("wv", m_wv);
+        register_function("wo", m_wo);
+
+        register_parameter("cache_k", _m_cache_k.get());
+        register_parameter("cache_v", _m_cache_v.get());
+    }
 
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
     auto

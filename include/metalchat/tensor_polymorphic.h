@@ -23,6 +23,12 @@ public:
     : _m_value(tensor_ptr)
     {}
 
+    std::shared_ptr<basic_tensor>
+    get()
+    {
+        return _m_value;
+    }
+
     template <immutable_tensor Tensor>
     void
     emplace(Tensor&& tensor)

@@ -8,6 +8,7 @@
 #include <metalchat/container.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
+#include <metalchat/function.h>
 #include <metalchat/functional.h>
 #include <metalchat/llama/transformer.h>
 #include <metalchat/nn/embedding.h>
@@ -19,7 +20,7 @@ namespace metalchat {
 namespace llama {
 
 
-template <typename T, contiguous_container Container> class model {
+template <typename T, contiguous_container Container> class model : public function {
 private:
     nn::embedding<T, hardware_memory_container<T>> _m_embedding;
     nn::rmsnorm<T, Container> _m_norm;
@@ -60,6 +61,23 @@ public:
       _m_layers(std::move(layers)),
       _m_gpu(gpu)
     {}
+
+    model(std::size_t nlayers, attention_options& options, hardware_accelerator& gpu)
+    : _m_embedding(gpu),
+      _m_norm(gpu),
+      _m_output(gpu),
+      _m_layers(),
+      _m_gpu(gpu)
+    {
+        register_function("tok_embeddings", _m_embedding);
+        register_function("norm", _m_norm);
+        register_function("output", _m_output);
+
+        for (std::size_t i = 0; i < nlayers; i++) {
+            _m_layers.push_back(transformer<T, Container>(options, gpu));
+            register_function(std::format("layers.{}", i), _m_layers.back());
+        }
+    }
 
     template <immutable_tensor2_t<int32_t> Input>
     auto

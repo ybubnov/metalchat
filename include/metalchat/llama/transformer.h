@@ -42,6 +42,19 @@ public:
       _m_gpu(gpu)
     {}
 
+    transformer(attention_options& options, hardware_accelerator& gpu)
+    : _m_attention(options, gpu),
+      _m_attention_norm(gpu),
+      _m_ff(gpu),
+      _m_ff_norm(gpu),
+      _m_gpu(gpu)
+    {
+        register_function("attention", _m_attention);
+        register_function("attention_norm", _m_attention_norm);
+        register_function("feed_forward", _m_ff);
+        register_function("ffn_norm", _m_ff_norm);
+    }
+
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
     auto
     operator()(Input input, const std::optional<Mask> mask, std::size_t start_pos = 0)

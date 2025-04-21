@@ -77,12 +77,7 @@ public:
 
     using traits_type = tensor_traits<T, container_type>;
 
-    tensor()
-    {
-        _m_initialize();
-        // TODO: throw exception in methods that use data container, when it is not
-        // initialized.
-    }
+    tensor() { _m_initialize(); }
 
     tensor(tensor&& t) noexcept = default;
 

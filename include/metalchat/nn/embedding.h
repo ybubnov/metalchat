@@ -4,6 +4,7 @@
 #include <iostream>
 #include <numbers>
 
+#include <metalchat/function.h>
 #include <metalchat/kernel/embedding.h>
 #include <metalchat/tensor_shared.h>
 
@@ -12,7 +13,7 @@ namespace metalchat {
 namespace nn {
 
 
-template <typename T, contiguous_container Container> class embedding {
+template <typename T, contiguous_container Container> class embedding : public function {
 private:
     shared_tensor<T, 2, Container> _m_weight;
     kernel::embedding<T> _m_embedding;
@@ -21,10 +22,16 @@ public:
     embedding(shared_tensor<T, 2, Container> weight, hardware_accelerator& gpu)
     : _m_weight(weight),
       _m_embedding(gpu)
-    {}
+    {
+        register_parameter("weight", _m_weight.get());
+    }
 
     embedding(tensor<T, 2, Container>&& weight, hardware_accelerator& gpu)
     : embedding(shared_tensor(std::move(weight)), gpu)
+    {}
+
+    embedding(hardware_accelerator& gpu)
+    : embedding(shared_tensor(tensor<T, 2, Container>()), gpu)
     {}
 
     template <immutable_tensor2_t<int32_t> Input>
@@ -38,7 +45,7 @@ public:
     operator<<(std::ostream& os, const embedding& e)
     {
         os << "nn::embedding<" << type_traits<T>::name() << ">";
-        os << "(" << e._m_weight.size(0) << ", " << e._m_weight.size(1) << ")";
+        os << "(" << e._m_weight.sizes() << ")";
         return os;
     }
 };

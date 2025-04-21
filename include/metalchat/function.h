@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <optional>
 
 #include <metalchat/tensor_concept.h>
@@ -11,6 +12,12 @@ namespace metalchat {
 
 class function {
 public:
+    void
+    register_function(const std::string name, function& fn)
+    {
+        _m_funcs.insert_or_assign(name, std::reference_wrapper(fn));
+    }
+
     void
     register_parameter(const std::string name, polymorphic_tensor tensor)
     {
@@ -53,6 +60,7 @@ public:
 
 private:
     std::unordered_map<std::string, polymorphic_tensor> _m_params;
+    std::unordered_map<std::string, std::reference_wrapper<function>> _m_funcs;
 };
 
 

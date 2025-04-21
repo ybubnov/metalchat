@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include <metalchat/function.h>
 #include <metalchat/functional.h>
 #include <metalchat/nn/linear.h>
 
@@ -10,7 +11,7 @@ namespace metalchat {
 namespace llama {
 
 
-template <typename T, contiguous_container Container> class feed_forward {
+template <typename T, contiguous_container Container> class feed_forward : public function {
 private:
     nn::linear<T, Container> _m_w1;
     nn::linear<T, Container> _m_w2;
@@ -33,6 +34,17 @@ public:
       _m_w3(std::move(w3), gpu),
       _m_gpu(gpu)
     {}
+
+    feed_forward(hardware_accelerator& gpu)
+    : _m_w1(gpu),
+      _m_w2(gpu),
+      _m_w3(gpu),
+      _m_gpu(gpu)
+    {
+        register_function("w1", _m_w1);
+        register_function("w2", _m_w2);
+        register_function("w3", _m_w3);
+    }
 
     template <immutable_tensor3_t<T> Input>
     auto
