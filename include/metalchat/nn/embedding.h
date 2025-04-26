@@ -4,8 +4,8 @@
 #include <iostream>
 #include <numbers>
 
-#include <metalchat/function.h>
 #include <metalchat/kernel/embedding.h>
+#include <metalchat/layer.h>
 #include <metalchat/tensor_shared.h>
 
 
@@ -13,14 +13,15 @@ namespace metalchat {
 namespace nn {
 
 
-template <typename T, contiguous_container Container> class embedding : public function {
+template <typename T, contiguous_container Container> class embedding : public layer {
 private:
     shared_tensor<T, 2, Container> _m_weight;
     kernel::embedding<T> _m_embedding;
 
 public:
     embedding(shared_tensor<T, 2, Container> weight, hardware_accelerator& gpu)
-    : _m_weight(weight),
+    : layer(),
+      _m_weight(weight),
       _m_embedding(gpu)
     {
         register_parameter("weight", _m_weight.get());
@@ -51,7 +52,7 @@ public:
 };
 
 
-template <typename T> class rope {
+template <typename T> class rope : public layer {
 private:
     // note: in case llama3.2 _m_dim is equal to 64.
     std::size_t _m_dim;
@@ -93,7 +94,8 @@ public:
     rope(rope&&) = default;
 
     rope(std::size_t dim, std::size_t max_seq_len, float theta, hardware_accelerator& gpu)
-    : _m_dim(dim),
+    : layer(),
+      _m_dim(dim),
       _m_max_seq_len(max_seq_len),
       _m_theta(theta),
       _m_freqs_cos(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, gpu.get_allocator())),

@@ -4,10 +4,10 @@
 #include <optional>
 #include <ranges>
 
-#include <metalchat/function.h>
 #include <metalchat/functional.h>
 #include <metalchat/kernel/copy.h>
 #include <metalchat/kernel/embedding.h>
+#include <metalchat/layer.h>
 #include <metalchat/nn/embedding.h>
 #include <metalchat/nn/linear.h>
 #include <metalchat/tensor_future.h>
@@ -32,7 +32,7 @@ struct attention_options {
 };
 
 
-template <typename T, contiguous_container Container> class attention : public function {
+template <typename T, contiguous_container Container> class attention : public layer {
 private:
     static constexpr std::size_t input_size = 4;
 
@@ -124,7 +124,8 @@ public:
     {}
 
     attention(attention_options& options, hardware_accelerator& gpu, std::size_t max_batch_size = 1)
-    : m_wq(gpu),
+    : layer(),
+      m_wq(gpu),
       m_wk(gpu),
       m_wv(gpu),
       m_wo(gpu),
@@ -142,10 +143,10 @@ public:
       _m_cpy(gpu),
       _m_gpu(gpu)
     {
-        register_function("wq", m_wq);
-        register_function("wk", m_wk);
-        register_function("wv", m_wv);
-        register_function("wo", m_wo);
+        register_layer("wq", m_wq);
+        register_layer("wk", m_wk);
+        register_layer("wv", m_wv);
+        register_layer("wo", m_wo);
 
         register_parameter("cache_k", _m_cache_k.get());
         register_parameter("cache_v", _m_cache_v.get());

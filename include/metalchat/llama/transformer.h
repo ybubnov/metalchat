@@ -5,6 +5,7 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/container.h>
 #include <metalchat/functional.h>
+#include <metalchat/layer.h>
 #include <metalchat/llama/attention.h>
 #include <metalchat/llama/feed_forward.h>
 #include <metalchat/nn/rmsnorm.h>
@@ -14,7 +15,7 @@
 namespace metalchat {
 namespace llama {
 
-template <typename T, contiguous_container Container> class transformer {
+template <typename T, contiguous_container Container> class transformer : public layer {
 private:
     attention<T, Container> _m_attention;
     nn::rmsnorm<T, Container> _m_attention_norm;
@@ -35,7 +36,8 @@ public:
         nn::rmsnorm<T, Container>&& ff_norm,
         hardware_accelerator& gpu
     )
-    : _m_attention(std::move(attention)),
+    : layer(),
+      _m_attention(std::move(attention)),
       _m_attention_norm(std::move(attention_norm)),
       _m_ff(std::move(ff)),
       _m_ff_norm(std::move(ff_norm)),
@@ -43,16 +45,17 @@ public:
     {}
 
     transformer(attention_options& options, hardware_accelerator& gpu)
-    : _m_attention(options, gpu),
+    : layer(),
+      _m_attention(options, gpu),
       _m_attention_norm(gpu),
       _m_ff(gpu),
       _m_ff_norm(gpu),
       _m_gpu(gpu)
     {
-        register_function("attention", _m_attention);
-        register_function("attention_norm", _m_attention_norm);
-        register_function("feed_forward", _m_ff);
-        register_function("ffn_norm", _m_ff_norm);
+        register_layer("attention", _m_attention);
+        register_layer("attention_norm", _m_attention_norm);
+        register_layer("feed_forward", _m_ff);
+        register_layer("ffn_norm", _m_ff_norm);
     }
 
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>

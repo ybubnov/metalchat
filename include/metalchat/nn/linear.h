@@ -3,8 +3,8 @@
 #include <iostream>
 
 #include <metalchat/format.h>
-#include <metalchat/function.h>
 #include <metalchat/functional.h>
+#include <metalchat/layer.h>
 
 
 namespace metalchat {
@@ -16,14 +16,15 @@ namespace nn {
 /// This module does not support bias adjustment to the input tensor, and only multiplies
 /// it (input) by the specified weight tensor. Meaning it effectively works as matrix
 /// multiplication operation.
-template <typename T, contiguous_container WeightContainer> class linear : public function {
+template <typename T, contiguous_container WeightContainer> class linear : public layer {
 private:
     shared_tensor<T, 2, WeightContainer> _m_weight;
     hardware_accelerator& _m_accelerator;
 
 public:
     linear(shared_tensor<T, 2, WeightContainer> weight, hardware_accelerator& gpu)
-    : _m_weight(weight.transpose({1, 0})),
+    : layer(),
+      _m_weight(weight.transpose({1, 0})),
       _m_accelerator(gpu)
     {
         register_parameter("weight", _m_weight.get());

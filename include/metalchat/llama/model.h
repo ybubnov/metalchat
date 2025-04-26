@@ -1,6 +1,7 @@
 #pragma once
 
 #include <format>
+#include <list>
 #include <optional>
 #include <vector>
 
@@ -8,8 +9,8 @@
 #include <metalchat/container.h>
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
-#include <metalchat/function.h>
 #include <metalchat/functional.h>
+#include <metalchat/layer.h>
 #include <metalchat/llama/transformer.h>
 #include <metalchat/nn/embedding.h>
 #include <metalchat/nn/rmsnorm.h>
@@ -20,13 +21,14 @@ namespace metalchat {
 namespace llama {
 
 
-template <typename T, contiguous_container Container> class model : public function {
+template <typename T, contiguous_container Container = hardware_memory_container<T>>
+class model : public layer {
 private:
     nn::embedding<T, hardware_memory_container<T>> _m_embedding;
     nn::rmsnorm<T, Container> _m_norm;
     nn::linear<T, hardware_memory_container<T>> _m_output;
 
-    std::vector<transformer<T, Container>> _m_layers;
+    std::list<transformer<T, Container>> _m_transforms;
     std::reference_wrapper<hardware_accelerator> _m_gpu;
 
     auto
@@ -58,24 +60,25 @@ public:
     : _m_embedding(std::move(embedding)),
       _m_norm(std::move(norm)),
       _m_output(std::move(output)),
-      _m_layers(std::move(layers)),
+      _m_transforms(std::make_move_iterator(layers.begin()), std::make_move_iterator(layers.end())),
       _m_gpu(gpu)
     {}
 
     model(std::size_t nlayers, attention_options& options, hardware_accelerator& gpu)
-    : _m_embedding(gpu),
+    : layer(),
+      _m_embedding(gpu),
       _m_norm(gpu),
       _m_output(gpu),
-      _m_layers(),
+      _m_transforms(),
       _m_gpu(gpu)
     {
-        register_function("tok_embeddings", _m_embedding);
-        register_function("norm", _m_norm);
-        register_function("output", _m_output);
+        register_layer("tok_embeddings", _m_embedding);
+        register_layer("norm", _m_norm);
+        register_layer("output", _m_output);
 
         for (std::size_t i = 0; i < nlayers; i++) {
-            _m_layers.push_back(transformer<T, Container>(options, gpu));
-            register_function(std::format("layers.{}", i), _m_layers.back());
+            _m_transforms.emplace_back(options, gpu);
+            register_layer(std::format("layers.{}", i), _m_transforms.back());
         }
     }
 
@@ -86,8 +89,8 @@ public:
         const auto mask = create_additive_causal_mask(input.size(1));
         auto x = _m_embedding(input);
 
-        for (auto& layer : _m_layers) {
-            x = layer(x, mask, start_pos);
+        for (auto& transform : _m_transforms) {
+            x = transform(x, mask, start_pos);
         }
 
         auto output = _m_norm(x);

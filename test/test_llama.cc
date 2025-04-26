@@ -27,6 +27,13 @@ TEST_CASE("Test make model", "[llama]")
     gpu0.set_allocator(std::move(alloc2));
     auto m = llama::make_model<bf16>(tensors, gpu0);
 
+    auto params = m.get_parameters();
+    std::cout << "params=" << params.size() << std::endl;
+    for (auto [name, param] : params) {
+        std::cout << name << ": (" << param.sizes() << ")" << std::endl;
+    }
+    exit(0);
+
     auto heap_size = std::size_t(512) * 1024 * 1024;
     auto alloc3 = hardware_heap_allocator<void>(gpu0.get_hardware_device(), heap_size);
     auto alloc4 = hardware_nocopy_allocator(alloc3, gpu0.get_hardware_device());

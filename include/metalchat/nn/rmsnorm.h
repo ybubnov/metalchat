@@ -2,14 +2,14 @@
 
 #include <iostream>
 
-#include <metalchat/function.h>
 #include <metalchat/kernel/rmsnorm.h>
+#include <metalchat/layer.h>
 
 
 namespace metalchat {
 namespace nn {
 
-template <typename T, contiguous_container Container> class rmsnorm : public function {
+template <typename T, contiguous_container Container> class rmsnorm : public layer {
 private:
     shared_tensor<T, 1, Container> _m_weight;
     kernel::rmsnorm<T> _m_norm;
@@ -19,7 +19,8 @@ public:
     rmsnorm(const rmsnorm&) = delete;
 
     rmsnorm(tensor<T, 1, Container>&& weight, hardware_accelerator& gpu)
-    : _m_weight(std::move(weight)),
+    : layer(),
+      _m_weight(std::move(weight)),
       _m_norm(gpu)
     {
         register_parameter("weight", _m_weight.get());
