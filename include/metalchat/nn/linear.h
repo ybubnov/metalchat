@@ -24,7 +24,7 @@ private:
 public:
     linear(shared_tensor<T, 2, WeightContainer> weight, hardware_accelerator& gpu)
     : layer(),
-      _m_weight(weight.transpose({1, 0})),
+      _m_weight(weight),
       _m_accelerator(gpu)
     {
         register_parameter("weight", _m_weight.get());
@@ -42,7 +42,7 @@ public:
     auto
     operator()(Input input)
     {
-        return matmul(input, _m_weight, _m_accelerator);
+        return matmul(input, _m_weight.transpose({1, 0}), _m_accelerator);
     }
 
     friend std::ostream&

@@ -25,14 +25,16 @@ TEST_CASE("Test make model", "[llama]")
     auto alloc2 = hardware_resident_allocator(alloc1, gpu0.get_hardware_device());
 
     gpu0.set_allocator(std::move(alloc2));
-    auto m = llama::make_model<bf16>(tensors, gpu0);
+    auto options = llama::attention_options{
+        .head_dim = 64,
+        .n_heads = 32,
+        .n_kv_heads = 8,
+        .max_seq_len = 1024,
+        .rope_theta = 500000.0
+    };
 
-    auto params = m.get_parameters();
-    std::cout << "params=" << params.size() << std::endl;
-    for (auto [name, param] : params) {
-        std::cout << name << ": (" << param.sizes() << ")" << std::endl;
-    }
-    exit(0);
+    llama::model<bf16> m(16, options, gpu0);
+    m.initialize(tensors, make_rebind_allocator<bf16>(gpu0.get_allocator()));
 
     auto heap_size = std::size_t(512) * 1024 * 1024;
     auto alloc3 = hardware_heap_allocator<void>(gpu0.get_hardware_device(), heap_size);

@@ -23,18 +23,6 @@ public:
     feed_forward(feed_forward&&) = default;
     feed_forward(const feed_forward&) = delete;
 
-    feed_forward(
-        tensor<T, 2, Container>&& w1,
-        tensor<T, 2, Container>&& w2,
-        tensor<T, 2, Container>&& w3,
-        hardware_accelerator& gpu
-    )
-    : _m_w1(std::move(w1), gpu),
-      _m_w2(std::move(w2), gpu),
-      _m_w3(std::move(w3), gpu),
-      _m_gpu(gpu)
-    {}
-
     feed_forward(hardware_accelerator& gpu)
     : layer(),
       _m_w1(gpu),

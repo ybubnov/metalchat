@@ -238,6 +238,14 @@ private:
 };
 
 
+template <typename T, hardware_allocator_t<void> Allocator>
+rebind_hardware_allocator<T, Allocator>
+make_rebind_allocator(Allocator allocator)
+{
+    return rebind_hardware_allocator<T, Allocator>(allocator);
+}
+
+
 /// The hardware allocator that creates a shallow buffer resource for allocations with memory-move
 /// semantic. All buffers created with that method do not manage the underlying memory (specified
 /// by a `const_pointer`). And caller is responsible for a proper memory management.

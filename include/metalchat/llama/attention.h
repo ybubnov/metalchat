@@ -95,34 +95,6 @@ public:
     attention(attention&&) = default;
     attention(const attention&) = default;
 
-    attention(
-        tensor<T, 2, Container>&& wq,
-        tensor<T, 2, Container>&& wk,
-        tensor<T, 2, Container>&& wv,
-        tensor<T, 2, Container>&& wo,
-        attention_options& options,
-        hardware_accelerator& gpu,
-        std::size_t max_batch_size = 1
-    )
-    : m_wq(std::move(wq), gpu),
-      m_wk(std::move(wk), gpu),
-      m_wv(std::move(wv), gpu),
-      m_wo(std::move(wo), gpu),
-      m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, gpu),
-      m_options(options),
-      m_scale(1.0 / std::sqrt(float(options.head_dim))),
-      _m_cache_k(empty<T>(
-          {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
-          gpu.get_allocator()
-      )),
-      _m_cache_v(empty<T>(
-          {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
-          gpu.get_allocator()
-      )),
-      _m_cpy(gpu),
-      _m_gpu(gpu)
-    {}
-
     attention(attention_options& options, hardware_accelerator& gpu, std::size_t max_batch_size = 1)
     : layer(),
       m_wq(gpu),

@@ -29,21 +29,6 @@ public:
     transformer(transformer&&) = default;
     transformer(const transformer&) = delete;
 
-    transformer(
-        attention<T, Container>&& attention,
-        nn::rmsnorm<T, Container>&& attention_norm,
-        feed_forward<T, Container>&& ff,
-        nn::rmsnorm<T, Container>&& ff_norm,
-        hardware_accelerator& gpu
-    )
-    : layer(),
-      _m_attention(std::move(attention)),
-      _m_attention_norm(std::move(attention_norm)),
-      _m_ff(std::move(ff)),
-      _m_ff_norm(std::move(ff_norm)),
-      _m_gpu(gpu)
-    {}
-
     transformer(attention_options& options, hardware_accelerator& gpu)
     : layer(),
       _m_attention(options, gpu),

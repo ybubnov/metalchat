@@ -211,6 +211,12 @@ public:
         return m_tensors.end();
     }
 
+    const_iterator
+    find(const std::string& tensor_name) const
+    {
+        return m_tensors.find(tensor_name);
+    }
+
     const safetensor&
     operator[](const std::string& tensor_name) const
     {

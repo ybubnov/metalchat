@@ -50,20 +50,6 @@ private:
 public:
     model(model&&) = default;
 
-    model(
-        nn::embedding<T, hardware_memory_container<T>>&& embedding,
-        nn::rmsnorm<T, Container>&& norm,
-        nn::linear<T, hardware_memory_container<T>>&& output,
-        std::vector<transformer<T, Container>>&& layers,
-        hardware_accelerator& gpu
-    )
-    : _m_embedding(std::move(embedding)),
-      _m_norm(std::move(norm)),
-      _m_output(std::move(output)),
-      _m_transforms(std::make_move_iterator(layers.begin()), std::make_move_iterator(layers.end())),
-      _m_gpu(gpu)
-    {}
-
     model(std::size_t nlayers, attention_options& options, hardware_accelerator& gpu)
     : layer(),
       _m_embedding(gpu),
@@ -102,64 +88,6 @@ public:
         return _m_output(output);
     }
 };
-
-
-template <typename T>
-auto
-make_model(
-    const metalchat::safetensor_file& tensors, hardware_accelerator& gpu, std::size_t nlayers = 16
-)
-{
-    using allocator_type = rebind_hardware_allocator<T, hardware_accelerator::allocator_type>;
-    using container_type = allocator_type::container_type;
-
-    auto alloc = allocator_type(gpu.get_allocator());
-
-    auto input = shared_tensor(tensors["tok_embeddings.weight"].as<2>(alloc));
-    nn::embedding embedding(input, gpu);
-    nn::rmsnorm norm(tensors["norm.weight"].as<1>(alloc), gpu);
-
-    auto options = llama::attention_options{
-        .head_dim = 64,
-        .n_heads = 32,
-        .n_kv_heads = 8,
-        .max_seq_len = 1024,
-        .rope_theta = 500000.0
-    };
-
-    std::vector<llama::transformer<T, container_type>> layers;
-    for (std::size_t i = 0; i < nlayers; i++) {
-        const std::string layer_name = std::format("layers.{}.", i);
-
-        llama::feed_forward ff(
-            tensors[layer_name + "feed_forward.w1.weight"].as<2>(alloc),
-            tensors[layer_name + "feed_forward.w2.weight"].as<2>(alloc),
-            tensors[layer_name + "feed_forward.w3.weight"].as<2>(alloc), gpu
-        );
-
-        llama::attention attention(
-            tensors[layer_name + "attention.wq.weight"].as<2>(alloc),
-            tensors[layer_name + "attention.wk.weight"].as<2>(alloc),
-            tensors[layer_name + "attention.wv.weight"].as<2>(alloc),
-            tensors[layer_name + "attention.wo.weight"].as<2>(alloc), options, gpu
-        );
-
-        nn::rmsnorm attention_norm(tensors[layer_name + "attention_norm.weight"].as<1>(alloc), gpu);
-        nn::rmsnorm ff_norm(tensors[layer_name + "ffn_norm.weight"].as<1>(alloc), gpu);
-
-        llama::transformer<T, container_type> transformer(
-            std::move(attention), std::move(attention_norm), std::move(ff), std::move(ff_norm), gpu
-        );
-
-        layers.push_back(std::move(transformer));
-    }
-
-    // Re-use the same linear module (or even a tensor) in both, embeddings computation
-    // and in output layer computation.
-    return llama::model(
-        std::move(embedding), std::move(norm), nn::linear(input, gpu), std::move(layers), gpu
-    );
-}
 
 
 } // namespace llama

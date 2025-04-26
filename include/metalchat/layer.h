@@ -27,9 +27,36 @@ public:
       _m_params()
     {}
 
+    template <allocator Allocator>
     void
-    initialize(const safetensor& weights)
-    {}
+    initialize(const safetensor_file& weights, Allocator alloc)
+    {
+        auto params = get_parameters();
+        for (auto [param_name, param] : params) {
+            if (auto it = weights.find(param_name); it != weights.end()) {
+                auto [_, weight] = *it;
+
+                switch (param.dimensions()) {
+                case 1:
+                    param.emplace(std::move(weight.as<1, Allocator>(alloc)));
+                    break;
+                case 2:
+                    param.emplace(std::move(weight.as<2, Allocator>(alloc)));
+                    break;
+                case 3:
+                    param.emplace(std::move(weight.as<3, Allocator>(alloc)));
+                    break;
+                case 4:
+                    param.emplace(std::move(weight.as<4, Allocator>(alloc)));
+                    break;
+                default:
+                    throw std::runtime_error(
+                        std::format("unsupported tensor dimensionality = {}", param.dimensions())
+                    );
+                }
+            }
+        }
+    }
 
     void
     register_layer(const std::string& name, layer& l)
