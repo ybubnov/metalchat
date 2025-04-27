@@ -12,6 +12,16 @@
 namespace metalchat {
 
 
+template <class T, T... Indices, class Function>
+void
+constexpr_switch(T index, std::integer_sequence<T, Indices...>, Function function)
+{
+    std::initializer_list<int>(
+        {(index == Indices ? function(std::integral_constant<T, Indices>{}), 0 : 0)...}
+    );
+}
+
+
 class layer {
 public:
     using reference = std::reference_wrapper<layer>;
@@ -27,7 +37,7 @@ public:
       _m_params()
     {}
 
-    template <allocator Allocator>
+    template <allocator Allocator, std::size_t N = 8>
     void
     initialize(const safetensor_file& weights, Allocator alloc)
     {
@@ -35,25 +45,11 @@ public:
         for (auto [param_name, param] : params) {
             if (auto it = weights.find(param_name); it != weights.end()) {
                 auto [_, weight] = *it;
+                std::size_t dim = weight.dim();
 
-                switch (param.dimensions()) {
-                case 1:
-                    param.emplace(std::move(weight.as<1, Allocator>(alloc)));
-                    break;
-                case 2:
-                    param.emplace(std::move(weight.as<2, Allocator>(alloc)));
-                    break;
-                case 3:
-                    param.emplace(std::move(weight.as<3, Allocator>(alloc)));
-                    break;
-                case 4:
-                    param.emplace(std::move(weight.as<4, Allocator>(alloc)));
-                    break;
-                default:
-                    throw std::runtime_error(
-                        std::format("unsupported tensor dimensionality = {}", param.dimensions())
-                    );
-                }
+                constexpr_switch(dim, std::make_index_sequence<N>{}, [&](auto i) {
+                    param.emplace(std::move(weight.as<i, Allocator>(alloc)));
+                });
             }
         }
     }
