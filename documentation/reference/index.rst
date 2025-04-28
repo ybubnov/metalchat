@@ -10,6 +10,7 @@ TBD
    allocator
    tensor
    kernel
+   layer
 
 
 Allocator library
@@ -152,4 +153,15 @@ Kernel Concepts
    :widths: 45 55
 
    * - :cpp:concept:`metalchat::hardware_encodable_function`
+     - TBD
+
+
+Layer library
+-------------
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:class:`metalchat::layer`
      - TBD

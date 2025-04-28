@@ -22,6 +22,9 @@ constexpr_switch(T index, std::integer_sequence<T, Indices...>, Function functio
 }
 
 
+/// Layer is a basic building block of neural networks in MetalChat. A layer specifies a set of
+/// (trainable) parameters it uses for computation and a set of upstream layers, used within a
+/// layer computation logic.
 class layer {
 public:
     using reference = std::reference_wrapper<layer>;
@@ -37,6 +40,11 @@ public:
       _m_params()
     {}
 
+    /// Initialize a layer and all upstream layers with a given safetensor file.
+    ///
+    /// This method uses a parameter `N` to define the maximum number of dimensions of tensors
+    /// to allocate. From the efficiency perspective it is limited by 8, but could be extended
+    /// up to arbitrary number of dimensions.
     template <allocator Allocator, std::size_t N = 8>
     void
     initialize(const safetensor_file& weights, Allocator alloc)
@@ -54,10 +62,48 @@ public:
         }
     }
 
+    /// Register an upstream layer for the current layer. The layer could be accessed using
+    /// the given name using `layer::get_layer` method.
+    ///
+    /// The registry of layers only keeps the reference to the upstream layer, so the programmer
+    /// should keep aware of the reference validity (it might be an issue if layers are referred
+    /// to a dynamically changed `std::vector`, which invalidates references after resizing).
+    ///
+    /// A common practice is registering upstream layers within a downstream layer constructor
+    /// like in the example below.
+    ///
+    /// ```cpp
+    /// using namespace metalchat;
+    ///
+    /// class custom_layer : public layer {
+    /// private:
+    ///     // Declare upstream layers here.
+    ///     nn::linear<float> linear1;
+    ///     nn::linear<float> linear2;
+    ///
+    /// public:
+    ///    custom_layer(hardware_accelerator& accelerator)
+    ///    : layer(), linear1(accelerator), linear2(accelerator)
+    ///    {
+    ///       // Register layers here.
+    ///       register_layer("linear1", linear1);
+    ///       register_layer("linear2", linear2);
+    ///    }
+    /// };
+    /// ```
     void
     register_layer(const std::string& name, layer& l)
     {
         _m_layers.insert_or_assign(name, std::ref(l));
+    }
+
+    /// Get upstream layer by name. This method does not perform recurse lookup and only
+    /// returns layers registered at the current layer. If layer is not registered, method
+    /// throws exception.
+    const layer&
+    get_layer(const std::string& name) const
+    {
+        return _m_layers.find(name);
     }
 
     void
@@ -101,6 +147,11 @@ public:
         }
     }
 
+    /// Return a set of parameters with fully-qualified names. Parameters of different layers
+    /// are separated using dot (".") delimiter symbol.
+    ///
+    /// If you want to return only parameters of the current layer and drop upstream parameters,
+    /// you could call this method with `recurse = false`.
     const parameter_container
     get_parameters(bool recurse = true) const
     {
