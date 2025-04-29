@@ -29,8 +29,10 @@ language = "en"
 
 
 # Options for HTML output
-html_theme = "furo"
+pygments_style = "default"
+html_theme = "pydata_sphinx_theme"
 templates_path = ["_templates"]
+
 
 # Doxygen writes output XMLs to the `_xml` path, exclude it from sphinx result.
 exclude_patterns = ["_xml"]

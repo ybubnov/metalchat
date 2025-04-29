@@ -49,6 +49,7 @@ private:
 
 public:
     model(model&&) = default;
+    model(const model&) = delete;
 
     model(std::size_t nlayers, attention_options& options, hardware_accelerator& gpu)
     : layer(),

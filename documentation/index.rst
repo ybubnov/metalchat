@@ -25,7 +25,7 @@ Consider visiting the guides and API reference for further implementation and us
 .. toctree::
    :hidden:
    :caption: Documentation
-   :maxdepth: 1
+   :maxdepth: 2
 
    reference/index
 
