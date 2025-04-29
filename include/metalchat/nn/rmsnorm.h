@@ -9,6 +9,7 @@
 namespace metalchat {
 namespace nn {
 
+/// Applies Root Mean Square Layer Normalization over a mini-batch of inputs.
 template <typename T, contiguous_container Container> class rmsnorm : public layer {
 private:
     shared_tensor<T, 1, Container> _m_weight;

@@ -28,6 +28,7 @@ Consider visiting the guides and API reference for further implementation and us
    :maxdepth: 2
 
    reference/index
+   guides/index
 
 
 .. toctree::

@@ -126,4 +126,29 @@ re3::end()
 }
 
 
+bpe::bpe(const std::filesystem::path& p)
+: _m_fmap(),
+  _m_rmap(),
+  _m_re(token_regex)
+{
+    std::ifstream file(p, std::ios::binary);
+    if (!file.is_open()) {
+        throw std::invalid_argument(std::format("unable to open file '{}'", p.string()));
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        auto delim = line.find(" ");
+        auto key_part = line.substr(0, delim);
+        auto value_part = line.substr(delim + 1);
+
+        index_type key = std::stoi(value_part);
+        string_type value = base64::decode<string_type>(key_part);
+
+        _m_fmap.insert(std::make_pair(value, key));
+        _m_rmap.insert(std::make_pair(key, value));
+    }
+}
+
+
 } // namespace metalchat

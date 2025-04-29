@@ -109,6 +109,8 @@ enum special_token {
 class bpe {
 public:
     using string_type = std::string;
+
+    /// Type used to indicate position of the token in the model (token dictionary).
     using index_type = int32_t;
 
     static std::string
@@ -218,30 +220,19 @@ public:
     /// Number of special tokens used to prepare the input for the model.
     static constexpr const index_type nspecial = 256;
 
-    bpe(const std::filesystem::path& p)
-    : _m_fmap(),
-      _m_rmap(),
-      _m_re(token_regex)
-    {
-        std::ifstream file(p, std::ios::binary);
-        if (!file.is_open()) {
-            throw std::invalid_argument(std::format("unable to open file '{}'", p.string()));
-        }
+    /// Create an instance of a byte-pair encoder using a base64-encoded token map.
+    ///
+    /// Such map is distributed altogether with, for example, Llama model and is called
+    /// `tokenizer.model`. When the provided file does not exist or has invalid format,
+    /// constructor will raise an exception.
+    bpe(const std::filesystem::path& p);
 
-        std::string line;
-        while (std::getline(file, line)) {
-            auto delim = line.find(" ");
-            auto key_part = line.substr(0, delim);
-            auto value_part = line.substr(delim + 1);
-
-            index_type key = std::stoi(value_part);
-            string_type value = base64::decode<string_type>(key_part);
-
-            _m_fmap.insert(std::make_pair(value, key));
-            _m_rmap.insert(std::make_pair(key, value));
-        }
-    }
-
+    /// Encode the provided string into tokens.
+    ///
+    /// This method iteratively splits the string into tokens and then appends a corresponding
+    /// token index into end of the provided container `ids`. When the token is not presented
+    /// in the token dictionary, it is divided into byte-pairs, then index of the byte pair is
+    /// appended to the end of the container.
     template <push_back_container PushBackContainer>
     void
     encode(const std::string& s, PushBackContainer& ids)

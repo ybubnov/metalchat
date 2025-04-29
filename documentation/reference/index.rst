@@ -11,6 +11,7 @@ TBD
    tensor
    kernel
    layer
+   chat
 
 
 Allocator library
@@ -165,3 +166,26 @@ Layer library
 
    * - :cpp:class:`metalchat::layer`
      - TBD
+
+   * - :cpp:class:`metalchat::nn::embedding`
+     - A simple lookup table that stores embeddings of a fixed dictionary and size.
+
+   * - :cpp:class:`metalchat::nn::rope`
+     - TBD
+
+   * - :cpp:class:`metalchat::nn::linear`
+     - Applies an affine transformation to the incoming data.
+
+   * - :cpp:class:`metalchat::nn::rmsnorm`
+     - Applies Root Mean Square Layer Normalization over a mini-batch of inputs.
+
+
+Chat library
+-------------
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:class:`metalchat::bpe`
+     - Byte-pair encoder.
