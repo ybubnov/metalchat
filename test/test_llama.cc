@@ -7,7 +7,7 @@
 #include <metalchat/dtype.h>
 #include <metalchat/functional.h>
 #include <metalchat/kernel/sort.h>
-#include <metalchat/llama.h>
+#include <metalchat/nn/llama.h>
 #include <metalchat/tensor.h>
 
 
@@ -25,7 +25,7 @@ TEST_CASE("Test make model", "[llama]")
     auto alloc2 = hardware_resident_allocator(alloc1, gpu0.get_hardware_device());
 
     gpu0.set_allocator(std::move(alloc2));
-    auto options = llama::attention_options{
+    auto options = nn::attention_options{
         .head_dim = 64,
         .n_heads = 32,
         .n_kv_heads = 8,
@@ -33,7 +33,7 @@ TEST_CASE("Test make model", "[llama]")
         .rope_theta = 500000.0
     };
 
-    llama::model<bf16> m(16, options, gpu0);
+    nn::llama<bf16> m(16, options, gpu0);
     m.initialize(tensors, make_rebind_allocator<bf16>(gpu0.get_allocator()));
 
     auto heap_size = std::size_t(512) * 1024 * 1024;

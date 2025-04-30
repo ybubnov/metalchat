@@ -14,7 +14,7 @@
 
 
 namespace metalchat {
-namespace llama {
+namespace nn {
 
 
 struct attention_options {
@@ -43,7 +43,7 @@ private:
 
     nn::rope<T> m_rope;
 
-    attention_options m_options;
+    nn::attention_options m_options;
     T m_scale;
 
     shared_tensor<T, input_size, hardware_memory_container<T>> _m_cache_k;
@@ -174,11 +174,11 @@ public:
     friend std::ostream&
     operator<<(std::ostream& os, const attention&)
     {
-        os << "llama::attention<" << type_traits<T>::name() << ">()";
+        os << "nn::attention<" << type_traits<T>::name() << ">()";
         return os;
     }
 };
 
 
-} // namespace llama
+} // namespace nn
 } // namespace metalchat

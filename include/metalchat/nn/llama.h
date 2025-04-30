@@ -11,18 +11,18 @@
 #include <metalchat/format.h>
 #include <metalchat/functional.h>
 #include <metalchat/layer.h>
-#include <metalchat/llama/transformer.h>
 #include <metalchat/nn/embedding.h>
 #include <metalchat/nn/rmsnorm.h>
+#include <metalchat/nn/transformer.h>
 #include <metalchat/safetensor.h>
 
 
 namespace metalchat {
-namespace llama {
+namespace nn {
 
 
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class model : public layer {
+class llama : public layer {
 private:
     nn::embedding<T, hardware_memory_container<T>> _m_embedding;
     nn::rmsnorm<T, Container> _m_norm;
@@ -48,10 +48,10 @@ private:
     }
 
 public:
-    model(model&&) = default;
-    model(const model&) = delete;
+    llama(llama&&) = default;
+    llama(const llama&) = delete;
 
-    model(std::size_t nlayers, attention_options& options, hardware_accelerator& gpu)
+    llama(std::size_t nlayers, attention_options& options, hardware_accelerator& gpu)
     : layer(),
       _m_embedding(gpu),
       _m_norm(gpu),
@@ -91,5 +91,5 @@ public:
 };
 
 
-} // namespace llama
+} // namespace nn
 } // namespace metalchat

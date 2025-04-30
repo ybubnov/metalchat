@@ -1,0 +1,3 @@
+module MetalChat {
+    header "metalchat.h"
+}

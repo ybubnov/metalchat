@@ -3,7 +3,7 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/functional.h>
-#include <metalchat/llama.h>
+#include <metalchat/nn.h>
 #include <metalchat/tensor.h>
 
 
@@ -16,7 +16,7 @@ TEST_CASE("Test model load", "[safetensor]")
     metalchat::hardware_accelerator gpu0("metalchat.metallib", 16);
     metalchat::safetensor_file tensors("../llama32.safetensors");
 
-    auto options = llama::attention_options{
+    auto options = nn::attention_options{
         .head_dim = 64,
         .n_heads = 32,
         .n_kv_heads = 8,
@@ -27,7 +27,7 @@ TEST_CASE("Test model load", "[safetensor]")
     auto alloc0 = gpu0.get_allocator();
     auto alloc1 = make_rebind_allocator<bf16>(alloc0);
 
-    llama::model<bf16> m(16, options, gpu0);
+    nn::llama<bf16> m(16, options, gpu0);
     m.initialize(tensors, alloc1);
 
     auto params = m.get_parameters();

@@ -19,8 +19,8 @@ TEST_CASE("Test function parameters", "function")
     REQUIRE(weight.size(0) == 3);
     REQUIRE(weight.size(1) == 5);
 
-    auto output = linear(shared_tensor(full<float>({10, 3}, 2.0))).get();
+    auto output = linear(shared_tensor(full<float>({10, 5}, 2.0))).get();
     REQUIRE(output.dim() == 2);
     REQUIRE(output.size(0) == 10);
-    REQUIRE(output.size(1) == 5);
+    REQUIRE(output.size(1) == 3);
 }
