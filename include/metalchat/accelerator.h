@@ -6,11 +6,16 @@
 
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_thread.h>
+#include <metalchat/metal.h>
 
 
 namespace metalchat {
 
 
+/// Hardware accelerator is an abstraction of the kernel execution pipeline.
+///
+/// Accelerator is responsible of whole Metal kernels lifecycle: creation of kernels from a
+/// library, execution and scheduling of kernels, and allocation of tensors within a GPU memory.
 class hardware_accelerator {
 public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
@@ -44,34 +49,22 @@ public:
     hardware_accelerator(hardware_accelerator&&) noexcept = default;
     hardware_accelerator(const hardware_accelerator&) = delete;
 
-    hardware_accelerator(const std::filesystem::path& path, std::size_t thread_capacity = 64)
-    : _m_device(_m_make_device()),
-      _m_library(),
-      _m_kernels(),
-      _m_this_thread(_m_make_kernel_thread(thread_capacity))
-    {
-        auto path_str = path.string();
-        auto path_cstr = path_str.c_str();
+    /// Create hardware accelerator from the kernel (shader) library.
+    ///
+    /// You can create a new hardware accelerator in the following way:
+    /// ```cpp
+    /// auto gpu = hardware_accelerator("metalchat.metallib");
+    /// ```
+    ///
+    /// \param thread_capacity Specifies the size of the command buffer. Commands are executed
+    ///     in batches of `thread_capacity` size. Kernel won't be scheduled until the buffer is
+    ///     filled with the configured number of kernels, or when the execution is explicitly
+    ///     triggered (usually by calling `future_tensor::get` method).
+    hardware_accelerator(const std::filesystem::path& path, std::size_t thread_capacity = 64);
 
-        auto filepath = NS::TransferPtr(NS::String::string(path_cstr, NS::UTF8StringEncoding));
-        auto url = NS::TransferPtr(NS::URL::fileURLWithPath(filepath.get()));
-
-        NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
-        NS::Error* error_ptr = error.get();
-
-        _m_library = NS::TransferPtr(_m_device->newLibrary(url.get(), &error_ptr));
-        if (!_m_library) {
-            auto failure_reason = error_ptr->localizedDescription();
-            throw std::runtime_error(failure_reason->utf8String());
-        }
-    }
-
+    /// Get name of the hardware accelerator.
     std::string
-    name() const
-    {
-        auto device_name = NS::TransferPtr(_m_device->name());
-        return std::string(device_name->utf8String());
-    }
+    name() const;
 
     inline NS::SharedPtr<MTL::Device>
     get_hardware_device()
@@ -104,23 +97,20 @@ public:
         _m_this_thread.set_allocator(std::move(alloc));
     }
 
+    /// Load the kernel from the kernel library.
+    ///
+    /// Accelerator caches kernels, so kernel is loaded only once on the first call. A kernel
+    /// returned from this method is attached to a `shared_kernel_thread`, and could be used
+    /// to create a kernel task.
     basic_kernel
-    load(const std::string& name)
-    {
-        if (auto it = _m_kernels.find(name); it != _m_kernels.end()) {
-            return it->second;
-        }
+    load(const std::string& name);
 
-        auto kernel = basic_kernel(name, _m_library, _m_this_thread);
-        _m_kernels.insert_or_assign(name, kernel);
-        return kernel;
-    }
-
+    /// Load the kernel from kernel library.
+    ///
+    /// This is a convenience method that appends to the kernel name it's type: `name_type`, so
+    /// users won't need to format kernel name manually.
     basic_kernel
-    load(const std::string& name, const std::string& type)
-    {
-        return load(std::format("{}_{}", name, type));
-    }
+    load(const std::string& name, const std::string& type);
 };
 
 

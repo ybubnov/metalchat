@@ -7,6 +7,7 @@ Hardware Accelerator
 
 .. doxygenclass:: metalchat::hardware_accelerator
    :project: metalchat
+   :members:
 
 
 Basic Kernel
