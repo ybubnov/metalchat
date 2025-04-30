@@ -103,7 +103,7 @@ public:
     const layer&
     get_layer(const std::string& name) const
     {
-        return _m_layers.find(name);
+        return _m_layers.at(name).get();
     }
 
     void
