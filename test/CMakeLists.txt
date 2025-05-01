@@ -13,7 +13,7 @@ foreach(metalchat_TEST_SOURCE ${metalchat_TEST_SOURCES})
 
     add_executable(${metalchat_TEST} ${metalchat_TEST_SOURCE})
     target_link_libraries(${metalchat_TEST} Catch2::Catch2WithMain)
-    target_link_libraries(${metalchat_TEST} metalchat)
+    target_link_libraries(${metalchat_TEST} MetalChat)
 
     # Define a new test from the source file.
     add_test(
