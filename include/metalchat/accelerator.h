@@ -73,23 +73,20 @@ public:
     }
 
     allocator_type
-    get_allocator() const
-    {
-        return _m_this_thread.get_allocator();
-    }
+    get_allocator() const;
 
+    /// Set allocator to the current thread.
+    ///
+    /// Hardware accelerator uses a polymorphic allocator in order to provide an option to
+    /// change the implementation during kernel queue scheduling. The allocator essentially
+    /// is used to transfer all tensors allocated outside of the GPU memory to GPU memory.
+    ///
+    /// \note You can explore a variety of different allocators in
+    /// \verbatim embed:rst:inline :doc:`allocator` \endverbatim.
     void
-    set_allocator(std::shared_ptr<allocator_type::outer_allocator_type> alloc)
-    {
-        _m_this_thread.set_allocator(alloc);
-    }
+    set_allocator(allocator_type alloc);
 
-    void
-    set_allocator(allocator_type alloc)
-    {
-        _m_this_thread.set_allocator(alloc);
-    }
-
+    /// Set allocator to the current thread.
     template <basic_hardware_allocator_t<void> Allocator>
     void
     set_allocator(Allocator&& alloc)

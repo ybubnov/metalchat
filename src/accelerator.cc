@@ -29,6 +29,20 @@ hardware_accelerator::hardware_accelerator(
 }
 
 
+hardware_accelerator::allocator_type
+hardware_accelerator::get_allocator() const
+{
+    return _m_this_thread.get_allocator();
+}
+
+
+void
+hardware_accelerator::set_allocator(hardware_accelerator::allocator_type alloc)
+{
+    _m_this_thread.set_allocator(alloc);
+}
+
+
 std::string
 hardware_accelerator::name() const
 {
