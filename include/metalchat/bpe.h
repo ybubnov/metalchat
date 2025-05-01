@@ -267,6 +267,10 @@ public:
         return to_tensor<index_type>({ids.size()}, ids.cbegin(), ids.cend());
     }
 
+    /// Decode a single position-encoded token to the string representation.
+    ///
+    /// Method at first attempts to find a token within a model token map, then tries to
+    /// query special tokens. In token is not found, method raises an exception.
     const std::string
     decode(index_type id) const
     {
@@ -279,6 +283,11 @@ public:
         throw std::runtime_error(std::format("bpe: unable to decode id '{}'", id));
     }
 
+    /// Iteratively decode a sequence of position-encoded tokens.
+    ///
+    /// The result of decoding is sequentially appended to the specified container. If one
+    /// of the tokens is not decoded correctly, an exception is raised. All successfully
+    /// decoded tokens before thrown exception are left in the container.
     template <std::forward_iterator ForwardIt, push_back_container PushBackContainer>
     void
     decode(ForwardIt first, ForwardIt last, PushBackContainer output) const
