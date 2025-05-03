@@ -22,6 +22,9 @@ private:
     hardware_accelerator& _m_accelerator;
 
 public:
+    linear(const linear&) = delete;
+    linear(linear&&) = default;
+
     linear(shared_tensor<T, 2, WeightContainer> weight, hardware_accelerator& gpu)
     : layer(),
       _m_weight(weight),
@@ -53,6 +56,10 @@ public:
         return os;
     }
 };
+
+
+template <typename T, contiguous_container WeightContainer>
+using shared_linear = shared_layer<linear<T, WeightContainer>>;
 
 
 } // namespace nn

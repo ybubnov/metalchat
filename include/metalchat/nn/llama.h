@@ -24,12 +24,13 @@ namespace nn {
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class llama : public layer {
 private:
-    nn::embedding<T, hardware_memory_container<T>> _m_embedding;
-    nn::rmsnorm<T, Container> _m_norm;
-    nn::linear<T, hardware_memory_container<T>> _m_output;
-
-    std::list<transformer<T, Container>> _m_transforms;
     std::reference_wrapper<hardware_accelerator> _m_gpu;
+
+    nn::shared_embedding<T, Container> _m_embedding;
+    nn::shared_rmsnorm<T, Container> _m_norm;
+    nn::shared_linear<T, Container> _m_output;
+
+    std::list<shared_transformer<T, Container>> _m_transforms;
 
     auto
     create_additive_causal_mask(const std::size_t size) const
@@ -48,29 +49,30 @@ private:
     }
 
 public:
-    llama(llama&&) = default;
+    using value_type = T;
+    using result_type = future_tensor<value_type, 3>;
+
     llama(const llama&) = delete;
+    llama(llama&& l) = default;
 
     llama(std::size_t nlayers, attention_options& options, hardware_accelerator& gpu)
     : layer(),
-      _m_embedding(gpu),
-      _m_norm(gpu),
-      _m_output(gpu),
-      _m_transforms(),
       _m_gpu(gpu)
     {
-        register_layer("tok_embeddings", _m_embedding);
-        register_layer("norm", _m_norm);
-        register_layer("output", _m_output);
+        _m_embedding = register_layer("tok_embeddings", nn::embedding<T, Container>(gpu));
+        _m_norm = register_layer("norm", nn::rmsnorm<T, Container>(gpu));
+        _m_output = register_layer("output", nn::linear<T, Container>(gpu));
+
+        using layer_type = nn::transformer<T, Container>;
 
         for (std::size_t i = 0; i < nlayers; i++) {
-            _m_transforms.emplace_back(options, gpu);
-            register_layer(std::format("layers.{}", i), _m_transforms.back());
+            auto layer_ptr = register_layer(std::format("layers.{}", i), layer_type(options, gpu));
+            _m_transforms.push_back(layer_ptr);
         }
     }
 
     template <immutable_tensor2_t<int32_t> Input>
-    auto
+    result_type
     operator()(Input input, std::size_t start_pos = 0)
     {
         const auto mask = create_additive_causal_mask(input.size(1));
@@ -87,6 +89,18 @@ public:
         output = output[s(), s(seqlen - 1, seqlen), s()];
 
         return _m_output(output);
+    }
+
+    result_type
+    operator()(shared_hardware_tensor<T, 2> input, std::size_t start_pos = 0)
+    {
+        return operator()<shared_hardware_tensor<T, 2>>(input, start_pos);
+    }
+
+    void
+    print()
+    {
+        std::cout << "llama!!" << std::endl;
     }
 };
 

@@ -61,11 +61,12 @@ concept hardware_allocator_t
       && std::same_as<typename Allocator::container_type, hardware_memory_container<T>>;
 
 
-/// The class template `basic_hardware_memory_allocator` is a virtual class that should
-/// inherit allocator implementations that are expected to used within a polymorphic
-/// hardware memory allocator. Essentially, all virtual methods presented in this class
-/// represent all necessary methods that are requested by `allocator` concept, so all
-/// allocators should automatically implement this virtual class, if inherited from this struct.
+/// This class template is a virtual class that should be inherited by allocator implementations
+/// that are expected to be used within a polymorphic hardware memory allocator.
+///
+/// Essentially, all virtual methods presented in this class represent all necessary methods that
+/// are requested by `allocator` concept, so all allocators should automatically implement this
+/// virtual class, if inherited from this struct.
 ///
 /// Example of usage:
 /// ```cpp
@@ -82,13 +83,13 @@ concept hardware_allocator_t
 ///     using container_pointer = std::shared_ptr<container_type>;
 ///
 ///     container_pointer
-///     allocate(size_type size) override
+///     allocate(size_type size)
 ///     {
 ///         // allocate a new container.
 ///     }
 ///
 ///     container_pointer
-///     allocate(const_pointer ptr, size_type size) override
+///     allocate(const_pointer ptr, size_type size)
 ///     {
 ///         // allocate a new container and initialize with data from ptr.
 ///     }
@@ -184,9 +185,9 @@ private:
 };
 
 
-/// The `rebind_hardware_allocator` is used to cast type of elements allocated in the contiguous
-/// hardware memory, that are allocated with incomplete allocator type. Allocator is incomplete,
-/// when `Allocator::value_type` is equal to `void`.
+/// This allocator is used to cast type of elements allocated in the contiguous hardware memory,
+/// that are allocated with incomplete allocator type. Allocator is incomplete, when
+/// `Allocator::value_type` is equal to `void`.
 ///
 /// The implementation only allows cast from incomplete allocator type, since the parent
 /// allocator might exploit different memory alignment depending from the underlying type.
@@ -216,7 +217,7 @@ public:
     ///
     /// Use of this function is ill-formed if `T` is incomplete type.
     container_pointer
-    allocate(size_type size) override
+    allocate(size_type size)
     {
         // It is totally fine to use reinterpret pointer case here, since the template
         // value type of a hardware memory container does not influence on a memory layout
@@ -226,7 +227,7 @@ public:
 
     /// Allocates `size * sizeof(T)` bytes and initializes them with the data stored at `ptr`.
     container_pointer
-    allocate(const_pointer ptr, size_type size) override
+    allocate(const_pointer ptr, size_type size)
     {
         return std::reinterpret_pointer_cast<container_type>(
             _m_alloc.allocate(ptr, sizeof(T) * size)
@@ -266,13 +267,13 @@ public:
     {}
 
     container_pointer
-    allocate(size_type size) override
+    allocate(size_type size)
     {
         return _m_alloc.allocate(size);
     }
 
     container_pointer
-    allocate(const_pointer ptr, size_type size) override
+    allocate(const_pointer ptr, size_type size)
     {
         auto options = MTL::ResourceStorageModeManaged | MTL::ResourceHazardTrackingModeUntracked;
         // TODO: template specialization for non-void types.
@@ -385,13 +386,13 @@ public:
     }
 
     container_pointer
-    allocate(size_type size) override
+    allocate(size_type size)
     {
         return _m_memory_move(_m_alloc.allocate(size));
     }
 
     container_pointer
-    allocate(const_pointer ptr, size_type size) override
+    allocate(const_pointer ptr, size_type size)
     {
         return _m_memory_move(_m_alloc.allocate(ptr, size));
     }
@@ -434,7 +435,7 @@ public:
     {}
 
     container_pointer
-    allocate(size_type size) override
+    allocate(size_type size)
     {
         auto memory_size = size * sizeof(value_type);
         auto memory_ptr = _m_device->newBuffer(memory_size, MTL::ResourceStorageModeShared);
@@ -443,7 +444,7 @@ public:
     }
 
     container_pointer
-    allocate(const_pointer ptr, size_type size) override
+    allocate(const_pointer ptr, size_type size)
     {
         auto memory_size = size * sizeof(value_type);
         auto memory_ptr = _m_device->newBuffer(ptr, memory_size, MTL::ResourceStorageModeShared);
@@ -510,13 +511,13 @@ public:
     }
 
     container_pointer
-    allocate(size_type size) override
+    allocate(size_type size)
     {
         return _m_allocate(size);
     }
 
     container_pointer
-    allocate(const_pointer ptr, size_type size) override
+    allocate(const_pointer ptr, size_type size)
     {
         auto container = _m_allocate(size);
         std::memcpy(container->storage()->contents(), ptr, size);
@@ -570,14 +571,14 @@ public:
     {}
 
     container_pointer
-    allocate(size_type size) override
+    allocate(size_type size)
     {
         auto memory_ptr = _m_device->newBuffer(size, MTL::ResourceStorageModeShared);
         return std::make_shared<container_type>(memory_ptr);
     }
 
     container_pointer
-    allocate(const_pointer ptr, size_type size) override
+    allocate(const_pointer ptr, size_type size)
     {
         auto memory_ptr = _m_device->newBuffer(ptr, size, MTL::ResourceStorageModeShared);
         return std::make_shared<container_type>(memory_ptr);

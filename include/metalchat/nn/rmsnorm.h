@@ -48,5 +48,9 @@ public:
 };
 
 
+template <typename T, contiguous_container Container>
+using shared_rmsnorm = shared_layer<rmsnorm<T, Container>>;
+
+
 } // namespace nn
 } // namespace metalchat

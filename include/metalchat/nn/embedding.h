@@ -19,6 +19,9 @@ private:
     kernel::embedding<T> _m_embedding;
 
 public:
+    embedding(embedding&&) = default;
+    embedding(const embedding&) = delete;
+
     embedding(shared_tensor<T, 2, Container> weight, hardware_accelerator& gpu)
     : layer(),
       _m_weight(weight),
@@ -50,6 +53,10 @@ public:
         return os;
     }
 };
+
+
+template <typename T, contiguous_container Container>
+using shared_embedding = shared_layer<embedding<T, Container>>;
 
 
 template <typename T> class rope : public layer {

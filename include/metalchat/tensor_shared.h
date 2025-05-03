@@ -233,6 +233,10 @@ private:
 };
 
 
+template <typename T, std::size_t N>
+using shared_hardware_tensor = shared_tensor<T, N, hardware_memory_container<T>>;
+
+
 template <typename T, std::size_t N, contiguous_container Container>
 shared_tensor(tensor<T, N, Container>&&) -> shared_tensor<T, N, Container>;
 

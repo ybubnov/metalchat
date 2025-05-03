@@ -18,9 +18,9 @@ namespace nn {
 
 template <typename T, contiguous_container Container> class feed_forward : public layer {
 private:
-    nn::linear<T, Container> _m_w1;
-    nn::linear<T, Container> _m_w2;
-    nn::linear<T, Container> _m_w3;
+    nn::shared_linear<T, Container> _m_w1;
+    nn::shared_linear<T, Container> _m_w2;
+    nn::shared_linear<T, Container> _m_w3;
 
     hardware_accelerator& _m_gpu;
 
@@ -30,14 +30,11 @@ public:
 
     feed_forward(hardware_accelerator& gpu)
     : layer(),
-      _m_w1(gpu),
-      _m_w2(gpu),
-      _m_w3(gpu),
       _m_gpu(gpu)
     {
-        register_layer("w1", _m_w1);
-        register_layer("w2", _m_w2);
-        register_layer("w3", _m_w3);
+        _m_w1 = register_layer("w1", nn::linear<T, Container>(gpu));
+        _m_w2 = register_layer("w2", nn::linear<T, Container>(gpu));
+        _m_w3 = register_layer("w3", nn::linear<T, Container>(gpu));
     }
 
     template <immutable_tensor3_t<T> Input>
@@ -59,13 +56,17 @@ public:
 };
 
 
+template <typename T, contiguous_container Container>
+using shared_feed_forward = shared_layer<feed_forward<T, Container>>;
+
+
 template <typename T, contiguous_container Container> class transformer : public layer {
 private:
-    nn::attention<T, Container> _m_attention;
-    nn::rmsnorm<T, Container> _m_attention_norm;
+    nn::shared_attention<T, Container> _m_attention;
+    nn::shared_rmsnorm<T, Container> _m_attention_norm;
 
-    feed_forward<T, Container> _m_ff;
-    nn::rmsnorm<T, Container> _m_ff_norm;
+    nn::shared_feed_forward<T, Container> _m_ff;
+    nn::shared_rmsnorm<T, Container> _m_ff_norm;
 
     hardware_accelerator& _m_gpu;
 
@@ -75,16 +76,12 @@ public:
 
     transformer(attention_options& options, hardware_accelerator& gpu)
     : layer(),
-      _m_attention(options, gpu),
-      _m_attention_norm(gpu),
-      _m_ff(gpu),
-      _m_ff_norm(gpu),
       _m_gpu(gpu)
     {
-        register_layer("attention", _m_attention);
-        register_layer("attention_norm", _m_attention_norm);
-        register_layer("feed_forward", _m_ff);
-        register_layer("ffn_norm", _m_ff_norm);
+        _m_attention = register_layer("attention", nn::attention<T, Container>(options, gpu));
+        _m_attention_norm = register_layer("attention_norm", nn::rmsnorm<T, Container>(gpu));
+        _m_ff = register_layer("feed_forward", nn::feed_forward<T, Container>(gpu));
+        _m_ff_norm = register_layer("ffn_norm", nn::rmsnorm<T, Container>(gpu));
     }
 
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
@@ -105,6 +102,10 @@ public:
         return os;
     }
 };
+
+
+template <typename T, contiguous_container Container>
+using shared_transformer = shared_layer<transformer<T, Container>>;
 
 
 } // namespace nn

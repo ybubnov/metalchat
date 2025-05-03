@@ -22,18 +22,62 @@ constexpr_switch(T index, std::integer_sequence<T, Indices...>, Function functio
 }
 
 
+template <typename Layer> class shared_layer {
+public:
+    shared_layer()
+    : _m_value(nullptr)
+    {}
+
+    shared_layer(Layer&& layer)
+    : _m_value(std::move(layer))
+    {}
+
+    shared_layer(std::shared_ptr<Layer> shared_layer)
+    : _m_value(shared_layer)
+    {}
+
+    template <class... Args>
+    std::invoke_result_t<Layer&, Args...>
+    operator()(Args... args)
+    {
+        return (*_m_value)(args...);
+    }
+
+    std::shared_ptr<Layer>
+    get()
+    {
+        return _m_value;
+    }
+
+    Layer*
+    operator->() noexcept
+    {
+        return _m_value;
+    }
+
+    Layer&
+    operator*() noexcept
+    {
+        return (*_m_value);
+    }
+
+private:
+    std::shared_ptr<Layer> _m_value;
+};
+
+
 /// Layer is a basic building block of neural networks in MetalChat. A layer specifies a set of
 /// (trainable) parameters it uses for computation and a set of upstream layers, used within a
 /// layer computation logic.
 class layer {
 public:
-    using reference = std::reference_wrapper<layer>;
+    using pointer = std::shared_ptr<layer>;
 
     using parameter_container = std::unordered_map<std::string, polymorphic_tensor>;
-    using layer_container = std::unordered_map<std::string, reference>;
+    using layer_container = std::unordered_map<std::string, pointer>;
 
-    layer(layer&&) = default;
     layer(const layer&) = delete;
+    layer(layer&& other) = default;
 
     layer()
     : _m_layers(),
@@ -78,8 +122,8 @@ public:
     /// class custom_layer : public layer {
     /// private:
     ///     // Declare upstream layers here.
-    ///     nn::linear<float> linear1;
-    ///     nn::linear<float> linear2;
+    ///     nn::linear_ptr<float> linear1;
+    ///     nn::linear_ptr<float> linear2;
     ///
     /// public:
     ///    custom_layer(hardware_accelerator& accelerator)
@@ -91,10 +135,13 @@ public:
     ///    }
     /// };
     /// ```
-    void
-    register_layer(const std::string& name, layer& l)
+    template <typename Layer>
+    shared_layer<Layer>
+    register_layer(const std::string& name, Layer&& l)
     {
-        _m_layers.insert_or_assign(name, std::ref(l));
+        auto layer_ptr = std::make_shared<Layer>(std::move(l));
+        _m_layers.emplace(name, layer_ptr);
+        return shared_layer(layer_ptr);
     }
 
     /// Get upstream layer by name. This method does not perform recurse lookup and only
@@ -103,7 +150,7 @@ public:
     const layer&
     get_layer(const std::string& name) const
     {
-        return _m_layers.at(name).get();
+        return (*_m_layers.at(name).get());
     }
 
     void
@@ -165,16 +212,16 @@ public:
         std::deque<layer_type> layers(_m_layers.begin(), _m_layers.end());
 
         while (!layers.empty()) {
-            auto [name, layer] = layers.front();
+            auto [name, layer_ptr] = layers.front();
             layers.pop_front();
 
             // Iterate over the downstream layers, and push them back to the queue.
-            for (auto [child_name, child_layer] : layer.get()._m_layers) {
+            for (auto [child_name, child_layer_ref] : layer_ptr->_m_layers) {
                 auto full_name = name + "." + child_name;
-                layers.emplace_back(full_name, child_layer);
+                layers.emplace_back(full_name, child_layer_ref);
             }
 
-            for (auto [param_name, param] : layer.get()._m_params) {
+            for (auto [param_name, param] : layer_ptr->_m_params) {
                 auto full_name = name + "." + param_name;
                 params.insert_or_assign(full_name, param);
             }

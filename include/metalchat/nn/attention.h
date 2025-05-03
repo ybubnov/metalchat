@@ -36,10 +36,10 @@ template <typename T, contiguous_container Container> class attention : public l
 private:
     static constexpr std::size_t input_size = 4;
 
-    nn::linear<T, Container> m_wq;
-    nn::linear<T, Container> m_wk;
-    nn::linear<T, Container> m_wv;
-    nn::linear<T, Container> m_wo;
+    nn::shared_linear<T, Container> m_wq;
+    nn::shared_linear<T, Container> m_wk;
+    nn::shared_linear<T, Container> m_wv;
+    nn::shared_linear<T, Container> m_wo;
 
     nn::rope<T> m_rope;
 
@@ -97,10 +97,6 @@ public:
 
     attention(attention_options& options, hardware_accelerator& gpu, std::size_t max_batch_size = 1)
     : layer(),
-      m_wq(gpu),
-      m_wk(gpu),
-      m_wv(gpu),
-      m_wo(gpu),
       m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, gpu),
       m_options(options),
       m_scale(1.0 / std::sqrt(float(options.head_dim))),
@@ -115,10 +111,10 @@ public:
       _m_cpy(gpu),
       _m_gpu(gpu)
     {
-        register_layer("wq", m_wq);
-        register_layer("wk", m_wk);
-        register_layer("wv", m_wv);
-        register_layer("wo", m_wo);
+        m_wq = register_layer("wq", nn::linear<T, Container>(gpu));
+        m_wk = register_layer("wk", nn::linear<T, Container>(gpu));
+        m_wv = register_layer("wv", nn::linear<T, Container>(gpu));
+        m_wo = register_layer("wo", nn::linear<T, Container>(gpu));
 
         register_parameter("cache_k", _m_cache_k.get());
         register_parameter("cache_v", _m_cache_v.get());
@@ -178,6 +174,10 @@ public:
         return os;
     }
 };
+
+
+template <typename T, contiguous_container Container>
+using shared_attention = shared_layer<attention<T, Container>>;
 
 
 } // namespace nn
