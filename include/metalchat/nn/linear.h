@@ -22,9 +22,6 @@ private:
     hardware_accelerator& _m_accelerator;
 
 public:
-    linear(const linear&) = delete;
-    linear(linear&&) = default;
-
     linear(shared_tensor<T, 2, WeightContainer> weight, hardware_accelerator& gpu)
     : layer(),
       _m_weight(weight),

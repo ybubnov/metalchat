@@ -122,16 +122,16 @@ public:
     /// class custom_layer : public layer {
     /// private:
     ///     // Declare upstream layers here.
-    ///     nn::linear_ptr<float> linear1;
-    ///     nn::linear_ptr<float> linear2;
+    ///     nn::shared_linear<float> linear1;
+    ///     nn::shared_linear<float> linear2;
     ///
     /// public:
     ///    custom_layer(hardware_accelerator& accelerator)
-    ///    : layer(), linear1(accelerator), linear2(accelerator)
+    ///    : layer()
     ///    {
     ///       // Register layers here.
-    ///       register_layer("linear1", linear1);
-    ///       register_layer("linear2", linear2);
+    ///       linear = register_layer("linear1", nn::linear<float>(accelerator));
+    ///       linear = register_layer("linear2", nn::linear<float>(accelerator));
     ///    }
     /// };
     /// ```

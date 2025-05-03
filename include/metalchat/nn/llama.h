@@ -52,9 +52,6 @@ public:
     using value_type = T;
     using result_type = future_tensor<value_type, 3>;
 
-    llama(const llama&) = delete;
-    llama(llama&& l) = default;
-
     llama(std::size_t nlayers, attention_options& options, hardware_accelerator& gpu)
     : layer(),
       _m_gpu(gpu)

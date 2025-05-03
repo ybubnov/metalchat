@@ -22,12 +22,9 @@ private:
     nn::shared_linear<T, Container> _m_w2;
     nn::shared_linear<T, Container> _m_w3;
 
-    hardware_accelerator& _m_gpu;
+    std::reference_wrapper<hardware_accelerator> _m_gpu;
 
 public:
-    feed_forward(feed_forward&&) = default;
-    feed_forward(const feed_forward&) = delete;
-
     feed_forward(hardware_accelerator& gpu)
     : layer(),
       _m_gpu(gpu)
@@ -68,12 +65,9 @@ private:
     nn::shared_feed_forward<T, Container> _m_ff;
     nn::shared_rmsnorm<T, Container> _m_ff_norm;
 
-    hardware_accelerator& _m_gpu;
+    std::reference_wrapper<hardware_accelerator> _m_gpu;
 
 public:
-    transformer(transformer&&) = default;
-    transformer(const transformer&) = delete;
-
     transformer(attention_options& options, hardware_accelerator& gpu)
     : layer(),
       _m_gpu(gpu)
@@ -89,10 +83,10 @@ public:
     operator()(Input input, const std::optional<Mask> mask, std::size_t start_pos = 0)
     {
         auto norm = _m_attention_norm(input);
-        auto h = add(input, _m_attention(norm, mask, start_pos), _m_gpu);
+        auto h = add(input, _m_attention(norm, mask, start_pos), _m_gpu.get());
 
         auto ff_norm = _m_ff_norm(h);
-        return add(h, _m_ff(ff_norm), _m_gpu);
+        return add(h, _m_ff(ff_norm), _m_gpu.get());
     }
 
     friend std::ostream&

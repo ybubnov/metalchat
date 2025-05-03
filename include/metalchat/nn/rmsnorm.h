@@ -16,9 +16,6 @@ private:
     kernel::rmsnorm<T> _m_norm;
 
 public:
-    rmsnorm(rmsnorm&&) = default;
-    rmsnorm(const rmsnorm&) = delete;
-
     rmsnorm(tensor<T, 1, Container>&& weight, hardware_accelerator& gpu)
     : layer(),
       _m_weight(std::move(weight)),

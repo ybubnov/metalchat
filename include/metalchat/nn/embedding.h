@@ -19,9 +19,6 @@ private:
     kernel::embedding<T> _m_embedding;
 
 public:
-    embedding(embedding&&) = default;
-    embedding(const embedding&) = delete;
-
     embedding(shared_tensor<T, 2, Container> weight, hardware_accelerator& gpu)
     : layer(),
       _m_weight(weight),
@@ -98,8 +95,6 @@ private:
     }
 
 public:
-    rope(rope&&) = default;
-
     rope(std::size_t dim, std::size_t max_seq_len, float theta, hardware_accelerator& gpu)
     : layer(),
       _m_dim(dim),
