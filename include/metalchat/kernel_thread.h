@@ -260,7 +260,7 @@ public:
 };
 
 
-class shared_kernel_thread {
+class kernel_thread_group {
 public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
 
@@ -275,9 +275,9 @@ private:
     allocator_type _m_allocator;
 
 public:
-    shared_kernel_thread(const shared_kernel_thread&) noexcept = default;
+    kernel_thread_group(const kernel_thread_group&) noexcept = default;
 
-    shared_kernel_thread(
+    kernel_thread_group(
         NS::SharedPtr<MTL::CommandQueue> queue, std::size_t thread_capacity, allocator_type alloc
     )
     : _m_queue(queue),

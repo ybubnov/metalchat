@@ -19,20 +19,20 @@ private:
     kernel::embedding<T> _m_embedding;
 
 public:
-    embedding(shared_tensor<T, 2, Container> weight, hardware_accelerator& gpu)
-    : layer(),
+    embedding(shared_tensor<T, 2, Container> weight, hardware_accelerator accelerator)
+    : layer(accelerator),
       _m_weight(weight),
-      _m_embedding(gpu)
+      _m_embedding(accelerator)
     {
         register_parameter("weight", _m_weight.get());
     }
 
-    embedding(tensor<T, 2, Container>&& weight, hardware_accelerator& gpu)
-    : embedding(shared_tensor(std::move(weight)), gpu)
+    embedding(tensor<T, 2, Container>&& weight, hardware_accelerator accelerator)
+    : embedding(shared_tensor(std::move(weight)), accelerator)
     {}
 
-    embedding(hardware_accelerator& gpu)
-    : embedding(shared_tensor(tensor<T, 2, Container>()), gpu)
+    embedding(hardware_accelerator accelerator)
+    : embedding(shared_tensor(tensor<T, 2, Container>()), accelerator)
     {}
 
     template <immutable_tensor2_t<int32_t> Input>
@@ -95,14 +95,14 @@ private:
     }
 
 public:
-    rope(std::size_t dim, std::size_t max_seq_len, float theta, hardware_accelerator& gpu)
-    : layer(),
+    rope(std::size_t dim, std::size_t max_seq_len, float theta, hardware_accelerator accelerator)
+    : layer(accelerator),
       _m_dim(dim),
       _m_max_seq_len(max_seq_len),
       _m_theta(theta),
-      _m_freqs_cos(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, gpu.get_allocator())),
-      _m_freqs_sin(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, gpu.get_allocator())),
-      _m_rope(gpu)
+      _m_freqs_cos(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, accelerator.get_allocator())),
+      _m_freqs_sin(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, accelerator.get_allocator())),
+      _m_rope(accelerator)
     {
         std::vector<float> freqs(_m_dim / 2);
         for (std::size_t i = 0; i < freqs.size(); i++) {

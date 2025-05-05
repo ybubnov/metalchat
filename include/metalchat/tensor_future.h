@@ -143,6 +143,8 @@ public:
     : future_tensor(shared_tensor(std::move(result)))
     {}
 
+    /// Waits for (by calling `wait()`) until the shared tensor is ready, then retrieves
+    /// the value stored in the shared state.
     result_type
     get()
     {

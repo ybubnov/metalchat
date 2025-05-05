@@ -24,8 +24,6 @@ namespace nn {
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class llama : public layer {
 private:
-    std::reference_wrapper<hardware_accelerator> _m_gpu;
-
     nn::shared_embedding<T, Container> _m_embedding;
     nn::shared_rmsnorm<T, Container> _m_norm;
     nn::shared_linear<T, Container> _m_output;
@@ -39,7 +37,7 @@ private:
 
         if (size > 1) {
             const T infinity = T(std::numeric_limits<float>::infinity());
-            auto m = full<T>({size, size}, -infinity, _m_gpu.get().get_allocator());
+            auto m = full<T>({size, size}, -infinity, accelerator().get_allocator());
             triu(m);
 
             mask = std::make_optional(std::move(m));
@@ -52,9 +50,8 @@ public:
     using value_type = T;
     using result_type = future_tensor<value_type, 3>;
 
-    llama(std::size_t nlayers, attention_options& options, hardware_accelerator& gpu)
-    : layer(),
-      _m_gpu(gpu)
+    llama(std::size_t nlayers, attention_options& options, hardware_accelerator gpu)
+    : layer(gpu)
     {
         _m_embedding = register_layer("tok_embeddings", nn::embedding<T, Container>(gpu));
         _m_norm = register_layer("norm", nn::rmsnorm<T, Container>(gpu));

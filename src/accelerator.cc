@@ -10,7 +10,7 @@ hardware_accelerator::hardware_accelerator(
 : _m_device(_m_make_device()),
   _m_library(),
   _m_kernels(),
-  _m_this_thread(_m_make_kernel_thread(thread_capacity))
+  _m_this_thread_group(_m_make_kernel_thread_group(thread_capacity))
 {
     auto path_str = path.string();
     auto path_cstr = path_str.c_str();
@@ -32,14 +32,14 @@ hardware_accelerator::hardware_accelerator(
 hardware_accelerator::allocator_type
 hardware_accelerator::get_allocator() const
 {
-    return _m_this_thread.get_allocator();
+    return _m_this_thread_group->get_allocator();
 }
 
 
 void
 hardware_accelerator::set_allocator(hardware_accelerator::allocator_type alloc)
 {
-    _m_this_thread.set_allocator(alloc);
+    _m_this_thread_group->set_allocator(alloc);
 }
 
 
@@ -58,7 +58,7 @@ hardware_accelerator::load(const std::string& name)
         return it->second;
     }
 
-    auto kernel = basic_kernel(name, _m_library, _m_this_thread);
+    auto kernel = basic_kernel(name, _m_library, _m_this_thread_group);
     _m_kernels.insert_or_assign(name, kernel);
     return kernel;
 }

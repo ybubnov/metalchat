@@ -19,30 +19,28 @@ namespace nn {
 template <typename T, contiguous_container WeightContainer> class linear : public layer {
 private:
     shared_tensor<T, 2, WeightContainer> _m_weight;
-    hardware_accelerator& _m_accelerator;
 
 public:
-    linear(shared_tensor<T, 2, WeightContainer> weight, hardware_accelerator& gpu)
-    : layer(),
-      _m_weight(weight),
-      _m_accelerator(gpu)
+    linear(shared_tensor<T, 2, WeightContainer> weight, hardware_accelerator accelerator)
+    : layer(accelerator),
+      _m_weight(weight)
     {
         register_parameter("weight", _m_weight.get());
     }
 
-    linear(tensor<T, 2, WeightContainer>&& weight, hardware_accelerator& gpu)
-    : linear(shared_tensor(std::move(weight)), gpu)
+    linear(tensor<T, 2, WeightContainer>&& weight, hardware_accelerator accelerator)
+    : linear(shared_tensor(std::move(weight)), accelerator)
     {}
 
-    linear(hardware_accelerator& gpu)
-    : linear(shared_tensor(tensor<T, 2, WeightContainer>()), gpu)
+    linear(hardware_accelerator accelerator)
+    : linear(shared_tensor(tensor<T, 2, WeightContainer>()), accelerator)
     {}
 
     template <immutable_tensor_t<T> Input>
     auto
     operator()(Input input)
     {
-        return matmul(input, _m_weight.transpose({1, 0}), _m_accelerator);
+        return matmul(input, _m_weight.transpose({1, 0}), accelerator());
     }
 
     friend std::ostream&

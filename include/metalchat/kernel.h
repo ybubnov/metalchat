@@ -18,8 +18,7 @@ private:
     NS::SharedPtr<MTL::Function> _m_function;
     NS::SharedPtr<MTL::ComputePipelineState> _m_pipeline;
 
-    // TODO: is it a good idea to use a reference wrapper here?
-    std::reference_wrapper<shared_kernel_thread> _m_kernel_thread;
+    std::shared_ptr<kernel_thread_group> _m_kernel_thread_group;
 
 public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
@@ -27,12 +26,12 @@ public:
     basic_kernel(
         const std::string& name,
         NS::SharedPtr<MTL::Library> library,
-        shared_kernel_thread& kernel_thread
+        std::shared_ptr<kernel_thread_group> group
     )
     : _m_name(name),
       _m_function(),
       _m_pipeline(),
-      _m_kernel_thread(kernel_thread)
+      _m_kernel_thread_group(group)
     {
         auto fn_name = NS::TransferPtr(NS::String::string(name.c_str(), NS::UTF8StringEncoding));
         _m_function = NS::TransferPtr(library->newFunction(fn_name.get()));
@@ -75,7 +74,7 @@ public:
     allocator_type
     get_allocator()
     {
-        return _m_kernel_thread.get().get_allocator();
+        return _m_kernel_thread_group->get_allocator();
     }
 
     std::size_t
@@ -87,7 +86,7 @@ public:
     std::shared_ptr<kernel_thread>
     get_this_thread()
     {
-        return _m_kernel_thread.get().get_this_thread();
+        return _m_kernel_thread_group->get_this_thread();
     }
 
     MTL::ComputePipelineState*

@@ -16,16 +16,16 @@ private:
     kernel::rmsnorm<T> _m_norm;
 
 public:
-    rmsnorm(tensor<T, 1, Container>&& weight, hardware_accelerator& gpu)
-    : layer(),
+    rmsnorm(tensor<T, 1, Container>&& weight, hardware_accelerator accelerator)
+    : layer(accelerator),
       _m_weight(std::move(weight)),
-      _m_norm(gpu)
+      _m_norm(accelerator)
     {
         register_parameter("weight", _m_weight.get());
     }
 
-    rmsnorm(hardware_accelerator& gpu)
-    : rmsnorm(tensor<T, 1, Container>(), gpu)
+    rmsnorm(hardware_accelerator accelerator)
+    : rmsnorm(tensor<T, 1, Container>(), accelerator)
     {}
 
     template <immutable_tensor_t<T> Input>

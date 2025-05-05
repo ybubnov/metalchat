@@ -38,8 +38,8 @@ Kernel Thread
    :project: metalchat
 
 
-Shared Kernel Thread
---------------------
+Kernel Thread Group
+-------------------
 
-.. doxygenclass:: metalchat::shared_kernel_thread
+.. doxygenclass:: metalchat::kernel_thread_group
    :project: metalchat

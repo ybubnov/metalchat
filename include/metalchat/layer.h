@@ -76,13 +76,23 @@ public:
     using parameter_container = std::unordered_map<std::string, polymorphic_tensor>;
     using layer_container = std::unordered_map<std::string, pointer>;
 
-    layer(const layer&) = delete;
-    layer(layer&& other) = default;
-
-    layer()
+    layer(hardware_accelerator accelerator)
     : _m_layers(),
-      _m_params()
+      _m_params(),
+      _m_accelerator(accelerator)
     {}
+
+    const hardware_accelerator&
+    accelerator() const
+    {
+        return _m_accelerator;
+    }
+
+    hardware_accelerator&
+    accelerator()
+    {
+        return _m_accelerator;
+    }
 
     /// Initialize a layer and all upstream layers with a given safetensor file.
     ///
@@ -109,9 +119,8 @@ public:
     /// Register an upstream layer for the current layer. The layer could be accessed using
     /// the given name using `layer::get_layer` method.
     ///
-    /// The registry of layers only keeps the reference to the upstream layer, so the programmer
-    /// should keep aware of the reference validity (it might be an issue if layers are referred
-    /// to a dynamically changed `std::vector`, which invalidates references after resizing).
+    /// The registry of layers owns the upstream layer, and the method returns a object pointing
+    /// to that owned layer.
     ///
     /// A common practice is registering upstream layers within a downstream layer constructor
     /// like in the example below.
@@ -126,8 +135,8 @@ public:
     ///     nn::shared_linear<float> linear2;
     ///
     /// public:
-    ///    custom_layer(hardware_accelerator& accelerator)
-    ///    : layer()
+    ///    custom_layer(hardware_accelerator accelerator)
+    ///    : layer(accelerator)
     ///    {
     ///       // Register layers here.
     ///       linear = register_layer("linear1", nn::linear<float>(accelerator));
@@ -144,7 +153,7 @@ public:
         return shared_layer(layer_ptr);
     }
 
-    /// Get upstream layer by name. This method does not perform recurse lookup and only
+    /// Get upstream layer by name. This method does not perform recursive lookup and only
     /// returns layers registered at the current layer. If layer is not registered, method
     /// throws exception.
     const layer&
@@ -233,6 +242,7 @@ public:
 private:
     parameter_container _m_params;
     layer_container _m_layers;
+    hardware_accelerator _m_accelerator;
 };
 
 

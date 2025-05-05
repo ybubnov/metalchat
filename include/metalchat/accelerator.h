@@ -16,6 +16,8 @@ namespace metalchat {
 ///
 /// Accelerator is responsible of whole Metal kernels lifecycle: creation of kernels from a
 /// library, execution and scheduling of kernels, and allocation of tensors within a GPU memory.
+///
+/// The hardware accelerator cannot be copied, only moved.
 class hardware_accelerator {
 public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
@@ -25,7 +27,7 @@ private:
     NS::SharedPtr<MTL::Library> _m_library;
 
     std::unordered_map<std::string, basic_kernel> _m_kernels;
-    shared_kernel_thread _m_this_thread;
+    std::shared_ptr<kernel_thread_group> _m_this_thread_group;
 
     NS::SharedPtr<MTL::Device>
     _m_make_device()
@@ -33,21 +35,22 @@ private:
         return NS::TransferPtr(MTL::CreateSystemDefaultDevice());
     }
 
-    shared_kernel_thread
-    _m_make_kernel_thread(std::size_t thread_capacity)
+    std::shared_ptr<kernel_thread_group>
+    _m_make_kernel_thread_group(std::size_t thread_capacity)
     {
         auto queue = NS::TransferPtr(_m_device->newCommandQueue());
         auto label = NS::TransferPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
         queue->setLabel(label.get());
 
         auto alloc_ptr = std::make_shared<hardware_memory_allocator<void>>(_m_device);
+        auto alloc = allocator_type(alloc_ptr);
 
-        return shared_kernel_thread(queue, thread_capacity, allocator_type(alloc_ptr));
+        return std::make_shared<kernel_thread_group>(queue, thread_capacity, alloc);
     }
 
 public:
-    hardware_accelerator(hardware_accelerator&&) noexcept = default;
-    hardware_accelerator(const hardware_accelerator&) = delete;
+    // hardware_accelerator(hardware_accelerator&&) noexcept = default;
+    // hardware_accelerator(const hardware_accelerator&) = delete;
 
     /// Create hardware accelerator from the kernel (shader) library.
     ///
@@ -91,7 +94,7 @@ public:
     void
     set_allocator(Allocator&& alloc)
     {
-        _m_this_thread.set_allocator(std::move(alloc));
+        _m_this_thread_group->set_allocator(std::move(alloc));
     }
 
     /// Load the kernel from the kernel library.

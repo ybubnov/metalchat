@@ -50,13 +50,12 @@ private:
     shared_tensor<T, input_size, hardware_memory_container<T>> _m_cache_v;
 
     kernel::cpy<T> _m_cpy;
-    std::reference_wrapper<hardware_accelerator> _m_gpu;
 
     template <immutable_tensor_t<T> Input>
     auto
     contiguous(Input input, std::size_t dim)
     {
-        auto output = future_tensor(empty_like<T>(input, _m_gpu.get().get_allocator()));
+        auto output = future_tensor(empty_like<T>(input, accelerator().get_allocator()));
 
         for (std::size_t offset = 0; offset < output.size(dim); offset++) {
             auto future = _m_cpy(input.narrow(dim, offset, 1), output.narrow(dim, offset, 1));
@@ -92,26 +91,27 @@ private:
     }
 
 public:
-    attention(attention_options& options, hardware_accelerator& gpu, std::size_t max_batch_size = 1)
-    : layer(),
-      m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, gpu),
+    attention(
+        attention_options& options, hardware_accelerator accelerator, std::size_t max_batch_size = 1
+    )
+    : layer(accelerator),
+      m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
       m_options(options),
       m_scale(1.0 / std::sqrt(float(options.head_dim))),
       _m_cache_k(empty<T>(
           {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
-          gpu.get_allocator()
+          accelerator.get_allocator()
       )),
       _m_cache_v(empty<T>(
           {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
-          gpu.get_allocator()
+          accelerator.get_allocator()
       )),
-      _m_cpy(gpu),
-      _m_gpu(gpu)
+      _m_cpy(accelerator)
     {
-        m_wq = register_layer("wq", nn::linear<T, Container>(gpu));
-        m_wk = register_layer("wk", nn::linear<T, Container>(gpu));
-        m_wv = register_layer("wv", nn::linear<T, Container>(gpu));
-        m_wo = register_layer("wo", nn::linear<T, Container>(gpu));
+        m_wq = register_layer("wq", nn::linear<T, Container>(accelerator));
+        m_wk = register_layer("wk", nn::linear<T, Container>(accelerator));
+        m_wv = register_layer("wv", nn::linear<T, Container>(accelerator));
+        m_wo = register_layer("wo", nn::linear<T, Container>(accelerator));
 
         register_parameter("cache_k", _m_cache_k.get());
         register_parameter("cache_v", _m_cache_v.get());
@@ -140,7 +140,7 @@ public:
 
         auto repeat_kv = [&]<immutable_tensor4_t<T> Tensor>(Tensor&& t) -> auto {
             int slen = t.size(1);
-            auto reps = repeat_interleave(t, n_reps, /*dim=*/2, _m_gpu.get());
+            auto reps = repeat_interleave(t, n_reps, /*dim=*/2, accelerator());
             return reps.view({bs, slen, n_heads, head_dim});
         };
 
@@ -152,13 +152,13 @@ public:
         keys = keys.transpose({0, 2, 3, 1});
         values = values.transpose({0, 2, 1, 3});
 
-        auto scores = mul(matmul(queries, keys, _m_gpu.get()), m_scale, _m_gpu.get());
+        auto scores = mul(matmul(queries, keys, accelerator()), m_scale, accelerator());
         if (mask.has_value()) {
-            scores = add2(scores, mask.value(), _m_gpu.get());
+            scores = add2(scores, mask.value(), accelerator());
         }
-        scores = softmax(scores, _m_gpu.get());
+        scores = softmax(scores, accelerator());
 
-        auto output = matmul(scores, values, _m_gpu.get()).transpose({0, 2, 1, 3});
+        auto output = matmul(scores, values, accelerator()).transpose({0, 2, 1, 3});
         output = contiguous(output, /*dim=*/1);
 
         return m_wo(output.view({bs, len, -1}));

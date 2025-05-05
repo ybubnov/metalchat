@@ -22,12 +22,9 @@ private:
     nn::shared_linear<T, Container> _m_w2;
     nn::shared_linear<T, Container> _m_w3;
 
-    std::reference_wrapper<hardware_accelerator> _m_gpu;
-
 public:
-    feed_forward(hardware_accelerator& gpu)
-    : layer(),
-      _m_gpu(gpu)
+    feed_forward(hardware_accelerator gpu)
+    : layer(gpu)
     {
         _m_w1 = register_layer("w1", nn::linear<T, Container>(gpu));
         _m_w2 = register_layer("w2", nn::linear<T, Container>(gpu));
@@ -39,9 +36,9 @@ public:
     operator()(Input input)
     {
         auto input2 = _m_w3(input);
-        auto input1 = silu(_m_w1(input), _m_gpu);
+        auto input1 = silu(_m_w1(input), accelerator());
 
-        return _m_w2(hadamard(input1, input2, _m_gpu));
+        return _m_w2(hadamard(input1, input2, accelerator()));
     }
 
     friend std::ostream&
@@ -65,12 +62,9 @@ private:
     nn::shared_feed_forward<T, Container> _m_ff;
     nn::shared_rmsnorm<T, Container> _m_ff_norm;
 
-    std::reference_wrapper<hardware_accelerator> _m_gpu;
-
 public:
-    transformer(attention_options& options, hardware_accelerator& gpu)
-    : layer(),
-      _m_gpu(gpu)
+    transformer(attention_options& options, hardware_accelerator gpu)
+    : layer(gpu)
     {
         _m_attention = register_layer("attention", nn::attention<T, Container>(options, gpu));
         _m_attention_norm = register_layer("attention_norm", nn::rmsnorm<T, Container>(gpu));
@@ -83,10 +77,10 @@ public:
     operator()(Input input, const std::optional<Mask> mask, std::size_t start_pos = 0)
     {
         auto norm = _m_attention_norm(input);
-        auto h = add(input, _m_attention(norm, mask, start_pos), _m_gpu.get());
+        auto h = add(input, _m_attention(norm, mask, start_pos), accelerator());
 
         auto ff_norm = _m_ff_norm(h);
-        return add(h, _m_ff(ff_norm), _m_gpu.get());
+        return add(h, _m_ff(ff_norm), accelerator());
     }
 
     friend std::ostream&
