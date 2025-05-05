@@ -29,6 +29,12 @@ struct attention_options {
     {
         return n_heads / n_kv_heads;
     }
+
+    inline float
+    scale()
+    {
+        return 1.0 / std::sqrt(float(head_dim));
+    }
 };
 
 
@@ -41,10 +47,10 @@ private:
     nn::shared_linear<T, Container> m_wv;
     nn::shared_linear<T, Container> m_wo;
 
-    nn::rope<T> m_rope;
+    nn::rope<T> _m_rope;
 
-    nn::attention_options m_options;
-    T m_scale;
+    nn::attention_options _m_options;
+    T _m_scale;
 
     shared_tensor<T, input_size, hardware_memory_container<T>> _m_cache_k;
     shared_tensor<T, input_size, hardware_memory_container<T>> _m_cache_v;
@@ -95,9 +101,9 @@ public:
         attention_options& options, hardware_accelerator accelerator, std::size_t max_batch_size = 1
     )
     : layer(accelerator),
-      m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
-      m_options(options),
-      m_scale(1.0 / std::sqrt(float(options.head_dim))),
+      _m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
+      _m_options(options),
+      _m_scale(options.scale()),
       _m_cache_k(empty<T>(
           {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
           accelerator.get_allocator()
@@ -123,17 +129,17 @@ public:
     {
         int bs = input.size(0);
         int len = input.size(1);
-        int n_heads = m_options.n_heads;
-        int n_kv_heads = m_options.n_kv_heads;
-        auto n_reps = m_options.repeats();
-        const int head_dim = m_options.head_dim;
+        int n_heads = _m_options.n_heads;
+        int n_kv_heads = _m_options.n_kv_heads;
+        auto n_reps = _m_options.repeats();
+        const int head_dim = _m_options.head_dim;
 
         auto q = m_wq(input).view({bs, len, n_heads, head_dim});
         auto k = m_wk(input).view({bs, len, n_kv_heads, head_dim});
         auto v = m_wv(input).view({bs, len, n_kv_heads, head_dim});
 
-        q = m_rope(q, /*start_pos=*/start_pos);
-        k = m_rope(k, /*start_pos=*/start_pos);
+        q = _m_rope(q, /*start_pos=*/start_pos);
+        k = _m_rope(k, /*start_pos=*/start_pos);
 
         auto kk = cache_keys(k, bs, start_pos, len);
         auto vv = cache_values(v, bs, start_pos, len);
@@ -152,7 +158,7 @@ public:
         keys = keys.transpose({0, 2, 3, 1});
         values = values.transpose({0, 2, 1, 3});
 
-        auto scores = mul(matmul(queries, keys, accelerator()), m_scale, accelerator());
+        auto scores = mul(matmul(queries, keys, accelerator()), _m_scale, accelerator());
         if (mask.has_value()) {
             scores = add2(scores, mask.value(), accelerator());
         }
