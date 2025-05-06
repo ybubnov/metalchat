@@ -85,12 +85,6 @@ public:
         return _m_output(output);
     }
 
-    result_type
-    operator()(shared_hardware_tensor<T, 2> input, std::size_t start_pos = 0)
-    {
-        return operator()<shared_hardware_tensor<T, 2>>(input, start_pos);
-    }
-
     void
     print()
     {

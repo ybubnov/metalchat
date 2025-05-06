@@ -370,9 +370,17 @@ template <typename T, std::size_t N>
 future_tensor(tensor<T, N, hardware_memory_container<T>>&& t) -> future_tensor<T, N>;
 
 
-template <typename T, std::size_t N>
-concept is_future_tensor_t
-    = immutable_tensor<T> && std::same_as<T, future_tensor<typename T::value_type, N>>;
+template <typename Tensor, typename T, std::size_t N>
+concept is_future_tensor_v = immutable_tensor<Tensor> && std::same_as<Tensor, future_tensor<T, N>>;
+
+template <typename Tensor, typename T>
+concept is_future_tensor1_v = is_future_tensor_v<Tensor, T, 1>;
+
+template <typename Tensor, typename T>
+concept is_future_tensor2_v = is_future_tensor_v<Tensor, T, 2>;
+
+template <typename Tensor, typename T>
+concept is_future_tensor3_v = is_future_tensor_v<Tensor, T, 3>;
 
 
 template <
