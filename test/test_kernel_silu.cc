@@ -13,7 +13,7 @@ using namespace metalchat;
 
 TEST_CASE("SiLU function", "[kernel::hadamard]")
 {
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
     kernel::silu<float> silu(gpu0);
 
     auto input = shared_tensor(rand<float>({3, 5, 8192}));

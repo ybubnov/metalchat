@@ -1,8 +1,9 @@
-cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.31 FATAL_ERROR)
 
 project(metalchat LANGUAGES CXX Swift)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_FRAMEWORK TRUE)
 
 set(metalchat_LIBRARY_VERSION "1.0.0")
 set(metalchat_LIBRARY_SOVERSION "1")
@@ -39,10 +40,12 @@ set_target_properties(${metalchat_FRAMEWORK} PROPERTIES
     CXX_STANDARD 23
     FRAMEWORK TRUE
     FRAMEWORK_VERSION A
-    VERSION ${metalchat_LIBRARY_VERSION}
-    SOVERSION ${metalchat_LIBRARY_SOVERSION}
-    MACOSX_FRAMEWORK_IDENTIFIER com.cmake.metalchat
     RESOURCE ${metalchat_METALLIB}
+    MACOSX_FRAMEWORK_IDENTIFIER com.cmake.metalchat
+    MACOSX_FRAMEWORK_BUNDLE_NAME ${metalchat_FRAMEWORK}
+    MACOSX_FRAMEWORK_BUNDLE_VERSION ${metalchat_LIBRARY_SOVERSION}
+    MACOSX_FRAMEWORK_SHORT_VERSION_STRING ${metalchat_LIBRARY_VERSION}
+    XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "MetalChat Developer"
 )
 
 target_link_libraries(${metalchat_FRAMEWORK}

@@ -18,7 +18,7 @@ using namespace metalchat::dtype;
 TEST_CASE("Test make model", "[llama]")
 {
     metalchat::bpe bpe("../Llama-3.2-1B/original/tokenizer.model");
-    metalchat::hardware_accelerator gpu0("metalchat.metallib", 16);
+    metalchat::hardware_accelerator gpu0;
     metalchat::safetensor_file tensors("../llama32.safetensors");
 
     auto alloc1 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_hardware_device());

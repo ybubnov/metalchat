@@ -11,7 +11,7 @@ using namespace metalchat;
 
 TEST_CASE("Copy 2-dimensional tensors", "[kernel::copy]")
 {
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
     kernel::cpy<float> copy(gpu0);
 
     auto input = shared_tensor(rand<float>({16, 64}));
@@ -29,7 +29,7 @@ TEST_CASE("Copy 2-dimensional tensors", "[kernel::copy]")
 
 TEST_CASE("Copy into slice", "[kernel::copy]")
 {
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
     kernel::cpy<float> cpy(gpu0);
 
     auto input = shared_tensor(rand<float>({1, 6, 8, 1, 64}));
@@ -52,7 +52,7 @@ TEST_CASE("Copy into slice", "[kernel::copy]")
 
 TEST_CASE("Inplace index set", "[kernel::scatter]")
 {
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
     kernel::scatter<float> scatter(gpu0);
 
     auto input = shared_tensor(empty<float>({16, 128}, gpu0));
@@ -83,7 +83,7 @@ TEST_CASE("Inplace index set", "[kernel::scatter]")
 
 TEST_CASE("Gather by index", "[kernel::gather]")
 {
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
     kernel::gather<float> gather(gpu0);
 
     auto input = shared_tensor(rand<float>({16, 128}));

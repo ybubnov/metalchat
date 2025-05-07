@@ -9,7 +9,7 @@ using namespace metalchat;
 
 TEST_CASE("Test function parameters", "function")
 {
-    hardware_accelerator gpu0("metalchat.metallib", 16);
+    hardware_accelerator gpu0(16);
     nn::linear<float, random_memory_container<float>> linear(gpu0);
 
     linear.set_parameter("weight", full<float>({3, 5}, 4.0));

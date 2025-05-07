@@ -13,7 +13,7 @@ using namespace metalchat::dtype;
 
 TEST_CASE("Test model load", "[safetensor]")
 {
-    metalchat::hardware_accelerator gpu0("metalchat.metallib", 16);
+    metalchat::hardware_accelerator gpu0(16);
     metalchat::safetensor_file tensors("../llama32.safetensors");
 
     auto options = nn::attention_options{

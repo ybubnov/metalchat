@@ -12,6 +12,9 @@
 namespace metalchat {
 
 
+static const std::string framework_identifier = "com.cmake.metalchat";
+
+
 /// Hardware accelerator is an abstraction of the kernel execution pipeline.
 ///
 /// Accelerator is responsible of whole Metal kernels lifecycle: creation of kernels from a
@@ -48,6 +51,20 @@ private:
         return std::make_shared<kernel_thread_group>(queue, thread_capacity, alloc);
     }
 
+    NS::SharedPtr<MTL::Library>
+    _m_make_library(const NS::URL* library_path)
+    {
+        NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
+        NS::Error* error_ptr = error.get();
+
+        auto library = NS::TransferPtr(_m_device->newLibrary(library_path, &error_ptr));
+        if (!library) {
+            auto failure_reason = error_ptr->localizedDescription();
+            throw std::runtime_error(failure_reason->utf8String());
+        }
+        return library;
+    }
+
 public:
     // hardware_accelerator(hardware_accelerator&&) noexcept = default;
     // hardware_accelerator(const hardware_accelerator&) = delete;
@@ -64,6 +81,8 @@ public:
     ///     filled with the configured number of kernels, or when the execution is explicitly
     ///     triggered (usually by calling `future_tensor::get` method).
     hardware_accelerator(const std::filesystem::path& path, std::size_t thread_capacity = 64);
+
+    hardware_accelerator(std::size_t thread_capacity = 64);
 
     /// Get name of the hardware accelerator.
     std::string

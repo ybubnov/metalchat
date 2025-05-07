@@ -19,7 +19,7 @@ TEST_CASE("RMSNorm array of ones", "[kernel::rmsnorm]")
     auto input = shared_tensor(full<bf16>({4, 3, 5, 7}, 1.0));
     auto weight = shared_tensor(full<bf16>({7}, 3.0));
 
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
     kernel::rmsnorm<bf16> rms(gpu0);
 
     auto output = rms(input, weight).get();
@@ -38,7 +38,7 @@ TEST_CASE("RMSNorm array of ones", "[kernel::rmsnorm]")
 
 TEST_CASE("RMSNorm array of random numbers", "[kernel::rmsnorm]")
 {
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
     kernel::rmsnorm<float> rms(gpu0);
 
     auto input = shared_tensor(rand<float>({3, 5, 2048}));

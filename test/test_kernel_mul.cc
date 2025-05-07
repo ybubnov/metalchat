@@ -13,7 +13,7 @@ using namespace metalchat;
 
 TEST_CASE("Hadamard product", "[kernel::hadamard]")
 {
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
     kernel::hadamard<float> m(gpu0);
 
     auto input1 = shared_tensor(rand<float>({3, 5, 8192}));
@@ -38,7 +38,7 @@ TEST_CASE("Hadamard product", "[kernel::hadamard]")
 
 TEST_CASE("Scalar multiplication", "[kernel::scalar_mul]")
 {
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
     kernel::scalar_mul<float> m(gpu0);
 
     auto input = shared_tensor(rand<float>({1, 32, 4, 64}));

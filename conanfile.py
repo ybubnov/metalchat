@@ -27,7 +27,7 @@ class MetalChat(ConanFile):
     def requirements(self):
         self.requires("catch2/3.7.1")
         self.requires("cppcodec/0.2")
-        self.requires("metal-cpp/15")
+        self.requires("metal-cpp/15.2")
         self.requires("simdjson/3.11.2")
         self.requires("pcre2/10.44")
 

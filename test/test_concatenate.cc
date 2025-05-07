@@ -21,7 +21,7 @@ TEST_CASE("Tensor concatenate", "[concatenate]")
     auto t3 = shared_tensor(full<float>({3, 4, 2}, 4.0));
     auto t4 = shared_tensor(full<float>({3, 4, 2}, 5.0));
 
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
 
     auto tensors = {t0, t1, t2, t3, t4};
 

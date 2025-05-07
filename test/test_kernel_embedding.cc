@@ -14,7 +14,7 @@ using namespace metalchat::dtype;
 
 TEST_CASE("Embedding batched", "[kernel::embedding]")
 {
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
     kernel::embedding<float, 16, 128> emb(gpu0);
 
     auto input = shared_tensor(full<int32_t>({3, 4}, 0.0));

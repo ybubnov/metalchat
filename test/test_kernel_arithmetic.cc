@@ -16,7 +16,7 @@ using namespace metalchat::dtype;
 
 TEST_CASE("Add 3-dimensional tensors", "[kernel::add]")
 {
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
     kernel::add<float> add(gpu0);
 
     auto input1 = shared_tensor(rand<float>({1, 4, 2048}));
@@ -43,7 +43,7 @@ TEST_CASE("Add 3-dimensional tensors", "[kernel::add]")
 
 TEST_CASE("Sub 3-dimensional tensors", "[kernel::sub]")
 {
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
     kernel::sub<float> sub(gpu0);
 
     auto input1 = shared_tensor(rand<float>({1, 4, 2048}));
@@ -70,7 +70,7 @@ TEST_CASE("Sub 3-dimensional tensors", "[kernel::sub]")
 
 TEST_CASE("Add 2-dimensional tensors", "[kernel::add2]")
 {
-    metalchat::hardware_accelerator gpu0("metalchat.metallib");
+    metalchat::hardware_accelerator gpu0;
     kernel::add2<float> add(gpu0);
 
     auto input1 = shared_tensor(rand<float>({5, 32, 16, 16}));
