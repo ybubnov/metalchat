@@ -14,7 +14,7 @@ re3_iterator::re3_iterator()
 {}
 
 
-re3_iterator::re3_iterator(std::shared_ptr<pcre2_code> re, const std::string& input)
+re3_iterator::re3_iterator(const std::shared_ptr<pcre2_code> re, const std::string& input)
 : _m_re(re),
   _m_data(pcre2_match_data_create_from_pattern(re.get(), nullptr)),
   _m_subject(reinterpret_cast<PCRE2_SPTR>(input.c_str())),
@@ -109,13 +109,13 @@ re3::re3(const std::string& regex)
 
 
 re3_iterator
-re3::begin(const std::string& input)
+re3::begin(const std::string& input) const
 {
     return re3_iterator(_m_re, input);
 }
 
 re3_iterator
-re3::end()
+re3::end() const
 {
     return re3_iterator();
 }

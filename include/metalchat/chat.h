@@ -12,7 +12,7 @@ namespace metalchat {
 
 template <typename Encodable, typename PushBackContainer>
 concept __byte_pair_encodable = requires(const Encodable encodable, PushBackContainer& container) {
-    { encodable.encode(std::declval<byte_pair_encoder&>(), container) } -> std::same_as<void>;
+    { encodable.encode(std::declval<const byte_pair_encoder&>(), container) } -> std::same_as<void>;
 } && push_back_container<PushBackContainer>;
 
 
@@ -35,7 +35,7 @@ public:
 
     template <push_back_container PushBackContainer>
     void
-    encode(byte_pair_encoder& bpe, PushBackContainer& container) const
+    encode(const byte_pair_encoder& bpe, PushBackContainer& container) const
     {
         bpe.encode(special_token::begin_header, container);
         bpe.encode(_m_role, container);
@@ -182,7 +182,7 @@ private:
 
 
 template <language_transformer_t Transformer>
-chat(Transformer&& transformer, byte_pair_encoder& bpe) -> chat<Transformer>;
+chat(Transformer&& transformer, const byte_pair_encoder& bpe) -> chat<Transformer>;
 
 
 } // namespace metalchat

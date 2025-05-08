@@ -36,7 +36,7 @@ public:
 
     re3_iterator();
 
-    re3_iterator(std::shared_ptr<pcre2_code> re, const std::string& input);
+    re3_iterator(const std::shared_ptr<pcre2_code> re, const std::string& input);
 
     ~re3_iterator();
 
@@ -50,7 +50,7 @@ public:
     operator!=(const iterator& rhs);
 
 private:
-    std::shared_ptr<pcre2_code> _m_re = nullptr;
+    const std::shared_ptr<pcre2_code> _m_re = nullptr;
     pcre2_match_data* _m_data = nullptr;
     const PCRE2_SPTR _m_subject = nullptr;
     const PCRE2_SIZE _m_subject_length = 0;
@@ -75,10 +75,10 @@ public:
     re3(const std::string& regex);
 
     re3_iterator
-    begin(const std::string& input);
+    begin(const std::string& input) const;
 
     re3_iterator
-    end();
+    end() const;
 };
 
 
@@ -158,7 +158,7 @@ private:
     /// 4. Then push encodings to the specified container of identifiers.
     template <push_back_container PushBackContainer>
     void
-    _m_encode_byte_pairs(const std::string& s, PushBackContainer& ids)
+    _m_encode_byte_pairs(const std::string& s, PushBackContainer& ids) const
     {
         std::size_t priority_limit = std::numeric_limits<index_type>::max();
 
@@ -233,7 +233,7 @@ public:
     /// appended to the end of the container.
     template <push_back_container PushBackContainer>
     void
-    encode(const std::string& s, PushBackContainer& ids)
+    encode(const std::string& s, PushBackContainer& ids) const
     {
         for (auto match = _m_re.begin(s); match != _m_re.end(); ++match) {
             auto key = (*match);
@@ -247,7 +247,7 @@ public:
 
     template <push_back_container PushBackContainer>
     void
-    encode(const special_token& s, PushBackContainer& ids)
+    encode(const special_token& s, PushBackContainer& ids) const
     {
         auto index = static_cast<index_type>(s);
         if (index > nspecial) {
@@ -260,7 +260,7 @@ public:
     }
 
     auto
-    encode(const std::string& s)
+    encode(const std::string& s) const
     {
         std::vector<index_type> ids;
         encode(s, ids);
