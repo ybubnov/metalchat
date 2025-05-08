@@ -10,16 +10,16 @@
 namespace metalchat {
 
 
-template <typename Message, typename PushBackContainer>
-concept language_encodable_message = requires(const Message message, PushBackContainer& container) {
-    { message.encode(std::declval<byte_pair_encoder&>(), container) } -> std::same_as<void>;
-} && push_back_container<PushBackContainer>;
-
-
-class system_message {
+class basic_message {
 public:
-    system_message(const std::string& text)
-    : _m_text(text)
+    basic_message(const std::string& role, const std::string& content)
+    : _m_role(role),
+      _m_content(content)
+    {}
+
+    basic_message(const std::string& role)
+    : _m_role(role),
+      _m_content()
     {}
 
     template <push_back_container PushBackContainer>
@@ -27,22 +27,16 @@ public:
     encode(byte_pair_encoder& bpe, PushBackContainer& container) const
     {
         bpe.encode(special_token::begin_header, container);
-        bpe.encode("system", container);
+        bpe.encode(_m_role, container);
         bpe.encode(special_token::end_header, container);
         bpe.encode("\n\n", container);
-        bpe.encode(_m_text, container);
-        bpe.encode(special_token::end_turn, container);
+        bpe.encode(_m_content, container);
     }
 
 private:
-    std::string _m_text;
+    std::string _m_role;
+    std::string _m_content;
 };
-
-
-class user_message {};
-
-
-class assistant_message {};
 
 
 template <typename Input, typename Estimator>
@@ -126,43 +120,37 @@ private:
 
 template <language_transformer_t Transformer> class chat {
 public:
+    using index_type = int32_t;
+    using container_type = vector_memory_container<index_type>;
+
     chat(Transformer&& transformer, byte_pair_encoder&& bpe)
     : _m_transformer(std::move(transformer)),
       _m_bpe(std::move(bpe))
     {}
 
-    template <language_encodable_message<std::vector<int32_t>> Message>
     std::string
-    send(const Message& message, std::size_t max_size = 20)
+    send(const basic_message& message, std::size_t max_size = 20)
     {
-        auto encoding = std::vector<int32_t>();
+        auto encoding = std::vector<index_type>();
 
         _m_bpe.encode(special_token::begin_text, encoding);
         message.encode(_m_bpe, encoding);
-
-        _m_bpe.encode(special_token::begin_header, encoding);
-        _m_bpe.encode("user", encoding);
-        _m_bpe.encode(special_token::end_header, encoding);
-        _m_bpe.encode("\n\n", encoding);
-        _m_bpe.encode("What is the capital of France?", encoding);
         _m_bpe.encode(special_token::end_turn, encoding);
 
-        _m_bpe.encode(special_token::begin_header, encoding);
-        _m_bpe.encode("assistant", encoding);
-        _m_bpe.encode(special_token::end_header, encoding);
-        _m_bpe.encode("\n\n", encoding);
-        _m_bpe.encode(special_token::begin_text, encoding);
+        basic_message m1("user", "What is the capital of France?");
+        m1.encode(_m_bpe, encoding);
+        _m_bpe.encode(special_token::end_turn, encoding);
+
+        basic_message m2("assistant");
+        m2.encode(_m_bpe, encoding);
 
         auto encoding_size = encoding.size();
 
         auto msg = _m_bpe.decode(encoding.begin(), encoding.end());
         std::cout << msg;
 
-        auto container_ptr
-            = std::make_shared<vector_memory_container<int32_t>>(std::move(encoding));
-        auto input = tensor<int32_t, 2, vector_memory_container<int32_t>>(
-            {1, encoding_size}, container_ptr
-        );
+        auto container_ptr = std::make_shared<container_type>(std::move(encoding));
+        auto input = tensor({1, encoding_size}, container_ptr);
         auto output = _m_transformer(shared_tensor(std::move(input)), 0);
         std::cout << _m_bpe.decode(output.get()[0, 0]);
 

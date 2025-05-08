@@ -670,6 +670,11 @@ protected:
 };
 
 
+template <std::size_t N, contiguous_container Container>
+tensor(std::size_t (&&)[N], const std::shared_ptr<Container>&)
+    -> tensor<typename Container::value_type, N, Container>;
+
+
 template <std::size_t N, immutable_tensor Tensor>
 auto
 flatten(Tensor tensor)
