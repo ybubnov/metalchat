@@ -10,6 +10,17 @@
 namespace metalchat {
 
 
+template <typename Encodable, typename PushBackContainer>
+concept __byte_pair_encodable = requires(const Encodable encodable, PushBackContainer& container) {
+    { encodable.encode(std::declval<byte_pair_encoder&>(), container) } -> std::same_as<void>;
+} && push_back_container<PushBackContainer>;
+
+
+template <typename Encodable>
+concept byte_pair_encodable
+    = __byte_pair_encodable<Encodable, std::vector<byte_pair_encoder::index_type>>;
+
+
 class basic_message {
 public:
     basic_message(const std::string& role, const std::string& content)
@@ -128,8 +139,9 @@ public:
       _m_bpe(std::move(bpe))
     {}
 
+    template <byte_pair_encodable Message>
     std::string
-    send(const basic_message& message, std::size_t max_size = 20)
+    send(const Message& message, std::size_t max_size = 20)
     {
         auto encoding = std::vector<index_type>();
 
