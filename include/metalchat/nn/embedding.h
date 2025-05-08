@@ -6,7 +6,7 @@
 
 #include <metalchat/kernel/embedding.h>
 #include <metalchat/layer.h>
-#include <metalchat/tensor_shared.h>
+#include <metalchat/tensor/shared.h>
 
 
 namespace metalchat {

@@ -6,7 +6,7 @@
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_wrapper.h>
-#include <metalchat/tensor_future.h>
+#include <metalchat/tensor/future.h>
 
 
 namespace metalchat {

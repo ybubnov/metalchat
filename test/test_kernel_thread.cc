@@ -4,7 +4,7 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel/arithmetic.h>
-#include <metalchat/tensor_shared.h>
+#include <metalchat/tensor/shared.h>
 
 
 using namespace metalchat;

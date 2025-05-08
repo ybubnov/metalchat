@@ -10,3 +10,4 @@
 #include <metalchat/iterator.h>
 #include <metalchat/nn.h>
 #include <metalchat/safetensor.h>
+#include <metalchat/tensor.h>

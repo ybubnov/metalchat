@@ -3,8 +3,8 @@
 #include <memory>
 
 #include <metalchat/container.h>
-#include <metalchat/tensor.h>
-#include <metalchat/tensor_concept.h>
+#include <metalchat/tensor/basic.h>
+#include <metalchat/tensor/concept.h>
 
 
 namespace metalchat {

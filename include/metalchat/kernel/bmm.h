@@ -5,8 +5,7 @@
 #include <metalchat/format.h>
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_task.h>
-#include <metalchat/tensor.h>
-#include <metalchat/tensor_future.h>
+#include <metalchat/tensor/future.h>
 
 
 namespace metalchat {

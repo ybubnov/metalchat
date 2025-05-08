@@ -1,7 +1,7 @@
 #pragma once
 
 #include <metalchat/kernel_task.h>
-#include <metalchat/tensor_future.h>
+#include <metalchat/tensor/future.h>
 
 
 namespace metalchat {

@@ -5,9 +5,9 @@
 #include <span>
 #include <vector>
 
-#include <metalchat/tensor.h>
-#include <metalchat/tensor_future.h>
-#include <metalchat/tensor_shared.h>
+#include <metalchat/tensor/basic.h>
+#include <metalchat/tensor/future.h>
+#include <metalchat/tensor/shared.h>
 
 
 namespace metalchat {

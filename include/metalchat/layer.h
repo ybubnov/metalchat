@@ -5,8 +5,8 @@
 #include <optional>
 
 #include <metalchat/safetensor.h>
-#include <metalchat/tensor_concept.h>
-#include <metalchat/tensor_polymorphic.h>
+#include <metalchat/tensor/concept.h>
+#include <metalchat/tensor/polymorphic.h>
 
 
 namespace metalchat {

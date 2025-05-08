@@ -16,7 +16,7 @@
 #include <metalchat/kernel/silu.h>
 #include <metalchat/kernel/softmax.h>
 #include <metalchat/kernel/sort.h>
-#include <metalchat/tensor_future.h>
+#include <metalchat/tensor/future.h>
 
 
 namespace metalchat {

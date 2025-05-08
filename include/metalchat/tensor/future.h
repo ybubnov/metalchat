@@ -5,9 +5,9 @@
 
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_task.h>
-#include <metalchat/tensor.h>
-#include <metalchat/tensor_concept.h>
-#include <metalchat/tensor_shared.h>
+#include <metalchat/tensor/basic.h>
+#include <metalchat/tensor/concept.h>
+#include <metalchat/tensor/shared.h>
 
 
 namespace metalchat {

@@ -4,8 +4,8 @@
 
 #include <metalchat/accelerator.h>
 #include <metalchat/kernel.h>
-#include <metalchat/tensor_concept.h>
-#include <metalchat/tensor_future.h>
+#include <metalchat/tensor/concept.h>
+#include <metalchat/tensor/future.h>
 
 
 namespace metalchat {

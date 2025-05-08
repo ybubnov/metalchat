@@ -9,7 +9,7 @@
 #include <metalchat/nn/attention.h>
 #include <metalchat/nn/linear.h>
 #include <metalchat/nn/rmsnorm.h>
-#include <metalchat/tensor.h>
+#include <metalchat/tensor/basic.h>
 
 
 namespace metalchat {

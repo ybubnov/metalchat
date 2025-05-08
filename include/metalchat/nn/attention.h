@@ -10,7 +10,7 @@
 #include <metalchat/layer.h>
 #include <metalchat/nn/embedding.h>
 #include <metalchat/nn/linear.h>
-#include <metalchat/tensor_future.h>
+#include <metalchat/tensor/future.h>
 
 
 namespace metalchat {

@@ -3,7 +3,7 @@
 
 #include <metalchat/format.h>
 #include <metalchat/kernel/copy.h>
-#include <metalchat/tensor_shared.h>
+#include <metalchat/tensor/shared.h>
 
 
 using namespace metalchat;

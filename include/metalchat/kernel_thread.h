@@ -8,7 +8,7 @@
 
 #include <metalchat/allocator.h>
 #include <metalchat/metal.h>
-#include <metalchat/tensor_concept.h>
+#include <metalchat/tensor/concept.h>
 
 
 namespace metalchat {

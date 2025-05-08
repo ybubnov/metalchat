@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 
-#include <metalchat/tensor_polymorphic.h>
+#include <metalchat/tensor/polymorphic.h>
 
 using namespace metalchat;
 
