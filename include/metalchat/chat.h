@@ -10,15 +10,33 @@
 namespace metalchat {
 
 
-class basic_message {
+template <typename Message, typename PushBackContainer>
+concept language_encodable_message = requires(const Message message, PushBackContainer& container) {
+    { message.encode(std::declval<byte_pair_encoder&>(), container) } -> std::same_as<void>;
+} && push_back_container<PushBackContainer>;
+
+
+class system_message {
 public:
-    virtual std::string
-    encode(const bpe&)
-        = 0;
+    system_message(const std::string& text)
+    : _m_text(text)
+    {}
+
+    template <push_back_container PushBackContainer>
+    void
+    encode(byte_pair_encoder& bpe, PushBackContainer& container) const
+    {
+        bpe.encode(special_token::begin_header, container);
+        bpe.encode("system", container);
+        bpe.encode(special_token::end_header, container);
+        bpe.encode("\n\n", container);
+        bpe.encode(_m_text, container);
+        bpe.encode(special_token::end_turn, container);
+    }
+
+private:
+    std::string _m_text;
 };
-
-
-class system_message {};
 
 
 class user_message {};
@@ -55,7 +73,7 @@ template <typename Input, typename Transformer>
 concept __language_transformer_t = requires(Input input, Transformer transformer) {
     typename Transformer::value_type;
 
-    { transformer(input, std::size_t()) } -> is_future_tensor2_v<typename Transformer::value_type>;
+    { transformer(input, std::size_t()) } -> is_future_tensor2_v<int32_t>;
 } && immutable_tensor2_t<Input, int32_t>;
 
 
@@ -87,15 +105,15 @@ public:
     operator()(future_tensor<int32_t, 2> input, std::size_t start_pos)
     {
         auto logits = _m_estimator(input, start_pos);
-        return top_p(logits.template flatten<2>(), _m_temperature, _m_p);
+        return top_p(logits.template flatten<2>(), _m_temperature, _m_p, _m_accelerator);
     }
 
-    void
-    print()
+    template <immutable_tensor2_t<int32_t> Input>
+    future_tensor<int32_t, 2>
+    operator()(Input input, std::size_t start_pos)
     {
-        for (auto [name, _] : _m_estimator.get_parameters()) {
-            std::cout << name << std::endl;
-        }
+        auto logits = _m_estimator(input, start_pos);
+        return top_p(logits.template flatten<2>(), _m_temperature, _m_p, _m_accelerator);
     }
 
 private:
@@ -108,17 +126,63 @@ private:
 
 template <language_transformer_t Transformer> class chat {
 public:
-    chat(Transformer&& transformer)
-    : _m_transformer(std::move(transformer))
+    chat(Transformer&& transformer, byte_pair_encoder&& bpe)
+    : _m_transformer(std::move(transformer)),
+      _m_bpe(std::move(bpe))
     {}
 
-    void
-    send(const basic_message& message)
-    {}
+    template <language_encodable_message<std::vector<int32_t>> Message>
+    std::string
+    send(const Message& message, std::size_t max_size = 20)
+    {
+        auto encoding = std::vector<int32_t>();
+
+        _m_bpe.encode(special_token::begin_text, encoding);
+        message.encode(_m_bpe, encoding);
+
+        _m_bpe.encode(special_token::begin_header, encoding);
+        _m_bpe.encode("user", encoding);
+        _m_bpe.encode(special_token::end_header, encoding);
+        _m_bpe.encode("\n\n", encoding);
+        _m_bpe.encode("What is the capital of France?", encoding);
+        _m_bpe.encode(special_token::end_turn, encoding);
+
+        _m_bpe.encode(special_token::begin_header, encoding);
+        _m_bpe.encode("assistant", encoding);
+        _m_bpe.encode(special_token::end_header, encoding);
+        _m_bpe.encode("\n\n", encoding);
+        _m_bpe.encode(special_token::begin_text, encoding);
+
+        auto encoding_size = encoding.size();
+
+        auto msg = _m_bpe.decode(encoding.begin(), encoding.end());
+        std::cout << msg;
+
+        auto container_ptr
+            = std::make_shared<vector_memory_container<int32_t>>(std::move(encoding));
+        auto input = tensor<int32_t, 2, vector_memory_container<int32_t>>(
+            {1, encoding_size}, container_ptr
+        );
+        auto output = _m_transformer(shared_tensor(std::move(input)), 0);
+        std::cout << _m_bpe.decode(output.get()[0, 0]);
+
+        std::stringstream ss;
+        for (std::size_t i = encoding_size; i < encoding_size + max_size - 1; i++) {
+            output = _m_transformer(output, i);
+            std::cout << _m_bpe.decode(output.get()[0, 0]);
+        }
+        std::cout << std::endl;
+        return ss.str();
+    }
 
 private:
     Transformer _m_transformer;
+    byte_pair_encoder _m_bpe;
 };
+
+
+template <language_transformer_t Transformer>
+chat(Transformer&& transformer, byte_pair_encoder& bpe) -> chat<Transformer>;
 
 
 } // namespace metalchat

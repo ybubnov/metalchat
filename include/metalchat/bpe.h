@@ -36,7 +36,7 @@ public:
 
     re3_iterator();
 
-    re3_iterator(pcre2_code* re, const std::string& input);
+    re3_iterator(std::shared_ptr<pcre2_code> re, const std::string& input);
 
     ~re3_iterator();
 
@@ -50,7 +50,7 @@ public:
     operator!=(const iterator& rhs);
 
 private:
-    pcre2_code* _m_re = nullptr;
+    std::shared_ptr<pcre2_code> _m_re = nullptr;
     pcre2_match_data* _m_data = nullptr;
     const PCRE2_SPTR _m_subject = nullptr;
     const PCRE2_SIZE _m_subject_length = 0;
@@ -67,7 +67,7 @@ private:
 
 class re3 {
 private:
-    pcre2_code* _m_re = nullptr;
+    std::shared_ptr<pcre2_code> _m_re = nullptr;
 
     static constexpr std::size_t error_buffer_size = 256;
 
@@ -79,8 +79,6 @@ public:
 
     re3_iterator
     end();
-
-    ~re3();
 };
 
 
@@ -102,11 +100,11 @@ enum special_token {
     end_header,
     end_message,
     end_turn,
-    python,
+    ipython,
 };
 
 
-class bpe {
+class byte_pair_encoder {
 public:
     using string_type = std::string;
 
@@ -130,7 +128,7 @@ public:
         {special_token::end_header, "<|end_header_id|>"},
         {special_token::end_message, "<|eom_id|>"},
         {special_token::end_turn, "<|eot_id|>"},
-        {special_token::python, "<|python_tag|>"},
+        {special_token::ipython, "<|python_tag|>"},
     };
 
 private:
@@ -225,7 +223,7 @@ public:
     /// Such map is distributed altogether with, for example, Llama model and is called
     /// `tokenizer.model`. When the provided file does not exist or has invalid format,
     /// constructor will raise an exception.
-    bpe(const std::filesystem::path& p);
+    byte_pair_encoder(const std::filesystem::path& p);
 
     /// Encode the provided string into tokens.
     ///
@@ -253,7 +251,9 @@ public:
     {
         auto index = static_cast<index_type>(s);
         if (index > nspecial) {
-            throw std::invalid_argument(std::format("bpe: unknown special token '{}'", index));
+            throw std::invalid_argument(
+                std::format("byte_pair_encoder: unknown special token '{}'", index)
+            );
         }
 
         ids.push_back(_m_fmap.size() + index);
@@ -280,7 +280,7 @@ public:
         if (auto tok = special_tokens.find(id - _m_rmap.size()); tok != special_tokens.end()) {
             return tok->second;
         }
-        throw std::runtime_error(std::format("bpe: unable to decode id '{}'", id));
+        throw std::runtime_error(std::format("byte_pair_encoder: unable to decode id '{}'", id));
     }
 
     /// Iteratively decode a sequence of position-encoded tokens.
@@ -299,7 +299,7 @@ public:
 
     template <std::forward_iterator ForwardIt>
     std::string
-    decode(ForwardIt first, ForwardIt last)
+    decode(ForwardIt first, ForwardIt last) const
     {
         std::stringstream output;
 

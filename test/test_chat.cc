@@ -11,7 +11,7 @@ using namespace metalchat::dtype;
 
 TEST_CASE("Test chat", "[llama]")
 {
-    metalchat::bpe bpe("../Llama-3.2-1B/original/tokenizer.model");
+    metalchat::byte_pair_encoder bpe("../Llama-3.2-1B-Instruct/original/tokenizer.model");
     metalchat::hardware_accelerator gpu0;
 
     metalchat::safetensor_file tensors("../llama32.safetensors");
@@ -32,5 +32,7 @@ TEST_CASE("Test chat", "[llama]")
     m.initialize(tensors, make_rebind_allocator<bf16>(gpu0.get_allocator()));
 
     auto transformer = language_transformer(std::move(m), gpu0);
-    transformer.print();
+    auto agent = chat(std::move(transformer), std::move(bpe));
+
+    agent.send(system_message("You are a helpful assistant"));
 }

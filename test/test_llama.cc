@@ -17,7 +17,7 @@ using namespace metalchat::dtype;
 
 TEST_CASE("Test make model", "[llama]")
 {
-    metalchat::bpe bpe("../Llama-3.2-1B/original/tokenizer.model");
+    metalchat::byte_pair_encoder bpe("../Llama-3.2-1B/original/tokenizer.model");
     metalchat::hardware_accelerator gpu0;
     metalchat::safetensor_file tensors("../llama32.safetensors");
 

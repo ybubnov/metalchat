@@ -4,6 +4,6 @@ Chat library
 Byte Pair Encoder
 -----------------
 
-.. doxygenclass:: metalchat::bpe
+.. doxygenclass:: metalchat::byte_pair_encoder
    :project: metalchat
    :members:

@@ -187,5 +187,5 @@ Chat library
    :width: 100%
    :widths: 45 55
 
-   * - :cpp:class:`metalchat::bpe`
+   * - :cpp:class:`metalchat::byte_pair_encoder`
      - Byte-pair encoder.

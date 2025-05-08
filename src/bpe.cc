@@ -14,9 +14,9 @@ re3_iterator::re3_iterator()
 {}
 
 
-re3_iterator::re3_iterator(pcre2_code* re, const std::string& input)
+re3_iterator::re3_iterator(std::shared_ptr<pcre2_code> re, const std::string& input)
 : _m_re(re),
-  _m_data(pcre2_match_data_create_from_pattern(re, nullptr)),
+  _m_data(pcre2_match_data_create_from_pattern(re.get(), nullptr)),
   _m_subject(reinterpret_cast<PCRE2_SPTR>(input.c_str())),
   _m_subject_length(input.size()),
   _m_offset(0),
@@ -77,7 +77,7 @@ re3_iterator::get()
 void
 re3_iterator::next()
 {
-    auto rc = pcre2_match(_m_re, _m_subject, _m_subject_length, _m_offset, 0, _m_data, NULL);
+    auto rc = pcre2_match(_m_re.get(), _m_subject, _m_subject_length, _m_offset, 0, _m_data, NULL);
     if (rc < 0) {
         _m_end = true;
         if (rc != PCRE2_ERROR_NOMATCH) {
@@ -92,24 +92,19 @@ re3::re3(const std::string& regex)
     int error_code;
     PCRE2_SIZE error_offset;
 
-    _m_re = pcre2_compile(
+    auto re_ptr = pcre2_compile(
         reinterpret_cast<PCRE2_SPTR>(regex.c_str()), PCRE2_ZERO_TERMINATED, 0, &error_code,
         &error_offset, nullptr
     );
 
-    if (_m_re == nullptr) {
+    if (re_ptr == nullptr) {
         PCRE2_UCHAR message[error_buffer_size];
         pcre2_get_error_message(error_code, message, sizeof(message));
 
         throw std::invalid_argument(std::format("re3: invalid regular expression: {}", message));
     }
-}
 
-re3::~re3()
-{
-    if (_m_re != nullptr) {
-        pcre2_code_free(_m_re);
-    }
+    _m_re = std::shared_ptr<pcre2_code>(re_ptr, pcre2_code_free);
 }
 
 
@@ -126,7 +121,7 @@ re3::end()
 }
 
 
-bpe::bpe(const std::filesystem::path& p)
+byte_pair_encoder::byte_pair_encoder(const std::filesystem::path& p)
 : _m_fmap(),
   _m_rmap(),
   _m_re(token_regex)

@@ -10,13 +10,13 @@ using namespace metalchat;
 
 TEST_CASE("Test BPE encode and decode", "[bpe]")
 {
-    bpe tokenizer("../Llama-3.2-1B/original/tokenizer.model");
+    byte_pair_encoder tokenizer("../Llama-3.2-1B/original/tokenizer.model");
 
     auto ids = tokenizer.encode("This is a test sentence.");
     REQUIRE(ids.size(0) == 6);
 
-    std::vector<bpe::index_type> actual(ids.begin(), ids.end());
-    std::vector<bpe::index_type> expect = {2028, 374, 264, 1296, 11914, 13};
+    std::vector<byte_pair_encoder::index_type> actual(ids.begin(), ids.end());
+    std::vector<byte_pair_encoder::index_type> expect = {2028, 374, 264, 1296, 11914, 13};
     REQUIRE_THAT(actual, Catch::Matchers::Equals(expect));
 
     auto str = tokenizer.decode(ids.data_ptr(), ids.data_ptr() + ids.size(0));
@@ -31,20 +31,20 @@ TEST_CASE("Test BPE encode and decode", "[bpe]")
 
 TEST_CASE("Encode pairs with byte merge", "[bpe]")
 {
-    bpe tokenizer("../Llama-3.2-1B/original/tokenizer.model");
+    byte_pair_encoder tokenizer("../Llama-3.2-1B/original/tokenizer.model");
 
     auto ids = tokenizer.encode("And his name is John Cena.");
 
     REQUIRE(ids.size(0) == 7);
-    std::vector<bpe::index_type> actual(ids.begin(), ids.end());
-    std::vector<bpe::index_type> expect = {3112, 813, 836, 374, 3842, 89663, 13};
+    std::vector<byte_pair_encoder::index_type> actual(ids.begin(), ids.end());
+    std::vector<byte_pair_encoder::index_type> expect = {3112, 813, 836, 374, 3842, 89663, 13};
     REQUIRE_THAT(actual, Catch::Matchers::Equals(expect));
 }
 
 
 TEST_CASE("Decode special token", "bpe")
 {
-    bpe tokenizer("../Llama-3.2-1B/original/tokenizer.model");
+    byte_pair_encoder tokenizer("../Llama-3.2-1B/original/tokenizer.model");
 
     auto token = tokenizer.decode(128001);
     REQUIRE(token == "<|end_of_text|>");

@@ -9,7 +9,7 @@ namespace metalchat {
 template <typename T> struct memory_container {
     using value_type = T;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
 
     virtual pointer
     data()
@@ -98,13 +98,13 @@ public:
     }
 
     inline pointer
-    data() override
+    data()
     {
         return _m_data;
     }
 
     inline const_pointer
-    data() const override
+    data() const
     {
         return _m_data;
     }
@@ -113,6 +113,38 @@ public:
     operator random_memory_container<U>() const
     {
         return random_memory_container<U>(_m_data);
+    }
+};
+
+
+template <typename T> struct vector_memory_container : public memory_container<T> {
+private:
+    std::vector<T> _m_data;
+
+public:
+    using value_type = T;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+
+    vector_memory_container(std::vector<T>&& data)
+    : _m_data(std::move(data))
+    {}
+
+    vector_memory_container()
+    : _m_data()
+    {}
+
+    inline pointer
+    data()
+    {
+        return _m_data.data();
+    }
+
+    inline const value_type*
+    data() const
+    {
+        const value_type* ptr = _m_data.data();
+        return ptr;
     }
 };
 
