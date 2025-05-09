@@ -245,9 +245,8 @@ public:
         }
     }
 
-    template <push_back_container PushBackContainer>
-    void
-    encode(const special_token& s, PushBackContainer& ids) const
+    index_type
+    encode(const special_token& s) const
     {
         auto index = static_cast<index_type>(s);
         if (index > nspecial) {
@@ -255,8 +254,14 @@ public:
                 std::format("byte_pair_encoder: unknown special token '{}'", index)
             );
         }
+        return _m_fmap.size() + index;
+    }
 
-        ids.push_back(_m_fmap.size() + index);
+    template <push_back_container PushBackContainer>
+    void
+    encode(const special_token& s, PushBackContainer& ids) const
+    {
+        ids.push_back(encode(s));
     }
 
     auto

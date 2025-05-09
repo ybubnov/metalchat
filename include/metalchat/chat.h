@@ -136,48 +136,51 @@ public:
 
     chat(Transformer&& transformer, byte_pair_encoder&& bpe)
     : _m_transformer(std::move(transformer)),
-      _m_bpe(std::move(bpe))
+      _m_bpe(std::move(bpe)),
+      _m_encoding(bpe.encode(special_token::begin_text))
     {}
 
     template <byte_pair_encodable Message>
-    std::string
-    send(const Message& message, std::size_t max_size = 20)
+    void
+    send(const Message& message)
     {
-        auto encoding = std::vector<index_type>();
+        message.encode(_m_bpe, _m_encoding);
+        _m_bpe.encode(special_token::end_turn, _m_encoding);
+    }
 
-        _m_bpe.encode(special_token::begin_text, encoding);
-        message.encode(_m_bpe, encoding);
-        _m_bpe.encode(special_token::end_turn, encoding);
+    std::string
+    receive_text(std::size_t max_size = 20)
+    {
+        basic_message query("assistant");
+        query.encode(_m_bpe, _m_encoding);
 
-        basic_message m1("user", "What is the capital of France?");
-        m1.encode(_m_bpe, encoding);
-        _m_bpe.encode(special_token::end_turn, encoding);
+        auto msg = _m_bpe.decode(_m_encoding.begin(), _m_encoding.end());
 
-        basic_message m2("assistant");
-        m2.encode(_m_bpe, encoding);
+        std::vector<index_type> encoding;
+        _m_encoding.swap(encoding);
 
         auto encoding_size = encoding.size();
-
-        auto msg = _m_bpe.decode(encoding.begin(), encoding.end());
-        std::cout << msg;
-
         auto container_ptr = std::make_shared<container_type>(std::move(encoding));
+
         auto input = tensor({1, encoding_size}, container_ptr);
         auto output = _m_transformer(shared_tensor(std::move(input)), 0);
-        std::cout << _m_bpe.decode(output.get()[0, 0]);
 
         std::stringstream ss;
+        ss << _m_bpe.decode(output.get()[0, 0]);
+
         for (std::size_t i = encoding_size; i < encoding_size + max_size - 1; i++) {
             output = _m_transformer(output, i);
-            std::cout << _m_bpe.decode(output.get()[0, 0]);
+            ss << _m_bpe.decode(output.get()[0, 0]);
         }
-        std::cout << std::endl;
         return ss.str();
     }
+
 
 private:
     Transformer _m_transformer;
     byte_pair_encoder _m_bpe;
+
+    std::vector<index_type> _m_encoding;
 };
 
 

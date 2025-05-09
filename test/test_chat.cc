@@ -34,5 +34,11 @@ TEST_CASE("Test chat", "[llama]")
     auto transformer = language_transformer(std::move(m), gpu0);
     auto agent = chat(std::move(transformer), std::move(bpe));
 
-    agent.send(basic_message("You are a helpful assistant"));
+    agent.send(basic_message("system", "You are a helpful assistant"));
+    agent.send(basic_message("user", "What is the capital of France?"));
+    auto response = agent.receive_text();
+    std::cout << response << std::endl;
+
+    agent.send(basic_message("user", "What is the capital of Belgium?"));
+    std::cout << agent.receive_text() << std::endl;
 }
