@@ -67,6 +67,48 @@ using layout2 = tensor_layout<2>;
 using layout3 = tensor_layout<3>;
 
 
+template <typename T> struct tensor1 {
+    constant layout1& layout;
+    device T* data;
+
+    tensor1(constant layout1& _layout, device T* _data)
+    : layout(_layout),
+      data(_data)
+    {}
+
+    inline device T&
+    at(uint i0)
+    {
+        auto ptr_offset = layout.strides[0] * i0 + layout.offsets[0];
+        return *(data + ptr_offset);
+    }
+
+    inline const device T&
+    at(uint i0) const
+    {
+        return const_cast<thread tensor1&>(*this).at(i0);
+    }
+
+    inline uint
+    size(uint dim) const
+    {
+        return layout.sizes[dim];
+    }
+
+    inline uint
+    stride(uint dim) const
+    {
+        return layout.strides[dim];
+    }
+
+    inline uint
+    offset(uint dim) const
+    {
+        return layout.offsets[dim];
+    }
+};
+
+
 template <typename T> struct tensor2 {
     constant layout2& layout;
     device T* data;

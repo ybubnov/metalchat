@@ -189,3 +189,9 @@ Chat library
 
    * - :cpp:class:`metalchat::byte_pair_encoder`
      - Byte-pair encoder.
+
+   * - :cpp:class:`metalchat::chat`
+     - A language model adapter to receive and send messages.
+
+   * - :cpp:class:`metalchat::language_transformer`
+     - A language estimator adapter to predict the next token.

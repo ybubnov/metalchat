@@ -7,3 +7,11 @@ Byte Pair Encoder
 .. doxygenclass:: metalchat::byte_pair_encoder
    :project: metalchat
    :members:
+
+.. doxygenclass:: metalchat::chat
+   :project: metalchat
+   :members:
+
+.. doxygenclass:: metalchat::language_transformer
+   :project: metalchat
+   :members:

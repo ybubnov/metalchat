@@ -16,9 +16,6 @@ __swap(device T& a, device T& b)
 }
 
 
-template <typename T> T inline __ceil_div(T a, T b) { return (a + b - 1) / b; }
-
-
 template <typename T> struct __sort_parameters {
     tensor2<T> values;
     tensor2<int32_t> indices;
