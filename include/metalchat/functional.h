@@ -13,6 +13,7 @@
 #include <metalchat/kernel/logical.h>
 #include <metalchat/kernel/mul.h>
 #include <metalchat/kernel/multinomial.h>
+#include <metalchat/kernel/roll.h>
 #include <metalchat/kernel/silu.h>
 #include <metalchat/kernel/softmax.h>
 #include <metalchat/kernel/sort.h>
@@ -90,6 +91,15 @@ sort(Tensor t, hardware_accelerator& gpu)
 {
     kernel::sort<typename Tensor::value_type, BlockSize> op(gpu);
     return op(t);
+}
+
+
+template <immutable_tensor Tensor, std::size_t BlockSize = 16>
+auto
+roll(Tensor t, int32_t shift, std::size_t dim, hardware_accelerator& gpu)
+{
+    kernel::roll<typename Tensor::value_type, BlockSize> op(gpu);
+    return op(t, shift, dim);
 }
 
 template <immutable_tensor Tensor, std::size_t BlockSize = 16>

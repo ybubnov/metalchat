@@ -71,29 +71,60 @@ private:
         return output;
     }
 
+    /// Cache the intermediate results (Rotation Positional Encodings) into the cache tensor.
+    ///
+    /// The implementation allows to store the inference results for the position larger than
+    /// the cache size: it simply drops the least recent results. It works like a sliding window.
+    ///
+    /// The implementation does not track if the specified start position corresponds to the
+    /// latest used start position. So if user called an attention layer with `start_pos = 15`
+    /// with cache size = 16, and then makes the next call with `start_pos = 44`, model won't
+    /// complain, but the result is not guarantueed to be correct.
     template <immutable_tensor4_t<T> Input, immutable_hardware_tensor4_t<T> Cache>
     auto
-    cache_copy(Input input, Cache cache, std::size_t bs, std::size_t start_pos, std::size_t size)
+    cache_copy(Input input, Cache cache, std::size_t bs, std::size_t start_pos, std::size_t len)
     {
+        auto cache_size = cache.size(1);
+
+        if (len > cache_size) {
+            throw std::invalid_argument(std::format(
+                "nn::attention: requested length ({}) is larger than the cache size ({})", len,
+                cache_size
+            ));
+        }
+
+        // When the cache is full (meaning that start position spilled over the boundaries
+        // of the cache), rotate it left and store the inferred results into the right-most
+        // position.
+        if (start_pos > cache_size) {
+            cache = roll(cache, /*shift=*/-int32_t(len), /*dim=*/1, accelerator());
+            start_pos = cache_size - len;
+        }
+
+        // Write the result of computation into the "target" tensor, so we could reuse
+        // it on the next iteration again. To make precise inference, model will use the
+        // all cached results (or up to the end position).
         using s = indexing::slice;
-        auto target = cache[s(0, bs), s(start_pos, start_pos + size), s(), s()];
-        auto result = cache[s(0, bs), s(0, start_pos + size), s(), s()];
+
+        auto end_pos = start_pos + len;
+        auto target = cache[s(0, bs), s(start_pos, end_pos), s(), s()];
+        auto result = cache[s(0, bs), s(0, end_pos), s(), s()];
 
         return future_tensor(result, _m_cpy(input, target));
     }
 
     template <immutable_tensor4_t<T> Input>
     inline auto
-    cache_keys(Input input, std::size_t bs, std::size_t begin, std::size_t size)
+    cache_keys(Input input, std::size_t bs, std::size_t start_pos, std::size_t len)
     {
-        return cache_copy(input, _m_cache_k, bs, begin, size);
+        return cache_copy(input, future_tensor(_m_cache_k), bs, start_pos, len);
     }
 
     template <immutable_tensor4_t<T> Input>
     inline auto
-    cache_values(Input input, std::size_t bs, std::size_t begin, std::size_t size)
+    cache_values(Input input, std::size_t bs, std::size_t start_pos, std::size_t len)
     {
-        return cache_copy(input, _m_cache_v, bs, begin, size);
+        return cache_copy(input, future_tensor(_m_cache_v), bs, start_pos, len);
     }
 
 public:

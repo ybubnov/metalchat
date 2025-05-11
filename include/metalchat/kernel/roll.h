@@ -11,6 +11,9 @@ namespace metalchat {
 namespace kernel {
 
 
+/// Roll the tensor along the given dimension. Elements that are shifted beyond the last
+/// position are re-introduced at the first position. The tensor is always flattened before
+/// rolling and then restored to the original shape.
 template <typename T, std::size_t BlockSize = 32> class roll {
 private:
     inline static const std::string operation_name = "roll_" + std::to_string(BlockSize);
@@ -24,18 +27,25 @@ public:
 
     template <immutable_tensor_t<T> Input>
     auto
-    operator()(Input input, int32_t shift, int32_t dim)
+    operator()(Input input, int32_t shift, std::size_t dim)
     {
         auto input_view = flatten<1>(input);
         auto output_view = shared_empty_like<T>(input_view, _m_kernel.get_allocator());
 
+        // The roll kernel does not assume any concrete shape of the input tensor so that
+        // implementation could roll any dimensions (including bath dimension).
+        //
+        // This implies that regular methods for kernel grid creation (maker_kernel_grid_1d,
+        // and make_kernel_grid_2d) won't fit our needs. So schedule a grid that allocates
+        // as large threads as possible (or as needed, depending on the tensor sizes).
         auto input_numel = input_view.numel();
         auto thread_size = std::min(input_numel, _m_kernel.max_threads_per_threadgroup());
         auto thread = dim3(thread_size);
         auto grid = dim3(ceil_div(input_numel, thread_size) * thread_size);
 
+        shift = shift % input.size(dim);
         if (shift < 0) {
-            shift = shift + int32_t(input.size(dim));
+            shift = int32_t(input.size(dim)) + shift;
         }
 
         auto task = kernel_task(_m_kernel, grid, thread);

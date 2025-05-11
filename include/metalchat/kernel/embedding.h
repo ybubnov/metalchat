@@ -69,16 +69,6 @@ public:
         immutable_tensor2_t<float> Cosines,
         immutable_tensor2_t<float> Sines>
     auto
-    debug_rope(Input input, Cosines freqs_cos, Sines freqs_sin, std::size_t start_pos)
-    {
-        return operator()(input, freqs_cos, freqs_sin, start_pos);
-    }
-
-    template <
-        immutable_tensor4_t<T> Input,
-        immutable_tensor2_t<float> Cosines,
-        immutable_tensor2_t<float> Sines>
-    auto
     operator()(Input input, Cosines freqs_cos, Sines freqs_sin, std::size_t start_pos)
     {
         auto bs = input.size(0);
@@ -87,6 +77,13 @@ public:
         auto data_size = input.numel();
         auto dim_size = input.sizes().back();
         auto num_rows = data_size / dim_size;
+
+        if (start_pos >= freqs_cos.size(0)) {
+            throw std::invalid_argument(std::format(
+                "kernel::rope: start position ({}) exceeds the size of frequencies tensor ({})",
+                start_pos, freqs_cos.size(0)
+            ));
+        }
 
         if (auto head_dim = freqs_cos.size(1); dim_size != head_dim * 2) {
             throw std::invalid_argument(std::format(
