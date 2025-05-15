@@ -79,7 +79,7 @@ private:
     /// The implementation does not track if the specified start position corresponds to the
     /// latest used start position. So if user called an attention layer with `start_pos = 15`
     /// with cache size = 16, and then makes the next call with `start_pos = 44`, model won't
-    /// complain, but the result is not guarantueed to be correct.
+    /// complain, but the result is not won't be correct.
     template <immutable_tensor4_t<T> Input, immutable_hardware_tensor4_t<T> Cache>
     auto
     cache_copy(Input input, Cache cache, std::size_t bs, std::size_t start_pos, std::size_t len)

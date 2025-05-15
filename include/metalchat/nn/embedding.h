@@ -56,11 +56,17 @@ template <typename T, contiguous_container Container>
 using shared_embedding = shared_layer<embedding<T, Container>>;
 
 
+/// This class implements Rotary Positional Embeddings (RoPE).
+///
+/// In this implementation we cache the frequencies for each position. When user requests an
+/// embedding with start position that is not presented in the cache, the module will recompute
+/// the cached frequencies for a range `[start_pos, start_pos + max_seq_len)`.
 template <typename T> class rope : public layer {
 private:
+    std::size_t _m_start_pos;
     // note: in case llama3.2 _m_dim is equal to 64.
     std::size_t _m_dim;
-    std::size_t _m_max_seq_len;
+    std::size_t _m_seq_len;
     float _m_theta;
 
     shared_tensor<float, 2, hardware_memory_container<float>> _m_freqs_cos;
@@ -94,15 +100,8 @@ private:
         }
     }
 
-public:
-    rope(std::size_t dim, std::size_t max_seq_len, float theta, hardware_accelerator accelerator)
-    : layer(accelerator),
-      _m_dim(dim),
-      _m_max_seq_len(max_seq_len),
-      _m_theta(theta),
-      _m_freqs_cos(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, accelerator.get_allocator())),
-      _m_freqs_sin(empty<float>({_m_max_seq_len * 2, _m_dim / 2}, accelerator.get_allocator())),
-      _m_rope(accelerator)
+    void
+    init_freqs(std::size_t begin, std::size_t end)
     {
         std::vector<float> freqs(_m_dim / 2);
         for (std::size_t i = 0; i < freqs.size(); i++) {
@@ -111,13 +110,30 @@ public:
 
         // scale_freqs(freqs);
 
-        for (std::size_t i = 0; i < _m_max_seq_len * 2; i++) {
-            for (std::size_t j = 0; j < _m_dim / 2; j++) {
+        for (std::size_t i = begin; i < end; i++) {
+            std::size_t ii = i - begin;
+
+            for (std::size_t j = 0; j < freqs.size(); j++) {
                 float angle = float(i) * freqs[j];
-                _m_freqs_cos[i, j] = std::cos(angle);
-                _m_freqs_sin[i, j] = std::sin(angle);
+
+                _m_freqs_cos[ii, j] = std::cos(angle);
+                _m_freqs_sin[ii, j] = std::sin(angle);
             }
         }
+    }
+
+public:
+    rope(std::size_t dim, std::size_t max_seq_len, float theta, hardware_accelerator accelerator)
+    : layer(accelerator),
+      _m_start_pos(0),
+      _m_dim(dim),
+      _m_seq_len(max_seq_len * 2),
+      _m_theta(theta),
+      _m_freqs_cos(empty<float>({_m_seq_len, _m_dim / 2}, accelerator.get_allocator())),
+      _m_freqs_sin(empty<float>({_m_seq_len, _m_dim / 2}, accelerator.get_allocator())),
+      _m_rope(accelerator)
+    {
+        init_freqs(_m_start_pos, _m_start_pos + _m_seq_len);
     }
 
     template <immutable_tensor4_t<T> Input>
@@ -131,7 +147,14 @@ public:
             ));
         }
 
-        return _m_rope(input, _m_freqs_cos, _m_freqs_sin, start_pos);
+        // When the requested start position is outside of the frequencies range, recompute
+        // the frequencies for a new position.
+        if (start_pos < _m_start_pos || start_pos >= _m_start_pos + _m_seq_len) {
+            _m_start_pos = start_pos;
+            init_freqs(_m_start_pos, _m_start_pos + _m_seq_len);
+        }
+
+        return _m_rope(input, _m_freqs_cos, _m_freqs_sin, start_pos - _m_start_pos);
     }
 };
 
