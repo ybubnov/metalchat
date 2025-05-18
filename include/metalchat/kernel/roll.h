@@ -29,8 +29,16 @@ public:
     auto
     operator()(Input input, int32_t shift, std::size_t dim)
     {
+        auto output = shared_empty_like<T>(input, _m_kernel.get_allocator());
+        return operator()(input, output, shift, dim);
+    }
+
+    template <immutable_tensor_t<T> Input, immutable_tensor_t<T> Output>
+    auto
+    operator()(Input input, Output output, int32_t shift, std::size_t dim)
+    {
         auto input_view = flatten<1>(input);
-        auto output_view = shared_empty_like<T>(input_view, _m_kernel.get_allocator());
+        auto output_view = flatten<1>(output);
 
         // The roll kernel does not assume any concrete shape of the input tensor so that
         // implementation could roll any dimensions (including bath dimension).
@@ -55,8 +63,7 @@ public:
             shared_tensor(scalar<int32_t>(input.stride(dim)))
         );
 
-        auto output = future_tensor(output_view, std::move(task_future));
-        return output.view(input.shape());
+        return future_tensor(output, std::move(task_future));
     }
 };
 

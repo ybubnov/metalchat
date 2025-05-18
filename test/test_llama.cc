@@ -29,7 +29,7 @@ TEST_CASE("Test make model", "[llama]")
         .head_dim = 64,
         .n_heads = 32,
         .n_kv_heads = 8,
-        .max_seq_len = 1024,
+        .max_seq_len = 16,
         .rope_theta = 500000.0
     };
 
@@ -52,11 +52,11 @@ TEST_CASE("Test make model", "[llama]")
     auto id = top_p(logit0.flatten<2>(), bf16(0.6f), bf16(0.9), gpu0); //.get();
 
     std::cout << input_text;
-    // std::cout << bpe.decode(id[0, 0]);
+    std::cout << bpe.decode(id.get()[0, 0]);
     std::vector<future_tensor<int32_t, 2>> outputs;
-    outputs.push_back(id);
+    // outputs.push_back(id);
 
-    for (std::size_t i = input0.size(1); i < 52; i++) {
+    for (std::size_t i = input0.size(1); i < 64; i++) {
         // const auto start{std::chrono::steady_clock::now()};
 
         auto logits = m(id, i).flatten<2>();
@@ -66,8 +66,8 @@ TEST_CASE("Test make model", "[llama]")
         // const std::chrono::duration<double> elapsed_seconds{finish - start};
         // std::cout << "t=" << elapsed_seconds << std::endl;
 
-        // std::cout << bpe.decode(id[0, 0]) << std::flush;
-        outputs.push_back(id);
+        std::cout << bpe.decode(id.get()[0, 0]) << std::flush;
+        // outputs.push_back(id);
     }
     for (auto& id : outputs) {
         std::cout << bpe.decode(id.get()[0, 0]) << std::flush;

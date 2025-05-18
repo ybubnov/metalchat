@@ -24,7 +24,7 @@ TEST_CASE("Test chat", "[llama]")
         .head_dim = 64,
         .n_heads = 32,
         .n_kv_heads = 8,
-        .max_seq_len = 1024,
+        .max_seq_len = 26,
         .rope_theta = 500000.0
     };
 

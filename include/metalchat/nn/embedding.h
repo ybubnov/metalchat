@@ -69,8 +69,8 @@ private:
     std::size_t _m_seq_len;
     float _m_theta;
 
-    shared_tensor<float, 2, hardware_memory_container<float>> _m_freqs_cos;
-    shared_tensor<float, 2, hardware_memory_container<float>> _m_freqs_sin;
+    shared_hardware_tensor<float, 2> _m_freqs_cos;
+    shared_hardware_tensor<float, 2> _m_freqs_sin;
 
     kernel::rope<T> _m_rope;
 
@@ -103,6 +103,9 @@ private:
     void
     init_freqs(std::size_t begin, std::size_t end)
     {
+        _m_freqs_cos = empty<float>({_m_seq_len, _m_dim / 2}, accelerator().get_allocator());
+        _m_freqs_sin = empty<float>({_m_seq_len, _m_dim / 2}, accelerator().get_allocator());
+
         std::vector<float> freqs(_m_dim / 2);
         for (std::size_t i = 0; i < freqs.size(); i++) {
             freqs[i] = 1.0f / std::powf(_m_theta, 2.0 * i / _m_dim);
@@ -129,8 +132,8 @@ public:
       _m_dim(dim),
       _m_seq_len(max_seq_len * 2),
       _m_theta(theta),
-      _m_freqs_cos(empty<float>({_m_seq_len, _m_dim / 2}, accelerator.get_allocator())),
-      _m_freqs_sin(empty<float>({_m_seq_len, _m_dim / 2}, accelerator.get_allocator())),
+      _m_freqs_cos(tensor<float, 2, hardware_memory_container<float>>()),
+      _m_freqs_sin(tensor<float, 2, hardware_memory_container<float>>()),
       _m_rope(accelerator)
     {
         init_freqs(_m_start_pos, _m_start_pos + _m_seq_len);

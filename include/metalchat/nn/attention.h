@@ -25,13 +25,13 @@ struct attention_options {
     float rope_theta;
 
     inline std::size_t
-    repeats()
+    repeats() const
     {
         return n_heads / n_kv_heads;
     }
 
     inline float
-    scale()
+    scale() const
     {
         return 1.0 / std::sqrt(float(head_dim));
     }
@@ -52,8 +52,8 @@ private:
     nn::attention_options _m_options;
     T _m_scale;
 
-    shared_tensor<T, input_size, hardware_memory_container<T>> _m_cache_k;
-    shared_tensor<T, input_size, hardware_memory_container<T>> _m_cache_v;
+    future_tensor<T, input_size> _m_cache_k;
+    future_tensor<T, input_size> _m_cache_v;
 
     kernel::cpy<T> _m_cpy;
 
@@ -71,6 +71,15 @@ private:
         return output;
     }
 
+    auto
+    cache_alloc(const attention_options& options, std::size_t max_batch_size)
+    {
+        return future_tensor(empty<T>(
+            {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
+            accelerator().get_allocator()
+        ));
+    }
+
     /// Cache the intermediate results (Rotation Positional Encodings) into the cache tensor.
     ///
     /// The implementation allows to store the inference results for the position larger than
@@ -84,7 +93,10 @@ private:
     auto
     cache_copy(Input input, Cache cache, std::size_t bs, std::size_t start_pos, std::size_t len)
     {
+        using s = indexing::slice;
+        auto batch_size = cache.size(0);
         auto cache_size = cache.size(1);
+        std::size_t prefix_len = 4;
 
         if (len > cache_size) {
             throw std::invalid_argument(std::format(
@@ -96,35 +108,51 @@ private:
         // When the cache is full (meaning that start position spilled over the boundaries
         // of the cache), rotate it left and store the inferred results into the right-most
         // position.
-        if (start_pos > cache_size) {
-            cache = roll(cache, /*shift=*/-int32_t(len), /*dim=*/1, accelerator());
+        if (start_pos >= cache_size) {
+            auto cache_new = cache_alloc(_m_options, batch_size);
+            cache_new = future_tensor(
+                cache_new,
+                _m_cpy(cache.narrow(1, 0, prefix_len), cache_new.narrow(1, 0, prefix_len))
+            );
+
+            auto rolled_cache = roll(
+                cache.narrow(1, prefix_len, cache_size - prefix_len),
+                cache_new.narrow(1, prefix_len, cache_size - prefix_len),
+                /*shift=*/int32_t(len), /*dim=*/1, accelerator()
+            );
+
+            cache = future_tensor(cache_new, rolled_cache);
             start_pos = cache_size - len;
         }
 
         // Write the result of computation into the "target" tensor, so we could reuse
-        // it on the next iteration again. To make precise inference, model will use the
-        // all cached results (or up to the end position).
-        using s = indexing::slice;
-
+        // it on the next iteration again. To make precise inference, model will use all
+        // previously cached results (or up to the end position).
         auto end_pos = start_pos + len;
         auto target = cache[s(0, bs), s(start_pos, end_pos), s(), s()];
-        auto result = cache[s(0, bs), s(0, end_pos), s(), s()];
 
-        return future_tensor(result, _m_cpy(input, target));
+        cache = future_tensor(cache, _m_cpy(input, target));
+        auto cached_data = cache[s(0, bs), s(0, end_pos), s(), s()];
+
+        return std::make_tuple(cache, cached_data);
     }
 
     template <immutable_tensor4_t<T> Input>
     inline auto
     cache_keys(Input input, std::size_t bs, std::size_t start_pos, std::size_t len)
     {
-        return cache_copy(input, future_tensor(_m_cache_k), bs, start_pos, len);
+        auto [cache, keys] = cache_copy(input, _m_cache_k, bs, start_pos, len);
+        _m_cache_k = cache;
+        return keys;
     }
 
     template <immutable_tensor4_t<T> Input>
     inline auto
     cache_values(Input input, std::size_t bs, std::size_t start_pos, std::size_t len)
     {
-        return cache_copy(input, future_tensor(_m_cache_v), bs, start_pos, len);
+        auto [cache, values] = cache_copy(input, _m_cache_v, bs, start_pos, len);
+        _m_cache_v = cache;
+        return values;
     }
 
 public:
@@ -135,14 +163,8 @@ public:
       _m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
       _m_options(options),
       _m_scale(options.scale()),
-      _m_cache_k(empty<T>(
-          {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
-          accelerator.get_allocator()
-      )),
-      _m_cache_v(empty<T>(
-          {max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
-          accelerator.get_allocator()
-      )),
+      _m_cache_k(cache_alloc(options, max_batch_size)),
+      _m_cache_v(cache_alloc(options, max_batch_size)),
       _m_cpy(accelerator)
     {
         m_wq = register_layer("wq", nn::linear<T, Container>(accelerator));
@@ -150,8 +172,8 @@ public:
         m_wv = register_layer("wv", nn::linear<T, Container>(accelerator));
         m_wo = register_layer("wo", nn::linear<T, Container>(accelerator));
 
-        register_parameter("cache_k", _m_cache_k.get());
-        register_parameter("cache_v", _m_cache_v.get());
+        // register_parameter("cache_k", _m_cache_k.get().get());
+        // register_parameter("cache_v", _m_cache_v.get().get());
     }
 
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>

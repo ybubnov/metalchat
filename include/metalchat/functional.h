@@ -102,6 +102,15 @@ roll(Tensor t, int32_t shift, std::size_t dim, hardware_accelerator& gpu)
     return op(t, shift, dim);
 }
 
+
+template <immutable_tensor Input, immutable_tensor Output, std::size_t BlockSize = 16>
+auto
+roll(Input input, Output output, int32_t shift, std::size_t dim, hardware_accelerator& gpu)
+{
+    kernel::roll<typename Input::value_type, BlockSize> op(gpu);
+    return op(input, output, shift, dim);
+}
+
 template <immutable_tensor Tensor, std::size_t BlockSize = 16>
 auto
 cumsum(Tensor t, hardware_accelerator& gpu)
