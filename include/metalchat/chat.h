@@ -28,6 +28,11 @@ public:
       _m_content(content)
     {}
 
+    basic_message(std::string&& role, std::string&& content)
+    : _m_role(std::move(role)),
+      _m_content(std::move(content))
+    {}
+
     basic_message(const std::string& role)
     : _m_role(role),
       _m_content()
@@ -42,6 +47,12 @@ public:
         bpe.encode(special_token::end_header, container);
         bpe.encode("\n\n", container);
         bpe.encode(_m_content, container);
+    }
+
+    std::string
+    content() const
+    {
+        return _m_content;
     }
 
 private:
@@ -149,12 +160,16 @@ public:
     }
 
     std::string
-    receive_text(std::size_t max_size = 20)
+    receive_text()
+    {
+        return receive().content();
+    }
+
+    basic_message
+    receive()
     {
         basic_message query("assistant");
         query.encode(_m_bpe, _m_encoding);
-
-        auto msg = _m_bpe.decode(_m_encoding.begin(), _m_encoding.end());
 
         std::vector<index_type> encoding;
         _m_encoding.swap(encoding);
@@ -163,16 +178,19 @@ public:
         auto container_ptr = std::make_shared<container_type>(std::move(encoding));
 
         auto input = tensor({1, encoding_size}, container_ptr);
-        auto output = _m_transformer(shared_tensor(std::move(input)), 0);
+        auto output = _m_transformer(shared_tensor(std::move(input)), _m_start_pos);
+        auto token = output.get()[0, 0];
 
-        std::stringstream ss;
-        ss << _m_bpe.decode(output.get()[0, 0]);
+        _m_start_pos += encoding_size;
+        std::stringstream content;
 
-        for (std::size_t i = encoding_size; i < encoding_size + max_size - 1; i++) {
-            output = _m_transformer(output, i);
-            ss << _m_bpe.decode(output.get()[0, 0]);
+        while (token != 128000 + special_token::end_turn) {
+            content << _m_bpe.decode(token);
+            output = _m_transformer(output, _m_start_pos++);
+            token = output.get()[0, 0];
         }
-        return ss.str();
+
+        return basic_message("assistant", content.str());
     }
 
 
@@ -180,6 +198,7 @@ private:
     Transformer _m_transformer;
     byte_pair_encoder _m_bpe;
 
+    std::size_t _m_start_pos;
     std::vector<index_type> _m_encoding;
 };
 

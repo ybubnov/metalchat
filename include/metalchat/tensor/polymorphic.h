@@ -10,7 +10,7 @@ namespace metalchat {
 
 class polymorphic_tensor {
 public:
-    using value_type = void;
+    using value_type = basic_tensor;
     using pointer_type = value_type*;
 
     template <immutable_tensor Tensor>
@@ -99,7 +99,7 @@ public:
     }
 
 private:
-    std::shared_ptr<basic_tensor> _m_value;
+    std::shared_ptr<value_type> _m_value;
 };
 
 

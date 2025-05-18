@@ -155,6 +155,27 @@ private:
         return values;
     }
 
+    template <immutable_tensor4_t<T> Scores, immutable_tensor2_t<T> Mask>
+    auto
+    add_additive_causal_mask(Scores scores, Mask mask)
+    {
+        auto gpu = accelerator();
+        auto alloc = gpu.get_allocator();
+
+        if (mask.size(1) < scores.size(3)) {
+            const T infinity = T(std::numeric_limits<float>::infinity());
+
+            auto causal_shift = scores.size(3) - mask.size(1);
+            auto causal_mask
+                = future_tensor(full<T>({scores.size(2), scores.size(3)}, -infinity, alloc));
+
+            auto causal_mask_target = causal_mask.narrow(1, causal_shift, mask.size(1));
+            mask = future_tensor(causal_mask, _m_cpy(mask, causal_mask_target));
+        }
+
+        return add2(scores, mask, gpu);
+    }
+
 public:
     attention(
         attention_options& options, hardware_accelerator accelerator, std::size_t max_batch_size = 1
@@ -213,7 +234,7 @@ public:
 
         auto scores = mul(matmul(queries, keys, accelerator()), _m_scale, accelerator());
         if (mask.has_value()) {
-            scores = add2(scores, mask.value(), accelerator());
+            scores = add_additive_causal_mask(scores, future_tensor(mask.value()));
         }
         scores = softmax(scores, accelerator());
 

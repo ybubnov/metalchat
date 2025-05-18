@@ -24,7 +24,7 @@ TEST_CASE("Test chat", "[llama]")
         .head_dim = 64,
         .n_heads = 32,
         .n_kv_heads = 8,
-        .max_seq_len = 26,
+        .max_seq_len = 32,
         .rope_theta = 500000.0
     };
 
@@ -36,9 +36,8 @@ TEST_CASE("Test chat", "[llama]")
 
     agent.send(basic_message("system", "You are a helpful assistant"));
     agent.send(basic_message("user", "What is the capital of France?"));
-    auto response = agent.receive_text();
-    std::cout << response << std::endl;
+    std::cout << agent.receive_text() << std::endl;
 
-    agent.send(basic_message("user", "What is the capital of Belgium?"));
+    agent.send(basic_message("user", "what is the capital of Belgium?"));
     std::cout << agent.receive_text() << std::endl;
 }

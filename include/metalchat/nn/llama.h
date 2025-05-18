@@ -31,7 +31,7 @@ private:
     std::list<shared_transformer<T, Container>> _m_transforms;
 
     auto
-    create_additive_causal_mask(const std::size_t size) const
+    create_additive_causal_mask(std::size_t size) const
     {
         std::optional<shared_tensor<T, 2, hardware_memory_container<T>>> mask;
 
@@ -78,9 +78,8 @@ public:
 
         auto output = _m_norm(x);
 
-        using s = indexing::slice;
         auto seqlen = output.size(1);
-        output = output[s(), s(seqlen - 1, seqlen), s()];
+        output = output.narrow(1, seqlen - 1, 1);
 
         return _m_output(output);
     }
