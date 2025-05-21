@@ -13,8 +13,6 @@ namespace kernel {
 
 template <typename T, std::size_t BlockSize = 32> class multinomial {
 private:
-    inline static const std::string operation_name = "multinomial_" + std::to_string(BlockSize);
-
     basic_kernel _m_kernel;
 
     std::random_device _m_random_device;
@@ -23,7 +21,7 @@ private:
 
 public:
     multinomial(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name())),
+    : _m_kernel(gpu.load<T, BlockSize>("multinomial")),
       _m_random_device(),
       _m_generator(_m_random_device()),
       _m_seed(0, std::numeric_limits<uint64_t>::max())

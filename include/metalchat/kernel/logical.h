@@ -13,13 +13,11 @@ namespace kernel {
 
 template <typename T, std::size_t BlockSize = 32> class gt {
 private:
-    inline static const std::string operation_name = "gt_" + std::to_string(BlockSize);
-
     basic_kernel _m_kernel;
 
 public:
     gt(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(gpu.load<T, BlockSize>("gt"))
     {}
 
     template <immutable_tensor_t<T> Input1>

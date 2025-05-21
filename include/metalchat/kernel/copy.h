@@ -13,8 +13,6 @@ namespace kernel {
 
 template <typename T, std::size_t BlockSize = 16> class cpy {
 private:
-    inline static const std::string operation_name = "copy_" + std::to_string(BlockSize);
-
     basic_kernel _m_kernel;
 
     template <immutable_tensor2_t<T> Input, immutable_tensor2_t<T> Output>
@@ -45,7 +43,7 @@ private:
 
 public:
     cpy(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(gpu.load<T, BlockSize>("copy"))
     {}
 
     /// Copy values from input to the output.
@@ -71,13 +69,11 @@ public:
 
 template <typename T, std::size_t BlockSize = 16> class scatter {
 private:
-    inline static const std::string operation_name = "scatter_" + std::to_string(BlockSize);
-
     basic_kernel _m_kernel;
 
 public:
     scatter(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(gpu.load<T, BlockSize>("scatter"))
     {}
 
     template <immutable_tensor_t<T> Input, immutable_tensor_t<bool> Mask>
@@ -101,13 +97,11 @@ public:
 
 template <typename T, std::size_t BlockSize = 16> class gather {
 private:
-    inline static const std::string operation_name = "gather_" + std::to_string(BlockSize);
-
     basic_kernel _m_kernel;
 
 public:
     gather(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(gpu.load<T, BlockSize>("gather"))
     {}
 
     template <immutable_tensor_t<T> Input, immutable_tensor_t<int32_t> Index>

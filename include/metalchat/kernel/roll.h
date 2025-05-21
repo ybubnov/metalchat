@@ -16,13 +16,11 @@ namespace kernel {
 /// rolling and then restored to the original shape.
 template <typename T, std::size_t BlockSize = 32> class roll {
 private:
-    inline static const std::string operation_name = "roll_" + std::to_string(BlockSize);
-
     basic_kernel _m_kernel;
 
 public:
     roll(hardware_accelerator& accelerator)
-    : _m_kernel(accelerator.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(accelerator.load<T, BlockSize>("roll"))
     {}
 
     template <immutable_tensor_t<T> Input>

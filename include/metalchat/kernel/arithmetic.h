@@ -15,13 +15,11 @@ namespace kernel {
 
 template <typename T, std::size_t BlockSize = 32> class add {
 private:
-    inline static const std::string operation_name = "add_" + std::to_string(BlockSize);
-
     binary_kernel_wrapper<T, BlockSize> _m_kernel;
 
 public:
     add(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(gpu.load<T, BlockSize>("add"))
     {}
 
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
@@ -35,13 +33,11 @@ public:
 
 template <typename T, std::size_t BlockSize = 8> class add2 {
 private:
-    inline static const std::string operation_name = "add2_" + std::to_string(BlockSize);
-
     basic_kernel _m_kernel;
 
 public:
     add2(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(gpu.load<T, BlockSize>("add2"))
     {}
 
     template <immutable_tensor_t<T> Input1, immutable_tensor2_t<T> Input2>
@@ -82,13 +78,11 @@ public:
 
 template <typename T, std::size_t BlockSize = 32> class sub {
 private:
-    inline static const std::string operation_name = "sub_" + std::to_string(BlockSize);
-
     binary_kernel_wrapper<T, BlockSize> _m_kernel;
 
 public:
     sub(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(gpu.load<T, BlockSize>("sub"))
     {}
 
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>

@@ -13,13 +13,11 @@ namespace kernel {
 
 template <typename T, std::size_t BlockSize = 16> class cumsum {
 private:
-    inline static const std::string operation_name = "cumsum_" + std::to_string(BlockSize);
-
     basic_kernel _m_kernel;
 
 public:
     cumsum(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(gpu.load<T, BlockSize>("cumsum"))
     {}
 
     template <immutable_tensor_t<T> Input>

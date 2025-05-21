@@ -19,13 +19,11 @@ namespace kernel {
 template <typename T, std::size_t BlockSize = 16, std::size_t EmbeddingBlockSize = 64>
 class embedding {
 private:
-    inline static const std::string operation_name = "embedding_" + std::to_string(BlockSize);
-
     basic_kernel _m_kernel;
 
 public:
     embedding(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(gpu.load<T, BlockSize>("embedding"))
     {}
 
     template <immutable_tensor2_t<int32_t> Input, immutable_tensor2_t<T> WeightTensor>
@@ -55,13 +53,11 @@ public:
 
 template <typename T, std::size_t BlockSize = 16> class rope {
 private:
-    inline static const std::string operation_name = "rope_" + std::to_string(BlockSize);
-
     basic_kernel _m_kernel;
 
 public:
     rope(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(gpu.load<T, BlockSize>("rope"))
     {}
 
     template <

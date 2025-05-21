@@ -14,13 +14,11 @@ namespace kernel {
 
 template <typename T, std::size_t BlockSize = 8> class bmm {
 private:
-    inline static const std::string operation_name = "bmm_" + std::to_string(BlockSize);
-
     basic_kernel _m_kernel;
 
 public:
     bmm(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(gpu.load<T, BlockSize>("bmm"))
     {}
 
     template <immutable_tensor3_t<T> Input, immutable_tensor3_t<T> Weight>

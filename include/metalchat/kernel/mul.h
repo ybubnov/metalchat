@@ -14,13 +14,11 @@ namespace kernel {
 
 template <typename T, std::size_t BlockSize = 16> class hadamard {
 private:
-    inline static const std::string operation_name = "hadamard_" + std::to_string(BlockSize);
-
     binary_kernel_wrapper<T, BlockSize> _m_kernel;
 
 public:
     hadamard(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(gpu.load<T, BlockSize>("hadamard"))
     {}
 
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
@@ -34,13 +32,11 @@ public:
 
 template <typename T, std::size_t BlockSize = 1> class scalar_mul {
 private:
-    inline static const std::string operation_name = "scalar_mul_" + std::to_string(BlockSize);
-
     binary_kernel_wrapper<T, BlockSize> _m_kernel;
 
 public:
     scalar_mul(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load(operation_name, type_traits<T>::name()))
+    : _m_kernel(gpu.load<T, BlockSize>("scalar_mul"))
     {}
 
     template <immutable_tensor_t<T> Input, immutable_scalar_t<T> Multiplier>

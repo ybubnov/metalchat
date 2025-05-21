@@ -4,6 +4,7 @@
 #include <iostream>
 #include <unordered_map>
 
+#include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
 #include <metalchat/kernel_thread.h>
 #include <metalchat/metal.h>
@@ -130,6 +131,14 @@ public:
     /// users won't need to format kernel name manually.
     basic_kernel
     load(const std::string& name, const std::string& type);
+
+    template <typename T, std::size_t BlockSize>
+    basic_kernel
+    load(const std::string_view& name)
+    {
+        auto kernel_name = std::format("{}_{}_{}", name, BlockSize, type_traits<T>::name());
+        return load(kernel_name);
+    }
 };
 
 
