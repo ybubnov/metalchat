@@ -107,12 +107,11 @@ public:
     /// TODO: Introduce sampling classes for the model sampling configuration.
     language_transformer(
         Estimator&& estimator,
-        hardware_accelerator accelerator,
         value_type temperature = value_type(0.6),
         value_type p = value_type(0.9)
     )
     : _m_estimator(std::move(estimator)),
-      _m_accelerator(accelerator),
+      _m_accelerator(_m_estimator.accelerator()),
       _m_temperature(temperature),
       _m_p(p)
     {}
@@ -184,7 +183,8 @@ public:
         _m_start_pos += encoding_size;
         std::stringstream content;
 
-        while (token != 128000 + special_token::end_turn) {
+        auto end_turn = _m_bpe.encode(special_token::end_turn);
+        while (token != end_turn) {
             content << _m_bpe.decode(token);
             output = _m_transformer(output, _m_start_pos++);
             token = output.get()[0, 0];

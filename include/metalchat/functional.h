@@ -32,9 +32,9 @@ matmul(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 }
 
 
-template <typename T, immutable_tensor_t<T> Tensor, std::size_t BlockSize = 16>
+template <immutable_tensor Tensor, std::size_t BlockSize = 16>
 auto
-mul(Tensor t, const T multiplier, hardware_accelerator& gpu)
+mul(Tensor t, const typename Tensor::value_type multiplier, hardware_accelerator& gpu)
 {
     kernel::scalar_mul<typename Tensor::value_type, BlockSize> op(gpu);
     return op(t, multiplier);
@@ -152,6 +152,14 @@ sub(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 }
 
 
+template <immutable_tensor Tensor, std::size_t BlockSize>
+auto
+sub(Tensor t1, Tensor t2, hardware_accelerator& gpu)
+{
+    return sub<Tensor, Tensor, BlockSize>(t1, t2, gpu);
+}
+
+
 template <typename T, immutable_tensor_t<T> Tensor, std::size_t BlockSize = 128>
 auto
 gt(Tensor t, T value, hardware_accelerator& gpu)
@@ -174,12 +182,12 @@ template <typename T, immutable_tensor2_t<T> Tensor, std::size_t BlockSize = 128
 auto
 top_p(Tensor logits, T temperature, T p, hardware_accelerator& gpu)
 {
-    logits = mul<T, Tensor, BlockSize>(logits, T(1) / temperature, gpu);
+    logits = mul<Tensor, BlockSize>(logits, T(1) / temperature, gpu);
     auto probs = softmax<Tensor, BlockSize>(logits, gpu);
 
     auto [probs_sort, probs_idx] = sort(probs, gpu);
     auto probs_sum = cumsum<Tensor, BlockSize>(probs_sort, gpu);
-    auto probs_diff = sub<Tensor, Tensor, BlockSize>(probs_sum, probs_sort, gpu);
+    auto probs_diff = sub<Tensor, BlockSize>(probs_sum, probs_sort, gpu);
 
     auto mask = gt(probs_diff, p, gpu);
     probs_sort = scatter(probs_sort, mask, T(0), gpu);

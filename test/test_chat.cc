@@ -31,7 +31,7 @@ TEST_CASE("Test chat", "[llama]")
     nn::llama<bf16> m(16, options, gpu0);
     m.initialize(tensors, make_rebind_allocator<bf16>(gpu0.get_allocator()));
 
-    auto transformer = language_transformer(std::move(m), gpu0);
+    auto transformer = language_transformer(std::move(m));
     auto agent = chat(std::move(transformer), std::move(bpe));
 
     agent.send(basic_message("system", "You are a helpful assistant"));
