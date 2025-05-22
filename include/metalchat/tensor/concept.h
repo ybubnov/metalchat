@@ -111,4 +111,16 @@ concept immutable_hardware_tensor4_t = immutable_tensor4_t<Tensor, T>
                                            hardware_memory_container<typename Tensor::value_type>>;
 
 
+template <typename Tensor> struct optional_tensor : public std::false_type {};
+
+
+template <typename Tensor>
+struct optional_tensor<std::optional<Tensor>>
+: public std::bool_constant<immutable_tensor<Tensor>> {};
+
+
+template <typename Tensor>
+concept optional_tensor_v = optional_tensor<Tensor>::value;
+
+
 } // namespace metalchat

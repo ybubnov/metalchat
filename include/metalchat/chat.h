@@ -12,8 +12,10 @@ namespace metalchat {
 
 template <typename Encodable, typename PushBackContainer>
 concept __byte_pair_encodable = requires(const Encodable encodable, PushBackContainer& container) {
+    requires push_back_container<PushBackContainer>;
+
     { encodable.encode(std::declval<const byte_pair_encoder&>(), container) } -> std::same_as<void>;
-} && push_back_container<PushBackContainer>;
+};
 
 
 template <typename Encodable>
@@ -63,10 +65,13 @@ private:
 
 template <typename Input, typename Estimator>
 concept __language_estimator_t = requires(Input input, Estimator estimator) {
+    requires std::derived_from<Estimator, layer>;
+    requires immutable_tensor2_t<Input, int32_t>;
+
     typename Estimator::value_type;
 
     { estimator(input, std::size_t()) } -> is_future_tensor3_v<typename Estimator::value_type>;
-} && immutable_tensor2_t<Input, int32_t> && std::derived_from<Estimator, layer>;
+};
 
 
 /// The language estimator is an abstraction of the next token prediction model.
@@ -87,10 +92,12 @@ static_assert(language_estimator_t<nn::llama<dtype::bf16>>);
 
 template <typename Input, typename Transformer>
 concept __language_transformer_t = requires(Input input, Transformer transformer) {
+    requires immutable_tensor2_t<Input, int32_t>;
+
     typename Transformer::value_type;
 
     { transformer(input, std::size_t()) } -> is_future_tensor2_v<int32_t>;
-} && immutable_tensor2_t<Input, int32_t>;
+};
 
 
 template <typename Transformer>

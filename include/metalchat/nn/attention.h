@@ -192,9 +192,6 @@ public:
         m_wk = register_layer("wk", nn::linear<T, Container>(accelerator));
         m_wv = register_layer("wv", nn::linear<T, Container>(accelerator));
         m_wo = register_layer("wo", nn::linear<T, Container>(accelerator));
-
-        // register_parameter("cache_k", _m_cache_k.get().get());
-        // register_parameter("cache_v", _m_cache_v.get().get());
     }
 
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
@@ -234,6 +231,8 @@ public:
 
         auto scores = mul(matmul(queries, keys, accelerator()), _m_scale, accelerator());
         if (mask.has_value()) {
+            std::cout << scores.sizes() << " :: " << mask.value().sizes() << " <> " << len
+                      << std::endl;
             scores = add_additive_causal_mask(scores, future_tensor(mask.value()));
         }
         scores = softmax(scores, accelerator());

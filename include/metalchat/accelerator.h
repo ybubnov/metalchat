@@ -67,9 +67,6 @@ private:
     }
 
 public:
-    // hardware_accelerator(hardware_accelerator&&) noexcept = default;
-    // hardware_accelerator(const hardware_accelerator&) = delete;
-
     /// Create hardware accelerator from the kernel (shader) library.
     ///
     /// You can create a new hardware accelerator in the following way:
@@ -83,18 +80,28 @@ public:
     ///     triggered (usually by calling `future_tensor::get` method).
     hardware_accelerator(const std::filesystem::path& path, std::size_t thread_capacity = 64);
 
+    /// Create hardware accelerator from within a bundle.
+    ///
+    /// When the library is distributed as a bundle, then it's possible to load the shader
+    /// library from the bundle. This constructor performs lookup of the distribution bundle
+    /// and loads shader library named `metalchat.metallib`.
+    ///
     hardware_accelerator(std::size_t thread_capacity = 64);
 
     /// Get name of the hardware accelerator.
     std::string
     name() const;
 
+    /// Return a shared pointer to the underlying Metal Device.
     inline NS::SharedPtr<MTL::Device>
     get_hardware_device()
     {
         return _m_device;
     }
 
+    /// Return an allocator associated with the current thread.
+    ///
+    /// Use `set_allocator` method to set a new allocator to the currently running thread.
     allocator_type
     get_allocator() const;
 
@@ -132,6 +139,10 @@ public:
     basic_kernel
     load(const std::string& name, const std::string& type);
 
+    /// Load the kernel from kernel library.
+    ///
+    /// This is a convenience method that loads kernels with names in the following format:
+    /// `{name}_{block_size}_{data_type}`.
     template <typename T, std::size_t BlockSize>
     basic_kernel
     load(const std::string_view& name)
