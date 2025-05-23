@@ -7,6 +7,7 @@
 #include <metalchat/functional.h>
 #include <metalchat/layer.h>
 #include <metalchat/nn/attention.h>
+#include <metalchat/nn/cache.h>
 #include <metalchat/nn/linear.h>
 #include <metalchat/nn/rmsnorm.h>
 #include <metalchat/tensor/basic.h>
@@ -72,12 +73,12 @@ public:
         _m_ff_norm = register_layer("ffn_norm", nn::rmsnorm<T, Container>(gpu));
     }
 
-    template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
+    template <immutable_tensor3_t<T> Input, cache_t<T> Cache>
     auto
-    operator()(Input input, const std::optional<Mask> mask, std::size_t start_pos = 0)
+    operator()(Input input, Cache& cache, std::size_t start_pos = 0)
     {
         auto norm = _m_attention_norm(input);
-        auto h = add(input, _m_attention(norm, mask, start_pos), accelerator());
+        auto h = add(input, _m_attention(norm, cache, start_pos), accelerator());
 
         auto ff_norm = _m_ff_norm(h);
         return add(h, _m_ff(ff_norm), accelerator());

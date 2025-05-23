@@ -274,10 +274,17 @@ void
 triu(tensor<T, 2, Container>& t)
 {
     for (std::size_t i = 0; i < t.size(0); i++) {
-        for (std::size_t j = 0; j <= i; j++) {
+        for (std::size_t j = 0; j <= i && j < t.size(1); j++) {
             t[i][j] = T(0);
         }
     }
+}
+
+template <typename T, contiguous_container Container>
+void
+triu(tensor<T, 2, Container>&& t)
+{
+    triu(t);
 }
 
 

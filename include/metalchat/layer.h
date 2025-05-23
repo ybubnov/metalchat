@@ -37,10 +37,10 @@ public:
     {}
 
     template <class... Args>
-    std::invoke_result_t<Layer&, Args...>
-    operator()(Args... args)
+    auto
+    operator()(Args&&... args)
     {
-        return (*_m_value)(args...);
+        return (*_m_value)(std::forward<Args>(args)...);
     }
 
     std::shared_ptr<Layer>

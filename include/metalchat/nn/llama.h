@@ -11,6 +11,7 @@
 #include <metalchat/format.h>
 #include <metalchat/functional.h>
 #include <metalchat/layer.h>
+#include <metalchat/nn/cache.h>
 #include <metalchat/nn/embedding.h>
 #include <metalchat/nn/rmsnorm.h>
 #include <metalchat/nn/transformer.h>
@@ -21,14 +22,18 @@ namespace metalchat {
 namespace nn {
 
 
-template <typename T, contiguous_container Container = hardware_memory_container<T>>
+template <
+    typename T,
+    contiguous_container Container = hardware_memory_container<T>,
+    cache_t<T> Cache = sink_cache<T>>
 class llama : public layer {
 private:
     nn::shared_embedding<T, Container> _m_embedding;
     nn::shared_rmsnorm<T, Container> _m_norm;
     nn::shared_linear<T, Container> _m_output;
 
-    std::list<shared_transformer<T, Container>> _m_transforms;
+    std::vector<shared_transformer<T, Container>> _m_transforms;
+    std::vector<Cache> _m_cache;
 
     auto
     create_additive_causal_mask(std::size_t size) const
@@ -48,9 +53,11 @@ private:
 
 public:
     using value_type = T;
+    using cache_type = Cache;
     using result_type = future_tensor<value_type, 3>;
 
     llama(std::size_t nlayers, attention_options& options, hardware_accelerator gpu)
+        requires cache_constructible<Cache>
     : layer(gpu)
     {
         _m_embedding = register_layer("tok_embeddings", nn::embedding<T, Container>(gpu));
@@ -59,9 +66,21 @@ public:
 
         using layer_type = nn::transformer<T, Container>;
 
+        const auto cache_opts = cache_options{
+            .head_dim = options.head_dim,
+            .n_heads = options.n_heads,
+            .n_kv_heads = options.n_kv_heads,
+            .max_seq_len = options.max_seq_len,
+            .max_batch_size = 1
+        };
+
         for (std::size_t i = 0; i < nlayers; i++) {
-            auto layer_ptr = register_layer(std::format("layers.{}", i), layer_type(options, gpu));
+            auto layer_name = std::format("layers.{}", i);
+            auto layer_value = layer_type(options, gpu);
+            auto layer_ptr = register_layer(layer_name, std::move(layer_value));
+
             _m_transforms.push_back(layer_ptr);
+            _m_cache.emplace_back(cache_opts, gpu);
         }
     }
 
@@ -69,25 +88,21 @@ public:
     result_type
     operator()(Input input, std::size_t start_pos = 0)
     {
-        const auto mask = create_additive_causal_mask(input.size(1));
         auto x = _m_embedding(input);
 
-        for (auto& transform : _m_transforms) {
-            x = transform(x, mask, start_pos);
+        for (std::size_t i = 0; i < _m_transforms.size(); i++) {
+            auto& transform = _m_transforms[i];
+            auto& cache = _m_cache[i];
+
+            x = transform(x, cache, start_pos);
         }
 
         auto output = _m_norm(x);
 
-        auto seqlen = output.size(1);
-        output = output.narrow(1, seqlen - 1, 1);
+        auto len = output.size(1);
+        output = output.narrow(1, len - 1, 1);
 
         return _m_output(output);
-    }
-
-    void
-    print()
-    {
-        std::cout << "llama!!" << std::endl;
     }
 };
 
