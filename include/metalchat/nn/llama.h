@@ -35,22 +35,6 @@ private:
     std::vector<shared_transformer<T, Container>> _m_transforms;
     std::vector<Cache> _m_cache;
 
-    auto
-    create_additive_causal_mask(std::size_t size) const
-    {
-        std::optional<shared_tensor<T, 2, hardware_memory_container<T>>> mask;
-
-        if (size > 1) {
-            const T infinity = T(std::numeric_limits<float>::infinity());
-            auto m = full<T>({size, size}, -infinity, accelerator().get_allocator());
-            triu(m);
-
-            mask = std::make_optional(std::move(m));
-        }
-
-        return mask;
-    }
-
 public:
     using value_type = T;
     using cache_type = Cache;
