@@ -118,7 +118,6 @@ public:
         value_type p = value_type(0.9)
     )
     : _m_estimator(std::move(estimator)),
-      _m_accelerator(_m_estimator.accelerator()),
       _m_temperature(temperature),
       _m_p(p)
     {}
@@ -126,21 +125,22 @@ public:
     future_tensor<int32_t, 2>
     operator()(future_tensor<int32_t, 2> input, std::size_t start_pos)
     {
+        auto gpu = _m_estimator.accelerator();
         auto logits = _m_estimator(input, start_pos);
-        return top_p(logits.template flatten<2>(), _m_temperature, _m_p, _m_accelerator);
+        return top_p(logits.template flatten<2>(), _m_temperature, _m_p, gpu);
     }
 
     template <immutable_tensor2_t<int32_t> Input>
     future_tensor<int32_t, 2>
     operator()(Input input, std::size_t start_pos)
     {
+        auto gpu = _m_estimator.accelerator();
         auto logits = _m_estimator(input, start_pos);
-        return top_p(logits.template flatten<2>(), _m_temperature, _m_p, _m_accelerator);
+        return top_p(logits.template flatten<2>(), _m_temperature, _m_p, gpu);
     }
 
 private:
     Estimator _m_estimator;
-    hardware_accelerator _m_accelerator;
     value_type _m_temperature;
     value_type _m_p;
 };
