@@ -42,6 +42,15 @@ TEST_CASE("Encode pairs with byte merge", "[bpe]")
 }
 
 
+TEST_CASE("Encode unknown words", "[bpe]")
+{
+    byte_pair_encoder tokenizer("../Llama-3.2-1B/original/tokenizer.model");
+
+    auto ids = tokenizer.encode("This is debatable topic.");
+    REQUIRE(ids.size(0) > 0);
+}
+
+
 TEST_CASE("Decode special token", "bpe")
 {
     byte_pair_encoder tokenizer("../Llama-3.2-1B/original/tokenizer.model");

@@ -177,7 +177,7 @@ private:
         };
 
         for (std::size_t i = 0; i < s.size() - 1; i++) {
-            auto key = s.substr(i, i + 2);
+            auto key = s.substr(i, 2);
             auto priority = get_priority(key);
 
             ordering.emplace(priority, i);
@@ -193,9 +193,9 @@ private:
 
             auto begin = encoding[i].second;
             auto end = encoding[i + 1].second;
-            auto key = s.substr(begin, end);
+            auto key = s.substr(begin, end - begin);
 
-            auto merged_priority = get_priority(s.substr(begin, end));
+            auto merged_priority = get_priority(key);
 
             encoding[i].first = merged_priority;
             encoding.erase(encoding.begin() + i + 1);
@@ -207,7 +207,9 @@ private:
         }
 
         for (std::size_t i = 0; i < encoding.size() - 1; i++) {
-            auto key = s.substr(encoding[i].second, encoding[i + 1].second);
+            auto begin = encoding[i].second;
+            auto end = encoding[i + 1].second;
+            auto key = s.substr(begin, end - begin);
             ids.push_back(_m_fmap.at(key));
         }
     }
