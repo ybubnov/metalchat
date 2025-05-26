@@ -271,24 +271,26 @@ private:
     std::size_t _m_thread_id;
     std::size_t _m_thread_capacity;
 
-    std::shared_ptr<kernel_thread> _m_this_thread;
     allocator_type _m_allocator;
+    std::shared_ptr<kernel_thread> _m_this_thread;
 
 public:
     kernel_thread_group(const kernel_thread_group&) noexcept = default;
 
-    kernel_thread_group(
-        NS::SharedPtr<MTL::CommandQueue> queue, std::size_t thread_capacity, allocator_type alloc
-    )
-    : _m_queue(queue),
-      _m_event(NS::TransferPtr(queue->device()->newEvent())),
+    kernel_thread_group(NS::SharedPtr<MTL::Device> device, std::size_t thread_capacity)
+    : _m_queue(NS::TransferPtr(device->newCommandQueue())),
+      _m_event(NS::TransferPtr(device->newEvent())),
       _m_thread_id(0),
       _m_thread_capacity(thread_capacity),
-      _m_this_thread(std::make_shared<kernel_thread>(
-          _m_queue, _m_event, _m_thread_id, _m_thread_capacity, alloc
-      )),
-      _m_allocator(alloc)
-    {}
+      _m_allocator(std::make_shared<hardware_memory_allocator<void>>(device))
+    {
+        auto label = NS::TransferPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
+        _m_queue->setLabel(label.get());
+
+        _m_this_thread = std::make_shared<kernel_thread>(
+            _m_queue, _m_event, _m_thread_id, _m_thread_capacity, _m_allocator
+        );
+    }
 
     allocator_type
     get_allocator() const

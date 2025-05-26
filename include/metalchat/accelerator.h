@@ -39,19 +39,6 @@ private:
         return NS::TransferPtr(MTL::CreateSystemDefaultDevice());
     }
 
-    std::shared_ptr<kernel_thread_group>
-    _m_make_kernel_thread_group(std::size_t thread_capacity)
-    {
-        auto queue = NS::TransferPtr(_m_device->newCommandQueue());
-        auto label = NS::TransferPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
-        queue->setLabel(label.get());
-
-        auto alloc_ptr = std::make_shared<hardware_memory_allocator<void>>(_m_device);
-        auto alloc = allocator_type(alloc_ptr);
-
-        return std::make_shared<kernel_thread_group>(queue, thread_capacity, alloc);
-    }
-
     NS::SharedPtr<MTL::Library>
     _m_make_library(const NS::URL* library_path)
     {
