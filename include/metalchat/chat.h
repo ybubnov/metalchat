@@ -14,13 +14,12 @@ template <typename Encodable, typename PushBackContainer>
 concept __byte_pair_encodable = requires(const Encodable encodable, PushBackContainer& container) {
     requires push_back_container<PushBackContainer>;
 
-    { encodable.encode(std::declval<const byte_pair_encoder&>(), container) } -> std::same_as<void>;
+    { encodable.encode(std::declval<const bpe&>(), container) } -> std::same_as<void>;
 };
 
 
 template <typename Encodable>
-concept byte_pair_encodable
-    = __byte_pair_encodable<Encodable, std::vector<byte_pair_encoder::index_type>>;
+concept byte_pair_encodable = __byte_pair_encodable<Encodable, std::vector<bpe::index_type>>;
 
 
 class basic_message {
@@ -42,13 +41,13 @@ public:
 
     template <push_back_container PushBackContainer>
     void
-    encode(const byte_pair_encoder& bpe, PushBackContainer& container) const
+    encode(const bpe& encoder, PushBackContainer& container) const
     {
-        bpe.encode(special_token::begin_header, container);
-        bpe.encode(_m_role, container);
-        bpe.encode(special_token::end_header, container);
-        bpe.encode("\n\n", container);
-        bpe.encode(_m_content, container);
+        encoder.encode(special_token::begin_header, container);
+        encoder.encode(_m_role, container);
+        encoder.encode(special_token::end_header, container);
+        encoder.encode("\n\n", container);
+        encoder.encode(_m_content, container);
     }
 
     std::string
@@ -151,18 +150,18 @@ public:
     using index_type = int32_t;
     using container_type = vector_memory_container<index_type>;
 
-    chat(Transformer&& transformer, byte_pair_encoder&& bpe)
+    chat(Transformer&& transformer, bpe&& encoder)
     : _m_transformer(std::move(transformer)),
-      _m_bpe(std::move(bpe)),
-      _m_encoding(bpe.encode(special_token::begin_text))
+      _m_encoder(std::move(encoder)),
+      _m_encoding(encoder.encode(special_token::begin_text))
     {}
 
     template <byte_pair_encodable Message>
     void
     send(const Message& message)
     {
-        message.encode(_m_bpe, _m_encoding);
-        _m_bpe.encode(special_token::end_turn, _m_encoding);
+        message.encode(_m_encoder, _m_encoding);
+        _m_encoder.encode(special_token::end_turn, _m_encoding);
     }
 
     std::string
@@ -175,7 +174,7 @@ public:
     receive()
     {
         basic_message query("assistant");
-        query.encode(_m_bpe, _m_encoding);
+        query.encode(_m_encoder, _m_encoding);
 
         std::vector<index_type> encoding;
         _m_encoding.swap(encoding);
@@ -190,9 +189,9 @@ public:
         _m_start_pos += encoding_size;
         std::stringstream content;
 
-        auto end_turn = _m_bpe.encode(special_token::end_turn);
+        auto end_turn = _m_encoder.encode(special_token::end_turn);
         while (token != end_turn) {
-            content << _m_bpe.decode(token);
+            content << _m_encoder.decode(token);
             output = _m_transformer(output, _m_start_pos++);
             token = output.get()[0, 0];
         }
@@ -203,7 +202,7 @@ public:
 
 private:
     Transformer _m_transformer;
-    byte_pair_encoder _m_bpe;
+    bpe _m_encoder;
 
     std::size_t _m_start_pos;
     std::vector<index_type> _m_encoding;
@@ -211,7 +210,7 @@ private:
 
 
 template <language_transformer_t Transformer>
-chat(Transformer&& transformer, const byte_pair_encoder& bpe) -> chat<Transformer>;
+chat(Transformer&& transformer, const bpe& encoder) -> chat<Transformer>;
 
 
 } // namespace metalchat

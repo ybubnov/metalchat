@@ -15,8 +15,8 @@ TEST_CASE("Test BPE encode and decode", "[bpe]")
     auto ids = tokenizer.encode("This is a test sentence.");
     REQUIRE(ids.size(0) == 6);
 
-    std::vector<byte_pair_encoder::index_type> actual(ids.begin(), ids.end());
-    std::vector<byte_pair_encoder::index_type> expect = {2028, 374, 264, 1296, 11914, 13};
+    std::vector<int32_t> actual(ids.begin(), ids.end());
+    std::vector<int32_t> expect = {2028, 374, 264, 1296, 11914, 13};
     REQUIRE_THAT(actual, Catch::Matchers::Equals(expect));
 
     auto str = tokenizer.decode(ids.data_ptr(), ids.data_ptr() + ids.size(0));
@@ -36,8 +36,8 @@ TEST_CASE("Encode pairs with byte merge", "[bpe]")
     auto ids = tokenizer.encode("And his name is John Cena.");
 
     REQUIRE(ids.size(0) == 7);
-    std::vector<byte_pair_encoder::index_type> actual(ids.begin(), ids.end());
-    std::vector<byte_pair_encoder::index_type> expect = {3112, 813, 836, 374, 3842, 89663, 13};
+    std::vector<int32_t> actual(ids.begin(), ids.end());
+    std::vector<int32_t> expect = {3112, 813, 836, 374, 3842, 89663, 13};
     REQUIRE_THAT(actual, Catch::Matchers::Equals(expect));
 }
 

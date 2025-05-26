@@ -1,5 +1,4 @@
 #pragma once
-#define PCRE2_CODE_UNIT_WIDTH 8
 
 #include <cstdlib>
 #include <filesystem>
@@ -15,9 +14,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <cppcodec/base64_rfc4648.hpp>
-#include <pcre2.h>
-
 #include <metalchat/container.h>
 #include <metalchat/tensor.h>
 
@@ -25,60 +21,56 @@
 namespace metalchat {
 
 
-class re3_iterator {
-public:
-    using iterator_category = std::forward_iterator_tag;
-    using iterator = re3_iterator;
-    using value_type = std::string;
-    using reference = value_type&;
-    using pointer = value_type*;
-    using difference_type = std::ptrdiff_t;
-
-    re3_iterator();
-
-    re3_iterator(const std::shared_ptr<pcre2_code> re, const std::string& input);
-
-    ~re3_iterator();
-
-    iterator&
-    operator++();
-
-    value_type
-    operator*();
-
-    bool
-    operator!=(const iterator& rhs);
-
+class re3 {
 private:
-    const std::shared_ptr<pcre2_code> _m_re = nullptr;
-    pcre2_match_data* _m_data = nullptr;
-    const PCRE2_SPTR _m_subject = nullptr;
-    const PCRE2_SIZE _m_subject_length = 0;
-    PCRE2_SIZE _m_offset = 0;
-    bool _m_end = false;
+    static constexpr std::size_t error_buffer_size = 256;
 
-    value_type
-    get();
+    struct impl;
+    std::shared_ptr<impl> _m_impl;
 
-    void
-    next();
+public:
+    class iterator {
+    public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = std::string;
+        using reference = value_type&;
+        using pointer = value_type*;
+        using difference_type = std::ptrdiff_t;
+
+        iterator&
+        operator++();
+        value_type
+        operator*();
+        bool
+        operator!=(const iterator&);
+
+        iterator();
+        iterator(const std::shared_ptr<re3::impl>, const std::string&);
+
+    private:
+        struct impl;
+        std::shared_ptr<impl> _m_impl;
+
+        void
+        next();
+        value_type
+        get();
+    };
+
+    re3(const std::string& regex);
+
+    iterator
+    begin(const std::string&) const;
+
+    iterator
+    end() const;
 };
 
 
-class re3 {
-private:
-    std::shared_ptr<pcre2_code> _m_re = nullptr;
-
-    static constexpr std::size_t error_buffer_size = 256;
-
+class base64 {
 public:
-    re3(const std::string& regex);
-
-    re3_iterator
-    begin(const std::string& input) const;
-
-    re3_iterator
-    end() const;
+    static std::string
+    decode(const std::string&);
 };
 
 
@@ -104,7 +96,7 @@ enum special_token {
 };
 
 
-class byte_pair_encoder {
+template <typename RegularExpression = re3> class byte_pair_encoder {
 public:
     using string_type = std::string;
 
@@ -132,12 +124,10 @@ public:
     };
 
 private:
-    using base64 = cppcodec::base64_rfc4648;
-
     std::unordered_map<string_type, index_type> _m_fmap;
     std::unordered_map<index_type, string_type> _m_rmap;
 
-    re3 _m_re;
+    std::shared_ptr<RegularExpression> _m_re;
 
     /// A regular expression string that is used to split the input text into tokens.
     static constexpr const char* token_regex = (R"((?i:'s|'t|'re|'ve|'m|'ll|'d)|)"
@@ -225,7 +215,33 @@ public:
     /// Such map is distributed altogether with, for example, Llama model and is called
     /// `tokenizer.model`. When the provided file does not exist or has invalid format,
     /// constructor will raise an exception.
-    byte_pair_encoder(const std::filesystem::path& p);
+    byte_pair_encoder(const std::filesystem::path& p)
+    : _m_fmap(),
+      _m_rmap(),
+      _m_re(std::make_shared<RegularExpression>(token_regex))
+    {
+        std::ifstream file(p, std::ios::binary);
+        if (!file.is_open()) {
+            throw std::invalid_argument(std::format("unable to open file '{}'", p.string()));
+        }
+
+        std::string line;
+        while (std::getline(file, line)) {
+            auto delim = line.find(" ");
+            auto key_part = line.substr(0, delim);
+            auto value_part = line.substr(delim + 1);
+
+            index_type key = std::stoi(value_part);
+            string_type value = base64::decode(key_part);
+
+            _m_fmap.insert(std::make_pair(value, key));
+            _m_rmap.insert(std::make_pair(key, value));
+        }
+    }
+
+    byte_pair_encoder(const char* path)
+    : byte_pair_encoder(std::filesystem::path(path))
+    {}
 
     /// Encode the provided string into tokens.
     ///
@@ -237,7 +253,7 @@ public:
     void
     encode(const std::string& s, PushBackContainer& ids) const
     {
-        for (auto match = _m_re.begin(s); match != _m_re.end(); ++match) {
+        for (auto match = _m_re->begin(s); match != _m_re->end(); ++match) {
             auto key = (*match);
             if (auto it = _m_fmap.find(key); it != _m_fmap.end()) {
                 ids.push_back(it->second);
@@ -325,6 +341,9 @@ public:
         return output.str();
     }
 };
+
+
+using bpe = byte_pair_encoder<re3>;
 
 
 } // namespace metalchat

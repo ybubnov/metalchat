@@ -24,7 +24,10 @@ find_package(PCRE2 CONFIG REQUIRED)
 
 set(metalchat_FRAMEWORK MetalChat)
 set(metalchat_METALLIB metalchat.metallib)
+set(metalchat_MODULEMAP ${CMAKE_CURRENT_SOURCE_DIR}/module.modulemap)
+
 aux_source_directory(src metalchat_SOURCES)
+aux_source_directory(include metalchat_HEADERS)
 
 # Metal shaders are pre-compiled and therefore only available after building an
 # appropriate target. Since those shaders should be a part of the framework, we
@@ -32,7 +35,7 @@ aux_source_directory(src metalchat_SOURCES)
 # This trick (marking file as generated) fixes this issue.
 set_source_files_properties(${metalchat_METALLIB} PROPERTIES GENERATED TRUE)
 
-add_library(${metalchat_FRAMEWORK} SHARED ${metalchat_SOURCES})
+add_library(${metalchat_FRAMEWORK} SHARED ${metalchat_SOURCES} ${metalchat_HEADERS})
 add_dependencies(${metalchat_FRAMEWORK} ${metalchat_METALLIB})
 target_sources(${metalchat_FRAMEWORK} PRIVATE ${metalchat_METALLIB})
 
@@ -46,6 +49,35 @@ set_target_properties(${metalchat_FRAMEWORK} PROPERTIES
     MACOSX_FRAMEWORK_BUNDLE_VERSION ${metalchat_LIBRARY_SOVERSION}
     MACOSX_FRAMEWORK_SHORT_VERSION_STRING ${metalchat_LIBRARY_VERSION}
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "MetalChat Developer"
+)
+
+set(metalchat_FRAMEWORK_DIR "$<TARGET_FILE_DIR:${metalchat_FRAMEWORK}>")
+set(metalchat_FRAMEWORK_ROOT "${metalchat_FRAMEWORK_DIR}/../..")
+set(metalchat_FRAMEWORK_MODULES ${metalchat_FRAMEWORK_DIR}/Modules)
+set(metalchat_FRAMEWORK_HEADERS ${metalchat_FRAMEWORK_DIR}/Headers)
+
+# Swift framework require module map to correctly link C++ symbols, so put this
+# module map file manually to the target framework and link Modules directory, so
+# that clang linker could find it.
+add_custom_target(copy_modulemap ALL
+    DEPENDS ${metalchat_MODULEMAP}
+    COMMAND ${CMAKE_COMMAND} -E
+    make_directory ${metalchat_FRAMEWORK_MODULES}
+    COMMAND ${CMAKE_COMMAND} -E
+        copy ${metalchat_MODULEMAP} ${metalchat_FRAMEWORK_MODULES}
+    COMMAND ${CMAKE_COMMAND} -E
+        create_symlink Versions/Current/Modules ${metalchat_FRAMEWORK_ROOT}/Modules
+    COMMENT "Copying ${metalchat_MODULEMAP} into the OS X framework ${metalchat_FRAMEWORK_MODULES}"
+)
+
+add_custom_target(copy_headers ALL
+    COMMAND ${CMAKE_COMMAND} -E
+        make_directory ${metalchat_FRAMEWORK_HEADERS}
+    COMMAND ${CMAKE_COMMAND} -E
+        copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/include/metalchat ${metalchat_FRAMEWORK_HEADERS}
+    COMMAND ${CMAKE_COMMAND} -E
+        create_symlink Versions/Current/Headers ${metalchat_FRAMEWORK_ROOT}/Headers
+    COMMENT "Copying headers into the OS X framework ${metalchat_FRAMEWORK_HEADERS}"
 )
 
 target_link_libraries(${metalchat_FRAMEWORK}

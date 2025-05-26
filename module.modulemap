@@ -1,0 +1,7 @@
+framework module MetalChat {
+    umbrella header "metalchat.h"
+    export *
+    module * { export * }
+
+    link "MetalChat"
+}
