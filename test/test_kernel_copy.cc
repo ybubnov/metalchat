@@ -15,7 +15,7 @@ TEST_CASE("Copy 2-dimensional tensors", "[kernel::copy]")
     kernel::cpy<float> copy(gpu0);
 
     auto input = shared_tensor(rand<float>({16, 64}));
-    auto output = shared_tensor(empty<float>({16, 64}, gpu0));
+    auto output = shared_tensor(empty<float>({16, 64}, gpu0.get_allocator()));
 
     copy(input, output).wait();
 
@@ -33,7 +33,7 @@ TEST_CASE("Copy into slice", "[kernel::copy]")
     kernel::cpy<float> cpy(gpu0);
 
     auto input = shared_tensor(rand<float>({1, 6, 8, 1, 64}));
-    auto output = shared_tensor(full<float>({1, 6, 8, 4, 64}, 0.0, gpu0));
+    auto output = shared_tensor(full<float>({1, 6, 8, 4, 64}, 0.0, gpu0.get_allocator()));
 
     auto target = output.narrow(/*dim=*/3, /*offset=*/2, /*length=*/1);
     cpy(input.view({-1, 64}), target.view({-1, 64})).wait();
@@ -55,7 +55,7 @@ TEST_CASE("Inplace index set", "[kernel::scatter]")
     metalchat::hardware_accelerator gpu0;
     kernel::scatter<float> scatter(gpu0);
 
-    auto input = shared_tensor(empty<float>({16, 128}, gpu0));
+    auto input = shared_tensor(empty<float>({16, 128}, gpu0.get_allocator()));
     auto mask = shared_tensor(empty<bool>({16, 128}));
 
     std::random_device rd;

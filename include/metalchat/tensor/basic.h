@@ -716,60 +716,11 @@ empty(std::size_t (&&sizes)[N])
 }
 
 
-template <typename T, std::size_t N> requires(N > 0)
-[[deprecated("Use `empty` with an allocator parameter instead.")]]
-auto
-empty(std::size_t (&&sizes)[N], hardware_accelerator& gpu)
-{
-    return empty<T>(std::move(sizes), hardware_memory_allocator<T>(gpu.get_hardware_device()));
-}
-
-
-template <typename T, std::size_t N> requires(N > 0)
-[[deprecated("Use `empty` with an allocator parameter instead.")]]
-auto
-empty(std::size_t (&&sizes)[N], NS::SharedPtr<MTL::Device> device)
-{
-    return empty<T>(std::move(sizes), hardware_memory_allocator<T>(device));
-}
-
-
-template <typename T, std::size_t N> requires(N > 0)
-[[deprecated("Use `empty` with an allocator parameter instead.")]]
-auto
-empty(const std::span<std::size_t, N> sizes, NS::SharedPtr<MTL::Device> device)
-{
-    return tensor<T, N, hardware_memory_container<T>>(sizes, hardware_memory_allocator<T>(device));
-}
-
-
 template <typename T, std::size_t N, std::forward_iterator InputIt> requires(N > 0)
 auto
 empty(InputIt begin, InputIt end)
 {
     return tensor<T, N, random_memory_container<T>>(begin, end);
-}
-
-
-template <typename T, std::size_t N, std::forward_iterator InputIt> requires(N > 0)
-[[deprecated("Use `empty` with an allocator parameter instead.")]]
-auto
-empty(InputIt begin, InputIt end, hardware_accelerator& gpu)
-{
-    return tensor<T, N, hardware_memory_container<T>>(
-        begin, end, hardware_memory_allocator<T>(gpu.get_hardware_device())
-    );
-}
-
-
-template <typename T, std::size_t N, std::forward_iterator InputIt> requires(N > 0)
-[[deprecated("Use `empty` with an allocator parameter instead.")]]
-auto
-empty(InputIt begin, InputIt end, NS::SharedPtr<MTL::Device> device)
-{
-    return tensor<T, N, hardware_memory_container<T>>(
-        begin, end, hardware_memory_allocator<T>(device)
-    );
 }
 
 
@@ -801,30 +752,6 @@ empty_like(const Tensor& like)
 
     auto sizes = like.sizes();
     return empty<value_type, Tensor::dim()>(sizes.begin(), sizes.end());
-}
-
-
-template <immutable_tensor Tensor> requires(Tensor::dim() > 0)
-[[deprecated("Use `empty_like` with an allocator parameter instead.")]]
-auto
-empty_like(const Tensor& like, hardware_accelerator& gpu)
-{
-    using value_type = Tensor::value_type;
-
-    auto sizes = like.sizes();
-    return empty<value_type, Tensor::dim()>(sizes.begin(), sizes.end(), gpu);
-}
-
-
-template <immutable_tensor Tensor> requires(Tensor::dim() > 0)
-[[deprecated("Use `empty_like` with an allocator parameter instead.")]]
-auto
-empty_like(const Tensor& like, NS::SharedPtr<MTL::Device> device)
-{
-    using value_type = Tensor::value_type;
-
-    auto sizes = like.sizes();
-    return empty<value_type, Tensor::dim()>(sizes.begin(), sizes.end(), device);
 }
 
 

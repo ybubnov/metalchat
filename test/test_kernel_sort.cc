@@ -56,7 +56,7 @@ TEST_CASE("Sorting benchmark", "[kernel::sort]")
     kernel::sort<float, 128> sort(gpu0);
 
     auto input_cpu = rand<float>({1, 1, 128256});
-    auto input = shared_tensor(empty<float>({1, 1, 128256}, gpu0));
+    auto input = shared_tensor(empty<float>({1, 1, 128256}, gpu0.get_allocator()));
     std::copy(input_cpu.begin(), input_cpu.end(), input.begin());
 
     std::cout << "--running--" << std::endl;
