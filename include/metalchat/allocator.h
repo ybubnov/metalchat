@@ -312,23 +312,6 @@ template <typename T> struct __hardware_iterative_residence_deleter {
 };
 
 
-template <typename T> struct __hardware_complete_residence_deleter {
-    NS::SharedPtr<MTL::ResidencySet> rset;
-    std::shared_ptr<std::size_t> allocations;
-
-    void
-    operator()(const hardware_memory_container<T>* p)
-    {
-        *allocations = (*allocations) - 1;
-
-        if ((*allocations) == 0) {
-            rset->removeAllAllocations();
-            rset->endResidency();
-        }
-    }
-};
-
-
 /// This class template moves all allocations to the residency set. On container destruction
 /// allocations are removed from the residency set. When all allocations are remove, the set
 /// ends it's residency.
