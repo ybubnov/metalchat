@@ -86,6 +86,9 @@ public:
         return _m_device;
     }
 
+    metal::shared_device
+    get_hw_device();
+
     /// Return an allocator associated with the current thread.
     ///
     /// Use `set_allocator` method to set a new allocator to the currently running thread.

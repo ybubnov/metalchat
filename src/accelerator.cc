@@ -4,6 +4,8 @@
 
 #include <metalchat/accelerator.h>
 
+#include "metal_impl.h"
+
 
 namespace metalchat {
 
@@ -60,6 +62,13 @@ hardware_accelerator::hardware_accelerator(std::size_t thread_capacity)
     CFRelease(library_name);
     CFRelease(resources_url);
     CFRelease(bundle_id);
+}
+
+
+metal::shared_device
+hardware_accelerator::get_hw_device()
+{
+    return std::make_shared<metal::device>(_m_device);
 }
 
 

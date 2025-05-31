@@ -284,7 +284,9 @@ public:
                 "metalchat::hardware_nocopy_allocator: failed to allocate no-copy buffer"
             ));
         }
-        return std::make_shared<container_type>(memory_ptr);
+        return std::make_shared<container_type>(
+            metal::buffer(metal::buffer::impl{NS::TransferPtr(memory_ptr)})
+        );
     }
 
 private:
@@ -460,6 +462,24 @@ private:
 template <typename T> class hardware_heap_allocator {};
 
 
+class _Hardware_heap_allocator_impl {
+private:
+    struct _Hardware_heap_allocator_impl_data;
+
+    std::shared_ptr<_Hardware_heap_allocator_impl_data> _m_impl;
+    std::shared_ptr<std::size_t> _m_alloc;
+
+public:
+    using container_type = hardware_memory_container<void>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    _Hardware_heap_allocator_impl(metal::shared_device device, std::size_t capacity);
+
+    container_pointer
+    allocate(std::size_t size);
+};
+
+
 template <> class hardware_heap_allocator<void> : public basic_hardware_memory_allocator<void> {
 public:
     using value_type = void;
@@ -469,91 +489,26 @@ public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    hardware_heap_allocator(NS::SharedPtr<MTL::Device> device, std::size_t capacity)
-    : _m_allocations(std::make_shared<std::size_t>(0))
-    {
-        auto heap_options_ptr = MTL::HeapDescriptor::alloc();
-        auto heap_options = NS::TransferPtr(heap_options_ptr->init());
-
-        heap_options->setType(MTL::HeapTypeAutomatic);
-        heap_options->setStorageMode(MTL::StorageModeShared);
-        heap_options->setResourceOptions(MTL::ResourceStorageModeShared);
-        heap_options->setSize(NS::UInteger(capacity));
-        heap_options->setHazardTrackingMode(MTL::HazardTrackingModeUntracked);
-        heap_options->setCpuCacheMode(MTL::CPUCacheModeDefaultCache);
-
-        _m_heap = NS::TransferPtr(device->newHeap(heap_options.get()));
-        if (!_m_heap) {
-            throw std::runtime_error(
-                "metalchat::hardware_heap_allocator: failed creating a new heap"
-            );
-        }
-
-        // This residency set is supposed to be used only for the heap, therefore
-        // it make sense to keep the number of allocations only to 1, since we anyway
-        // won't add anything apart from heap to that set.
-        auto rset_options_ptr = MTL::ResidencySetDescriptor::alloc();
-        auto rset_options = NS::TransferPtr(rset_options_ptr->init());
-        rset_options->setInitialCapacity(1);
-
-        NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
-        NS::Error* error_ptr = error.get();
-
-        _m_rset = NS::TransferPtr(device->newResidencySet(rset_options.get(), &error_ptr));
-        if (!_m_rset) {
-            auto failure_reason = error_ptr->localizedDescription();
-            throw std::runtime_error(failure_reason->utf8String());
-        }
-
-        _m_rset->addAllocation(_m_heap.get());
-        _m_rset->commit();
-        _m_rset->requestResidency();
-    }
+    hardware_heap_allocator(metal::shared_device device, std::size_t capacity)
+    : _m_impl(device, capacity)
+    {}
 
     container_pointer
     allocate(size_type size)
     {
-        return _m_allocate(size);
+        return _m_impl.allocate(size);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto container = _m_allocate(size);
-        std::memcpy(container->storage()->contents(), ptr, size);
+        auto container = _m_impl.allocate(size);
+        std::memcpy(container->data(), ptr, size);
         return container;
     }
 
 private:
-    NS::SharedPtr<MTL::Heap> _m_heap;
-    NS::SharedPtr<MTL::ResidencySet> _m_rset;
-    std::shared_ptr<std::size_t> _m_allocations;
-
-    container_pointer
-    _m_allocate(size_type size)
-    {
-        auto placement
-            = _m_heap->device()->heapBufferSizeAndAlign(size, MTL::ResourceStorageModeShared);
-
-        size_type mask = placement.align - 1;
-        size_type alloc_size = ((placement.size + mask) & (~mask));
-
-        auto memory_ptr = _m_heap->newBuffer(alloc_size, MTL::ResourceStorageModeShared);
-        if (memory_ptr == nullptr) {
-            auto cap = _m_heap->maxAvailableSize(placement.align);
-            throw std::runtime_error(std::format(
-                "metalchat::hardware_heap_allocator: failed to allocate buffer of size={}, "
-                "heap remaining capacity={}",
-                size, cap
-            ));
-        }
-
-        *_m_allocations = (*_m_allocations) + 1;
-        return std::make_shared<container_type>(
-            NS::TransferPtr(memory_ptr),
-            __hardware_complete_residence_deleter<value_type>{_m_rset, _m_allocations}
-        );
-    }
+    _Hardware_heap_allocator_impl _m_impl;
 };
 
 
@@ -574,14 +529,18 @@ public:
     allocate(size_type size)
     {
         auto memory_ptr = _m_device->newBuffer(size, MTL::ResourceStorageModeShared);
-        return std::make_shared<container_type>(memory_ptr);
+        return std::make_shared<container_type>(
+            metal::buffer(metal::buffer::impl{NS::TransferPtr(memory_ptr)})
+        );
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
         auto memory_ptr = _m_device->newBuffer(ptr, size, MTL::ResourceStorageModeShared);
-        return std::make_shared<container_type>(memory_ptr);
+        return std::make_shared<container_type>(
+            metal::buffer(metal::buffer::impl{NS::TransferPtr(memory_ptr)})
+        );
     }
 
 private:

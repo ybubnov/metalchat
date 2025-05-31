@@ -37,7 +37,7 @@ TEST_CASE("Test make model", "[llama]")
     m.initialize(tensors, make_rebind_allocator<bf16>(gpu0.get_allocator()));
 
     auto heap_size = std::size_t(512) * 1024 * 1024;
-    auto alloc3 = hardware_heap_allocator<void>(gpu0.get_hardware_device(), heap_size);
+    auto alloc3 = hardware_heap_allocator<void>(gpu0.get_hw_device(), heap_size);
     auto alloc4 = hardware_nocopy_allocator(alloc3, gpu0.get_hardware_device());
     gpu0.set_allocator(std::move(alloc4));
 

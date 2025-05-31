@@ -154,24 +154,20 @@ template <typename T> struct hardware_memory_container : public memory_container
     using pointer = value_type*;
     using const_pointer = const pointer;
 
+    using memory_type = metal::buffer;
     using deleter_type = std::function<void(hardware_memory_container*)>;
 
-    NS::SharedPtr<MTL::Buffer> _m_buf;
+    memory_type _m_mem;
     deleter_type _m_deleter;
 
-    hardware_memory_container(NS::SharedPtr<MTL::Buffer> buf)
-    : _m_buf(buf),
+    hardware_memory_container(memory_type mem)
+    : _m_mem(mem),
       _m_deleter(nullptr)
     {}
 
-    hardware_memory_container(NS::SharedPtr<MTL::Buffer> buf, deleter_type deleter)
-    : _m_buf(buf),
+    hardware_memory_container(memory_type mem, deleter_type deleter)
+    : _m_mem(mem),
       _m_deleter(deleter)
-    {}
-
-    hardware_memory_container(MTL::Buffer* buf)
-    : _m_buf(NS::TransferPtr(buf)),
-      _m_deleter(nullptr)
     {}
 
     ~hardware_memory_container()
@@ -179,33 +175,30 @@ template <typename T> struct hardware_memory_container : public memory_container
         if (_m_deleter != nullptr) {
             _m_deleter(this);
         }
-        if (_m_buf) {
-            _m_buf.reset();
-        }
     }
 
     pointer
     data()
     {
-        return static_cast<T*>(_m_buf->contents());
+        return static_cast<T*>(_m_mem.data());
     }
 
     const_pointer
     data() const
     {
-        return static_cast<T*>(_m_buf->contents());
+        return static_cast<const_pointer>(_m_mem.data());
     }
 
     template <typename U> requires std::convertible_to<U, T>
     operator hardware_memory_container<U>() const
     {
-        return hardware_memory_container<U>(_m_buf);
+        return hardware_memory_container<U>(_m_mem);
     }
 
-    NS::SharedPtr<MTL::Buffer>
+    memory_type
     storage() const
     {
-        return _m_buf;
+        return _m_mem;
     }
 };
 
