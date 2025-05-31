@@ -401,6 +401,26 @@ private:
 };
 
 
+class _HardwareMemoryAllocator {
+private:
+    struct _HardwareMemoryAllocator_data;
+
+    std::shared_ptr<_HardwareMemoryAllocator_data> _m_data;
+
+public:
+    using container_type = hardware_memory_container<void>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    _HardwareMemoryAllocator(metal::shared_device device);
+
+    container_pointer
+    allocate(std::size_t size);
+
+    container_pointer
+    allocate(const void* ptr, std::size_t size);
+};
+
+
 /// This class creates tracked buffer resources directly from the device.
 ///
 /// This is the default implementation of the hardware memory allocator, all resources are
@@ -415,48 +435,42 @@ public:
     using container_type = hardware_memory_container<T>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    hardware_memory_allocator(NS::SharedPtr<MTL::Device> device)
-    : _m_device(device)
+    hardware_memory_allocator(metal::shared_device device)
+    : _m_alloc(device)
     {}
 
     container_pointer
     allocate(size_type size)
     {
-        auto memory_size = size * sizeof(value_type);
-        auto memory_ptr = _m_device->newBuffer(memory_size, MTL::ResourceStorageModeShared);
-
-        return std::make_shared<container_type>(memory_ptr);
+        return _m_alloc.allocate(size * sizeof(value_type));
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto memory_size = size * sizeof(value_type);
-        auto memory_ptr = _m_device->newBuffer(ptr, memory_size, MTL::ResourceStorageModeShared);
-
-        return std::make_shared<container_type>(memory_ptr);
+        return _m_alloc.allocate(ptr, size * sizeof(value_type));
     }
 
 private:
-    NS::SharedPtr<MTL::Device> _m_device;
+    _HardwareMemoryAllocator _m_alloc;
 };
 
 
 template <typename T> class hardware_heap_allocator {};
 
 
-class _Hardware_heap_allocator_impl {
+class _HardwareHeapAllocator {
 private:
-    struct _Hardware_heap_allocator_impl_data;
+    struct _HardwareHeapAllocator_data;
 
-    std::shared_ptr<_Hardware_heap_allocator_impl_data> _m_impl;
+    std::shared_ptr<_HardwareHeapAllocator_data> _m_data;
     std::shared_ptr<std::size_t> _m_alloc;
 
 public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    _Hardware_heap_allocator_impl(metal::shared_device device, std::size_t capacity);
+    _HardwareHeapAllocator(metal::shared_device device, std::size_t capacity);
 
     container_pointer
     allocate(std::size_t size);
@@ -473,25 +487,25 @@ public:
     using container_pointer = std::shared_ptr<container_type>;
 
     hardware_heap_allocator(metal::shared_device device, std::size_t capacity)
-    : _m_impl(device, capacity)
+    : _m_alloc(device, capacity)
     {}
 
     container_pointer
     allocate(size_type size)
     {
-        return _m_impl.allocate(size);
+        return _m_alloc.allocate(size);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto container = _m_impl.allocate(size);
+        auto container = _m_alloc.allocate(size);
         std::memcpy(container->data(), ptr, size);
         return container;
     }
 
 private:
-    _Hardware_heap_allocator_impl _m_impl;
+    _HardwareHeapAllocator _m_alloc;
 };
 
 
@@ -504,30 +518,24 @@ public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    hardware_memory_allocator(NS::SharedPtr<MTL::Device> device)
-    : _m_device(device)
+    hardware_memory_allocator(metal::shared_device device)
+    : _m_alloc(device)
     {}
 
     container_pointer
     allocate(size_type size)
     {
-        auto memory_ptr = _m_device->newBuffer(size, MTL::ResourceStorageModeShared);
-        return std::make_shared<container_type>(
-            metal::buffer(metal::buffer::impl{NS::TransferPtr(memory_ptr)})
-        );
+        return _m_alloc.allocate(size);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto memory_ptr = _m_device->newBuffer(ptr, size, MTL::ResourceStorageModeShared);
-        return std::make_shared<container_type>(
-            metal::buffer(metal::buffer::impl{NS::TransferPtr(memory_ptr)})
-        );
+        return _m_alloc.allocate(ptr, size);
     }
 
 private:
-    NS::SharedPtr<MTL::Device> _m_device;
+    _HardwareMemoryAllocator _m_alloc;
 };
 
 

@@ -16,7 +16,9 @@ hardware_accelerator::hardware_accelerator(
 : _m_device(_m_make_device()),
   _m_library(),
   _m_kernels(),
-  _m_this_thread_group(std::make_shared<kernel_thread_group>(_m_device, thread_capacity))
+  _m_this_thread_group(std::make_shared<kernel_thread_group>(
+      _m_device, std::make_shared<metal::device>(_m_device), thread_capacity
+  ))
 {
     auto path_str = path.string();
     auto path_cstr = path_str.c_str();
@@ -32,7 +34,9 @@ hardware_accelerator::hardware_accelerator(std::size_t thread_capacity)
 : _m_device(_m_make_device()),
   _m_library(),
   _m_kernels(),
-  _m_this_thread_group(std::make_shared<kernel_thread_group>(_m_device, thread_capacity))
+  _m_this_thread_group(std::make_shared<kernel_thread_group>(
+      _m_device, std::make_shared<metal::device>(_m_device), thread_capacity
+  ))
 {
     auto bundle_id = CFStringCreateWithCString(
         kCFAllocatorDefault, framework_identifier.c_str(), kCFStringEncodingUTF8
