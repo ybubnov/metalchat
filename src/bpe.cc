@@ -16,12 +16,15 @@ base64::decode(const std::string& s)
 }
 
 
-struct re3::impl {
+static constexpr std::size_t _RegularExpression_error_bufsize = 256;
+
+
+struct regexp::_RegularExpression {
     std::shared_ptr<pcre2_code> ptr = nullptr;
 };
 
 
-re3::re3(const std::string& regex)
+regexp::regexp(const std::string& regex)
 {
     int error_code;
     PCRE2_SIZE error_offset;
@@ -32,32 +35,34 @@ re3::re3(const std::string& regex)
     );
 
     if (re_ptr == nullptr) {
-        PCRE2_UCHAR message[error_buffer_size];
+        PCRE2_UCHAR message[_RegularExpression_error_bufsize];
         pcre2_get_error_message(error_code, message, sizeof(message));
 
-        throw std::invalid_argument(std::format("re3: invalid regular expression: {}", message));
+        throw std::invalid_argument(std::format("regexp: invalid regular expression: {}", message));
     }
 
     auto ptr = std::shared_ptr<pcre2_code>(re_ptr, pcre2_code_free);
-    _m_impl = std::make_shared<impl>(ptr);
+    _m_impl = std::make_shared<_RegularExpression>(ptr);
 }
 
 
-re3::iterator
-re3::begin(const std::string& input) const
+regexp_iterator
+regexp::begin(const std::string& input) const
 {
-    return re3::iterator(_m_impl, input);
+    return regexp_iterator(*this, input);
 }
 
 
-re3::iterator
-re3::end() const
+regexp_iterator
+regexp::end() const
 {
-    return re3::iterator();
+    return regexp_iterator();
 }
 
 
-struct re3::iterator::impl {
+struct regexp_iterator::_RegularExpressionIterator {
+    friend class regexp;
+
     const std::shared_ptr<pcre2_code> _m_re = nullptr;
     pcre2_match_data* _m_data = nullptr;
     const PCRE2_SPTR _m_subject = nullptr;
@@ -65,7 +70,7 @@ struct re3::iterator::impl {
     PCRE2_SIZE _m_offset = 0;
     bool _m_end = false;
 
-    impl()
+    _RegularExpressionIterator()
     : _m_re(nullptr),
       _m_data(nullptr),
       _m_subject(nullptr),
@@ -74,16 +79,16 @@ struct re3::iterator::impl {
       _m_end(true)
     {}
 
-    impl(const std::shared_ptr<re3::impl> re_impl, const std::string& input)
-    : _m_re(re_impl->ptr),
-      _m_data(pcre2_match_data_create_from_pattern(re_impl->ptr.get(), nullptr)),
+    _RegularExpressionIterator(const regexp& regex, const std::string& input)
+    : _m_re(regex._m_impl->ptr),
+      _m_data(pcre2_match_data_create_from_pattern(regex._m_impl->ptr.get(), nullptr)),
       _m_subject(reinterpret_cast<PCRE2_SPTR>(input.c_str())),
       _m_subject_length(input.size()),
       _m_offset(0),
       _m_end(false)
     {}
 
-    ~impl()
+    ~_RegularExpressionIterator()
     {
         if (_m_data != nullptr) {
             pcre2_match_data_free(_m_data);
@@ -92,20 +97,20 @@ struct re3::iterator::impl {
 };
 
 
-re3::iterator::iterator()
-: _m_impl(std::make_shared<re3::iterator::impl>())
+regexp_iterator::regexp_iterator()
+: _m_impl(std::make_shared<regexp_iterator::_RegularExpressionIterator>())
 {}
 
 
-re3::iterator::iterator(const std::shared_ptr<re3::impl> re_impl, const std::string& input)
-: _m_impl(std::make_shared<re3::iterator::impl>(re_impl, input))
+regexp_iterator::regexp_iterator(const regexp& regex, const std::string& input)
+: _m_impl(std::make_shared<regexp_iterator::_RegularExpressionIterator>(regex, input))
 {
     next();
 }
 
 
-re3::iterator&
-re3::iterator::operator++()
+regexp_iterator&
+regexp_iterator::operator++()
 {
     if (!_m_impl->_m_end) {
         next();
@@ -114,25 +119,26 @@ re3::iterator::operator++()
 }
 
 
-re3::iterator::value_type
-re3::iterator::operator*()
+regexp_iterator::value_type
+regexp_iterator::operator*()
 {
     return get();
 }
 
 
 bool
-re3::iterator::operator!=(const iterator& rhs)
+regexp_iterator::operator!=(const regexp_iterator& rhs)
 {
     return _m_impl->_m_end != rhs._m_impl->_m_end;
 }
 
 
-re3::iterator::value_type
-re3::iterator::get()
+regexp_iterator::value_type
+regexp_iterator::get()
 {
     if (_m_impl->_m_end) {
-        throw std::runtime_error(std::format("re3_iterator: terminated iterator cannot be accessed")
+        throw std::runtime_error(
+            std::format("regexp_iterator: terminated iterator cannot be accessed")
         );
     }
 
@@ -147,7 +153,7 @@ re3::iterator::get()
 
 
 void
-re3::iterator::next()
+regexp_iterator::next()
 {
     auto rc = pcre2_match(
         _m_impl->_m_re.get(), _m_impl->_m_subject, _m_impl->_m_subject_length, _m_impl->_m_offset,
@@ -156,7 +162,7 @@ re3::iterator::next()
     if (rc < 0) {
         _m_impl->_m_end = true;
         if (rc != PCRE2_ERROR_NOMATCH) {
-            throw std::runtime_error(std::format("re3_iterator: matching error {}", rc));
+            throw std::runtime_error(std::format("regexp_iterator: matching error {}", rc));
         }
     }
 }
