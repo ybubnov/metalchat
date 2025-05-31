@@ -16,7 +16,7 @@ TEST_CASE("Test chat", "[llama]")
 
     metalchat::safetensor_file tensors("../llama32.safetensors");
 
-    auto alloc1 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_hardware_device());
+    auto alloc1 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
     auto alloc2 = hardware_resident_allocator(alloc1, gpu0.get_hardware_device());
 
     gpu0.set_allocator(std::move(alloc2));

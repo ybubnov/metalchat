@@ -134,4 +134,35 @@ _HardwareMemoryAllocator::allocate(const void* ptr, std::size_t size)
 }
 
 
+struct _HardwareNocopyAllocator::_HardwareNocopyAllocator_data {
+    NS::SharedPtr<MTL::Device> device;
+
+    _HardwareNocopyAllocator_data(NS::SharedPtr<MTL::Device> d)
+    : device(d)
+    {}
+};
+
+
+_HardwareNocopyAllocator::_HardwareNocopyAllocator(metal::shared_device device)
+: _m_data(std::make_shared<_HardwareNocopyAllocator::_HardwareNocopyAllocator_data>(device->ptr))
+{}
+
+
+_HardwareNocopyAllocator::container_pointer
+_HardwareNocopyAllocator::allocate(const void* ptr, std::size_t size)
+{
+    auto options = MTL::ResourceStorageModeManaged | MTL::ResourceHazardTrackingModeUntracked;
+    auto memory_ptr = _m_data->device->newBuffer(ptr, size, options, nullptr);
+
+    if (memory_ptr == nullptr) {
+        throw std::runtime_error(
+            std::format("metalchat::hardware_nocopy_allocator: failed to allocate no-copy buffer")
+        );
+    }
+    return std::make_shared<container_type>(
+        metal::buffer(metal::buffer::impl{NS::TransferPtr(memory_ptr)})
+    );
+}
+
+
 } // namespace metalchat

@@ -87,7 +87,7 @@ public:
     }
 
     metal::shared_device
-    get_hw_device();
+    get_metal_device();
 
     /// Return an allocator associated with the current thread.
     ///

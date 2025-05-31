@@ -21,7 +21,7 @@ TEST_CASE("Test make model", "[llama]")
     metalchat::hardware_accelerator gpu0;
     metalchat::safetensor_file tensors("../llama32.safetensors");
 
-    auto alloc1 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_hardware_device());
+    auto alloc1 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
     auto alloc2 = hardware_resident_allocator(alloc1, gpu0.get_hardware_device());
 
     gpu0.set_allocator(std::move(alloc2));
@@ -37,8 +37,8 @@ TEST_CASE("Test make model", "[llama]")
     m.initialize(tensors, make_rebind_allocator<bf16>(gpu0.get_allocator()));
 
     auto heap_size = std::size_t(512) * 1024 * 1024;
-    auto alloc3 = hardware_heap_allocator<void>(gpu0.get_hw_device(), heap_size);
-    auto alloc4 = hardware_nocopy_allocator(alloc3, gpu0.get_hardware_device());
+    auto alloc3 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);
+    auto alloc4 = hardware_nocopy_allocator(alloc3, gpu0.get_metal_device());
     gpu0.set_allocator(std::move(alloc4));
 
     auto input_text = std::string("I have a dog called");

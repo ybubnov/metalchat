@@ -247,6 +247,23 @@ make_rebind_allocator(Allocator allocator)
 }
 
 
+class _HardwareNocopyAllocator {
+private:
+    struct _HardwareNocopyAllocator_data;
+
+    std::shared_ptr<_HardwareNocopyAllocator_data> _m_data;
+
+public:
+    using container_type = hardware_memory_container<void>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    _HardwareNocopyAllocator(metal::shared_device device);
+
+    container_pointer
+    allocate(const void* ptr, std::size_t size);
+};
+
+
 /// The hardware allocator that creates a shallow buffer resource for allocations with memory-move
 /// semantic. All buffers created with that method do not manage the underlying memory (specified
 /// by a `const_pointer`). And caller is responsible for a proper memory management.
@@ -261,9 +278,9 @@ public:
     using container_type = hardware_memory_container<value_type>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    hardware_nocopy_allocator(Allocator alloc, NS::SharedPtr<MTL::Device> device)
+    hardware_nocopy_allocator(Allocator alloc, metal::shared_device device)
     : _m_alloc(alloc),
-      _m_device(device)
+      _m_nocopy_alloc(device)
     {}
 
     container_pointer
@@ -275,23 +292,12 @@ public:
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto options = MTL::ResourceStorageModeManaged | MTL::ResourceHazardTrackingModeUntracked;
-        // TODO: template specialization for non-void types.
-        auto memory_ptr = _m_device->newBuffer(ptr, size, options, nullptr);
-
-        if (memory_ptr == nullptr) {
-            throw std::runtime_error(std::format(
-                "metalchat::hardware_nocopy_allocator: failed to allocate no-copy buffer"
-            ));
-        }
-        return std::make_shared<container_type>(
-            metal::buffer(metal::buffer::impl{NS::TransferPtr(memory_ptr)})
-        );
+        return _m_nocopy_alloc.allocate(ptr, size);
     }
 
 private:
     Allocator _m_alloc;
-    NS::SharedPtr<MTL::Device> _m_device;
+    _HardwareNocopyAllocator _m_nocopy_alloc;
 };
 
 

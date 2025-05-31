@@ -70,7 +70,7 @@ hardware_accelerator::hardware_accelerator(std::size_t thread_capacity)
 
 
 metal::shared_device
-hardware_accelerator::get_hw_device()
+hardware_accelerator::get_metal_device()
 {
     return std::make_shared<metal::device>(_m_device);
 }
