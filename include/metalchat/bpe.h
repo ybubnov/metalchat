@@ -25,12 +25,6 @@ class regexp_iterator;
 
 
 class regexp {
-private:
-    struct _RegularExpression;
-    std::shared_ptr<_RegularExpression> _m_impl;
-
-    friend class regexp_iterator;
-
 public:
     regexp(const std::string& regex);
 
@@ -39,6 +33,12 @@ public:
 
     regexp_iterator
     end() const;
+
+private:
+    struct _RegularExpression;
+    std::shared_ptr<_RegularExpression> _m_impl;
+
+    friend class regexp_iterator;
 };
 
 
@@ -74,14 +74,20 @@ public:
 
     /// Initialize the end-of-match-group iterator.
     regexp_iterator();
-    regexp_iterator(const regexp& regex, const std::string&);
+
+    /// Initializes the iterators, stores the address of `regexp` in data member, and performs
+    /// the finds the first match from the input string to initialize match group members.
+    regexp_iterator(const regexp& regex, const std::string& input);
 
 private:
     struct _RegularExpressionIterator;
     std::shared_ptr<_RegularExpressionIterator> _m_impl;
 
+    /// Advance the iterator to the next match group.
     void
     next();
+
+    /// Get the current match group value.
     value_type
     get();
 
