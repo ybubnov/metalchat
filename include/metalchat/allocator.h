@@ -136,8 +136,8 @@ concept basic_hardware_allocator_t
 /// // with no-copy allocator (keep all CPU allocations shared with GPU), and resident
 /// // allocator (which moves all allocations to a resident set on request).
 /// auto gpu = hardware_accelerator("metalchat.metallib");
-/// auto alloc1 = hardware_nocopy_allocator(alloc0, gpu.get_hardware_device());
-/// auto alloc2 = hardware_resident_allocator(alloc1, gpu.get_hardware_device());
+/// auto alloc1 = hardware_nocopy_allocator(alloc0, gpu.get_metal_device());
+/// auto alloc2 = hardware_resident_allocator(alloc1, gpu.get_metal_device());
 /// auto alloc3 = polymorphic_hardware_memory_allocator(alloc2);
 ///
 /// // Update device allocator with a new implementation of the allocator.
@@ -301,20 +301,24 @@ private:
 };
 
 
-template <typename T> struct __hardware_iterative_residence_deleter {
-    NS::SharedPtr<MTL::ResidencySet> rset;
-    std::shared_ptr<std::size_t> allocations;
+class _HardwareResidentAllocator {
+private:
+    struct _HardwareResidentAllocator_data;
+
+    std::shared_ptr<_HardwareResidentAllocator_data> _m_data;
+    std::shared_ptr<std::size_t> _m_size;
+
+public:
+    using container_type = hardware_memory_container<void>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    _HardwareResidentAllocator(metal::shared_device device, std::size_t capacity);
+    ~_HardwareResidentAllocator();
 
     void
-    operator()(const hardware_memory_container<T>* p)
-    {
-        rset->removeAllocation(p->storage().get());
-        *allocations = (*allocations) - 1;
+    detach();
 
-        if ((*allocations) == 0) {
-            rset->endResidency();
-        }
-    }
+    container_pointer allocate(container_pointer);
 };
 
 
@@ -340,70 +344,35 @@ public:
     using container_pointer = std::shared_ptr<container_type>;
 
     hardware_resident_allocator(
-        Allocator alloc, NS::SharedPtr<MTL::Device> device, std::size_t capacity = 256
+        Allocator alloc, metal::shared_device device, std::size_t capacity = 256
     )
     : _m_alloc(alloc),
-      _m_allocations(std::make_shared<std::size_t>(0))
-    {
-        auto rset_options_ptr = MTL::ResidencySetDescriptor::alloc();
-        auto rset_options = NS::TransferPtr(rset_options_ptr->init());
-        rset_options->setInitialCapacity(capacity);
+      _m_resident_alloc(device, capacity)
+    {}
 
-        NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
-        NS::Error* error_ptr = error.get();
-
-        _m_rset = NS::TransferPtr(device->newResidencySet(rset_options.get(), &error_ptr));
-        if (!_m_rset) {
-            auto failure_reason = error_ptr->localizedDescription();
-            throw std::runtime_error(std::format(
-                "metalchat::hardware_resident_allocator: {}", failure_reason->utf8String()
-            ));
-        }
-    }
-
-    ~hardware_resident_allocator()
-    {
-        if ((*_m_allocations) != 0) {
-            wire();
-        }
-    }
-
-    /// Commits set and requests residency.
+    /// Permit allocations to be moved to resident memory and be used idependently
+    /// from the given allocator.
     void
-    wire()
+    detach()
     {
-        _m_rset->commit();
-        _m_rset->requestResidency();
+        _m_resident_alloc.detach();
     }
 
     container_pointer
     allocate(size_type size)
     {
-        return _m_memory_move(_m_alloc.allocate(size));
+        return _m_resident_alloc.allocate(_m_alloc.allocate(size));
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        return _m_memory_move(_m_alloc.allocate(ptr, size));
+        return _m_resident_alloc.allocate(_m_alloc.allocate(ptr, size));
     }
 
 private:
-    container_pointer
-    _m_memory_move(container_pointer container)
-    {
-        _m_rset->addAllocation(container->storage().get());
-        *_m_allocations = (*_m_allocations) + 1;
-
-        return std::make_shared<container_type>(
-            container->storage(),
-            __hardware_iterative_residence_deleter<value_type>{_m_rset, _m_allocations}
-        );
-    }
-
     Allocator _m_alloc;
-    NS::SharedPtr<MTL::ResidencySet> _m_rset;
-    std::shared_ptr<std::size_t> _m_allocations;
+    _HardwareResidentAllocator _m_resident_alloc;
 };
 
 
@@ -470,7 +439,7 @@ private:
     struct _HardwareHeapAllocator_data;
 
     std::shared_ptr<_HardwareHeapAllocator_data> _m_data;
-    std::shared_ptr<std::size_t> _m_alloc;
+    std::shared_ptr<std::size_t> _m_size;
 
 public:
     using container_type = hardware_memory_container<void>;

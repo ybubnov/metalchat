@@ -1,4 +1,5 @@
 #include <format>
+#include <iostream>
 
 #include <metalchat/allocator.h>
 
@@ -10,14 +11,14 @@ namespace metalchat {
 
 struct _HardwareCompleteResidenceDeleter {
     NS::SharedPtr<MTL::ResidencySet> rset;
-    std::shared_ptr<std::size_t> alloc;
+    std::shared_ptr<std::size_t> size;
 
     void
     operator()(const hardware_memory_container<void>* p)
     {
-        *alloc = (*alloc) - 1;
+        *size = (*size) - 1;
 
-        if ((*alloc) == 0) {
+        if ((*size) == 0) {
             rset->removeAllAllocations();
             rset->endResidency();
         }
@@ -33,7 +34,7 @@ struct _HardwareHeapAllocator::_HardwareHeapAllocator_data {
 
 _HardwareHeapAllocator::_HardwareHeapAllocator(metal::shared_device device, std::size_t capacity)
 : _m_data(std::make_shared<_HardwareHeapAllocator::_HardwareHeapAllocator_data>()),
-  _m_alloc(std::make_shared<std::size_t>(0))
+  _m_size(std::make_shared<std::size_t>(0))
 {
     auto heap_options_ptr = MTL::HeapDescriptor::alloc();
     auto heap_options = NS::TransferPtr(heap_options_ptr->init());
@@ -91,11 +92,11 @@ _HardwareHeapAllocator::allocate(std::size_t size)
         ));
     }
 
-    *_m_alloc = (*_m_alloc) + 1;
+    *_m_size = (*_m_size) + 1;
 
     return std::make_shared<container_type>(
         metal::buffer(metal::buffer::impl{NS::TransferPtr(memory_ptr)}),
-        _HardwareCompleteResidenceDeleter{_m_data->rset, _m_alloc}
+        _HardwareCompleteResidenceDeleter{_m_data->rset, _m_size}
     );
 }
 
@@ -161,6 +162,79 @@ _HardwareNocopyAllocator::allocate(const void* ptr, std::size_t size)
     }
     return std::make_shared<container_type>(
         metal::buffer(metal::buffer::impl{NS::TransferPtr(memory_ptr)})
+    );
+}
+
+
+struct _HardwareIterativeResidenceDeleter {
+    NS::SharedPtr<MTL::ResidencySet> rset;
+    std::shared_ptr<std::size_t> size;
+
+    void
+    operator()(const hardware_memory_container<void>* p)
+    {
+        rset->removeAllocation(p->storage().get());
+        *size = (*size) - 1;
+
+        if ((*size) == 0) {
+            rset->endResidency();
+        }
+    }
+};
+
+
+struct _HardwareResidentAllocator::_HardwareResidentAllocator_data {
+    NS::SharedPtr<MTL::ResidencySet> rset;
+};
+
+
+_HardwareResidentAllocator::_HardwareResidentAllocator(
+    metal::shared_device device, std::size_t capacity
+)
+: _m_data(std::make_shared<_HardwareResidentAllocator::_HardwareResidentAllocator_data>()),
+  _m_size(std::make_shared<std::size_t>(0))
+{
+    auto rset_options_ptr = MTL::ResidencySetDescriptor::alloc();
+    auto rset_options = NS::TransferPtr(rset_options_ptr->init());
+    rset_options->setInitialCapacity(capacity);
+
+    NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
+    NS::Error* error_ptr = error.get();
+
+    _m_data->rset = NS::TransferPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
+    if (!_m_data->rset) {
+        auto failure_reason = error_ptr->localizedDescription();
+        throw std::runtime_error(
+            std::format("metalchat::hardware_resident_allocator: {}", failure_reason->utf8String())
+        );
+    }
+}
+
+
+_HardwareResidentAllocator::~_HardwareResidentAllocator()
+{
+    if ((*_m_size) != 0) {
+        detach();
+    }
+}
+
+
+void
+_HardwareResidentAllocator::detach()
+{
+    _m_data->rset->commit();
+    _m_data->rset->requestResidency();
+}
+
+
+_HardwareResidentAllocator::container_pointer
+_HardwareResidentAllocator::allocate(_HardwareResidentAllocator::container_pointer container)
+{
+    _m_data->rset->addAllocation(container->storage().get());
+    *_m_size = (*_m_size) + 1;
+
+    return std::make_shared<container_type>(
+        container->storage(), _HardwareIterativeResidenceDeleter{_m_data->rset, _m_size}
     );
 }
 

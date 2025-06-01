@@ -80,12 +80,6 @@ public:
     name() const;
 
     /// Return a shared pointer to the underlying Metal Device.
-    inline NS::SharedPtr<MTL::Device>
-    get_hardware_device()
-    {
-        return _m_device;
-    }
-
     metal::shared_device
     get_metal_device();
 
