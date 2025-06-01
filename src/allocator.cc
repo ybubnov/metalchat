@@ -8,6 +8,7 @@
 
 namespace metalchat {
 
+
 struct _HardwareCompleteResidenceDeleter {
     NS::SharedPtr<MTL::ResidencySet> rset;
     std::shared_ptr<std::size_t> size;

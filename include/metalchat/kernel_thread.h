@@ -13,7 +13,6 @@
 
 namespace metalchat {
 
-
 struct dim3 {
     const std::size_t x, y, z;
 
@@ -38,11 +37,6 @@ struct dim3 {
 };
 
 
-struct __metal_buffer {
-    NS::SharedPtr<MTL::Buffer> ptr;
-};
-
-
 class hardware_function_encoder {
 public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
@@ -52,6 +46,15 @@ private:
     allocator_type _m_allocator;
     std::size_t _m_buffer;
     std::string _m_name;
+
+    void
+    encode(const void* data, std::size_t size);
+
+    void
+    encode(metal::shared_buffer buffer);
+
+    void
+    encode_memory_barrier(metal::shared_buffer buffer);
 
 public:
     hardware_function_encoder(
@@ -74,26 +77,23 @@ public:
     void
     encode(const Scalar& scalar)
     {
-        const void* data_ptr = scalar.data_ptr();
-        std::size_t data_size = sizeof(typename Scalar::value_type);
-        _m_encoder->setBytes(data_ptr, data_size, _m_buffer++);
+        encode(scalar.data_ptr(), sizeof(typename Scalar::value_type));
     }
 
     template <typename T, immutable_hardware_tensor_t<T> Tensor>
     void
     encode(const Tensor& tensor)
     {
-        auto buffer = std::reinterpret_pointer_cast<__metal_buffer>(tensor.container().storage());
-
         auto layout = tensor.layout();
-        _m_encoder->setBytes(&layout, sizeof(layout), _m_buffer++);
-        _m_encoder->setBuffer(buffer->ptr.get(), 0, _m_buffer++);
+        auto buffer = tensor.container().storage();
+
+        encode(&layout, sizeof(layout));
+        encode(buffer);
 
         // Mark all hardware-allocated tensors of the command as memory barriers,
         // so that kernel waits until previous kernels stop writing to that memory,
         // before running the current kernel.
-        const MTL::Resource* resources[1] = {buffer->ptr.get()};
-        _m_encoder->memoryBarrier(resources, 1);
+        encode_memory_barrier(buffer);
     }
 
     template <typename T, immutable_tensor_t<T> Tensor>
@@ -103,28 +103,13 @@ public:
         auto alloc = rebind_hardware_allocator<T, allocator_type>(_m_allocator);
         auto container = alloc.allocate(tensor.data_ptr(), tensor.numel());
 
-        auto buffer = std::reinterpret_pointer_cast<__metal_buffer>(container->storage());
-
         auto layout = tensor.layout();
-        _m_encoder->setBytes(&layout, sizeof(layout), _m_buffer++);
-        _m_encoder->setBuffer(buffer->ptr.get(), 0, _m_buffer++);
+        encode(&layout, sizeof(layout));
+        encode(container->storage());
     }
 
     void
-    dispatch(dim3 grid, dim3 group)
-    {
-        std::stringstream command_name_stream;
-        command_name_stream << _m_name << "<" << grid << "," << group << ">" << std::endl;
-
-        auto command_name = command_name_stream.str();
-        auto command_name_ptr
-            = NS::TransferPtr(NS::String::string(command_name.c_str(), NS::UTF8StringEncoding));
-        _m_encoder->setLabel(command_name_ptr.get());
-
-        MTL::Size threads_per_grid(grid.x, grid.y, grid.z);
-        MTL::Size threads_per_group(group.x, group.y, group.z);
-        _m_encoder->dispatchThreads(threads_per_grid, threads_per_group);
-    }
+    dispatch(dim3 grid, dim3 group);
 };
 
 
