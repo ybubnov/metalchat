@@ -154,7 +154,7 @@ template <typename T> struct hardware_memory_container : public memory_container
     using pointer = value_type*;
     using const_pointer = const pointer;
 
-    using memory_type = metal::buffer;
+    using memory_type = metal::shared_buffer;
     using deleter_type = std::function<void(hardware_memory_container*)>;
 
     memory_type _m_mem;
@@ -180,13 +180,13 @@ template <typename T> struct hardware_memory_container : public memory_container
     pointer
     data()
     {
-        return static_cast<T*>(_m_mem.data());
+        return static_cast<T*>(metal::data(_m_mem));
     }
 
     const_pointer
     data() const
     {
-        return static_cast<const_pointer>(_m_mem.data());
+        return static_cast<const_pointer>(metal::data(_m_mem));
     }
 
     template <typename U> requires std::convertible_to<U, T>

@@ -1,10 +1,29 @@
 #pragma once
 
-#include "metal_impl.h"
-
 
 namespace metalchat {
 namespace metal {
+
+
+struct buffer {
+    NS::SharedPtr<MTL::Buffer> ptr;
+
+    buffer(NS::SharedPtr<MTL::Buffer> p)
+    : ptr(p)
+    {}
+
+    buffer(MTL::Buffer* p)
+    : ptr(NS::TransferPtr(p))
+    {}
+};
+
+
+shared_buffer
+make_buffer(NS::SharedPtr<MTL::Buffer> p);
+
+
+shared_buffer
+make_buffer(MTL::Buffer* p);
 
 
 struct device {
@@ -12,6 +31,10 @@ struct device {
 
     device(NS::SharedPtr<MTL::Device> p)
     : ptr(p)
+    {}
+
+    device(MTL::Device* p)
+    : ptr(NS::TransferPtr(p))
     {}
 };
 

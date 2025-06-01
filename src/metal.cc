@@ -7,32 +7,31 @@
 
 #include <metalchat/metal.h>
 
+#include "metal_impl.h"
+
 
 namespace metalchat {
 namespace metal {
 
 
-// struct buffer::impl {
-//     NS::SharedPtr<MTL::Buffer> buf;
-// };
-
-
-buffer::buffer(buffer::impl&& buffer_impl)
-: _m_impl(std::make_shared<impl>(buffer_impl))
-{}
-
-
 void*
-buffer::data()
+data(const shared_buffer buffer)
 {
-    return _m_impl->buf->contents();
+    return buffer->ptr->contents();
 }
 
 
-void*
-buffer::data() const
+shared_buffer
+make_buffer(NS::SharedPtr<MTL::Buffer> p)
 {
-    return _m_impl->buf->contents();
+    return std::make_shared<buffer>(p);
+}
+
+
+shared_buffer
+make_buffer(MTL::Buffer* p)
+{
+    return std::make_shared<buffer>(p);
 }
 
 

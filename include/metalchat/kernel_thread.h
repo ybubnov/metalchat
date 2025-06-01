@@ -38,6 +38,11 @@ struct dim3 {
 };
 
 
+struct __metal_buffer {
+    NS::SharedPtr<MTL::Buffer> ptr;
+};
+
+
 class hardware_function_encoder {
 public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
@@ -78,14 +83,16 @@ public:
     void
     encode(const Tensor& tensor)
     {
+        auto buffer = std::reinterpret_pointer_cast<__metal_buffer>(tensor.container().storage());
+
         auto layout = tensor.layout();
         _m_encoder->setBytes(&layout, sizeof(layout), _m_buffer++);
-        _m_encoder->setBuffer(tensor.container().storage().get(), 0, _m_buffer++);
+        _m_encoder->setBuffer(buffer->ptr.get(), 0, _m_buffer++);
 
         // Mark all hardware-allocated tensors of the command as memory barriers,
         // so that kernel waits until previous kernels stop writing to that memory,
         // before running the current kernel.
-        const MTL::Resource* resources[1] = {tensor.container().storage().get()};
+        const MTL::Resource* resources[1] = {buffer->ptr.get()};
         _m_encoder->memoryBarrier(resources, 1);
     }
 
@@ -96,9 +103,11 @@ public:
         auto alloc = rebind_hardware_allocator<T, allocator_type>(_m_allocator);
         auto container = alloc.allocate(tensor.data_ptr(), tensor.numel());
 
+        auto buffer = std::reinterpret_pointer_cast<__metal_buffer>(container->storage());
+
         auto layout = tensor.layout();
         _m_encoder->setBytes(&layout, sizeof(layout), _m_buffer++);
-        _m_encoder->setBuffer(container->storage().get(), 0, _m_buffer++);
+        _m_encoder->setBuffer(buffer->ptr.get(), 0, _m_buffer++);
     }
 
     void
