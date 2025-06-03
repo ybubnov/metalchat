@@ -3,6 +3,7 @@
 #include <CoreFoundation/CFBundle.h>
 
 #include <metalchat/accelerator.h>
+#include <metalchat/kernel.h>
 
 #include "metal_impl.h"
 
@@ -69,6 +70,13 @@ hardware_accelerator::hardware_accelerator(std::size_t thread_capacity)
 }
 
 
+std::shared_ptr<kernel_thread>
+hardware_accelerator::get_this_thread()
+{
+    return _m_this_thread_group->get_this_thread();
+}
+
+
 metal::shared_device
 hardware_accelerator::get_metal_device()
 {
@@ -98,7 +106,7 @@ hardware_accelerator::name() const
 }
 
 
-basic_kernel
+const basic_kernel&
 hardware_accelerator::load(const std::string& name)
 {
     if (auto it = _m_kernels.find(name); it != _m_kernels.end()) {
@@ -135,14 +143,14 @@ hardware_accelerator::load(const std::string& name)
     }
 
     auto kernel_ptr = std::make_shared<metal::kernel>(fn_ptr, pipeline_ptr);
-    auto kernel = basic_kernel(kernel_ptr, _m_this_thread_group);
+    auto kernel = basic_kernel(kernel_ptr, *this);
 
     _m_kernels.insert_or_assign(name, kernel);
-    return kernel;
+    return _m_kernels.at(name);
 }
 
 
-basic_kernel
+const basic_kernel&
 hardware_accelerator::load(const std::string& name, const std::string& type)
 {
     return load(std::format("{}_{}", name, type));

@@ -4,7 +4,6 @@
 #include <metalchat/dtype.h>
 #include <metalchat/format.h>
 #include <metalchat/kernel.h>
-#include <metalchat/kernel_task.h>
 #include <metalchat/tensor/future.h>
 
 

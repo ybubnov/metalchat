@@ -3,8 +3,6 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
-#include <metalchat/kernel_task.h>
-#include <metalchat/kernel_wrapper.h>
 #include <metalchat/tensor/future.h>
 
 

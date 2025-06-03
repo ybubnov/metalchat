@@ -5,12 +5,14 @@
 #include <unordered_map>
 
 #include <metalchat/dtype.h>
-#include <metalchat/kernel.h>
 #include <metalchat/kernel_thread.h>
 #include <metalchat/metal.h>
 
 
 namespace metalchat {
+
+
+class basic_kernel;
 
 
 static const std::string framework_identifier = "com.cmake.metalchat";
@@ -79,6 +81,9 @@ public:
     std::string
     name() const;
 
+    std::shared_ptr<kernel_thread>
+    get_this_thread();
+
     /// Return a shared pointer to the underlying Metal Device.
     metal::shared_device
     get_metal_device();
@@ -113,14 +118,14 @@ public:
     /// Accelerator caches kernels, so kernel is loaded only once on the first call. A kernel
     /// returned from this method is attached to a `shared_kernel_thread`, and could be used
     /// to create a kernel task.
-    basic_kernel
+    const basic_kernel&
     load(const std::string& name);
 
     /// Load the kernel from kernel library.
     ///
     /// This is a convenience method that appends to the kernel name it's type: `name_type`, so
     /// users won't need to format kernel name manually.
-    basic_kernel
+    const basic_kernel&
     load(const std::string& name, const std::string& type);
 
     /// Load the kernel from kernel library.
@@ -128,7 +133,7 @@ public:
     /// This is a convenience method that loads kernels with names in the following format:
     /// `{name}_{block_size}_{data_type}`.
     template <typename T, std::size_t BlockSize>
-    basic_kernel
+    const basic_kernel&
     load(const std::string_view& name)
     {
         auto kernel_name = std::format("{}_{}_{}", name, BlockSize, type_traits<T>::name());
