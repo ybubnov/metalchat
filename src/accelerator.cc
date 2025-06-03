@@ -105,7 +105,38 @@ hardware_accelerator::load(const std::string& name)
         return it->second;
     }
 
-    auto kernel = basic_kernel(name, _m_library, _m_this_thread_group);
+    auto fn_name = NS::TransferPtr(NS::String::string(name.c_str(), NS::UTF8StringEncoding));
+    auto fn_ptr = NS::TransferPtr(_m_library->newFunction(fn_name.get()));
+    if (!fn_ptr) {
+        throw std::invalid_argument(
+            std::format("hardware_accelerator: function {} not found in a shader library", name)
+        );
+    }
+
+    fn_ptr->setLabel(fn_name.get());
+
+    NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
+    NS::Error* error_ptr = error.get();
+
+    auto descriptor = NS::TransferPtr(MTL::ComputePipelineDescriptor::alloc());
+    descriptor->init();
+    descriptor->setComputeFunction(fn_ptr.get());
+    descriptor->setLabel(fn_name.get());
+
+    auto pipeline_ptr = NS::TransferPtr(_m_device->newComputePipelineState(
+        descriptor.get(), MTL::PipelineOptionNone, nullptr, &error_ptr
+    ));
+
+    if (!pipeline_ptr) {
+        throw std::runtime_error(std::format(
+            "hardware_accelerator: failed to create compute pipeline, {}",
+            error_ptr->localizedDescription()->utf8String()
+        ));
+    }
+
+    auto kernel_ptr = std::make_shared<metal::kernel>(fn_ptr, pipeline_ptr);
+    auto kernel = basic_kernel(kernel_ptr, _m_this_thread_group);
+
     _m_kernels.insert_or_assign(name, kernel);
     return kernel;
 }

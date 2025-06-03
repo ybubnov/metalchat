@@ -39,5 +39,21 @@ struct device {
 };
 
 
+struct kernel {
+    NS::SharedPtr<MTL::Function> function;
+    NS::SharedPtr<MTL::ComputePipelineState> pipeline;
+
+    kernel(NS::SharedPtr<MTL::Function> f, NS::SharedPtr<MTL::ComputePipelineState> p)
+    : function(f),
+      pipeline(p)
+    {}
+
+    kernel(MTL::Function* f, MTL::ComputePipelineState* p)
+    : function(NS::TransferPtr(f)),
+      pipeline(NS::TransferPtr(p))
+    {}
+};
+
+
 } // namespace metal
 } // namespace metalchat

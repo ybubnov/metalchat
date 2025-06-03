@@ -20,5 +20,9 @@ struct device;
 using shared_device = std::shared_ptr<device>;
 
 
+struct kernel;
+using shared_kernel = std::shared_ptr<kernel>;
+
+
 } // namespace metal
 } // namespace metalchat

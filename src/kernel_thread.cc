@@ -7,6 +7,14 @@ namespace metalchat {
 
 
 void
+hardware_function_encoder::initialize(const std::string& name, const metal::shared_kernel kernel)
+{
+    _m_name = name;
+    _m_encoder->setComputePipelineState(kernel->pipeline.get());
+}
+
+
+void
 hardware_function_encoder::encode(const void* data, std::size_t size)
 {
     _m_encoder->setBytes(data, size, _m_buffer++);

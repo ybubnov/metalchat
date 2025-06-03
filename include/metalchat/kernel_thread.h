@@ -67,11 +67,7 @@ public:
     {}
 
     void
-    initialize(std::string name, MTL::ComputePipelineState* pipeline)
-    {
-        _m_name = name;
-        _m_encoder->setComputePipelineState(pipeline);
-    }
+    initialize(const std::string& name, const metal::shared_kernel kernel);
 
     template <typename T, immutable_scalar_t<T> Scalar>
     void

@@ -130,7 +130,7 @@ public:
     void
     encode(hardware_function_encoder encoder, std::index_sequence<Indices...>)
     {
-        encoder.initialize(_m_kernel.name(), _m_kernel.pipeline());
+        encoder.initialize(_m_kernel.name(), _m_kernel.get_metal_kernel());
 
         ([&] {
             using tensor_type = std::tuple_element<Indices, arguments_type>::type;
