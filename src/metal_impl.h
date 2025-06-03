@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 
 namespace metalchat {
 namespace metal {
@@ -39,6 +41,10 @@ struct device {
 };
 
 
+shared_device
+make_device();
+
+
 struct kernel {
     NS::SharedPtr<MTL::Function> function;
     NS::SharedPtr<MTL::ComputePipelineState> pipeline;
@@ -53,6 +59,27 @@ struct kernel {
       pipeline(NS::TransferPtr(p))
     {}
 };
+
+
+struct library {
+    NS::SharedPtr<MTL::Library> ptr;
+
+    library(NS::SharedPtr<MTL::Library> p)
+    : ptr(p)
+    {}
+
+    library(MTL::Library* p)
+    : ptr(NS::TransferPtr(p))
+    {}
+};
+
+
+shared_library
+make_library(const NS::URL* url, shared_device device);
+
+
+shared_library
+make_library(const std::filesystem::path& p, shared_device device);
 
 
 } // namespace metal

@@ -18,6 +18,9 @@ class basic_kernel;
 static const std::string framework_identifier = "com.cmake.metalchat";
 
 
+struct _HardwareAccelerator;
+
+
 /// Hardware accelerator is an abstraction of the kernel execution pipeline.
 ///
 /// Accelerator is responsible of whole Metal kernels lifecycle: creation of kernels from a
@@ -29,31 +32,11 @@ public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
 
 private:
-    NS::SharedPtr<MTL::Device> _m_device;
-    NS::SharedPtr<MTL::Library> _m_library;
+    metal::shared_device _m_device;
+    metal::shared_library _m_library;
 
     std::unordered_map<std::string, basic_kernel> _m_kernels;
     std::shared_ptr<kernel_thread_group> _m_this_thread_group;
-
-    NS::SharedPtr<MTL::Device>
-    _m_make_device()
-    {
-        return NS::TransferPtr(MTL::CreateSystemDefaultDevice());
-    }
-
-    NS::SharedPtr<MTL::Library>
-    _m_make_library(const NS::URL* library_path)
-    {
-        NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
-        NS::Error* error_ptr = error.get();
-
-        auto library = NS::TransferPtr(_m_device->newLibrary(library_path, &error_ptr));
-        if (!library) {
-            auto failure_reason = error_ptr->localizedDescription();
-            throw std::runtime_error(failure_reason->utf8String());
-        }
-        return library;
-    }
 
 public:
     /// Create hardware accelerator from the kernel (shader) library.

@@ -14,30 +14,18 @@ namespace metalchat {
 hardware_accelerator::hardware_accelerator(
     const std::filesystem::path& path, std::size_t thread_capacity
 )
-: _m_device(_m_make_device()),
-  _m_library(),
+: _m_device(metal::make_device()),
+  _m_library(metal::make_library(path, _m_device)),
   _m_kernels(),
-  _m_this_thread_group(std::make_shared<kernel_thread_group>(
-      _m_device, std::make_shared<metal::device>(_m_device), thread_capacity
-  ))
-{
-    auto path_str = path.string();
-    auto path_cstr = path_str.c_str();
-
-    auto filepath = NS::TransferPtr(NS::String::string(path_cstr, NS::UTF8StringEncoding));
-    auto url = NS::TransferPtr(NS::URL::fileURLWithPath(filepath.get()));
-
-    _m_library = _m_make_library(url.get());
-}
+  _m_this_thread_group(std::make_shared<kernel_thread_group>(_m_device, thread_capacity))
+{}
 
 
 hardware_accelerator::hardware_accelerator(std::size_t thread_capacity)
-: _m_device(_m_make_device()),
+: _m_device(metal::make_device()),
   _m_library(),
   _m_kernels(),
-  _m_this_thread_group(std::make_shared<kernel_thread_group>(
-      _m_device, std::make_shared<metal::device>(_m_device), thread_capacity
-  ))
+  _m_this_thread_group(std::make_shared<kernel_thread_group>(_m_device, thread_capacity))
 {
     auto bundle_id = CFStringCreateWithCString(
         kCFAllocatorDefault, framework_identifier.c_str(), kCFStringEncodingUTF8
@@ -61,7 +49,7 @@ hardware_accelerator::hardware_accelerator(std::size_t thread_capacity)
         kCFAllocatorDefault, resources_url, library_name, /*isDirectory=*/false
     );
 
-    _m_library = _m_make_library(reinterpret_cast<const NS::URL*>(library_url));
+    _m_library = metal::make_library(reinterpret_cast<const NS::URL*>(library_url), _m_device);
 
     CFRelease(library_url);
     CFRelease(library_name);
@@ -80,7 +68,7 @@ hardware_accelerator::get_this_thread()
 metal::shared_device
 hardware_accelerator::get_metal_device()
 {
-    return std::make_shared<metal::device>(_m_device);
+    return _m_device;
 }
 
 
@@ -101,7 +89,7 @@ hardware_accelerator::set_allocator(hardware_accelerator::allocator_type alloc)
 std::string
 hardware_accelerator::name() const
 {
-    auto device_name = NS::TransferPtr(_m_device->name());
+    auto device_name = NS::TransferPtr(_m_device->ptr->name());
     return std::string(device_name->utf8String());
 }
 
@@ -114,7 +102,7 @@ hardware_accelerator::load(const std::string& name)
     }
 
     auto fn_name = NS::TransferPtr(NS::String::string(name.c_str(), NS::UTF8StringEncoding));
-    auto fn_ptr = NS::TransferPtr(_m_library->newFunction(fn_name.get()));
+    auto fn_ptr = NS::TransferPtr(_m_library->ptr->newFunction(fn_name.get()));
     if (!fn_ptr) {
         throw std::invalid_argument(
             std::format("hardware_accelerator: function {} not found in a shader library", name)
@@ -131,7 +119,7 @@ hardware_accelerator::load(const std::string& name)
     descriptor->setComputeFunction(fn_ptr.get());
     descriptor->setLabel(fn_name.get());
 
-    auto pipeline_ptr = NS::TransferPtr(_m_device->newComputePipelineState(
+    auto pipeline_ptr = NS::TransferPtr(_m_device->ptr->newComputePipelineState(
         descriptor.get(), MTL::PipelineOptionNone, nullptr, &error_ptr
     ));
 

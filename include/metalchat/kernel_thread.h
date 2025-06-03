@@ -267,24 +267,7 @@ private:
 public:
     kernel_thread_group(const kernel_thread_group&) noexcept = default;
 
-    kernel_thread_group(
-        NS::SharedPtr<MTL::Device> device,
-        metal::shared_device metal_device,
-        std::size_t thread_capacity
-    )
-    : _m_queue(NS::TransferPtr(device->newCommandQueue())),
-      _m_event(NS::TransferPtr(device->newEvent())),
-      _m_thread_id(0),
-      _m_thread_capacity(thread_capacity),
-      _m_allocator(std::make_shared<hardware_memory_allocator<void>>(metal_device))
-    {
-        auto label = NS::TransferPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
-        _m_queue->setLabel(label.get());
-
-        _m_this_thread = std::make_shared<kernel_thread>(
-            _m_queue, _m_event, _m_thread_id, _m_thread_capacity, _m_allocator
-        );
-    }
+    kernel_thread_group(metal::shared_device device, std::size_t thread_capacity);
 
     allocator_type
     get_allocator() const

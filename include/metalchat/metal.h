@@ -24,5 +24,9 @@ struct kernel;
 using shared_kernel = std::shared_ptr<kernel>;
 
 
+struct library;
+using shared_library = std::shared_ptr<library>;
+
+
 } // namespace metal
 } // namespace metalchat
