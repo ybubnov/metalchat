@@ -142,13 +142,13 @@ public:
     kernel_thread(const kernel_thread&) noexcept = default;
 
     kernel_thread(
-        NS::SharedPtr<MTL::CommandQueue> queue,
+        NS::SharedPtr<MTL::CommandBuffer> commands,
         NS::SharedPtr<MTL::Event> event,
         std::size_t id,
         std::size_t capacity,
         allocator_type alloc
     )
-    : _m_commands(NS::TransferPtr(queue->commandBuffer())),
+    : _m_commands(commands),
       _m_event(event),
       _m_allocator(alloc),
       _m_promise(std::make_shared<promise_type>()),
@@ -250,7 +250,7 @@ public:
 };
 
 
-class kernel_thread_group {
+class recursive_kernel_thread {
 public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
 
@@ -265,9 +265,9 @@ private:
     std::shared_ptr<kernel_thread> _m_this_thread;
 
 public:
-    kernel_thread_group(const kernel_thread_group&) noexcept = default;
+    recursive_kernel_thread(const recursive_kernel_thread&) noexcept = default;
 
-    kernel_thread_group(metal::shared_device device, std::size_t thread_capacity);
+    recursive_kernel_thread(metal::shared_device device, std::size_t thread_capacity);
 
     allocator_type
     get_allocator() const
@@ -299,7 +299,8 @@ public:
     {
         if (!_m_this_thread->joinable()) {
             auto thread = std::make_shared<kernel_thread>(
-                _m_queue, _m_event, ++_m_thread_id, _m_thread_capacity, _m_allocator
+                NS::TransferPtr(_m_queue->commandBuffer()), _m_event, ++_m_thread_id,
+                _m_thread_capacity, _m_allocator
             );
 
             _m_this_thread.swap(thread);

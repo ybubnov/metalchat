@@ -53,7 +53,9 @@ hardware_function_encoder::dispatch(dim3 grid, dim3 group)
 }
 
 
-kernel_thread_group::kernel_thread_group(metal::shared_device device, std::size_t thread_capacity)
+recursive_kernel_thread::recursive_kernel_thread(
+    metal::shared_device device, std::size_t thread_capacity
+)
 : _m_queue(NS::TransferPtr(device->ptr->newCommandQueue())),
   _m_event(NS::TransferPtr(device->ptr->newEvent())),
   _m_thread_id(0),
@@ -64,7 +66,8 @@ kernel_thread_group::kernel_thread_group(metal::shared_device device, std::size_
     _m_queue->setLabel(label.get());
 
     _m_this_thread = std::make_shared<kernel_thread>(
-        _m_queue, _m_event, _m_thread_id, _m_thread_capacity, _m_allocator
+        NS::TransferPtr(_m_queue->commandBuffer()), _m_event, _m_thread_id, _m_thread_capacity,
+        _m_allocator
     );
 }
 

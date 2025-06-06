@@ -18,9 +18,6 @@ class basic_kernel;
 static const std::string framework_identifier = "com.cmake.metalchat";
 
 
-struct _HardwareAccelerator;
-
-
 /// Hardware accelerator is an abstraction of the kernel execution pipeline.
 ///
 /// Accelerator is responsible of whole Metal kernels lifecycle: creation of kernels from a
@@ -36,7 +33,7 @@ private:
     metal::shared_library _m_library;
 
     std::unordered_map<std::string, basic_kernel> _m_kernels;
-    std::shared_ptr<kernel_thread_group> _m_this_thread_group;
+    std::shared_ptr<recursive_kernel_thread> _m_thread;
 
 public:
     /// Create hardware accelerator from the kernel (shader) library.
@@ -93,7 +90,7 @@ public:
     void
     set_allocator(Allocator&& alloc)
     {
-        _m_this_thread_group->set_allocator(std::move(alloc));
+        _m_thread->set_allocator(std::move(alloc));
     }
 
     /// Load the kernel from the kernel library.

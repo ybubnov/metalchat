@@ -17,7 +17,7 @@ hardware_accelerator::hardware_accelerator(
 : _m_device(metal::make_device()),
   _m_library(metal::make_library(path, _m_device)),
   _m_kernels(),
-  _m_this_thread_group(std::make_shared<kernel_thread_group>(_m_device, thread_capacity))
+  _m_thread(std::make_shared<recursive_kernel_thread>(_m_device, thread_capacity))
 {}
 
 
@@ -25,7 +25,7 @@ hardware_accelerator::hardware_accelerator(std::size_t thread_capacity)
 : _m_device(metal::make_device()),
   _m_library(),
   _m_kernels(),
-  _m_this_thread_group(std::make_shared<kernel_thread_group>(_m_device, thread_capacity))
+  _m_thread(std::make_shared<recursive_kernel_thread>(_m_device, thread_capacity))
 {
     auto bundle_id = CFStringCreateWithCString(
         kCFAllocatorDefault, framework_identifier.c_str(), kCFStringEncodingUTF8
@@ -61,7 +61,7 @@ hardware_accelerator::hardware_accelerator(std::size_t thread_capacity)
 std::shared_ptr<kernel_thread>
 hardware_accelerator::get_this_thread()
 {
-    return _m_this_thread_group->get_this_thread();
+    return _m_thread->get_this_thread();
 }
 
 
@@ -75,14 +75,14 @@ hardware_accelerator::get_metal_device()
 hardware_accelerator::allocator_type
 hardware_accelerator::get_allocator() const
 {
-    return _m_this_thread_group->get_allocator();
+    return _m_thread->get_allocator();
 }
 
 
 void
 hardware_accelerator::set_allocator(hardware_accelerator::allocator_type alloc)
 {
-    _m_this_thread_group->set_allocator(alloc);
+    _m_thread->set_allocator(alloc);
 }
 
 
