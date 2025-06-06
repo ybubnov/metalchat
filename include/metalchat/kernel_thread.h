@@ -116,6 +116,9 @@ concept hardware_encodable_function
       };
 
 
+struct kernel_queue;
+
+
 class kernel_thread {
 public:
     using callback_type = std::function<void()>;
@@ -124,87 +127,46 @@ public:
 private:
     using promise_type = std::promise<void>;
 
-    NS::SharedPtr<MTL::CommandBuffer> _m_commands;
-    NS::SharedPtr<MTL::ComputeCommandEncoder> _m_encoder;
-    NS::SharedPtr<MTL::Event> _m_event;
-
     allocator_type _m_allocator;
+
+    std::shared_ptr<kernel_queue> _m_queue;
     std::shared_ptr<promise_type> _m_promise;
     std::shared_future<void> _m_future;
 
-    std::size_t _m_id;
     std::size_t _m_size;
     std::size_t _m_capacity;
 
     bool _m_committed;
 
+    /// Register callback, which will be executed on a command completion.
+    ///
+    /// Completion handler is executed once all commands in a command buffer are
+    /// completed. All registered handlers are executed.
+    void
+    on_completed(callback_type callback);
+
+    hardware_function_encoder
+    get_hardware_function_encoder();
+
 public:
     kernel_thread(const kernel_thread&) noexcept = default;
 
-    kernel_thread(
-        NS::SharedPtr<MTL::CommandBuffer> commands,
-        NS::SharedPtr<MTL::Event> event,
-        std::size_t id,
-        std::size_t capacity,
-        allocator_type alloc
-    )
-    : _m_commands(commands),
-      _m_event(event),
-      _m_allocator(alloc),
-      _m_promise(std::make_shared<promise_type>()),
-      _m_future(_m_promise->get_future()),
-      _m_id(id),
-      _m_size(0),
-      _m_capacity(capacity),
-      _m_committed(false)
-    {
-        _m_commands->enqueue();
+    kernel_thread(const kernel_queue& queue, std::size_t capacity, allocator_type alloc);
 
-        if (_m_id > 0) {
-            _m_commands->encodeWait(_m_event.get(), _m_id);
-        }
-
-        _m_encoder
-            = NS::TransferPtr(_m_commands->computeCommandEncoder(MTL::DispatchTypeConcurrent));
-
-        // After the completion of the kernel execution, release the promise and all blocks
-        // waiting for the completion of this kernel.
-        _m_commands->addCompletedHandler([promise = _m_promise](const MTL::CommandBuffer* buffer) {
-            if (buffer->error() != nullptr) {
-                auto failure_reason = buffer->error()->localizedDescription();
-                auto exception_ptr
-                    = std::make_exception_ptr(std::runtime_error(failure_reason->utf8String()));
-                promise->set_exception(exception_ptr);
-            } else {
-                promise->set_value();
-            }
-        });
-    }
-
-    ~kernel_thread()
-    {
-        //  If thread was completed, the code below does absolutely nothing, otherwise,
-        //  on object deletion all commands are committed to the device.
-        make_ready_at_thread_exit();
-    }
+    ~kernel_thread();
 
     std::size_t
-    size() const
-    {
-        return _m_size;
-    }
+    size() const;
 
     std::size_t
-    capacity() const
-    {
-        return _m_capacity;
-    }
+    capacity() const;
 
+    /// Checks if the `kernel_thread` object identifies an active thread of execution.
+    ///
+    /// Specifically, returns true if the kernel thread is not committed and there are
+    /// open slots available to encode new functions.
     bool
-    joinable() const
-    {
-        return (!_m_committed) && (_m_size < _m_capacity);
-    }
+    joinable() const;
 
     template <hardware_encodable_function F>
     std::shared_future<void>
@@ -216,11 +178,10 @@ public:
             );
         }
         if (callback.has_value()) {
-            _m_commands->addCompletedHandler([callback = callback.value(
-                                              )](const MTL::CommandBuffer* buf) { callback(); });
+            on_completed(callback.value());
         }
 
-        f.encode(hardware_function_encoder(_m_encoder, _m_allocator));
+        f.encode(get_hardware_function_encoder());
 
         _m_size++;
 
@@ -231,22 +192,7 @@ public:
     }
 
     void
-    make_ready_at_thread_exit()
-    {
-        if (!_m_committed) {
-            auto label = std::format("metalchat commands (size={})", _m_size);
-            auto label_ptr = NS::String::string(label.c_str(), NS::UTF8StringEncoding);
-            auto commands_label = NS::TransferPtr(label_ptr);
-
-            _m_encoder->endEncoding();
-
-            _m_commands->setLabel(commands_label.get());
-            _m_commands->encodeSignalEvent(_m_event.get(), _m_id + 1);
-
-            _m_commands->commit();
-            _m_committed = true;
-        }
-    }
+    make_ready_at_thread_exit();
 };
 
 
@@ -255,14 +201,11 @@ public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
 
 private:
-    NS::SharedPtr<MTL::CommandQueue> _m_queue;
-    NS::SharedPtr<MTL::Event> _m_event;
-
-    std::size_t _m_thread_id;
-    std::size_t _m_thread_capacity;
-
     allocator_type _m_allocator;
-    std::shared_ptr<kernel_thread> _m_this_thread;
+
+    std::shared_ptr<kernel_queue> _m_queue;
+    std::shared_ptr<kernel_thread> _m_thread;
+    std::size_t _m_thread_capacity;
 
 public:
     recursive_kernel_thread(const recursive_kernel_thread&) noexcept = default;
@@ -295,18 +238,7 @@ public:
     }
 
     std::shared_ptr<kernel_thread>
-    get_this_thread()
-    {
-        if (!_m_this_thread->joinable()) {
-            auto thread = std::make_shared<kernel_thread>(
-                NS::TransferPtr(_m_queue->commandBuffer()), _m_event, ++_m_thread_id,
-                _m_thread_capacity, _m_allocator
-            );
-
-            _m_this_thread.swap(thread);
-        }
-        return _m_this_thread;
-    }
+    get_this_thread();
 };
 
 
