@@ -1,6 +1,7 @@
 #pragma once
 
 #include <format>
+#include <iomanip>
 #include <iostream>
 #include <span>
 #include <vector>

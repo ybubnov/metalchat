@@ -32,10 +32,7 @@ struct kernel_queue {
     {
         kernel_queue kq = *this;
 
-        kq.id = id + 1;
-        kq.queue = queue;
-        kq.event = event;
-
+        kq.id++;
         kq.commands = NS::TransferPtr(kq.queue->commandBuffer());
         kq.commands->enqueue();
         kq.commands->encodeWait(kq.event.get(), id);

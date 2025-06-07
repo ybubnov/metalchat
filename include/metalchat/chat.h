@@ -213,4 +213,38 @@ template <language_transformer_t Transformer>
 chat(Transformer&& transformer, const bpe& encoder) -> chat<Transformer>;
 
 
+template <typename T>
+auto
+make_chat(const std::filesystem::path& weights_path, const std::filesystem::path& tokens_path)
+{
+    metalchat::hardware_accelerator gpu0;
+
+    metalchat::bpe bpe(tokens_path);
+    metalchat::safetensor_file weights(weights_path);
+
+    auto alloc1 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
+    auto alloc2 = hardware_resident_allocator(alloc1, gpu0.get_metal_device());
+
+    gpu0.set_allocator(std::move(alloc2));
+    auto options = nn::attention_options{
+        .head_dim = 64,
+        .n_heads = 32,
+        .n_kv_heads = 8,
+        .max_seq_len = 32,
+        .rope_theta = 500000.0
+    };
+
+    nn::llama<T> m(16, options, gpu0);
+    m.initialize(weights, make_rebind_allocator<T>(gpu0.get_allocator()));
+
+    auto transformer = language_transformer(std::move(m));
+    auto agent = chat(std::move(transformer), std::move(bpe));
+
+    agent.send(basic_message("system", "You are a helpful assistant"));
+    agent.send(basic_message("user", "What is the capital of France?"));
+    std::cout << agent.receive_text() << std::endl;
+    // return std::make_tuple(std::move(agent), std::move(weights));
+}
+
+
 } // namespace metalchat

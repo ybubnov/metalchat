@@ -2,6 +2,10 @@
 
 #include <filesystem>
 
+#include <Foundation/Foundation.hpp>
+#include <Metal/Metal.hpp>
+#include <QuartzCore/QuartzCore.hpp>
+
 
 namespace metalchat {
 namespace metal {
