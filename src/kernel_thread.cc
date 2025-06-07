@@ -30,7 +30,7 @@ struct kernel_queue {
     kernel_queue
     partition()
     {
-        kernel_queue kq;
+        kernel_queue kq = *this;
 
         kq.id = id + 1;
         kq.queue = queue;
@@ -47,25 +47,35 @@ struct kernel_queue {
 };
 
 
+hardware_function_encoder::hardware_function_encoder(
+    std::shared_ptr<kernel_queue> queue_ptr, hardware_function_encoder::allocator_type alloc
+)
+: _m_allocator(alloc),
+  _m_queue(queue_ptr),
+  _m_buffer(0),
+  _m_name()
+{}
+
+
 void
 hardware_function_encoder::initialize(const std::string& name, const metal::shared_kernel kernel)
 {
     _m_name = name;
-    _m_encoder->setComputePipelineState(kernel->pipeline.get());
+    _m_queue->encoder->setComputePipelineState(kernel->pipeline.get());
 }
 
 
 void
 hardware_function_encoder::encode(const void* data, std::size_t size)
 {
-    _m_encoder->setBytes(data, size, _m_buffer++);
+    _m_queue->encoder->setBytes(data, size, _m_buffer++);
 }
 
 
 void
 hardware_function_encoder::encode(metal::shared_buffer buffer)
 {
-    _m_encoder->setBuffer(buffer->ptr.get(), 0, _m_buffer++);
+    _m_queue->encoder->setBuffer(buffer->ptr.get(), 0, _m_buffer++);
 }
 
 
@@ -73,7 +83,7 @@ void
 hardware_function_encoder::encode_memory_barrier(metal::shared_buffer buffer)
 {
     const MTL::Resource* resources[1] = {buffer->ptr.get()};
-    _m_encoder->memoryBarrier(resources, 1);
+    _m_queue->encoder->memoryBarrier(resources, 1);
 }
 
 
@@ -86,11 +96,11 @@ hardware_function_encoder::dispatch(dim3 grid, dim3 group)
     auto command_name = command_name_stream.str();
     auto command_name_ptr
         = NS::TransferPtr(NS::String::string(command_name.c_str(), NS::UTF8StringEncoding));
-    _m_encoder->setLabel(command_name_ptr.get());
+    _m_queue->encoder->setLabel(command_name_ptr.get());
 
     MTL::Size threads_per_grid(grid.x, grid.y, grid.z);
     MTL::Size threads_per_group(group.x, group.y, group.z);
-    _m_encoder->dispatchThreads(threads_per_grid, threads_per_group);
+    _m_queue->encoder->dispatchThreads(threads_per_grid, threads_per_group);
 }
 
 
@@ -125,13 +135,6 @@ kernel_thread::on_completed(kernel_thread::callback_type callback)
     _m_queue->commands->addCompletedHandler([callback = callback](const MTL::CommandBuffer* buf) {
         callback();
     });
-}
-
-
-hardware_function_encoder
-kernel_thread::get_hardware_function_encoder()
-{
-    return hardware_function_encoder(_m_queue->encoder, _m_allocator);
 }
 
 

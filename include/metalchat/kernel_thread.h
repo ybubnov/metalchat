@@ -13,6 +13,10 @@
 
 namespace metalchat {
 
+
+struct kernel_queue;
+
+
 struct dim3 {
     const std::size_t x, y, z;
 
@@ -42,8 +46,8 @@ public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
 
 private:
-    NS::SharedPtr<MTL::ComputeCommandEncoder> _m_encoder;
     allocator_type _m_allocator;
+    std::shared_ptr<kernel_queue> _m_queue;
     std::size_t _m_buffer;
     std::string _m_name;
 
@@ -57,14 +61,7 @@ private:
     encode_memory_barrier(metal::shared_buffer buffer);
 
 public:
-    hardware_function_encoder(
-        NS::SharedPtr<MTL::ComputeCommandEncoder> encoder, allocator_type alloc
-    )
-    : _m_encoder(encoder),
-      _m_allocator(alloc),
-      _m_buffer(0),
-      _m_name()
-    {}
+    hardware_function_encoder(std::shared_ptr<kernel_queue> queue, allocator_type alloc);
 
     void
     initialize(const std::string& name, const metal::shared_kernel kernel);
@@ -116,9 +113,6 @@ concept hardware_encodable_function
       };
 
 
-struct kernel_queue;
-
-
 class kernel_thread {
 public:
     using callback_type = std::function<void()>;
@@ -144,9 +138,6 @@ private:
     /// completed. All registered handlers are executed.
     void
     on_completed(callback_type callback);
-
-    hardware_function_encoder
-    get_hardware_function_encoder();
 
 public:
     kernel_thread(const kernel_thread&) noexcept = default;
@@ -181,7 +172,7 @@ public:
             on_completed(callback.value());
         }
 
-        f.encode(get_hardware_function_encoder());
+        f.encode(hardware_function_encoder(_m_queue, _m_allocator));
 
         _m_size++;
 
