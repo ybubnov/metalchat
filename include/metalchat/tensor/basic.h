@@ -143,13 +143,13 @@ public:
         return dim();
     }
 
-    inline T*
+    T*
     data_ptr() noexcept
     {
         return const_cast<tensor const&>(*this).data_ptr();
     }
 
-    inline T*
+    T*
     data_ptr() const noexcept
     {
         if (!m_data) {
@@ -158,7 +158,7 @@ public:
         return m_data->data();
     }
 
-    inline std::size_t
+    std::size_t
     stride(std::size_t dim) const
     {
         if (dim >= N) {
@@ -169,19 +169,19 @@ public:
         return m_strides->data()[dim];
     }
 
-    inline void
+    void
     set_stride(std::size_t dim, std::size_t i)
     {
         m_strides->data()[dim] = i;
     }
 
-    inline const std::span<std::size_t>
+    const std::span<std::size_t>
     strides() const noexcept
     {
         return std::span<std::size_t, N>(m_strides->data(), N);
     }
 
-    inline std::size_t
+    std::size_t
     size(std::size_t dim) const
     {
         if (dim >= N) {
@@ -192,19 +192,19 @@ public:
         return m_shape->data()[dim];
     }
 
-    inline const std::span<std::size_t>
+    const std::span<std::size_t>
     sizes() const noexcept
     {
         return std::span<std::size_t, N>(m_shape->data(), N);
     }
 
-    inline const std::span<std::size_t, N>
+    const std::span<std::size_t, N>
     shape() const noexcept
     {
         return std::span<std::size_t, N>(m_shape->data(), N);
     }
 
-    inline std::size_t
+    std::size_t
     offset(std::size_t dim) const
     {
         if (dim >= N) {
@@ -215,13 +215,13 @@ public:
         return m_offsets->data()[dim];
     }
 
-    inline void
+    void
     set_offset(std::size_t dim, std::size_t i)
     {
         m_offsets->data()[dim] = i;
     }
 
-    inline const std::span<std::size_t>
+    const std::span<std::size_t>
     offsets() const noexcept
     {
         return std::span<std::size_t, N>(m_offsets->data(), N);
@@ -248,7 +248,7 @@ public:
         return n;
     }
 
-    inline container_type&
+    container_type&
     container() const
     {
         if (!m_data) {
@@ -590,7 +590,7 @@ protected:
     template <typename FriendT, std::size_t FriendN, contiguous_container FriendContainer>
     friend class tensor;
 
-    inline void
+    void
     set_size(std::size_t dim, std::size_t i)
     {
         m_shape->data()[dim] = i;

@@ -43,6 +43,8 @@ public:
     /// auto gpu = hardware_accelerator("metalchat.metallib");
     /// ```
     ///
+    /// \param path Specifies a location of the compiled Metal shaders library.
+    ///
     /// \param thread_capacity Specifies the size of the command buffer. Commands are executed
     ///     in batches of `thread_capacity` size. Kernel won't be scheduled until the buffer is
     ///     filled with the configured number of kernels, or when the execution is explicitly

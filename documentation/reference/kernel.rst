@@ -38,8 +38,8 @@ Kernel Thread
    :project: metalchat
 
 
-Kernel Thread Group
--------------------
+Recursive Kernel Thread
+-----------------------
 
-.. doxygenclass:: metalchat::kernel_thread_group
+.. doxygenclass:: metalchat::recursive_kernel_thread
    :project: metalchat

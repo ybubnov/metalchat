@@ -44,8 +44,8 @@ Empty
 .. doxygenfunction:: metalchat::empty(std::size_t (&&sizes)[N])
    :project: metalchat
 
-.. doxygenfunction:: metalchat::empty(std::size_t (&&sizes)[N], hardware_accelerator& gpu)
+.. doxygenfunction:: metalchat::empty(std::size_t (&&sizes)[N], Allocator alloc)
    :project: metalchat
 
-.. doxygenfunction:: metalchat::empty(std::size_t (&&sizes)[N], Allocator alloc)
+.. doxygenfunction:: metalchat::empty(InputIt begin, InputIt end)
    :project: metalchat
