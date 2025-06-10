@@ -83,9 +83,9 @@ public:
     template <allocator_t<T> Allocator = scalar_memory_allocator<T>>
     tensor(const T& value, Allocator alloc = Allocator())
     : m_data(alloc.allocate(1)),
-      m_shape(make_value<std::size_t>(0)),
-      m_strides(make_value<std::size_t>(0)),
-      m_offsets(make_value<std::size_t>(0))
+      m_shape(make_scalar_container<std::size_t>(0)),
+      m_strides(make_scalar_container<std::size_t>(0)),
+      m_offsets(make_scalar_container<std::size_t>(0))
     {
         *data_ptr() = value;
     }
@@ -658,10 +658,10 @@ protected:
 
     tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
     : tensor(
-          std::make_shared<reference_memory_container<T>>(data),
-          make_weak(shape),
-          make_weak(strides),
-          make_weak(offsets)
+          make_reference_container(data),
+          make_reference_container(shape),
+          make_reference_container(strides),
+          make_reference_container(offsets)
       )
     {}
 };

@@ -73,7 +73,7 @@ public:
 
 template <typename T>
 auto
-make_weak(T* data)
+make_reference_container(T* data)
 {
     return std::make_shared<reference_memory_container<T>>(data);
 }
@@ -218,7 +218,7 @@ public:
 
 template <typename T>
 auto
-make_value(T data)
+make_scalar_container(T data)
 {
     return std::make_shared<scalar_memory_container<T>>(data);
 }
