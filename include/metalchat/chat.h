@@ -240,10 +240,7 @@ make_chat(const std::filesystem::path& weights_path, const std::filesystem::path
     auto transformer = language_transformer(std::move(m));
     auto agent = chat(std::move(transformer), std::move(bpe));
 
-    agent.send(basic_message("system", "You are a helpful assistant"));
-    agent.send(basic_message("user", "What is the capital of France?"));
-    std::cout << agent.receive_text() << std::endl;
-    // return std::make_tuple(std::move(agent), std::move(weights));
+    return agent;
 }
 
 

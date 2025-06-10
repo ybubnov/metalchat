@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <format>
 #include <iostream>
+#include <numeric>
 #include <unordered_map>
 #include <vector>
 
@@ -93,12 +94,12 @@ private:
 class safetensor {
 private:
     std::vector<std::size_t> _m_shape;
-    void* _m_data;
+    std::shared_ptr<void> _m_data_ptr;
 
 public:
-    safetensor(const std::vector<std::size_t>& shape, void* data)
+    safetensor(const std::vector<std::size_t>& shape, std::shared_ptr<void> data_ptr)
     : _m_shape(shape),
-      _m_data(data)
+      _m_data_ptr(data_ptr)
     {}
 
     std::size_t
@@ -107,18 +108,39 @@ public:
         return _m_shape.size();
     }
 
+    std::size_t
+    numel() const
+    {
+        return std::accumulate(_m_shape.begin(), _m_shape.end(), 1, std::multiplies<std::size_t>());
+    }
+
     template <std::size_t N, allocator Allocator>
     auto
     as(Allocator alloc) const
     {
         using container_type = Allocator::container_type;
         using value_type = Allocator::value_type;
+        using tensor_type = tensor<value_type, N, container_type>;
 
-        auto data_ptr = static_cast<value_type*>(_m_data);
+        /// Some allocators (like `hardware_nocopy_allocator`) could simply store a
+        /// pointer to the original data pointer, so once safetensor is destroyed,
+        /// container won't be valid anymore.
+        ///
+        /// To avoid this, share the ownership of safetensor with a new container.
+        auto data = static_cast<value_type*>(_m_data_ptr.get());
+        auto container_ptr = alloc.allocate(data, numel());
 
-        return tensor<value_type, N, container_type>(
-            _m_shape.cbegin(), _m_shape.cend(), data_ptr, alloc
-        );
+        /// Create an artificial pair type, so that is stores both pointers, and then
+        /// leave an access only to the newly created container pointer.
+        using value_pointer = std::shared_ptr<void>;
+        using container_pointer = Allocator::container_pointer;
+        using shared_pointer = std::pair<value_pointer, container_pointer>;
+
+        /// Once container is destroyed, memory file is attempted to be destroyed as well.
+        auto shared_ptr = std::make_shared<shared_pointer>(_m_data_ptr, container_ptr);
+        container_ptr = container_pointer(shared_ptr, container_ptr.get());
+
+        return tensor_type(_m_shape.cbegin(), _m_shape.cend(), container_ptr);
     }
 
     friend std::ostream&

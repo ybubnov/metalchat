@@ -231,13 +231,14 @@ _HardwareResidentAllocator::container_pointer
 _HardwareResidentAllocator::allocate(_HardwareResidentAllocator::container_pointer&& container)
 {
     auto buffer_ptr = container->storage();
-    auto deleter_ptr = std::get_deleter<metal::buffer_deleter>(buffer_ptr);
 
     _m_data->rset->addAllocation(buffer_ptr->ptr);
     *_m_size = (*_m_size) + 1;
 
     auto deleter_residence = _HardwareCompleteResidenceDeleter{_m_data->rset, _m_size};
-    deleter_ptr->deleters.push_back(deleter_residence);
+
+    auto deleter_ptr = std::get_deleter<metal::buffer_deleter>(buffer_ptr);
+    deleter_ptr->invoke_before_destroy(deleter_residence);
 
     return std::make_shared<container_type>(buffer_ptr);
 }

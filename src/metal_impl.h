@@ -35,6 +35,12 @@ struct buffer_deleter {
     {}
 
     void
+    invoke_before_destroy(buffer::deleter_type deleter)
+    {
+        deleters.push_back(deleter);
+    }
+
+    void
     operator()(buffer* b)
     {
         for (auto& deleter : deleters) {
