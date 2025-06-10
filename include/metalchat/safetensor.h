@@ -102,18 +102,25 @@ public:
       _m_data_ptr(data_ptr)
     {}
 
+    /// Return the number of dimensions in the tensor.
     std::size_t
     dim() const
     {
         return _m_shape.size();
     }
 
+    /// Return the total number of elements in the tensor.
     std::size_t
     numel() const
     {
         return std::accumulate(_m_shape.begin(), _m_shape.end(), 1, std::multiplies<std::size_t>());
     }
 
+    /// Cast this safe-tensor to the specified the specified type.
+    ///
+    /// Method infers the type of the final tensor from the `value_type` of the provided
+    /// allocator type. Allocation of tensors storing incomplete types (including void)
+    /// is prohibited.
     template <std::size_t N, allocator Allocator>
     auto
     as(Allocator alloc) const
