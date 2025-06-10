@@ -1,6 +1,7 @@
 #pragma once
 
 #include <metalchat/bpe.h>
+#include <metalchat/dtype.h>
 #include <metalchat/functional.h>
 #include <metalchat/layer.h>
 #include <metalchat/nn.h>
@@ -213,9 +214,10 @@ template <language_transformer_t Transformer>
 chat(Transformer&& transformer, const bpe& encoder) -> chat<Transformer>;
 
 
-template <typename T>
 auto
-make_chat(const std::filesystem::path& weights_path, const std::filesystem::path& tokens_path)
+construct_llama32_1b(
+    const std::filesystem::path& weights_path, const std::filesystem::path& tokens_path
+)
 {
     metalchat::hardware_accelerator gpu0;
 
@@ -234,8 +236,14 @@ make_chat(const std::filesystem::path& weights_path, const std::filesystem::path
         .rope_theta = 500000.0
     };
 
-    nn::llama<T> m(16, options, gpu0);
-    m.initialize(weights, make_rebind_allocator<T>(gpu0.get_allocator()));
+    nn::llama<dtype::bf16> m(16, options, gpu0);
+    m.initialize(weights, make_rebind_allocator<dtype::bf16>(gpu0.get_allocator()));
+
+    auto heap_size = std::size_t(512) * 1024 * 1024;
+    auto alloc3 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);
+    auto alloc4 = hardware_nocopy_allocator(alloc3, gpu0.get_metal_device());
+
+    gpu0.set_allocator(std::move(alloc4));
 
     auto transformer = language_transformer(std::move(m));
     auto agent = chat(std::move(transformer), std::move(bpe));
