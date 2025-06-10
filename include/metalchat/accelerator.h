@@ -1,7 +1,6 @@
 #pragma once
 
 #include <filesystem>
-#include <iostream>
 #include <unordered_map>
 
 #include <metalchat/dtype.h>
