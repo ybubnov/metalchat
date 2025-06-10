@@ -157,28 +157,11 @@ template <typename T> struct hardware_memory_container : public memory_container
     using pointer = value_type*;
     using const_pointer = const pointer;
 
-    using memory_type = metal::shared_buffer;
-    using deleter_type = std::function<void(hardware_memory_container*)>;
+    metal::shared_buffer _m_mem;
 
-    memory_type _m_mem;
-    deleter_type _m_deleter;
-
-    hardware_memory_container(memory_type mem)
-    : _m_mem(mem),
-      _m_deleter(nullptr)
+    hardware_memory_container(metal::shared_buffer mem)
+    : _m_mem(mem)
     {}
-
-    hardware_memory_container(memory_type mem, deleter_type deleter)
-    : _m_mem(mem),
-      _m_deleter(deleter)
-    {}
-
-    ~hardware_memory_container()
-    {
-        if (_m_deleter != nullptr) {
-            _m_deleter(this);
-        }
-    }
 
     pointer
     data()
@@ -198,7 +181,7 @@ template <typename T> struct hardware_memory_container : public memory_container
         return hardware_memory_container<U>(_m_mem);
     }
 
-    memory_type
+    metal::shared_buffer
     storage() const
     {
         return _m_mem;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <list>
 
 #include <Foundation/Foundation.hpp>
 #include <Metal/Metal.hpp>
@@ -12,24 +13,47 @@ namespace metal {
 
 
 struct buffer {
-    NS::SharedPtr<MTL::Buffer> ptr;
+    using deleter_type = std::function<void(buffer* p)>;
 
-    buffer(NS::SharedPtr<MTL::Buffer> p)
-    : ptr(p)
-    {}
+    MTL::Buffer* ptr;
 
     buffer(MTL::Buffer* p)
-    : ptr(NS::TransferPtr(p))
+    : ptr(p)
     {}
 };
 
 
-shared_buffer
-make_buffer(NS::SharedPtr<MTL::Buffer> p);
+struct buffer_deleter {
+    std::list<buffer::deleter_type> deleters;
+
+    buffer_deleter()
+    : deleters()
+    {}
+
+    buffer_deleter(buffer::deleter_type deleter)
+    : deleters({deleter})
+    {}
+
+    void
+    operator()(buffer* b)
+    {
+        for (auto& deleter : deleters) {
+            deleter(b);
+        }
+
+        b->ptr->release();
+        b->ptr = nullptr;
+        delete b;
+    }
+};
 
 
 shared_buffer
 make_buffer(MTL::Buffer* p);
+
+
+shared_buffer
+make_buffer(MTL::Buffer* p, buffer::deleter_type deleter);
 
 
 struct device {

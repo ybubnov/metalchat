@@ -318,7 +318,15 @@ public:
     void
     detach();
 
-    container_pointer allocate(container_pointer);
+    container_pointer
+    allocate(container_pointer&&);
+
+    template <typename T>
+    container_pointer
+    allocate(std::shared_ptr<hardware_memory_container<T>>&& p)
+    {
+        return allocate(std::reinterpret_pointer_cast<container_type>(p));
+    }
 };
 
 
@@ -361,13 +369,15 @@ public:
     container_pointer
     allocate(size_type size)
     {
-        return _m_resident_alloc.allocate(_m_alloc.allocate(size));
+        auto container = _m_resident_alloc.allocate(_m_alloc.allocate(size));
+        return std::reinterpret_pointer_cast<container_type>(container);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        return _m_resident_alloc.allocate(_m_alloc.allocate(ptr, size));
+        auto container = _m_resident_alloc.allocate(_m_alloc.allocate(ptr, size));
+        return std::reinterpret_pointer_cast<container_type>(container);
     }
 
 private:
@@ -417,13 +427,15 @@ public:
     container_pointer
     allocate(size_type size)
     {
-        return _m_alloc.allocate(size * sizeof(value_type));
+        auto container = _m_alloc.allocate(size * sizeof(value_type));
+        return std::reinterpret_pointer_cast<container_type>(container);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        return _m_alloc.allocate(ptr, size * sizeof(value_type));
+        auto container = _m_alloc.allocate(ptr, size * sizeof(value_type));
+        return std::reinterpret_pointer_cast<container_type>(container);
     }
 
 private:
@@ -468,7 +480,8 @@ public:
     container_pointer
     allocate(size_type size)
     {
-        return _m_alloc.allocate(size);
+        auto container = _m_alloc.allocate(size);
+        return std::reinterpret_pointer_cast<container_type>(container);
     }
 
     container_pointer
@@ -476,7 +489,7 @@ public:
     {
         auto container = _m_alloc.allocate(size);
         std::memcpy(container->data(), ptr, size);
-        return container;
+        return std::reinterpret_pointer_cast<container_type>(container);
     }
 
 private:

@@ -72,14 +72,14 @@ hardware_function_encoder::encode(const void* data, std::size_t size)
 void
 hardware_function_encoder::encode(metal::shared_buffer buffer)
 {
-    _m_queue->encoder->setBuffer(buffer->ptr.get(), 0, _m_buffer++);
+    _m_queue->encoder->setBuffer(buffer->ptr, 0, _m_buffer++);
 }
 
 
 void
 hardware_function_encoder::encode_memory_barrier(metal::shared_buffer buffer)
 {
-    const MTL::Resource* resources[1] = {buffer->ptr.get()};
+    const MTL::Resource* resources[1] = {buffer->ptr};
     _m_queue->encoder->memoryBarrier(resources, 1);
 }
 

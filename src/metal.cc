@@ -22,16 +22,18 @@ data(const shared_buffer buffer)
 
 
 shared_buffer
-make_buffer(NS::SharedPtr<MTL::Buffer> p)
+make_buffer(MTL::Buffer* p)
 {
-    return std::make_shared<buffer>(p);
+    auto buffer_ptr = new buffer(p);
+    return shared_buffer(buffer_ptr, buffer_deleter());
 }
 
 
 shared_buffer
-make_buffer(MTL::Buffer* p)
+make_buffer(MTL::Buffer* p, buffer::deleter_type deleter)
 {
-    return std::make_shared<buffer>(p);
+    auto buffer_ptr = new buffer(p);
+    return shared_buffer(buffer_ptr, buffer_deleter(deleter));
 }
 
 

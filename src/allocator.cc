@@ -1,5 +1,5 @@
 #include <format>
-#include <iostream>
+#include <memory>
 
 #include <metalchat/allocator.h>
 
@@ -14,12 +14,29 @@ struct _HardwareCompleteResidenceDeleter {
     std::shared_ptr<std::size_t> size;
 
     void
-    operator()(const hardware_memory_container<void>* p)
+    operator()(metal::buffer* p)
     {
         *size = (*size) - 1;
 
         if ((*size) == 0) {
             rset->removeAllAllocations();
+            rset->endResidency();
+        }
+    }
+};
+
+
+struct _HardwareIterativeResidenceDeleter {
+    NS::SharedPtr<MTL::ResidencySet> rset;
+    std::shared_ptr<std::size_t> size;
+
+    void
+    operator()(metal::buffer* b)
+    {
+        rset->removeAllocation(b->ptr);
+        *size = (*size) - 1;
+
+        if ((*size) == 0) {
             rset->endResidency();
         }
     }
@@ -94,9 +111,10 @@ _HardwareHeapAllocator::allocate(std::size_t size)
 
     *_m_size = (*_m_size) + 1;
 
-    return std::make_shared<container_type>(
-        metal::make_buffer(memory_ptr), _HardwareCompleteResidenceDeleter{_m_data->rset, _m_size}
-    );
+    auto deleter = _HardwareIterativeResidenceDeleter{_m_data->rset, _m_size};
+    auto buffer_ptr = metal::make_buffer(memory_ptr, deleter);
+
+    return std::make_shared<container_type>(buffer_ptr);
 }
 
 
@@ -118,8 +136,9 @@ _HardwareMemoryAllocator::container_pointer
 _HardwareMemoryAllocator::allocate(std::size_t size)
 {
     auto memory_ptr = _m_data->device->newBuffer(size, MTL::ResourceStorageModeShared);
-    return std::make_shared<_HardwareMemoryAllocator::container_type>(metal::make_buffer(memory_ptr)
-    );
+    auto buffer_ptr = metal::make_buffer(memory_ptr);
+
+    return std::make_shared<_HardwareMemoryAllocator::container_type>(buffer_ptr);
 }
 
 
@@ -127,7 +146,9 @@ _HardwareMemoryAllocator::container_pointer
 _HardwareMemoryAllocator::allocate(const void* ptr, std::size_t size)
 {
     auto memory_ptr = _m_data->device->newBuffer(ptr, size, MTL::ResourceStorageModeShared);
-    return std::make_shared<container_type>(metal::make_buffer(memory_ptr));
+    auto buffer_ptr = metal::make_buffer(memory_ptr);
+
+    return std::make_shared<container_type>(buffer_ptr);
 }
 
 
@@ -156,25 +177,10 @@ _HardwareNocopyAllocator::allocate(const void* ptr, std::size_t size)
             std::format("metalchat::hardware_nocopy_allocator: failed to allocate no-copy buffer")
         );
     }
-    return std::make_shared<container_type>(metal::make_buffer(memory_ptr));
+
+    auto buffer_ptr = metal::make_buffer(memory_ptr);
+    return std::make_shared<container_type>(buffer_ptr);
 }
-
-
-struct _HardwareIterativeResidenceDeleter {
-    NS::SharedPtr<MTL::ResidencySet> rset;
-    std::shared_ptr<std::size_t> size;
-
-    void
-    operator()(const hardware_memory_container<void>* p)
-    {
-        rset->removeAllocation(p->storage()->ptr.get());
-        *size = (*size) - 1;
-
-        if ((*size) == 0) {
-            rset->endResidency();
-        }
-    }
-};
 
 
 struct _HardwareResidentAllocator::_HardwareResidentAllocator_data {
@@ -222,14 +228,18 @@ _HardwareResidentAllocator::detach()
 
 
 _HardwareResidentAllocator::container_pointer
-_HardwareResidentAllocator::allocate(_HardwareResidentAllocator::container_pointer container)
+_HardwareResidentAllocator::allocate(_HardwareResidentAllocator::container_pointer&& container)
 {
-    _m_data->rset->addAllocation(container->storage()->ptr.get());
+    auto buffer_ptr = container->storage();
+    auto deleter_ptr = std::get_deleter<metal::buffer_deleter>(buffer_ptr);
+
+    _m_data->rset->addAllocation(buffer_ptr->ptr);
     *_m_size = (*_m_size) + 1;
 
-    return std::make_shared<container_type>(
-        container->storage(), _HardwareIterativeResidenceDeleter{_m_data->rset, _m_size}
-    );
+    auto deleter_residence = _HardwareCompleteResidenceDeleter{_m_data->rset, _m_size};
+    deleter_ptr->deleters.push_back(deleter_residence);
+
+    return std::make_shared<container_type>(buffer_ptr);
 }
 
 
