@@ -4,7 +4,6 @@
 #include <filesystem>
 #include <format>
 #include <iostream>
-#include <numeric>
 #include <unordered_map>
 #include <vector>
 
@@ -41,29 +40,19 @@ private:
 
 
 class safetensor {
-private:
-    std::vector<std::size_t> _m_shape;
-    std::shared_ptr<void> _m_data_ptr;
-
 public:
-    safetensor(const std::vector<std::size_t>& shape, std::shared_ptr<void> data_ptr)
-    : _m_shape(shape),
-      _m_data_ptr(data_ptr)
-    {}
+    using shape_type = std::vector<std::size_t>;
+    using data_pointer = std::shared_ptr<void>;
+
+    safetensor(const shape_type& shape, data_pointer data_ptr);
 
     /// Return the number of dimensions in the tensor.
     std::size_t
-    dim() const
-    {
-        return _m_shape.size();
-    }
+    dim() const;
 
     /// Return the total number of elements in the tensor.
     std::size_t
-    numel() const
-    {
-        return std::accumulate(_m_shape.begin(), _m_shape.end(), 1, std::multiplies<std::size_t>());
-    }
+    numel() const;
 
     /// Cast this safe-tensor to the specified the specified type.
     ///
@@ -100,67 +89,44 @@ public:
     }
 
     friend std::ostream&
-    operator<<(std::ostream& os, const safetensor& st)
-    {
-        os << "safetensor(shape=[" << st._m_shape << "])";
-        return os;
-    }
+    operator<<(std::ostream& os, const safetensor& st);
+
+private:
+    shape_type _m_shape;
+    data_pointer _m_data_ptr;
 };
 
 
 class safetensor_file {
 public:
-    using iterator = std::unordered_map<std::string, safetensor>::iterator;
+    using container_type = std::unordered_map<std::string, safetensor>;
 
-    using const_iterator = std::unordered_map<std::string, safetensor>::const_iterator;
+    using iterator = container_type::iterator;
 
-    safetensor_file(const std::filesystem::path& p)
-    : _m_memfile(std::make_shared<basic_memfile>(p))
-    {
-        parse();
-    }
+    using const_iterator = container_type::const_iterator;
+
+    safetensor_file(const std::filesystem::path& p);
 
     std::size_t
-    size() const noexcept
-    {
-        return _m_tensors.size();
-    }
+    size() const noexcept;
 
     iterator
-    begin()
-    {
-        return _m_tensors.begin();
-    }
+    begin();
 
     const_iterator
-    begin() const
-    {
-        return _m_tensors.begin();
-    }
+    begin() const;
 
     iterator
-    end()
-    {
-        return _m_tensors.end();
-    }
+    end();
 
     const_iterator
-    end() const
-    {
-        return _m_tensors.end();
-    }
+    end() const;
 
     const_iterator
-    find(const std::string& tensor_name) const
-    {
-        return _m_tensors.find(tensor_name);
-    }
+    find(const std::string& tensor_name) const;
 
     const safetensor&
-    operator[](const std::string& tensor_name) const
-    {
-        return _m_tensors.at(tensor_name);
-    }
+    operator[](const std::string& tensor_name) const;
 
 private:
     std::shared_ptr<basic_memfile> _m_memfile;

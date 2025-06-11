@@ -1,3 +1,4 @@
+#include <numeric>
 #include <sys/mman.h>
 
 #include <simdjson.h>
@@ -134,6 +135,89 @@ basic_memfile::~basic_memfile()
         std::fclose(_m_file);
         _m_file = nullptr;
     }
+}
+
+
+safetensor::safetensor(const shape_type& shape, data_pointer data_ptr)
+: _m_shape(shape),
+  _m_data_ptr(data_ptr)
+{}
+
+
+std::size_t
+safetensor::dim() const
+{
+    return _m_shape.size();
+}
+
+std::size_t
+safetensor::numel() const
+{
+    return std::accumulate(_m_shape.begin(), _m_shape.end(), 1, std::multiplies<std::size_t>());
+}
+
+
+std::ostream&
+operator<<(std::ostream& os, const safetensor& st)
+{
+    os << "safetensor(shape=[" << st._m_shape << "])";
+    return os;
+}
+
+
+safetensor_file::safetensor_file(const std::filesystem::path& p)
+: _m_memfile(std::make_shared<basic_memfile>(p))
+{
+    parse();
+}
+
+
+std::size_t
+safetensor_file::size() const noexcept
+{
+    return _m_tensors.size();
+}
+
+
+safetensor_file::iterator
+safetensor_file::begin()
+{
+    return _m_tensors.begin();
+}
+
+
+safetensor_file::const_iterator
+safetensor_file::begin() const
+{
+    return _m_tensors.begin();
+}
+
+
+safetensor_file::iterator
+safetensor_file::end()
+{
+    return _m_tensors.end();
+}
+
+
+safetensor_file::const_iterator
+safetensor_file::end() const
+{
+    return _m_tensors.end();
+}
+
+
+safetensor_file::const_iterator
+safetensor_file::find(const std::string& tensor_name) const
+{
+    return _m_tensors.find(tensor_name);
+}
+
+
+const safetensor&
+safetensor_file::operator[](const std::string& tensor_name) const
+{
+    return _m_tensors.at(tensor_name);
 }
 
 
