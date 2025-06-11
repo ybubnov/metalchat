@@ -108,9 +108,6 @@ template <language_estimator_t Estimator> class language_transformer {
 public:
     using value_type = Estimator::value_type;
 
-    language_transformer(const language_transformer&) = delete;
-    language_transformer(language_transformer&&) = default;
-
     /// TODO: Introduce sampling classes for the model sampling configuration.
     language_transformer(
         Estimator&& estimator,

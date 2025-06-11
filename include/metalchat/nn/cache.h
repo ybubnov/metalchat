@@ -81,9 +81,6 @@ public:
     : sink_cache(std::bit_width(options.max_seq_len) - 1, options, accelerator)
     {}
 
-    sink_cache(sink_cache&&) = default;
-    sink_cache(const sink_cache&) = delete;
-
     return_type
     update(input_type keys, input_type vals, std::size_t start_pos)
     {

@@ -8,8 +8,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <sys/mman.h>
-
 #include <metalchat/accelerator.h>
 #include <metalchat/container.h>
 #include <metalchat/format.h>
@@ -21,67 +19,18 @@ namespace metalchat {
 
 class basic_memfile {
 public:
-    basic_memfile(const std::filesystem::path& p)
-    {
-        _m_file = std::fopen(p.c_str(), "r");
-        if (_m_file == nullptr) {
-            throw std::invalid_argument(std::format("unable to open file '{}'", p.string()));
-        }
-
-        _m_file_size = static_cast<std::size_t>(std::filesystem::file_size(p));
-        int fd = fileno(_m_file);
-        if (fd == -1) {
-            throw std::invalid_argument(
-                std::format("unable to get file descriptor for file '{}'", p.string())
-            );
-        }
-
-        _m_map = static_cast<uint8_t*>(mmap(nullptr, _m_file_size, PROT_READ, MAP_PRIVATE, fd, 0));
-        if (_m_map == MAP_FAILED) {
-            throw std::invalid_argument(
-                std::format("unable to memory-map safetensors file '{}'", p.string())
-            );
-        }
-    }
+    basic_memfile(const std::filesystem::path& p);
 
     std::size_t
-    size() const noexcept
-    {
-        return _m_file_size;
-    }
-
-    basic_memfile&
-    read(void* dest, std::size_t size)
-    {
-        if (_m_file_size < _m_file_off + size) {
-            throw std::out_of_range(
-                std::format("file is too short ({}) to read ({}) more bytes", _m_file_size, size)
-            );
-        }
-
-        std::memcpy(dest, _m_map + _m_file_off, size);
-        _m_file_off += size;
-
-        return *this;
-    }
+    size() const noexcept;
 
     std::uint8_t*
-    tellp() const
-    {
-        return _m_map + _m_file_off;
-    }
+    tellp() const;
 
-    ~basic_memfile()
-    {
-        if (_m_map != MAP_FAILED && _m_map != nullptr) {
-            munmap(_m_map, _m_file_size);
-            _m_map = nullptr;
-        }
-        if (_m_file != nullptr) {
-            std::fclose(_m_file);
-            _m_file = nullptr;
-        }
-    }
+    basic_memfile&
+    read(void* dest, std::size_t size);
+
+    ~basic_memfile();
 
 private:
     std::FILE* _m_file = nullptr;
