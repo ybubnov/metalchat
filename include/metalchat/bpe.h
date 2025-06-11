@@ -238,6 +238,8 @@ public:
     /// Number of special tokens used to prepare the input for the model.
     static constexpr const index_type nspecial = 256;
 
+    byte_pair_encoder(const byte_pair_encoder&) = default;
+
     /// Create an instance of a byte-pair encoder using a base64-encoded token map.
     ///
     /// Such map is distributed altogether with, for example, Llama model and is called

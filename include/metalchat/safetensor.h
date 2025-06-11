@@ -130,7 +130,7 @@ public:
 
 private:
     std::shared_ptr<basic_memfile> _m_memfile;
-    std::unordered_map<std::string, safetensor> _m_tensors;
+    container_type _m_tensors;
 
     void
     parse();

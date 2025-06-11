@@ -1,5 +1,8 @@
 #pragma once
 
+#include <iostream>
+#include <optional>
+
 #include <metalchat/bpe.h>
 #include <metalchat/dtype.h>
 #include <metalchat/functional.h>
@@ -148,10 +151,11 @@ public:
     using index_type = int32_t;
     using container_type = vector_memory_container<index_type>;
 
-    chat(Transformer&& transformer, bpe&& encoder)
+    chat(Transformer&& transformer, const bpe& encoder)
     : _m_transformer(std::move(transformer)),
-      _m_encoder(std::move(encoder)),
-      _m_encoding(encoder.encode(special_token::begin_text))
+      _m_encoder(encoder),
+      _m_start_pos(0),
+      _m_encoding(1, encoder.encode(special_token::begin_text))
     {}
 
     template <byte_pair_encodable Message>
@@ -211,42 +215,197 @@ template <language_transformer_t Transformer>
 chat(Transformer&& transformer, const bpe& encoder) -> chat<Transformer>;
 
 
-auto
-construct_llama32_1b(
-    const std::filesystem::path& weights_path, const std::filesystem::path& tokens_path
-)
-{
-    metalchat::hardware_accelerator gpu0;
+struct llama3_options {
+public:
+    llama3_options() {}
+    llama3_options(const llama3_options&) = default;
 
-    metalchat::bpe bpe(tokens_path);
-    metalchat::safetensor_file weights(weights_path);
+    llama3_options
+    head_dim(std::optional<std::size_t> head_dim) const noexcept
+    {
+        llama3_options o = *this;
+        if (head_dim.has_value()) {
+            o.set_head_dim(head_dim.value());
+        }
+        return o;
+    }
 
-    auto alloc1 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
-    auto alloc2 = hardware_resident_allocator(alloc1, gpu0.get_metal_device());
+    llama3_options
+    n_heads(std::optional<std::size_t> n_heads) const noexcept
+    {
+        llama3_options o = *this;
+        if (n_heads.has_value()) {
+            o.set_n_heads(n_heads.value());
+        }
+        return o;
+    }
 
-    gpu0.set_allocator(std::move(alloc2));
-    auto options = nn::attention_options{
-        .head_dim = 64,
-        .n_heads = 32,
-        .n_kv_heads = 8,
-        .max_seq_len = 32,
-        .rope_theta = 500000.0
-    };
+    llama3_options
+    n_kv_heads(std::optional<std::size_t> n_kv_heads) const noexcept
+    {
+        llama3_options o = *this;
+        if (n_kv_heads.has_value()) {
+            o.set_n_kv_heads(n_kv_heads.value());
+        }
+        return o;
+    }
 
-    nn::llama<dtype::bf16> m(16, options, gpu0);
-    m.initialize(weights, make_rebind_allocator<dtype::bf16>(gpu0.get_allocator()));
+    llama3_options
+    n_layers(std::optional<std::size_t> n_layers) const noexcept
+    {
+        llama3_options o = *this;
+        if (n_layers.has_value()) {
+            o.set_n_layers(n_layers.value());
+        }
+        return o;
+    }
 
-    auto heap_size = std::size_t(512) * 1024 * 1024;
-    auto alloc3 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);
-    auto alloc4 = hardware_nocopy_allocator(alloc3, gpu0.get_metal_device());
+    llama3_options
+    max_seq_len(std::optional<std::size_t> max_seq_len) const noexcept
+    {
+        llama3_options o = *this;
+        if (max_seq_len.has_value()) {
+            o.set_max_seq_len(max_seq_len.value());
+        }
+        return o;
+    }
 
-    gpu0.set_allocator(std::move(alloc4));
+    llama3_options
+    heap_size(std::optional<std::size_t> heap_size) const noexcept
+    {
+        llama3_options o = *this;
+        if (heap_size.has_value()) {
+            o.set_heap_size(heap_size.value());
+        }
+        return o;
+    }
 
-    auto transformer = language_transformer(std::move(m));
-    auto agent = chat(std::move(transformer), std::move(bpe));
+    llama3_options
+    rope_theta(std::optional<float> rope_theta) const noexcept
+    {
+        llama3_options o = *this;
+        if (rope_theta.has_value()) {
+            o.set_rope_theta(rope_theta.value());
+        }
+        return o;
+    }
 
-    return agent;
-}
+
+    std::size_t
+    head_dim() const noexcept
+    {
+        return _m_head_dim;
+    }
+
+    std::size_t
+    n_heads() const noexcept
+    {
+        return _m_n_heads;
+    }
+
+    std::size_t
+    n_kv_heads() const noexcept
+    {
+        return _m_n_kv_heads;
+    }
+
+    std::size_t
+    n_layers() const noexcept
+    {
+        return _m_n_layers;
+    }
+
+    std::size_t
+    max_seq_len() const noexcept
+    {
+        return _m_max_seq_len;
+    }
+
+    std::size_t
+    heap_size() const noexcept
+    {
+        return _m_heap_size;
+    }
+
+    float
+    rope_theta() const noexcept
+    {
+        return _m_rope_theta;
+    }
+
+private:
+    std::size_t _m_head_dim = 0;
+    std::size_t _m_n_heads = 0;
+    std::size_t _m_n_kv_heads = 0;
+    std::size_t _m_n_layers = 0;
+    std::size_t _m_max_seq_len = 0;
+    std::size_t _m_heap_size = 0;
+    float _m_rope_theta = 0.0f;
+
+    void
+    set_head_dim(std::size_t head_dim)
+    {
+        _m_head_dim = head_dim;
+    }
+
+    void
+    set_n_heads(std::size_t n_heads)
+    {
+        _m_n_heads = n_heads;
+    }
+
+    void
+    set_n_kv_heads(std::size_t n_kv_heads)
+    {
+        _m_n_kv_heads = n_kv_heads;
+    }
+
+    void
+    set_n_layers(std::size_t n_layers)
+    {
+        _m_n_layers = n_layers;
+    }
+
+    void
+    set_max_seq_len(std::size_t max_seq_len)
+    {
+        _m_max_seq_len = max_seq_len;
+    }
+
+    void
+    set_heap_size(std::size_t heap_size)
+    {
+        _m_heap_size = heap_size;
+    }
+
+    void
+    set_rope_theta(float rope_theta)
+    {
+        _m_rope_theta = rope_theta;
+    }
+};
+
+
+llama3_options
+default_llama3_1b_options();
+
+
+template <typename T> struct llama3_traits {
+    using value_type = T;
+    using cache_type = nn::sink_cache<value_type>;
+    using container_type = hardware_memory_container<value_type>;
+    using estimator_type = nn::llama<value_type, container_type, cache_type>;
+    using transformer_type = language_transformer<estimator_type>;
+    using type = chat<transformer_type>;
+};
+
+
+llama3_traits<dtype::bf16>::type
+construct_llama3_1b(
+    const std::filesystem::path& weights_path,
+    const std::filesystem::path& tokens_path,
+    std::optional<llama3_options> options
+);
 
 
 } // namespace metalchat
