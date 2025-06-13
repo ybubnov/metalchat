@@ -4,6 +4,49 @@
 namespace metalchat {
 
 
+polymorphic_language_transformer::polymorphic_language_transformer(
+    std::shared_ptr<basic_language_transformer> ptr
+)
+: _m_transformer(ptr)
+{}
+
+
+polymorphic_language_transformer::tensor_type
+polymorphic_language_transformer::transform(
+    polymorphic_language_transformer::tensor_type input, std::size_t start_pos
+)
+{
+    return _m_transformer->transform(input, start_pos);
+}
+
+
+hardware_accelerator
+polymorphic_language_transformer::get_accelerator()
+{
+    return _m_transformer->get_accelerator();
+}
+
+void
+polymorphic_chat::send(const basic_message& message)
+{
+    _m_chat.send(message);
+}
+
+
+basic_message
+polymorphic_chat::receive()
+{
+    return _m_chat.receive();
+}
+
+
+std::string
+polymorphic_chat::receive_text()
+{
+    return _m_chat.receive_text();
+}
+
+
 llama3_options
 default_llama3_1b_options()
 {
@@ -18,7 +61,17 @@ default_llama3_1b_options()
 }
 
 
-llama3_traits<dtype::bf16>::type
+// template<>
+// basic_message
+// llama3_traits<dtype::bf16>::type::receive();
+//
+//
+// template<>
+// std::string
+// llama3_traits<dtype::bf16>::type::receive_text();
+
+
+polymorphic_chat
 construct_llama3_1b(
     const std::filesystem::path& weights_path,
     const std::filesystem::path& tokens_path,
@@ -52,7 +105,22 @@ construct_llama3_1b(
     gpu0.set_allocator(std::move(alloc4));
 
     auto transformer = language_transformer(std::move(m));
-    return chat(std::move(transformer), bpe);
+    auto agent = polymorphic_chat(std::move(transformer), bpe);
+
+    return agent;
+}
+
+
+polymorphic_chat
+construct_llama3_1b(
+    const std::string& weights_path,
+    const std::string& tokens_path,
+    std::optional<llama3_options> options
+)
+{
+    return construct_llama3_1b(
+        std::filesystem::path(weights_path), std::filesystem::path(tokens_path), options
+    );
 }
 
 

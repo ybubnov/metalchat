@@ -93,21 +93,57 @@ static_assert(language_estimator_t<nn::llama<float>>);
 static_assert(language_estimator_t<nn::llama<dtype::bf16>>);
 
 
-template <typename Input, typename Transformer>
-concept __language_transformer_t = requires(Input input, Transformer transformer) {
-    requires immutable_tensor2_t<Input, int32_t>;
+template <typename Transformer>
+concept language_transformer_t = requires(Transformer transformer) {
+    typename Transformer::index_type;
+    typename Transformer::tensor_type;
 
-    typename Transformer::value_type;
-
-    { transformer(input, std::size_t()) } -> is_future_tensor2_v<int32_t>;
+    {
+        transformer.transform(std::declval<typename Transformer::tensor_type>(), std::size_t())
+    } -> is_future_tensor2_v<typename Transformer::index_type>;
 };
 
 
-template <typename Transformer>
-concept language_transformer_t = __language_transformer_t<future_tensor<int32_t, 2>, Transformer>;
+class basic_language_transformer {
+public:
+    using index_type = int32_t;
+    using tensor_type = future_tensor<index_type, 2>;
+
+    virtual tensor_type
+    transform(tensor_type, std::size_t)
+        = 0;
+
+    virtual hardware_accelerator
+    get_accelerator()
+        = 0;
+};
 
 
-template <language_estimator_t Estimator> class language_transformer {
+class polymorphic_language_transformer {
+public:
+    using index_type = int32_t;
+    using tensor_type = future_tensor<index_type, 2>;
+
+    template <language_transformer_t Transformer>
+    polymorphic_language_transformer(Transformer&& transformer)
+    : _m_transformer(std::make_shared<Transformer>(std::move(transformer)))
+    {}
+
+    polymorphic_language_transformer(std::shared_ptr<basic_language_transformer> ptr);
+
+    tensor_type
+    transform(tensor_type, std::size_t);
+
+    hardware_accelerator
+    get_accelerator();
+
+private:
+    std::shared_ptr<basic_language_transformer> _m_transformer;
+};
+
+
+template <language_estimator_t Estimator>
+class language_transformer : public basic_language_transformer {
 public:
     using value_type = Estimator::value_type;
 
@@ -122,17 +158,23 @@ public:
       _m_p(p)
     {}
 
-    future_tensor<int32_t, 2>
-    operator()(future_tensor<int32_t, 2> input, std::size_t start_pos)
+    hardware_accelerator
+    get_accelerator()
+    {
+        return _m_estimator.accelerator();
+    }
+
+    tensor_type
+    transform(tensor_type input, std::size_t start_pos)
     {
         auto gpu = _m_estimator.accelerator();
         auto logits = _m_estimator(input, start_pos);
         return top_p(logits.template flatten<2>(), _m_temperature, _m_p, gpu);
     }
 
-    template <immutable_tensor2_t<int32_t> Input>
-    future_tensor<int32_t, 2>
-    operator()(Input input, std::size_t start_pos)
+    template <immutable_tensor2_t<index_type> Input>
+    tensor_type
+    transform(Input input, std::size_t start_pos)
     {
         auto gpu = _m_estimator.accelerator();
         auto logits = _m_estimator(input, start_pos);
@@ -184,8 +226,10 @@ public:
         auto encoding_size = encoding.size();
         auto container_ptr = std::make_shared<container_type>(std::move(encoding));
 
-        auto input = tensor({1, encoding_size}, container_ptr);
-        auto output = _m_transformer(shared_tensor(std::move(input)), _m_start_pos);
+        auto alloc = _m_transformer.get_accelerator().get_allocator();
+        auto input = future_tensor(tensor({1, encoding_size}, container_ptr), alloc);
+        auto output = _m_transformer.transform(input, _m_start_pos);
+
         auto token = output.get()[0, 0];
 
         _m_start_pos += encoding_size;
@@ -194,7 +238,7 @@ public:
         auto end_turn = _m_encoder.encode(special_token::end_turn);
         while (token != end_turn) {
             content << _m_encoder.decode(token);
-            output = _m_transformer(output, _m_start_pos++);
+            output = _m_transformer.transform(output, _m_start_pos++);
             token = output.get()[0, 0];
         }
 
@@ -208,6 +252,30 @@ private:
 
     std::size_t _m_start_pos;
     std::vector<index_type> _m_encoding;
+};
+
+
+class polymorphic_chat {
+public:
+    using index_type = int32_t;
+    using container_type = vector_memory_container<index_type>;
+
+    template <language_transformer_t Transformer>
+    polymorphic_chat(Transformer&& transformer, const bpe& encoder)
+    : _m_chat(polymorphic_language_transformer(std::move(transformer)), encoder)
+    {}
+
+    void
+    send(const basic_message& message);
+
+    std::string
+    receive_text();
+
+    basic_message
+    receive();
+
+private:
+    chat<polymorphic_language_transformer> _m_chat;
 };
 
 
@@ -400,11 +468,22 @@ template <typename T> struct llama3_traits {
 };
 
 
-llama3_traits<dtype::bf16>::type
+using llama3_chat_type = llama3_traits<dtype::bf16>::type;
+
+
+polymorphic_chat
 construct_llama3_1b(
     const std::filesystem::path& weights_path,
     const std::filesystem::path& tokens_path,
-    std::optional<llama3_options> options
+    std::optional<llama3_options> options = std::nullopt
+);
+
+
+polymorphic_chat
+construct_llama3_1b(
+    const std::string& weights_path,
+    const std::string& tokens_path,
+    std::optional<llama3_options> options = std::nullopt
 );
 
 

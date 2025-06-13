@@ -131,6 +131,20 @@ public:
     : tensor(std::span<std::size_t, N>(sizes, N), data)
     {}
 
+    tensor(
+        const std::span<std::size_t>& sizes,
+        const std::span<std::size_t>& strides,
+        const std::span<std::size_t>& offsets,
+        const container_pointer& data
+    )
+    {
+        _m_initialize();
+        std::copy(sizes.begin(), sizes.end(), m_shape->data());
+        std::copy(strides.begin(), strides.end(), m_strides->data());
+        std::copy(offsets.begin(), offsets.end(), m_offsets->data());
+        m_data = data;
+    }
+
     static constexpr std::size_t
     dim()
     {
@@ -835,6 +849,24 @@ to_tensor(const tensor<T, N, Container>& t)
     auto tt = empty_like(t);
     std::copy_n(t.data_ptr(), t.numel(), tt.data_ptr());
     return tt;
+}
+
+
+template <immutable_tensor Tensor, hardware_allocator_t<void> Allocator>
+auto
+move(const Tensor& t, Allocator alloc)
+{
+    using T = typename Tensor::value_type;
+    constexpr auto N = Tensor::dim();
+
+    using allocator_type = rebind_hardware_allocator<T, Allocator>;
+    using container_type = allocator_type::container_type;
+    using tensor_type = tensor<T, N, container_type>;
+
+    auto allocator = allocator_type(alloc);
+    auto container = allocator.allocate(t.data_ptr(), t.numel());
+
+    return tensor_type(t.sizes(), t.strides(), t.offsets(), container);
 }
 
 

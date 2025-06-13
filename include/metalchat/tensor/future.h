@@ -141,6 +141,11 @@ public:
     : future_tensor(shared_tensor(std::move(result)))
     {}
 
+    template <immutable_tensor Tensor, hardware_allocator_t<void> Allocator>
+    future_tensor(Tensor&& t, Allocator alloc)
+    : future_tensor(move(t, alloc))
+    {}
+
     /// Waits for (by calling `wait()`) until the shared tensor is ready, then retrieves
     /// the value stored in the shared state.
     result_type
@@ -366,6 +371,11 @@ future_tensor(shared_tensor<T, N, hardware_memory_container<T>> t, Task&& task)
 
 template <typename T, std::size_t N>
 future_tensor(tensor<T, N, hardware_memory_container<T>>&& t) -> future_tensor<T, N>;
+
+
+template <immutable_tensor Tensor, hardware_allocator_t<void> Allocator>
+future_tensor(Tensor&& t, Allocator accelerator)
+    -> future_tensor<typename Tensor::value_type, Tensor::dim()>;
 
 
 template <typename Tensor, typename T, std::size_t N>

@@ -62,7 +62,7 @@ set(metalchat_FRAMEWORK_HEADERS ${metalchat_FRAMEWORK_DIR}/Headers)
 add_custom_target(copy_modulemap ALL
     DEPENDS ${metalchat_MODULEMAP}
     COMMAND ${CMAKE_COMMAND} -E
-    make_directory ${metalchat_FRAMEWORK_MODULES}
+        make_directory ${metalchat_FRAMEWORK_MODULES}
     COMMAND ${CMAKE_COMMAND} -E
         copy ${metalchat_MODULEMAP} ${metalchat_FRAMEWORK_MODULES}
     COMMAND ${CMAKE_COMMAND} -E
