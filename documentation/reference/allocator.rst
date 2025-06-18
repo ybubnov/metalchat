@@ -38,3 +38,19 @@ Rebind Hardware Allocator
 .. doxygenclass:: metalchat::rebind_hardware_allocator
    :project: metalchat
    :members:
+
+
+Scalar Memory Allocator
+-----------------------
+
+.. doxygenstruct:: metalchat::scalar_memory_allocator
+   :project: metalchat
+   :members:
+
+
+Random Memory Allocator
+-----------------------
+
+.. doxygenstruct:: metalchat::random_memory_allocator
+   :project: metalchat
+   :members:

@@ -66,40 +66,69 @@ private:
 };
 
 
-template <typename Input, typename Estimator>
-concept __language_estimator_t = requires(Input input, Estimator estimator) {
-    requires std::derived_from<Estimator, layer>;
-    requires immutable_tensor2_t<Input, int32_t>;
-
-    typename Estimator::value_type;
-
-    { estimator(input, std::size_t()) } -> is_future_tensor3_v<typename Estimator::value_type>;
-};
-
-
 /// The language estimator is an abstraction of the next token prediction model.
 ///
 /// Types that comply to this concept are expected to produce logits for the all tokens
-/// (characters, words, word combinations, etc.) that the given model is capable of generating.
-/// All types should be inherited from `layer` type to able assign context of the model during
-/// runtime.
+/// (characters, words, word combinations, etc.) that the given model is capable of
+/// generating. All types should be inherited from `metalchat::layer` type to able assign
+/// context of the model during runtime.
 ///
-/// The `Input` parameter of this concept is a tensor, where the first dimension is a batch
-/// dimension, and the second dimension is a length of the input sequence.
+/// **Concept determination**
+///
+/// - A type declares indexing type `index_type`.
+/// - A type declares value type `value_type`.
+/// - A type declares input tensor type `input_tensor`: the first dimension is a batch dimension,
+///   and the second dimension is a length of the input sequence.
+/// - A type declare output tensor type `output_tensor`: the first dimension is a batch dimension,
+///   the second dimension is a sequence length dimension, and the third dimension is a length of
+///   model vocabulary.
+/// - A type declares a method `estimate(input_tensor, std::size_t) -> output_tensor` that
+///   implements the estimation logic and returns a tensor of logits.
 template <typename Estimator>
-concept language_estimator_t = __language_estimator_t<future_tensor<int32_t, 2>, Estimator>;
+concept language_estimator_t = requires(Estimator estimator) {
+    typename Estimator::index_type;
+    typename Estimator::value_type;
+    typename Estimator::input_tensor;
+    typename Estimator::output_tensor;
+
+    requires std::derived_from<Estimator, layer>;
+
+    requires immutable_tensor2_t<typename Estimator::input_tensor, typename Estimator::index_type>;
+    requires immutable_tensor3_t<typename Estimator::output_tensor, typename Estimator::value_type>;
+
+    {
+        estimator(std::declval<typename Estimator::input_tensor>(), std::size_t())
+    } -> is_future_tensor3_v<typename Estimator::value_type>;
+};
+
 
 static_assert(language_estimator_t<nn::llama<float>>);
 static_assert(language_estimator_t<nn::llama<dtype::bf16>>);
 
 
+/// The language transformer is an abstraction of the next token generation model.
+///
+/// Types that comply to this concept are expected to produce index on the next token in the
+/// model's vocabulary.
 template <typename Transformer>
 concept language_transformer_t = requires(Transformer transformer) {
     typename Transformer::index_type;
-    typename Transformer::tensor_type;
+
+    /// A transformer input tensor type, where the first dimension is a batch dimension, and the
+    /// second dimension is a length of the input sequences.
+    typename Transformer::input_tensor;
+
+    /// A transformer output tensor type, where the first dimension is a batch dimension, and the
+    /// second dimension is a length of the output sequence (a single token).
+    typename Transformer::output_tensor;
+
+    requires immutable_tensor2_t<
+        typename Transformer::input_tensor, typename Transformer::index_type>;
+    requires immutable_tensor2_t<
+        typename Transformer::output_tensor, typename Transformer::index_type>;
 
     {
-        transformer.transform(std::declval<typename Transformer::tensor_type>(), std::size_t())
+        transformer.transform(std::declval<typename Transformer::input_tensor>(), std::size_t())
     } -> is_future_tensor2_v<typename Transformer::index_type>;
 };
 
@@ -107,10 +136,11 @@ concept language_transformer_t = requires(Transformer transformer) {
 class basic_language_transformer {
 public:
     using index_type = int32_t;
-    using tensor_type = future_tensor<index_type, 2>;
+    using input_tensor = future_tensor<index_type, 2>;
+    using output_tensor = future_tensor<index_type, 2>;
 
-    virtual tensor_type
-    transform(tensor_type, std::size_t)
+    virtual output_tensor
+    transform(input_tensor, std::size_t)
         = 0;
 
     virtual hardware_accelerator
@@ -122,7 +152,8 @@ public:
 class polymorphic_language_transformer {
 public:
     using index_type = int32_t;
-    using tensor_type = future_tensor<index_type, 2>;
+    using input_tensor = future_tensor<index_type, 2>;
+    using output_tensor = future_tensor<index_type, 2>;
 
     template <language_transformer_t Transformer>
     polymorphic_language_transformer(Transformer&& transformer)
@@ -131,8 +162,8 @@ public:
 
     polymorphic_language_transformer(std::shared_ptr<basic_language_transformer> ptr);
 
-    tensor_type
-    transform(tensor_type, std::size_t);
+    output_tensor
+    transform(input_tensor, std::size_t);
 
     hardware_accelerator
     get_accelerator();
@@ -164,8 +195,8 @@ public:
         return _m_estimator.accelerator();
     }
 
-    tensor_type
-    transform(tensor_type input, std::size_t start_pos)
+    output_tensor
+    transform(input_tensor input, std::size_t start_pos)
     {
         auto gpu = _m_estimator.accelerator();
         auto logits = _m_estimator(input, start_pos);
@@ -173,7 +204,7 @@ public:
     }
 
     template <immutable_tensor2_t<index_type> Input>
-    tensor_type
+    output_tensor
     transform(Input input, std::size_t start_pos)
     {
         auto gpu = _m_estimator.accelerator();
@@ -289,75 +320,25 @@ public:
     llama3_options(const llama3_options&) = default;
 
     llama3_options
-    head_dim(std::optional<std::size_t> head_dim) const noexcept
-    {
-        llama3_options o = *this;
-        if (head_dim.has_value()) {
-            o.set_head_dim(head_dim.value());
-        }
-        return o;
-    }
+    head_dim(std::optional<std::size_t> head_dim) const noexcept;
 
     llama3_options
-    n_heads(std::optional<std::size_t> n_heads) const noexcept
-    {
-        llama3_options o = *this;
-        if (n_heads.has_value()) {
-            o.set_n_heads(n_heads.value());
-        }
-        return o;
-    }
+    n_heads(std::optional<std::size_t> n_heads) const noexcept;
 
     llama3_options
-    n_kv_heads(std::optional<std::size_t> n_kv_heads) const noexcept
-    {
-        llama3_options o = *this;
-        if (n_kv_heads.has_value()) {
-            o.set_n_kv_heads(n_kv_heads.value());
-        }
-        return o;
-    }
+    n_kv_heads(std::optional<std::size_t> n_kv_heads) const noexcept;
 
     llama3_options
-    n_layers(std::optional<std::size_t> n_layers) const noexcept
-    {
-        llama3_options o = *this;
-        if (n_layers.has_value()) {
-            o.set_n_layers(n_layers.value());
-        }
-        return o;
-    }
+    n_layers(std::optional<std::size_t> n_layers) const noexcept;
 
     llama3_options
-    max_seq_len(std::optional<std::size_t> max_seq_len) const noexcept
-    {
-        llama3_options o = *this;
-        if (max_seq_len.has_value()) {
-            o.set_max_seq_len(max_seq_len.value());
-        }
-        return o;
-    }
+    max_seq_len(std::optional<std::size_t> max_seq_len) const noexcept;
 
     llama3_options
-    heap_size(std::optional<std::size_t> heap_size) const noexcept
-    {
-        llama3_options o = *this;
-        if (heap_size.has_value()) {
-            o.set_heap_size(heap_size.value());
-        }
-        return o;
-    }
+    heap_size(std::optional<std::size_t> heap_size) const noexcept;
 
     llama3_options
-    rope_theta(std::optional<float> rope_theta) const noexcept
-    {
-        llama3_options o = *this;
-        if (rope_theta.has_value()) {
-            o.set_rope_theta(rope_theta.value());
-        }
-        return o;
-    }
-
+    rope_theta(std::optional<float> rope_theta) const noexcept;
 
     std::size_t
     head_dim() const noexcept

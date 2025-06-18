@@ -36,9 +36,11 @@ private:
     std::vector<Cache> _m_cache;
 
 public:
+    using index_type = int32_t;
     using value_type = T;
     using cache_type = Cache;
-    using result_type = future_tensor<value_type, 3>;
+    using input_tensor = future_tensor<index_type, 2>;
+    using output_tensor = future_tensor<value_type, 3>;
 
     llama(std::size_t nlayers, attention_options& options, hardware_accelerator gpu)
         requires cache_constructible<Cache>
@@ -68,8 +70,8 @@ public:
         }
     }
 
-    template <immutable_tensor2_t<int32_t> Input>
-    result_type
+    template <immutable_tensor2_t<index_type> Input>
+    output_tensor
     operator()(Input input, std::size_t start_pos = 0)
     {
         auto x = _m_embedding(input);

@@ -8,14 +8,14 @@
 namespace metalchat {
 
 
-/// The concept `allocator` specifies the requirements for a type to allocate elements
+/// The concept `metalchat::allocator` specifies the requirements for a type to allocate elements
 /// contiguously stored in the memory. The allocator is used to allocate underlying memory
 /// for a tensor.
 ///
 /// Depending on the tensor type, memory could be allocated on stack with
-/// `scalar_memory_allocator`, on random accessible memory with `random_memory_allocator`,
-/// or memory, that is shared between CPU and GPU, using different implementations of
-/// hardware allocators.
+/// `metalchat::scalar_memory_allocator`, on random accessible memory with
+/// `metalchat::random_memory_allocator`, or memory, that is shared between CPU and GPU, using
+/// different implementations of hardware allocators.
 template <typename Allocator>
 concept allocator = requires(std::remove_reference_t<Allocator> a) {
     typename Allocator::value_type;
@@ -38,13 +38,13 @@ concept allocator = requires(std::remove_reference_t<Allocator> a) {
 } && contiguous_container<typename Allocator::container_type>;
 
 
-/// The concept `allocator_t` specifies the requirements for a type to allocate elements
+/// The concept `metalchat::allocator_t` specifies the requirements for a type to allocate elements
 /// of type `T` contiguously stored in the memory.
 template <typename Allocator, typename T>
 concept allocator_t = allocator<Allocator> && std::same_as<typename Allocator::value_type, T>;
 
 
-/// The concept `hardware_allocator` specifies the requirements for a type to allocate
+/// The concept `metalchat::hardware_allocator` specifies the requirements for a type to allocate
 /// elements contiguously stored in the hardware (Metal) memory.
 template <typename Allocator>
 concept hardware_allocator = allocator<Allocator>
@@ -65,8 +65,8 @@ concept hardware_allocator_t
 /// that are expected to be used within a polymorphic hardware memory allocator.
 ///
 /// Essentially, all virtual methods presented in this class represent all necessary methods that
-/// are requested by `allocator` concept, so all allocators should automatically implement this
-/// virtual class, if inherited from this struct.
+/// are requested by `metalchat::allocator` concept, so all allocators should automatically
+/// implement this virtual class, if inherited from this struct.
 ///
 /// Example of usage:
 /// ```cpp
@@ -120,9 +120,9 @@ concept basic_hardware_allocator_t
       && std::derived_from<Allocator, basic_hardware_memory_allocator<T>>;
 
 
-/// The class template `polymorphic_hardware_memory_allocator` is an `allocator` which
-/// exhibits different allocation behaviour depending on a particular implementation of
-/// the `basic_hardware_memory_allocator`.
+/// The class template `metalchat::polymorphic_hardware_memory_allocator` is an
+/// `metalchat::allocator` which exhibits different allocation behaviour depending on a particular
+/// implementation of the `metalchat::basic_hardware_memory_allocator`.
 ///
 /// This allocator is used in order to avoid creating separate instances of device and
 /// thread, when kernel of different types (bf16, float, double) are expected to be scheduled

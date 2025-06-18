@@ -11,10 +11,8 @@ polymorphic_language_transformer::polymorphic_language_transformer(
 {}
 
 
-polymorphic_language_transformer::tensor_type
-polymorphic_language_transformer::transform(
-    polymorphic_language_transformer::tensor_type input, std::size_t start_pos
-)
+polymorphic_language_transformer::output_tensor
+polymorphic_language_transformer::transform(input_tensor input, std::size_t start_pos)
 {
     return _m_transformer->transform(input, start_pos);
 }
@@ -48,6 +46,83 @@ polymorphic_chat::receive_text()
 
 
 llama3_options
+llama3_options::head_dim(std::optional<std::size_t> head_dim) const noexcept
+{
+    llama3_options o = *this;
+    if (head_dim.has_value()) {
+        o.set_head_dim(head_dim.value());
+    }
+    return o;
+}
+
+
+llama3_options
+llama3_options::n_heads(std::optional<std::size_t> n_heads) const noexcept
+{
+    llama3_options o = *this;
+    if (n_heads.has_value()) {
+        o.set_n_heads(n_heads.value());
+    }
+    return o;
+}
+
+
+llama3_options
+llama3_options::n_kv_heads(std::optional<std::size_t> n_kv_heads) const noexcept
+{
+    llama3_options o = *this;
+    if (n_kv_heads.has_value()) {
+        o.set_n_kv_heads(n_kv_heads.value());
+    }
+    return o;
+}
+
+
+llama3_options
+llama3_options::n_layers(std::optional<std::size_t> n_layers) const noexcept
+{
+    llama3_options o = *this;
+    if (n_layers.has_value()) {
+        o.set_n_layers(n_layers.value());
+    }
+    return o;
+}
+
+
+llama3_options
+llama3_options::max_seq_len(std::optional<std::size_t> max_seq_len) const noexcept
+{
+    llama3_options o = *this;
+    if (max_seq_len.has_value()) {
+        o.set_max_seq_len(max_seq_len.value());
+    }
+    return o;
+}
+
+
+llama3_options
+llama3_options::heap_size(std::optional<std::size_t> heap_size) const noexcept
+{
+    llama3_options o = *this;
+    if (heap_size.has_value()) {
+        o.set_heap_size(heap_size.value());
+    }
+    return o;
+}
+
+
+llama3_options
+llama3_options::rope_theta(std::optional<float> rope_theta) const noexcept
+{
+    llama3_options o = *this;
+    if (rope_theta.has_value()) {
+        o.set_rope_theta(rope_theta.value());
+    }
+    return o;
+}
+
+
+llama3_options
 default_llama3_1b_options()
 {
     return llama3_options()
@@ -59,16 +134,6 @@ default_llama3_1b_options()
         .rope_theta(500000.0f)
         .heap_size(std::size_t(512) * 1024 * 1024);
 }
-
-
-// template<>
-// basic_message
-// llama3_traits<dtype::bf16>::type::receive();
-//
-//
-// template<>
-// std::string
-// llama3_traits<dtype::bf16>::type::receive_text();
 
 
 polymorphic_chat
@@ -118,9 +183,10 @@ construct_llama3_1b(
     std::optional<llama3_options> options
 )
 {
-    return construct_llama3_1b(
-        std::filesystem::path(weights_path), std::filesystem::path(tokens_path), options
-    );
+    auto weights_fs_path = std::filesystem::path(weights_path);
+    auto tokens_fs_path = std::filesystem::path(tokens_path);
+
+    return construct_llama3_1b(weights_fs_path, tokens_fs_path, options);
 }
 
 

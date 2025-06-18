@@ -195,3 +195,17 @@ Chat library
 
    * - :cpp:class:`metalchat::language_transformer`
      - A language estimator adapter to predict the next token.
+
+
+Chat concepts
+^^^^^^^^^^^^^
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:concept:`metalchat::language_estimator_t`
+     - Specifies that a type is a language estimator, producing logits of next token.
+
+   * - :cpp:concept:`metalchat::language_transformer_t`
+     - Specifies that a type is a language transformer, producing a next token.

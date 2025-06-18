@@ -22,9 +22,12 @@ static const std::string framework_identifier = "com.cmake.metalchat";
 /// Accelerator is responsible of whole Metal kernels lifecycle: creation of kernels from a
 /// library, execution and scheduling of kernels, and allocation of tensors within a GPU memory.
 ///
-/// The hardware accelerator cannot be copied, only moved.
+/// The hardware accelerator can be copied. Modification of the allocator are distributed to
+/// all copies of the hardware accelerator.
 class hardware_accelerator {
 public:
+    /// A type of the hardware memory allocator used to either allocate or transfer memory
+    /// of tensors within a running kernel thread.
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
 
 private:
@@ -71,7 +74,8 @@ public:
 
     /// Return an allocator associated with the current thread.
     ///
-    /// Use `set_allocator` method to set a new allocator to the currently running thread.
+    /// Use `hardware_accelerator::set_allocator` method to set a new allocator to the currently
+    /// running thread.
     allocator_type
     get_allocator() const;
 
@@ -97,8 +101,29 @@ public:
     /// Load the kernel from the kernel library.
     ///
     /// Accelerator caches kernels, so kernel is loaded only once on the first call. A kernel
-    /// returned from this method is attached to a `shared_kernel_thread`, and could be used
-    /// to create a kernel task.
+    /// returned from this method is attached to a `metalchat::recursive_kernel_thread`, and
+    /// could be used to create a kernel task.
+    ///
+    /// Example:
+    /// ```cpp
+    /// using namespace metalchat;
+    ///
+    /// auto gpu = hardware_accelerator();
+    /// auto kernel = gpu.load<float, 16>("hadamard");
+    ///
+    /// auto output = future_tensor(empty<float>({32}));
+    /// auto input1 = future_tensor(rand<float>({32}));
+    /// auto input2 = future_tensor(rand<float>({32}));
+    ///
+    /// // Schedule a kernel task with 2 thread groups, each of 16 threads size.
+    /// auto task = kernel_task(kernel, dim3(32), dim3(16));
+    ///
+    /// // This kernel expects output tensor as the first argument.
+    /// auto future = task.bind_front(output, input1, input2);
+    ///
+    /// // Block the current thread, until the result is ready.
+    /// future.get();
+    /// ```
     const basic_kernel&
     load(const std::string& name);
 

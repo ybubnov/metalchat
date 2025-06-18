@@ -1,6 +1,13 @@
 Chat library
 ============
 
+.. doxygenconcept:: metalchat::language_estimator_t
+   :project: metalchat
+
+.. doxygenconcept:: metalchat::language_transformer_t
+   :project: metalchat
+
+
 Byte Pair Encoder
 -----------------
 
