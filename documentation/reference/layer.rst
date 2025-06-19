@@ -9,6 +9,14 @@ Layer
    :members:
 
 
+Attention
+---------
+
+.. doxygenclass:: metalchat::nn::attention
+   :project: metalchat
+   :members:
+
+
 Embedding
 ---------
 
@@ -25,6 +33,14 @@ Rotary Positional Embedding
    :members:
 
 
+Llama
+-----
+
+.. doxygenclass:: metalchat::nn::llama
+   :project: metalchat
+   :members:
+
+
 Linear
 ------
 
@@ -37,5 +53,13 @@ RMSNorm
 -------
 
 .. doxygenclass:: metalchat::nn::rmsnorm
+   :project: metalchat
+   :members:
+
+
+Transformer
+-----------
+
+.. doxygenclass:: metalchat::nn::transformer
    :project: metalchat
    :members:

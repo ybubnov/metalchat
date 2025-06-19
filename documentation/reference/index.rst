@@ -8,6 +8,7 @@ TBD
    :maxdepth: 1
 
    allocator
+   container
    tensor
    kernel
    layer
@@ -64,6 +65,40 @@ Allocator concepts
 
    * - :cpp:concept:`metalchat::hardware_allocator_t`
      - TBD
+
+
+Container library
+-----------------
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:class:`metalchat::hardware_memory_container`
+     - TBD.
+
+   * - :cpp:class:`metalchat::random_memory_container`
+     - TBD.
+
+   * - :cpp:class:`metalchat::vector_memory_container`
+     - TBD.
+
+   * - :cpp:class:`metalchat::scalar_memory_container`
+     - TBD.
+
+   * - :cpp:class:`metalchat::reference_memory_container`
+     - TBD.
+
+
+Container concepts
+^^^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:concept:`metalchat::contiguous_container`
+     - TBD.
 
 
 Tensor library
