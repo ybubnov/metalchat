@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <new>
 
 #include <metalchat/container.h>
 
@@ -8,14 +9,23 @@
 namespace metalchat {
 
 
-/// The concept `metalchat::allocator` specifies the requirements for a type to allocate elements
-/// contiguously stored in the memory. The allocator is used to allocate underlying memory
-/// for a tensor.
+class alloc_error : public std::bad_alloc {
+public:
+    alloc_error(const std::string& what)
+    : _m_what(what)
+    {}
+
+private:
+    std::string _m_what;
+};
+
+
+/// The concept specifies the requirements for a type to allocate elements contiguously stored
+/// in the memory. The allocator is used to allocate underlying memory for a tensor.
 ///
-/// Depending on the tensor type, memory could be allocated on stack with
-/// `metalchat::scalar_memory_allocator`, on random accessible memory with
-/// `metalchat::random_memory_allocator`, or memory, that is shared between CPU and GPU, using
-/// different implementations of hardware allocators.
+/// Depending on the tensor type, memory could be allocated on stack, within random accessible
+/// memory, or memory, that is shared between CPU and GPU, using different implementations of
+/// hardware allocators.
 template <typename Allocator>
 concept allocator = requires(std::remove_reference_t<Allocator> a) {
     typename Allocator::value_type;
@@ -38,14 +48,14 @@ concept allocator = requires(std::remove_reference_t<Allocator> a) {
 } && contiguous_container<typename Allocator::container_type>;
 
 
-/// The concept `metalchat::allocator_t` specifies the requirements for a type to allocate elements
-/// of type `T` contiguously stored in the memory.
+/// The concept specifies the requirements for a type to allocate elements of type `T`
+/// contiguously stored in the memory.
 template <typename Allocator, typename T>
 concept allocator_t = allocator<Allocator> && std::same_as<typename Allocator::value_type, T>;
 
 
-/// The concept `metalchat::hardware_allocator` specifies the requirements for a type to allocate
-/// elements contiguously stored in the hardware (Metal) memory.
+/// The concept specifies the requirements for a type to allocate elements contiguously stored
+/// in the hardware (Metal) memory.
 template <typename Allocator>
 concept hardware_allocator = allocator<Allocator>
                              && std::same_as<
@@ -53,8 +63,8 @@ concept hardware_allocator = allocator<Allocator>
                                  hardware_memory_container<typename Allocator::value_type>>;
 
 
-/// The concept `hardware_allocator_t` specifies the requirements for a type to allocate
-/// elements of a type `T` conguously stored in the hardware (Metal) memory.
+/// The concept specifies the requirements for a type to allocate elements of a type `T`
+/// conguously stored in the hardware (Metal) memory.
 template <typename Allocator, typename T>
 concept hardware_allocator_t
     = allocator_t<Allocator, T>
@@ -120,9 +130,8 @@ concept basic_hardware_allocator_t
       && std::derived_from<Allocator, basic_hardware_memory_allocator<T>>;
 
 
-/// The class template `metalchat::polymorphic_hardware_memory_allocator` is an
-/// `metalchat::allocator` which exhibits different allocation behaviour depending on a particular
-/// implementation of the `metalchat::basic_hardware_memory_allocator`.
+/// The class template is an `metalchat::allocator` which exhibits different allocation behaviour
+/// depending on a particular implementation of the `metalchat::basic_hardware_memory_allocator`.
 ///
 /// This allocator is used in order to avoid creating separate instances of device and
 /// thread, when kernel of different types (bf16, float, double) are expected to be scheduled
@@ -337,9 +346,35 @@ public:
 /// All containers produced by this allocator keep pointers to the residency set, so it is
 /// safe to use this class within a scope.
 ///
-/// Users could explicitly call `wire`, when the underlying set is supposed to be made resident.
-/// End of residency will happen automatically, once all allocations are removed. Also, allocator
-/// makes all containers resident on the object destruction.
+/// Users could explicitly call `hardware_resident_allocator::detach`, when the underlying set is
+/// supposed to be made resident. End of residency will happen automatically, once all allocations
+/// are removed. Also, allocator makes all containers resident on the object destruction.
+///
+/// Example:
+/// ```cpp
+/// using namespace metalchat;
+///
+/// std::shared_ptr<hardware_memory_container<void>> c1;
+/// std::shared_ptr<hardware_memory_container<void>> c2;
+///
+/// auto gpu = hardware_accelerator();
+/// {
+///    auto alloc0 = gpu.get_allocator();
+///    auto alloc = hardware_resident_allocator(alloc0, gpu.get_metal_device());
+///
+///    c1 = alloc.allocate(10);
+///    c2 = alloc.allocate(20);
+///
+///    // Scope ends, c1 and c2 become resident. This could be done explicitly
+///    // by calling alloc.detach();
+/// }
+///
+///
+/// c1 = nullptr;
+/// c2 = nullptr;
+///
+/// // Containers are deleted, end of the residency happens here.
+/// ```
 template <hardware_allocator Allocator>
 class hardware_resident_allocator
 : public basic_hardware_memory_allocator<typename Allocator::value_type> {
@@ -443,9 +478,6 @@ private:
 };
 
 
-template <typename T> class hardware_heap_allocator {};
-
-
 class _HardwareHeapAllocator {
 private:
     struct _HardwareHeapAllocator_data;
@@ -464,6 +496,47 @@ public:
 };
 
 
+/// This class creates a GPU-CPU shared memory fixed sized heap.
+///
+/// This allocator pre-allocates a fixed-sized contiguous shared memory and make it resident. All
+/// subsequent allocations are happening within that memory and are added to the resident set.
+/// Once the allocation is deleted, it also freed from the heap and from the residence set.
+///
+/// When there is not enough memory in the heap to allocate the requested amount of memory,
+/// the implementation throws a `metalchat::alloc_error` exception.
+template <typename T> class hardware_heap_allocator {
+    using value_type = T;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+    using size_type = std::size_t;
+    using container_type = hardware_memory_container<T>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    hardware_heap_allocator(metal::shared_device device, std::size_t capacity)
+    : _m_alloc(device, capacity)
+    {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        auto container = _m_alloc.allocate(sizeof(T) * size);
+        return std::reinterpret_pointer_cast<container_type>(container);
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        auto container = _m_alloc.allocate(size);
+        std::memcpy(container->data(), ptr, sizeof(T) * size);
+        return std::reinterpret_pointer_cast<container_type>(container);
+    }
+
+private:
+    _HardwareHeapAllocator _m_alloc;
+};
+
+
+/// Specialization of `metalchat::hardware_heap_allocator` type for the void type.
 template <> class hardware_heap_allocator<void> : public basic_hardware_memory_allocator<void> {
 public:
     using value_type = void;

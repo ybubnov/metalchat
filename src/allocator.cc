@@ -102,7 +102,7 @@ _HardwareHeapAllocator::allocate(std::size_t size)
     auto memory_ptr = _m_data->heap->newBuffer(alloc_size, MTL::ResourceStorageModeShared);
     if (memory_ptr == nullptr) {
         auto cap = _m_data->heap->maxAvailableSize(placement.align);
-        throw std::runtime_error(std::format(
+        throw alloc_error(std::format(
             "metalchat::hardware_heap_allocator: failed to allocate buffer of size={}, "
             "heap remaining capacity={}",
             size, cap
@@ -173,7 +173,7 @@ _HardwareNocopyAllocator::allocate(const void* ptr, std::size_t size)
     auto memory_ptr = _m_data->device->newBuffer(ptr, size, options, nullptr);
 
     if (memory_ptr == nullptr) {
-        throw std::runtime_error(
+        throw std::alloc_error(
             std::format("metalchat::hardware_nocopy_allocator: failed to allocate no-copy buffer")
         );
     }

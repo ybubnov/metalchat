@@ -27,12 +27,24 @@ Allocator library
    * - :cpp:class:`metalchat::hardware_heap_allocator`
      - Metal heap allocator of shared memory without hazard tracking.
 
+   * - :cpp:class:`metalchat::hardware_nocopy_allocator`
+     - Allocates hardware containers without actually copying underlying memory.
+
+   * - :cpp:class:`metalchat::hardware_resident_allocator`
+     - Moves all hardware allocations to the residency set.
+
    * - :cpp:class:`metalchat::rebind_hardware_allocator`
      - Provides a way to obtain a hardware allocator of a different type.
 
    * - :cpp:class:`metalchat::polymorphic_hardware_memory_allocator`
      - An allocator that exhibits different allocation behaviour depending on particular
        implementation.
+
+   * - :cpp:class:`metalchat::random_memory_allocator`
+     - TBD.
+
+   * - :cpp:class:`metalchat::scalar_memory_allocator`
+     - TBD.
 
 Allocator concepts
 ^^^^^^^^^^^^^^^^^^
@@ -142,7 +154,7 @@ Kernel library
    * - :cpp:class:`metalchat::kernel_thread`
      - TBD
 
-   * - :cpp:class:`metalchat::shared_kernel_thread`
+   * - :cpp:class:`metalchat::recursive_kernel_thread`
      - TBD
 
 
