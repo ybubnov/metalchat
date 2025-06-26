@@ -1,6 +1,6 @@
-==============================================
-MetalChat - Llama inference for Apple Devices
-==============================================
+=================================
+Llama inference for Apple Devices
+=================================
 
 TBD
 
@@ -29,11 +29,3 @@ Consider visiting the guides and API reference for further implementation and us
 
    guides/index
    reference/index
-
-
-.. toctree::
-   :hidden:
-   :caption: Project Links
-   :maxdepth: 1
-
-   GitHub <https://github.com/ybubnov/metalchat>

@@ -30,8 +30,19 @@ language = "en"
 
 # Options for HTML output
 pygments_style = "default"
+
+html_title = project
 html_theme = "pydata_sphinx_theme"
+html_theme_options = {
+    "navbar_align": "left",
+    "use_edit_page_button": False,
+    "search_bar_text": "Search",
+    "github_url": "https://github.com/ybubnov/metalchat",
+}
+html_static_path = ["_static"]
+html_css_files = ["overrides.css"]
 html_show_sourcelink = False
+
 templates_path = ["_templates"]
 
 
