@@ -92,6 +92,6 @@ to the question.
 
 .. code-block:: bash
 
-   % clang++ main.cc -F. -rpath . -framework MetalChat -o chat -std=c++23
+   % clang++ -std=c++23 -rpath . -F. -framework MetalChat main.cc -o chat
    % ./chat
    The capital of France is Paris.
