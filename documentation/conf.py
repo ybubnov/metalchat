@@ -31,6 +31,7 @@ language = "en"
 # Options for HTML output
 pygments_style = "default"
 html_theme = "pydata_sphinx_theme"
+html_show_sourcelink = False
 templates_path = ["_templates"]
 
 

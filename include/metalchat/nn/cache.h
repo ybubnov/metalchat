@@ -13,8 +13,8 @@ namespace nn {
 
 
 template <typename Cache>
-using __cache_update_r
-    = std::tuple<typename Cache::input_type, typename Cache::input_type, typename Cache::mask_type>;
+using __cache_update_r = std::
+    tuple<typename Cache::input_tensor, typename Cache::input_tensor, typename Cache::mask_tensor>;
 
 
 struct cache_options {
@@ -32,19 +32,19 @@ concept cache = requires(Cache cache) {
 
     /// The first element of the `update` return value should be a cached
     /// data (with the same dimensionality as an input tensor).
-    typename Cache::input_type;
-    requires immutable_tensor_t<typename Cache::input_type, typename Cache::value_type>;
+    typename Cache::input_tensor;
+    requires immutable_tensor_t<typename Cache::input_tensor, typename Cache::value_type>;
 
     /// The third element of the `update` return value should be a causal
     /// additive mask. When the size of the input query is different from 1,
     /// then causal mask will be non-empty.
-    typename Cache::mask_type;
-    requires optional_tensor_t<typename Cache::mask_type, typename Cache::value_type>;
+    typename Cache::mask_tensor;
+    requires optional_tensor_t<typename Cache::mask_tensor, typename Cache::value_type>;
 
     {
         cache.update(
-            std::declval<typename Cache::input_type>(), std::declval<typename Cache::input_type>(),
-            std::size_t()
+            std::declval<typename Cache::input_tensor>(),
+            std::declval<typename Cache::input_tensor>(), std::size_t()
         )
     } -> std::same_as<__cache_update_r<Cache>>;
 };
@@ -65,9 +65,9 @@ concept cache_t = cache<Cache> && std::same_as<typename Cache::value_type, T>;
 template <typename T> class sink_cache {
 public:
     using value_type = T;
-    using input_type = future_tensor<T, 4>;
-    using mask_type = std::optional<future_tensor<T, 2>>;
-    using return_type = std::tuple<input_type, input_type, mask_type>;
+    using input_tensor = future_tensor<T, 4>;
+    using mask_tensor = std::optional<future_tensor<T, 2>>;
+    using return_type = std::tuple<input_tensor, input_tensor, mask_tensor>;
 
     sink_cache(std::size_t pre_len, const cache_options& options, hardware_accelerator accelerator)
     : _m_accelerator(accelerator),
@@ -83,7 +83,7 @@ public:
     {}
 
     return_type
-    update(input_type keys, input_type vals, std::size_t start_pos)
+    update(input_tensor keys, input_tensor vals, std::size_t start_pos)
     {
         if (keys.size(1) != vals.size(1)) {
             throw std::invalid_argument(std::format(
@@ -109,7 +109,7 @@ private:
     auto
     create_additive_causal_mask(std::size_t len, std::size_t mask_len) const
     {
-        mask_type mask;
+        mask_tensor mask;
 
         if (len > 1) {
             const T infinity = T(std::numeric_limits<float>::infinity());
@@ -198,8 +198,8 @@ private:
     kernel::cpy<value_type> _m_copy;
     cache_options _m_options;
 
-    input_type _m_keys;
-    input_type _m_vals;
+    input_tensor _m_keys;
+    input_tensor _m_vals;
 
     std::size_t _m_pre_len;
 };

@@ -27,8 +27,8 @@ Consider visiting the guides and API reference for further implementation and us
    :caption: Documentation
    :maxdepth: 2
 
-   reference/index
    guides/index
+   reference/index
 
 
 .. toctree::

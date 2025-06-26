@@ -173,7 +173,7 @@ _HardwareNocopyAllocator::allocate(const void* ptr, std::size_t size)
     auto memory_ptr = _m_data->device->newBuffer(ptr, size, options, nullptr);
 
     if (memory_ptr == nullptr) {
-        throw std::alloc_error(
+        throw alloc_error(
             std::format("metalchat::hardware_nocopy_allocator: failed to allocate no-copy buffer")
         );
     }
