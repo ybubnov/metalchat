@@ -68,6 +68,8 @@ compute_rope_freqs(
         freqs[j] = 1.0f / std::powf(theta, 2.0 * j / dim);
     }
 
+    // scale_freqs(freqs);
+
     std::size_t end = start_pos + seq_len;
     for (std::size_t i = start_pos; i < end; i++) {
         std::size_t ii = i - start_pos;
@@ -94,11 +96,11 @@ TEST_CASE("RoPE Frequencies", "[kernel::rope_freqs]")
 
     kernel::rope_freqs<float> rope_freqs(dim, seq_len, 500000.0, gpu0);
 
-    auto [cos_f, sin_f] = rope_freqs(/*start_pos=*/0);
+    auto [cos_f, sin_f] = rope_freqs(/*start_pos=*/100);
     auto freqs_cos = cos_f.get();
     auto freqs_sin = sin_f.get();
 
-    auto [true_cos, true_sin] = compute_rope_freqs(dim, seq_len, theta, 0, gpu0);
+    auto [true_cos, true_sin] = compute_rope_freqs(dim, seq_len, theta, 100, gpu0);
 
     REQUIRE(true_cos.dim() == freqs_cos.dim());
     REQUIRE(true_sin.dim() == freqs_sin.dim());
