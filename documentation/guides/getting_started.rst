@@ -58,6 +58,10 @@ not support references due to memory safety reasons, so in order to make this mo
 Writing Application
 ^^^^^^^^^^^^^^^^^^^
 
+The next step is to write a C++ application. In the example below we use method
+`construct_llama3_1b` that uses various optimizations to load model, and uses default Llama 3.2
+configuration.
+
 At the highlighted line in the code snipped below we use model weights converted in the previous
 section.
 
@@ -88,7 +92,8 @@ Building Executable
 ^^^^^^^^^^^^^^^^^^^
 
 The last step is building the executable to launch a Llama-based chat and receive an answer
-to the question.
+to the question. Here we assume that `MetalChat` framework is located within a working directory,
+therefore we set framework lookup path (`-F`) as a current path.
 
 .. code-block:: bash
 
