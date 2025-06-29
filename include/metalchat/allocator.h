@@ -310,6 +310,55 @@ private:
 };
 
 
+class _HardwareBufferAllocator {
+private:
+    metal::shared_buffer _m_buffer;
+
+public:
+    using container_type = hardware_memory_container<void>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    _HardwareBufferAllocator(metal::shared_buffer buffer);
+
+    container_pointer
+    allocate(const void* ptr, std::size_t size);
+};
+
+
+template <hardware_allocator_t<void> Allocator>
+class hardware_buffer_allocator
+: public basic_hardware_memory_allocator<typename Allocator::value_type> {
+public:
+    using value_type = typename Allocator::value_type;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+    using size_type = std::size_t;
+    using container_type = hardware_memory_container<value_type>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    hardware_buffer_allocator(Allocator alloc, metal::shared_buffer buffer)
+    : _m_alloc(alloc),
+      _m_buffer_alloc(buffer)
+    {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        return _m_alloc.allocate(size);
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        return _m_buffer_alloc.allocate(ptr, size);
+    }
+
+private:
+    Allocator _m_alloc;
+    _HardwareBufferAllocator _m_buffer_alloc;
+};
+
+
 class _HardwareResidentAllocator {
 private:
     struct _HardwareResidentAllocator_data;

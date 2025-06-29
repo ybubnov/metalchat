@@ -102,6 +102,13 @@ basic_memfile::size() const noexcept
 }
 
 
+const std::uint8_t*
+basic_memfile::tell() const
+{
+    return _m_map;
+}
+
+
 std::uint8_t*
 basic_memfile::tellp() const
 {
@@ -142,6 +149,14 @@ safetensor::safetensor(const shape_type& shape, data_pointer data_ptr)
 : _m_shape(shape),
   _m_data_ptr(data_ptr)
 {}
+
+
+const std::span<std::size_t>
+safetensor::sizes() const
+{
+    auto data_ptr = const_cast<std::size_t*>(_m_shape.data());
+    return std::span<std::size_t>(data_ptr, _m_shape.size());
+}
 
 
 std::size_t
@@ -221,6 +236,13 @@ safetensor_file::operator[](const std::string& tensor_name) const
 }
 
 
+const safetensor_file::file_ptr
+safetensor_file::file() const
+{
+    return _m_memfile;
+}
+
+
 void
 safetensor_file::parse()
 {
@@ -237,6 +259,8 @@ safetensor_file::parse()
 
     auto json_document = json_parser.iterate(header_padded);
     auto json_object = json_document.get_object();
+
+    auto data_ptr_end = _m_memfile->tell() + _m_memfile->size();
 
     for (auto json_field : json_object) {
         std::string_view field_name = json_field.unescaped_key();
@@ -255,10 +279,17 @@ safetensor_file::parse()
         // Data pointer is owned by the memory file, therefore a data pointer should
         // also carry a pointer. If we won't do this, once `safetensor_file` destroyed
         // (for example, if it's created on stack), then all safetensors will be invalidated.
-        auto data = _m_memfile->tellp() + tensor_ptr.data_offsets[0];
-        auto data_ptr = std::shared_ptr<void>(_m_memfile, data);
+        auto data_off = tensor_ptr.data_offsets[0];
+        auto data_ptr = _m_memfile->tellp() + data_off;
+        if (data_ptr >= data_ptr_end) {
+            throw std::runtime_error(std::format(
+                "safetensor_file: data offset {} for a tensor {} is out of bounds", data_off,
+                tensor_name
+            ));
+        }
 
-        auto tensor = safetensor(tensor_ptr.shape, data_ptr);
+        auto data_shared_ptr = std::shared_ptr<void>(_m_memfile, data_ptr);
+        auto tensor = safetensor(tensor_ptr.shape, data_shared_ptr);
 
         _m_tensors.insert_or_assign(tensor_name, tensor);
     }

@@ -158,21 +158,23 @@ template <typename T> struct hardware_memory_container : public memory_container
     using const_pointer = const pointer;
 
     metal::shared_buffer _m_mem;
+    std::size_t _m_off;
 
-    hardware_memory_container(metal::shared_buffer mem)
-    : _m_mem(mem)
+    hardware_memory_container(metal::shared_buffer mem, std::size_t off = 0)
+    : _m_mem(mem),
+      _m_off(off)
     {}
 
     pointer
     data()
     {
-        return static_cast<T*>(metal::data(_m_mem));
+        return static_cast<T*>(storage_ptr());
     }
 
     const_pointer
     data() const
     {
-        return static_cast<const_pointer>(metal::data(_m_mem));
+        return static_cast<const_pointer>(storage_ptr());
     }
 
     template <typename U> requires std::convertible_to<U, T>
@@ -185,6 +187,18 @@ template <typename T> struct hardware_memory_container : public memory_container
     storage() const
     {
         return _m_mem;
+    }
+
+    std::size_t
+    storage_offset() const
+    {
+        return _m_off;
+    }
+
+    void*
+    storage_ptr() const
+    {
+        return static_cast<std::uint8_t*>(metal::data(_m_mem)) + storage_offset();
     }
 };
 

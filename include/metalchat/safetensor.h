@@ -23,6 +23,9 @@ public:
     std::size_t
     size() const noexcept;
 
+    const std::uint8_t*
+    tell() const;
+
     std::uint8_t*
     tellp() const;
 
@@ -53,6 +56,9 @@ public:
     /// Return the total number of elements in the tensor.
     std::size_t
     numel() const;
+
+    const std::span<std::size_t>
+    sizes() const;
 
     /// Cast this safe-tensor to the specified the specified type.
     ///
@@ -105,6 +111,8 @@ public:
 
     using const_iterator = container_type::const_iterator;
 
+    using file_ptr = std::shared_ptr<basic_memfile>;
+
     safetensor_file(const std::filesystem::path& p);
 
     std::size_t
@@ -128,8 +136,11 @@ public:
     const safetensor&
     operator[](const std::string& tensor_name) const;
 
+    const file_ptr
+    file() const;
+
 private:
-    std::shared_ptr<basic_memfile> _m_memfile;
+    file_ptr _m_memfile;
     container_type _m_tensors;
 
     void

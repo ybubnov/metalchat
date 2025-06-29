@@ -152,6 +152,28 @@ _HardwareMemoryAllocator::allocate(const void* ptr, std::size_t size)
 }
 
 
+_HardwareBufferAllocator::_HardwareBufferAllocator(metal::shared_buffer buffer)
+: _m_buffer(buffer)
+{}
+
+
+_HardwareBufferAllocator::container_pointer
+_HardwareBufferAllocator::allocate(const void* ptr, std::size_t size)
+{
+    const auto alloc_ptr = static_cast<const std::uint8_t*>(ptr);
+
+    const auto begin_ptr = static_cast<const std::uint8_t*>(_m_buffer->ptr->contents());
+    const auto end_ptr = begin_ptr + _m_buffer->ptr->length();
+
+    if ((alloc_ptr < begin_ptr) || (alloc_ptr + size > end_ptr)) {
+        throw std::invalid_argument("hardware_buffer_allocator: bad allocation request");
+    }
+
+    std::size_t off = alloc_ptr - begin_ptr;
+    return std::make_shared<container_type>(_m_buffer, /*off=*/off);
+}
+
+
 struct _HardwareNocopyAllocator::_HardwareNocopyAllocator_data {
     NS::SharedPtr<MTL::Device> device;
 

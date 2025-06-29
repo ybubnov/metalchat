@@ -55,7 +55,7 @@ private:
     encode(const void* data, std::size_t size);
 
     void
-    encode(metal::shared_buffer buffer);
+    encode(metal::shared_buffer buffer, std::size_t offset);
 
     void
     encode_memory_barrier(metal::shared_buffer buffer);
@@ -78,15 +78,15 @@ public:
     encode(const Tensor& tensor)
     {
         auto layout = tensor.layout();
-        auto buffer = tensor.container().storage();
+        auto container = tensor.container();
 
         encode(&layout, sizeof(layout));
-        encode(buffer);
+        encode(container.storage(), container.storage_offset());
 
         // Mark all hardware-allocated tensors of the command as memory barriers,
         // so that kernel waits until previous kernels stop writing to that memory,
         // before running the current kernel.
-        encode_memory_barrier(buffer);
+        encode_memory_barrier(container.storage());
     }
 
     template <typename T, immutable_tensor_t<T> Tensor>
@@ -98,7 +98,7 @@ public:
 
         auto layout = tensor.layout();
         encode(&layout, sizeof(layout));
-        encode(container->storage());
+        encode(container->storage(), container->storage_offset());
     }
 
     void

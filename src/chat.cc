@@ -147,10 +147,22 @@ construct_llama3_1b(
     metalchat::safetensor_file weights(weights_path);
 
     metalchat::hardware_accelerator gpu0;
-    auto alloc1 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
-    auto alloc2 = hardware_resident_allocator(alloc1, gpu0.get_metal_device());
 
-    gpu0.set_allocator(std::move(alloc2));
+    auto memfile = weights.file();
+    auto padding_size = memfile->tellp() - memfile->tell();
+
+    // Move memory file to a resident set, do not copy the underlying memory.
+    auto alloc0 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
+    auto alloc1 = hardware_resident_allocator(alloc0, gpu0.get_metal_device());
+    auto container = alloc1.allocate(memfile->tellp(), memfile->size() - padding_size);
+
+    // Allocate all subsequent tensors from the buffer allocator, it will maintain
+    // correct offset from the buffer and does not cause any memory allocations.
+    // For all other remaining allocations, use a generic allocator.
+    auto alloc2 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
+    auto alloc3 = hardware_resident_allocator(alloc2, gpu0.get_metal_device());
+    auto alloc4 = hardware_buffer_allocator(alloc3, container->storage());
+    gpu0.set_allocator(std::move(alloc4));
 
     auto options = options_.value_or(default_llama3_1b_options());
     auto attention_options = nn::attention_options{
@@ -164,10 +176,10 @@ construct_llama3_1b(
     nn::llama<dtype::bf16> m(options.n_layers(), attention_options, gpu0);
     m.initialize(weights, make_rebind_allocator<dtype::bf16>(gpu0.get_allocator()));
 
-    auto alloc3 = hardware_heap_allocator<void>(gpu0.get_metal_device(), options.heap_size());
-    auto alloc4 = hardware_nocopy_allocator(alloc3, gpu0.get_metal_device());
+    auto alloc5 = hardware_heap_allocator<void>(gpu0.get_metal_device(), options.heap_size());
+    auto alloc6 = hardware_nocopy_allocator(alloc5, gpu0.get_metal_device());
 
-    gpu0.set_allocator(std::move(alloc4));
+    gpu0.set_allocator(std::move(alloc6));
 
     auto transformer = language_transformer(std::move(m));
     auto agent = polymorphic_chat(std::move(transformer), bpe);

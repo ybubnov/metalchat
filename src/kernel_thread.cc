@@ -70,9 +70,9 @@ hardware_function_encoder::encode(const void* data, std::size_t size)
 
 
 void
-hardware_function_encoder::encode(metal::shared_buffer buffer)
+hardware_function_encoder::encode(metal::shared_buffer buffer, std::size_t offset)
 {
-    _m_queue->encoder->setBuffer(buffer->ptr, 0, _m_buffer++);
+    _m_queue->encoder->setBuffer(buffer->ptr, offset, _m_buffer++);
 }
 
 
