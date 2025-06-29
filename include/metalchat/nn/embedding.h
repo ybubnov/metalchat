@@ -101,18 +101,19 @@ private:
     }
 
     void
-    init_freqs(std::size_t begin, std::size_t end)
+    init_freqs(std::size_t begin, std::size_t n)
     {
         _m_freqs_cos = empty<float>({_m_seq_len, _m_dim / 2}, accelerator().get_allocator());
         _m_freqs_sin = empty<float>({_m_seq_len, _m_dim / 2}, accelerator().get_allocator());
 
         std::vector<float> freqs(_m_dim / 2);
-        for (std::size_t i = 0; i < freqs.size(); i++) {
-            freqs[i] = 1.0f / std::powf(_m_theta, 2.0 * i / _m_dim);
+        for (std::size_t j = 0; j < freqs.size(); j++) {
+            freqs[j] = 1.0f / std::powf(_m_theta, 2.0 * j / _m_dim);
         }
 
         // scale_freqs(freqs);
 
+        std::size_t end = begin + n;
         for (std::size_t i = begin; i < end; i++) {
             std::size_t ii = i - begin;
 
@@ -136,7 +137,7 @@ public:
       _m_freqs_sin(tensor<float, 2, hardware_memory_container<float>>()),
       _m_rope(accelerator)
     {
-        init_freqs(_m_start_pos, _m_start_pos + _m_seq_len);
+        init_freqs(_m_start_pos, _m_seq_len);
     }
 
     template <immutable_tensor4_t<T> Input>
@@ -154,7 +155,7 @@ public:
         // the frequencies for a new position.
         if (start_pos < _m_start_pos || start_pos >= _m_start_pos + _m_seq_len) {
             _m_start_pos = start_pos;
-            init_freqs(_m_start_pos, _m_start_pos + _m_seq_len);
+            init_freqs(_m_start_pos, _m_seq_len);
         }
 
         return _m_rope(input, _m_freqs_cos, _m_freqs_sin, start_pos - _m_start_pos);

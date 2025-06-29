@@ -83,7 +83,7 @@ public:
         if (auto head_dim = freqs_cos.size(1); dim_size != head_dim * 2) {
             throw std::invalid_argument(std::format(
                 "kernel::rope: the last dimension of the input should be {}, but received {}",
-                head_dim * 2, dim_size
+                dim_size, head_dim * 2
             ));
         }
 
@@ -100,6 +100,64 @@ public:
 
         auto output = future_tensor(output_view, std::move(task_future));
         return output.view(input.shape());
+    }
+};
+
+
+template <typename T, std::size_t BlockSize = 16> class rope_freqs {
+private:
+    basic_kernel _m_kernel;
+    std::size_t _m_dim;
+    std::size_t _m_seq_len;
+    T _m_theta;
+
+public:
+    rope_freqs(std::size_t dim, std::size_t seq_len, T theta, hardware_accelerator& gpu)
+    : _m_kernel(gpu.load<T, BlockSize>("rope_freqs")),
+      _m_dim(dim),
+      _m_seq_len(seq_len),
+      _m_theta(theta)
+    {}
+
+    template <immutable_tensor2_t<T> Cosines, immutable_tensor2_t<T> Sines>
+    auto
+    operator()(Cosines freqs_cos, Sines freqs_sin, std::size_t start_pos)
+    {
+        if (freqs_cos.size(1) != freqs_sin.size(1)) {
+            throw std::invalid_argument(std::format(
+                "kernel::rope_freqs: head dimension are different for cos and sin freqs {} != {}",
+                freqs_cos.size(1), freqs_sin.size(1)
+            ));
+        }
+
+        if (auto head_dim = freqs_cos.size(1); _m_dim != head_dim * 2) {
+            throw std::invalid_argument(std::format(
+                "kernel::rope_freqs: the last dimension of the input should be {}, but received {}",
+                _m_dim, head_dim * 2
+            ));
+        }
+
+        auto [grid, thread] = make_kernel_grid_2d(freqs_cos, _m_dim / 2);
+
+        auto task = kernel_task(_m_kernel, grid, thread);
+        auto task_future = task.bind_front(
+            freqs_cos, freqs_sin, shared_tensor(scalar<int32_t>(_m_dim)),
+            shared_tensor(scalar<int32_t>(start_pos)), shared_tensor(scalar<T>(_m_theta))
+        );
+
+        auto cos_future = future_tensor(freqs_cos, std::move(task_future));
+        auto sin_future = future_tensor(freqs_sin, cos_future);
+
+        return std::make_tuple(cos_future, sin_future);
+    }
+
+    auto
+    operator()(std::size_t start_pos = 0)
+    {
+        auto freqs_cos = shared_empty<T>({_m_seq_len, _m_dim / 2}, _m_kernel.get_allocator());
+        auto freqs_sin = shared_empty<T>({_m_seq_len, _m_dim / 2}, _m_kernel.get_allocator());
+
+        return operator()(freqs_cos, freqs_sin, start_pos);
     }
 };
 

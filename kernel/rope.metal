@@ -62,3 +62,44 @@ __lib_metalchat_kernel2(rope, bfloat, 32);
 __lib_metalchat_kernel2(rope, float, 8);
 __lib_metalchat_kernel2(rope, float, 16);
 __lib_metalchat_kernel2(rope, float, 32);
+
+
+template <typename T> struct __rope_freqs_parameters {
+    constant layout2& freqs_cos_layout;
+    device T* freqs_cos;
+    constant layout2& freqs_sin_layout;
+    device T* freqs_sin;
+    constant uint& dim;
+    constant uint& start_pos;
+    constant T& theta;
+};
+
+
+template <typename T, uint BlockSize>
+kernel void
+rope_freqs(
+    __rope_freqs_parameters<T> params,
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
+)
+{
+    tensor2<T> f_cos(params.freqs_cos_layout, params.freqs_cos);
+    tensor2<T> f_sin(params.freqs_sin_layout, params.freqs_sin);
+
+    const uint i = gid.x;
+    const uint j = tid.x + gid.y * threadgroup_size.x;
+
+    if (j < params.dim / 2) {
+        T freq = T(1.0) / metal::pow(params.theta, 2.0 * j / params.dim);
+        T angle = T(params.start_pos + i) * freq;
+
+        f_cos.at(i, j) = metal::cos(angle);
+        f_sin.at(i, j) = metal::sin(angle);
+    }
+}
+
+
+__lib_metalchat_kernel2(rope_freqs, float, 8);
+__lib_metalchat_kernel2(rope_freqs, float, 16);
+__lib_metalchat_kernel2(rope_freqs, float, 32);
