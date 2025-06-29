@@ -166,7 +166,7 @@ _HardwareBufferAllocator::allocate(const void* ptr, std::size_t size)
     const auto end_ptr = begin_ptr + _m_buffer->ptr->length();
 
     if ((alloc_ptr < begin_ptr) || (alloc_ptr + size > end_ptr)) {
-        throw std::invalid_argument("hardware_buffer_allocator: bad allocation request");
+        throw alloc_error("metalchat::hardware_buffer_allocator: bad allocation request");
     }
 
     std::size_t off = alloc_ptr - begin_ptr;

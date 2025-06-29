@@ -325,6 +325,14 @@ public:
 };
 
 
+/// This class creates buffer resources with an offset from the specified buffer.
+///
+/// Use this class when you want to maintain a single buffer (potentially mapped to another
+/// memory, like memory-mapped file). And want to allocate containers that point to the same
+/// underlying buffer with a different size and offset.
+///
+/// When the specified pointer does not belong to the buffer memory, the implementation raises
+/// a `metalchat::alloc_error` exception.
 template <hardware_allocator_t<void> Allocator>
 class hardware_buffer_allocator
 : public basic_hardware_memory_allocator<typename Allocator::value_type> {
@@ -336,6 +344,11 @@ public:
     using container_type = hardware_memory_container<value_type>;
     using container_pointer = std::shared_ptr<container_type>;
 
+    /// Construct a new buffer allocator with the specified buffer. All allocations with
+    /// "new" semantic will be proxied to the specified allocator.
+    ///
+    /// \param alloc Proxy allocator for allocations without backing memory.
+    /// \param buffer Underlying buffer from which allocations are created.
     hardware_buffer_allocator(Allocator alloc, metal::shared_buffer buffer)
     : _m_alloc(alloc),
       _m_buffer_alloc(buffer)

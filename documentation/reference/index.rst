@@ -25,6 +25,9 @@ Allocator library
    * - :cpp:class:`metalchat::hardware_memory_allocator`
      - Metal hazard-tracking shared memory allocator.
 
+   * - :cpp:class:`metalchat::hardware_buffer_allocator`
+     - An allocator that returns the same hardware container (buffer).
+
    * - :cpp:class:`metalchat::hardware_heap_allocator`
      - Metal heap allocator of shared memory without hazard tracking.
 

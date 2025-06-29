@@ -17,6 +17,13 @@ Hardware Memory Allocator
    :members:
 
 
+Hardware Buffer Allocator
+-------------------------
+
+.. doxygenclass:: metalchat::hardware_buffer_allocator
+   :members:
+
+
 Hardware Heap Allocator
 -----------------------
 
