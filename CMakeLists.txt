@@ -20,6 +20,7 @@ find_package(cppcodec CONFIG REQUIRED)
 find_package(simdjson CONFIG REQUIRED)
 find_package(metal-cpp CONFIG REQUIRED)
 find_package(PCRE2 CONFIG REQUIRED)
+find_package(rapidhash CONFIG REQUIRED)
 
 
 set(metalchat_FRAMEWORK MetalChat)
@@ -85,4 +86,5 @@ target_link_libraries(${metalchat_FRAMEWORK}
     cppcodec::cppcodec
     metal-cpp::metal-cpp
     PCRE2::8BIT
+    rapidhash::rapidhash
 )

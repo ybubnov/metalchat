@@ -105,7 +105,7 @@ private:
 
 class safetensor_file {
 public:
-    using container_type = std::unordered_map<std::string, safetensor>;
+    using container_type = std::unordered_map<std::string, safetensor, _StringHash>;
 
     using iterator = container_type::iterator;
 

@@ -152,7 +152,7 @@ public:
     };
 
 private:
-    std::unordered_map<string_type, index_type> _m_fmap;
+    std::unordered_map<string_type, index_type, _StringHash> _m_fmap;
     std::unordered_map<index_type, string_type> _m_rmap;
 
     std::shared_ptr<RegularExpression> _m_re;

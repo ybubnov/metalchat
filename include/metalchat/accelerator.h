@@ -11,10 +11,16 @@
 namespace metalchat {
 
 
-class basic_kernel;
-
-
 static const std::string framework_identifier = "com.cmake.metalchat";
+
+
+struct _StringHash {
+    std::size_t
+    operator()(const std::string& s) const noexcept;
+};
+
+
+class basic_kernel;
 
 
 /// Hardware accelerator is an abstraction of the kernel execution pipeline.

@@ -1,6 +1,7 @@
 #include <format>
 
 #include <CoreFoundation/CFBundle.h>
+#include <rapidhash.h>
 
 #include <metalchat/accelerator.h>
 #include <metalchat/kernel.h>
@@ -9,6 +10,13 @@
 
 
 namespace metalchat {
+
+
+std::size_t
+_StringHash::operator()(const std::string& s) const noexcept
+{
+    return rapidhash(s.c_str(), s.size());
+}
 
 
 hardware_accelerator::hardware_accelerator(
