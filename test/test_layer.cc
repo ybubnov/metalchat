@@ -23,4 +23,7 @@ TEST_CASE("Test function parameters", "function")
     REQUIRE(output.dim() == 2);
     REQUIRE(output.size(0) == 10);
     REQUIRE(output.size(1) == 3);
+
+    auto params = linear.get_parameters();
+    REQUIRE(params.size() == 1);
 }

@@ -103,8 +103,7 @@ public:
     void
     initialize(const safetensor_file& weights, Allocator alloc)
     {
-        auto params = get_parameters();
-        for (auto [param_name, param] : params) {
+        auto visitor = [&](const std::string& param_name, polymorphic_tensor param) {
             if (auto it = weights.find(param_name); it != weights.end()) {
                 auto [_, weight] = *it;
                 std::size_t dim = weight.dim();
@@ -113,7 +112,9 @@ public:
                     param.emplace(std::move(weight.as<i, Allocator>(alloc)));
                 });
             }
-        }
+        };
+
+        visit_parameters(visitor);
     }
 
     /// Register an upstream layer for the current layer. The layer could be accessed using
@@ -139,8 +140,8 @@ public:
     ///    : layer(accelerator)
     ///    {
     ///       // Register layers here.
-    ///       linear = register_layer("linear1", nn::linear<float>(accelerator));
-    ///       linear = register_layer("linear2", nn::linear<float>(accelerator));
+    ///       linear1 = register_layer("linear1", nn::linear<float>(accelerator));
+    ///       linear2 = register_layer("linear2", nn::linear<float>(accelerator));
     ///    }
     /// };
     /// ```
@@ -211,10 +212,26 @@ public:
     const parameter_container
     get_parameters(bool recurse = true) const
     {
-        parameter_container params(_m_params.begin(), _m_params.end());
+        parameter_container params;
+
+        auto visitor = [&](const std::string& name, polymorphic_tensor param) {
+            params.insert_or_assign(name, param);
+        };
+
+        visit_parameters(visitor, recurse);
+        return params;
+    }
+
+    template <std::invocable<const std::string&, polymorphic_tensor> Visitor>
+    void
+    visit_parameters(Visitor visitor, bool recurse = true) const
+    {
+        for (const auto& [full_name, param] : _m_params) {
+            visitor(full_name, param);
+        }
 
         if (!recurse) {
-            return params;
+            return;
         }
 
         using layer_type = layer_container::value_type;
@@ -232,11 +249,9 @@ public:
 
             for (auto [param_name, param] : layer_ptr->_m_params) {
                 auto full_name = name + "." + param_name;
-                params.insert_or_assign(full_name, param);
+                visitor(full_name, param);
             }
         }
-
-        return params;
     }
 
 private:
