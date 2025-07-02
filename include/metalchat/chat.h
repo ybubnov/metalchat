@@ -461,6 +461,14 @@ construct_llama3_1b(
 
 
 polymorphic_chat
+construct_llama3_1b_minimal(
+    const std::filesystem::path& weights_path,
+    const std::filesystem::path& tokens_path,
+    std::optional<llama3_options> options = std::nullopt
+);
+
+
+polymorphic_chat
 construct_llama3_1b(
     const std::string& weights_path,
     const std::string& tokens_path,

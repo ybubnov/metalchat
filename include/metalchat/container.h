@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdio>
+#include <filesystem>
 #include <functional>
 #include <vector>
 
@@ -7,6 +9,65 @@
 
 
 namespace metalchat {
+
+
+class basic_memfile {
+public:
+    using char_type = std::uint8_t;
+    using pos_type = std::size_t;
+
+    basic_memfile(const std::filesystem::path& p);
+    basic_memfile();
+
+    bool
+    is_mapped() const noexcept;
+
+    basic_memfile&
+    declare_mapped();
+
+    basic_memfile&
+    undeclare_mapped();
+
+    std::size_t
+    size() const noexcept;
+
+    const char_type*
+    data() const noexcept;
+
+    char_type*
+    data() noexcept;
+
+    /// Returns output position indicator.
+    pos_type
+    tellp() const noexcept;
+
+    /// Returns input position indicator.
+    pos_type
+    tellg() const noexcept;
+
+    /// Extract characters from the file.
+    basic_memfile&
+    read(char_type* d, std::size_t size);
+
+    basic_memfile&
+    read(void* d, std::size_t size);
+
+    /// Insert characters to the file.
+    basic_memfile&
+    write(const char_type* s, std::size_t size);
+
+    basic_memfile&
+    write(const void* s, std::size_t size);
+
+    ~basic_memfile();
+
+private:
+    std::FILE* _m_file = nullptr;
+    std::size_t _m_file_size = 0;
+    pos_type _m_file_p = 0;
+    pos_type _m_file_g = 0;
+    char_type* _m_map = nullptr;
+};
 
 
 template <typename T> struct memory_container {
@@ -236,6 +297,43 @@ make_scalar_container(T data)
 {
     return std::make_shared<scalar_memory_container<T>>(data);
 }
+
+
+template <typename T> struct filebuf_memory_container : public memory_container<T> {
+private:
+    std::shared_ptr<basic_memfile> _m_filebuf;
+
+public:
+    using value_type = T;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+
+    filebuf_memory_container(const_pointer data, std::size_t size)
+    : _m_filebuf(std::make_shared<basic_memfile>())
+    {
+        _m_filebuf->write(data, sizeof(value_type) * size);
+    }
+
+    void
+    park() const
+    {
+        _m_filebuf->undeclare_mapped();
+    }
+
+    pointer
+    data()
+    {
+        _m_filebuf->declare_mapped();
+        return reinterpret_cast<pointer>(_m_filebuf->data());
+    }
+
+    const_pointer
+    data() const
+    {
+        _m_filebuf->declare_mapped();
+        return reinterpret_cast<const_pointer>(_m_filebuf->data());
+    }
+};
 
 
 } // namespace metalchat

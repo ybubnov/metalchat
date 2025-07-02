@@ -682,7 +682,7 @@ template <typename T> struct random_memory_allocator {
     allocate(const_pointer ptr, size_type size)
     {
         auto memory_ptr = new T[size]();
-        std::memcpy(memory_ptr, ptr, size);
+        std::memcpy(memory_ptr, ptr, size * sizeof(T));
         return std::make_shared<container_type>(memory_ptr);
     }
 };
@@ -715,6 +715,110 @@ template <typename T> struct scalar_memory_allocator {
         }
 
         return std::make_shared<scalar_memory_container<T>>(*ptr);
+    }
+};
+
+
+template <allocator Allocator> class aliasing_allocator {
+public:
+    using value_type = typename Allocator::value_type;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+    using size_type = typename Allocator::size_type;
+    using container_type = typename Allocator::container_type;
+    using container_pointer = typename Allocator::container_pointer;
+
+    aliasing_allocator(Allocator alloc, std::shared_ptr<void> ptr)
+    : _m_alloc(alloc),
+      _m_ptr(ptr)
+    {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        return make_alias(_m_alloc.allocate(size));
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        return make_alias(_m_alloc.allocate(ptr, size));
+    }
+
+private:
+    container_pointer
+    make_alias(container_pointer container_ptr)
+    {
+        // Create an artificial pair type, so that is stores both pointers, and then
+        // leave an access only to the newly created container pointer.
+        using value_pointer = std::shared_ptr<void>;
+        using shared_pointer = std::pair<value_pointer, container_pointer>;
+
+        // Once container is destroyed, memory file is attempted to be destroyed as well.
+        auto ptr = std::make_shared<shared_pointer>(_m_ptr, container_ptr);
+        return container_pointer(ptr, container_ptr.get());
+    }
+
+    Allocator _m_alloc;
+    std::shared_ptr<void> _m_ptr;
+};
+
+
+template <hardware_allocator Allocator>
+class hardware_aliasing_allocator
+: public basic_hardware_memory_allocator<typename Allocator::value_type> {
+public:
+    using value_type = typename Allocator::value_type;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+    using size_type = typename Allocator::size_type;
+    using container_type = typename Allocator::container_type;
+    using container_pointer = typename Allocator::container_pointer;
+
+    hardware_aliasing_allocator(Allocator alloc, std::shared_ptr<void> ptr)
+    : _m_alloc(alloc),
+      _m_ptr(ptr)
+    {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        return aliasing_allocator<Allocator>(_m_alloc, _m_ptr).allocate(size);
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        return aliasing_allocator<Allocator>(_m_alloc, _m_ptr).allocate(ptr, size);
+    }
+
+private:
+    Allocator _m_alloc;
+    std::shared_ptr<void> _m_ptr;
+};
+
+
+template <typename T> struct filebuf_memory_allocator {
+    using value_type = T;
+    using pointer = T*;
+    using const_pointer = const pointer;
+    using size_type = std::size_t;
+    using container_type = filebuf_memory_container<T>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    filebuf_memory_allocator() {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        auto data = std::make_shared<value_type[]>(size);
+        return allocate(data.get(), size);
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        return std::make_shared<container_type>(ptr, size);
     }
 };
 

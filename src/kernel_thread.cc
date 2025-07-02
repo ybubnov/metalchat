@@ -41,6 +41,14 @@ struct kernel_queue {
             = NS::TransferPtr(kq.commands->computeCommandEncoder(MTL::DispatchTypeConcurrent));
         return kq;
     }
+
+    void
+    on_completed(kernel_callback_type callback)
+    {
+        commands->addCompletedHandler([callback = callback](const MTL::CommandBuffer* buf) {
+            callback();
+        });
+    }
 };
 
 
@@ -81,6 +89,13 @@ hardware_function_encoder::encode_memory_barrier(metal::shared_buffer buffer)
 {
     const MTL::Resource* resources[1] = {buffer->ptr};
     _m_queue->encoder->memoryBarrier(resources, 1);
+}
+
+
+void
+hardware_function_encoder::on_completed(kernel_callback_type callback)
+{
+    _m_queue->on_completed(callback);
 }
 
 
@@ -127,11 +142,9 @@ kernel_thread::kernel_thread(const kernel_queue& queue, std::size_t capacity, al
 
 
 void
-kernel_thread::on_completed(kernel_thread::callback_type callback)
+kernel_thread::on_completed(kernel_callback_type callback)
 {
-    _m_queue->commands->addCompletedHandler([callback = callback](const MTL::CommandBuffer* buf) {
-        callback();
-    });
+    _m_queue->on_completed(callback);
 }
 
 

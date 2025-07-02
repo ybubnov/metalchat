@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdio>
 #include <filesystem>
 #include <format>
@@ -7,144 +8,249 @@
 #include <unordered_map>
 #include <vector>
 
+#include <numeric>
+#include <simdjson.h>
+
 #include <metalchat/accelerator.h>
+#include <metalchat/allocator.h>
 #include <metalchat/container.h>
 #include <metalchat/format.h>
 #include <metalchat/tensor/basic.h>
 
 
+using namespace simdjson;
+
+
 namespace metalchat {
 
 
-class basic_memfile {
-public:
-    basic_memfile(const std::filesystem::path& p);
-
-    std::size_t
-    size() const noexcept;
-
-    const std::uint8_t*
-    tell() const;
-
-    std::uint8_t*
-    tellp() const;
-
-    basic_memfile&
-    read(void* dest, std::size_t size);
-
-    ~basic_memfile();
-
-private:
-    std::FILE* _m_file = nullptr;
-    std::size_t _m_file_size = 0;
-    std::size_t _m_file_off = 0;
-    std::uint8_t* _m_map = nullptr;
+struct safetensor_metadata {
+    std::string name;
+    std::string dtype;
+    std::vector<std::size_t> shape;
+    std::vector<std::size_t> data_offsets;
 };
 
 
-class safetensor {
-public:
-    using shape_type = std::vector<std::size_t>;
-    using data_pointer = std::shared_ptr<void>;
+} // namespace metalchat
 
-    safetensor(const shape_type& shape, data_pointer data_ptr);
+
+template <>
+simdjson_inline simdjson_result<std::vector<std::size_t>>
+simdjson::ondemand::value::get()
+{
+    ondemand::array array;
+    auto error = get_array().get(array);
+
+    if (error) {
+        return error;
+    }
+
+    std::vector<std::size_t> vec;
+
+    for (auto v : array) {
+        int64_t val;
+        if ((error = v.get_int64().get(val))) {
+            return error;
+        }
+        // TODO: rework this implementation, so that vector is created with a
+        // fixed number of elements and does not grow too much.
+        vec.push_back(static_cast<std::size_t>(val));
+    }
+    return vec;
+}
+
+
+template <>
+simdjson_inline simdjson_result<metalchat::safetensor_metadata>
+simdjson::ondemand::value::get() noexcept
+{
+    ondemand::object object;
+    auto error = get_object().get(object);
+    if (error) {
+        return error;
+    }
+
+    metalchat::safetensor_metadata meta;
+    if ((error = object["dtype"].get_string(meta.dtype))) {
+        return error;
+    }
+    if ((error = object["shape"].get<std::vector<std::size_t>>().get(meta.shape))) {
+        return error;
+    }
+    if ((error = object["data_offsets"].get<std::vector<std::size_t>>().get(meta.data_offsets))) {
+        return error;
+    }
+
+    return meta;
+}
+
+
+namespace metalchat {
+
+
+template <contiguous_container Container> class safetensor {
+public:
+    using container_type = Container;
+    using container_pointer = std::shared_ptr<container_type>;
+    using shape_type = std::vector<std::size_t>;
+
+    safetensor(
+        const std::string& name, const shape_type& shape, const container_pointer& container_ptr
+    )
+    : _m_name(name),
+      _m_shape(shape),
+      _m_container(container_ptr)
+    {}
+
+    const std::string&
+    name() const
+    {
+        return _m_name;
+    }
 
     /// Return the number of dimensions in the tensor.
     std::size_t
-    dim() const;
+    dim() const
+    {
+        return _m_shape.size();
+    }
 
     /// Return the total number of elements in the tensor.
     std::size_t
-    numel() const;
+    numel() const
+    {
+        return std::accumulate(_m_shape.begin(), _m_shape.end(), 1, std::multiplies<std::size_t>());
+    }
 
     const std::span<std::size_t>
-    sizes() const;
-
-    /// Cast this safe-tensor to the specified the specified type.
-    ///
-    /// Method infers the type of the final tensor from the `value_type` of the provided
-    /// allocator type. Allocation of tensors storing incomplete types (including void)
-    /// is prohibited.
-    template <std::size_t N, allocator Allocator>
-    auto
-    as(Allocator alloc) const
+    sizes() const
     {
-        using container_type = Allocator::container_type;
-        using value_type = Allocator::value_type;
-        using tensor_type = tensor<value_type, N, container_type>;
+        auto data_ptr = const_cast<std::size_t*>(_m_shape.data());
+        return std::span<std::size_t>(data_ptr, _m_shape.size());
+    }
 
-        /// Some allocators (like `hardware_nocopy_allocator`) could simply store a
-        /// pointer to the original data pointer, so once safetensor is destroyed,
-        /// container won't be valid anymore.
-        ///
-        /// To avoid this, share the ownership of safetensor with a new container.
-        auto data = static_cast<value_type*>(_m_data_ptr.get());
-        auto container_ptr = alloc.allocate(data, numel());
-
-        /// Create an artificial pair type, so that is stores both pointers, and then
-        /// leave an access only to the newly created container pointer.
-        using value_pointer = std::shared_ptr<void>;
-        using container_pointer = Allocator::container_pointer;
-        using shared_pointer = std::pair<value_pointer, container_pointer>;
-
-        /// Once container is destroyed, memory file is attempted to be destroyed as well.
-        auto shared_ptr = std::make_shared<shared_pointer>(_m_data_ptr, container_ptr);
-        container_ptr = container_pointer(shared_ptr, container_ptr.get());
-
-        return tensor_type(_m_shape.cbegin(), _m_shape.cend(), container_ptr);
+    container_pointer
+    container() const
+    {
+        return _m_container;
     }
 
     friend std::ostream&
-    operator<<(std::ostream& os, const safetensor& st);
+    operator<<(std::ostream& os, const safetensor& st)
+    {
+        os << "safetensor(" << st._m_name << ", shape=[" << st._m_shape << "])";
+        return os;
+    }
 
 private:
+    std::string _m_name;
     shape_type _m_shape;
-    data_pointer _m_data_ptr;
+    container_pointer _m_container;
 };
 
 
-class safetensor_file {
-public:
-    using container_type = std::unordered_map<std::string, safetensor, _StringHash>;
+template <typename Constructor, typename Allocator>
+concept invocable_with_safetensor = requires(Constructor constructor) {
+    requires allocator<Allocator>;
+    requires std::invocable<Constructor, safetensor<typename Allocator::container_type>>;
+};
 
-    using iterator = container_type::iterator;
 
-    using const_iterator = container_type::const_iterator;
+struct safetensors {
 
-    using file_ptr = std::shared_ptr<basic_memfile>;
+    template <allocator Allocator>
+    static auto
+    load(basic_memfile& file, Allocator alloc)
+    {
+        using container_type = typename Allocator::container_type;
+        using safetensor_type = safetensor<container_type>;
 
-    safetensor_file(const std::filesystem::path& p);
+        std::unordered_map<std::string, safetensor_type> tensors;
+        load(file, alloc, [&](safetensor_type s) { tensors.insert_or_assign(s.name(), s); });
+        return tensors;
+    }
 
-    std::size_t
-    size() const noexcept;
+    template <allocator Allocator, invocable_with_safetensor<Allocator> Constructor>
+    static void
+    load(basic_memfile& file, Allocator alloc, Constructor constructor)
+    {
+        // Read the length of the header and then the header itself, ensure that the
+        // the file contains enough data to avoid reading from inaccessible regions.
+        uint64_t header_size = 0;
+        file.read(&header_size, sizeof(header_size));
 
-    iterator
-    begin();
+        char header[header_size];
+        file.read(&header, sizeof(header));
+        auto start_pos = file.tellg();
 
-    const_iterator
-    begin() const;
+        simdjson::ondemand::parser json_parser;
+        simdjson::padded_string header_padded(header, header_size);
 
-    iterator
-    end();
+        auto json_document = json_parser.iterate(header_padded);
+        auto json_object = json_document.get_object();
 
-    const_iterator
-    end() const;
+        using value_type = typename Allocator::value_type;
+        using const_pointer = typename Allocator::const_pointer;
+        using container_type = typename Allocator::container_type;
+        using container_pointer = typename Allocator::container_pointer;
+        using tensor_type = safetensor<container_type>;
 
-    const_iterator
-    find(const std::string& tensor_name) const;
+        using meta_type = std::pair<std::string, safetensor_metadata>;
+        std::vector<meta_type> metadata;
 
-    const safetensor&
-    operator[](const std::string& tensor_name) const;
+        for (auto json_field : json_object) {
+            std::string_view field_name = json_field.unescaped_key();
+            if (field_name == "__metadata__") {
+                continue;
+            }
 
-    const file_ptr
-    file() const;
+            safetensor_metadata tensor_metadata;
+            auto error = json_field.value().get<safetensor_metadata>().get(tensor_metadata);
+            if (error) {
+                throw std::runtime_error(simdjson::error_message(error));
+            }
 
-private:
-    file_ptr _m_memfile;
-    container_type _m_tensors;
+            metadata.emplace_back(field_name, tensor_metadata);
+        }
 
-    void
-    parse();
+        // Order metadata entries to ensure that we access file sequentially.
+        auto metadata_comp = [](const meta_type& a, const meta_type& b) {
+            return a.second.data_offsets[0] < b.second.data_offsets[0];
+        };
+        std::sort(metadata.begin(), metadata.end(), metadata_comp);
+
+        for (const auto& [tensor_name, tensor_metadata] : metadata) {
+            auto tensor_pos = start_pos + tensor_metadata.data_offsets[0];
+
+            if (tensor_pos >= file.size()) {
+                throw std::runtime_error(std::format(
+                    "safetensor: start data position {} for a tensor {} is out of bounds",
+                    tensor_pos, tensor_name
+                ));
+            }
+
+            auto tensor_shape = tensor_metadata.shape;
+            auto tensor_numel = std::accumulate(
+                tensor_shape.begin(), tensor_shape.end(), 1, std::multiplies<std::size_t>()
+            );
+
+            container_pointer container_ptr(nullptr);
+
+            if (file.is_mapped()) {
+                const basic_memfile::char_type* container = file.data() + tensor_pos;
+                container_ptr = alloc.allocate((const_pointer)(container), tensor_numel);
+            } else {
+                auto container = std::make_shared<value_type[]>(tensor_numel);
+                file.read(container.get(), sizeof(value_type) * tensor_numel);
+
+                container_ptr = alloc.allocate((const_pointer)(container.get()), tensor_numel);
+            }
+
+            auto tensor = tensor_type(tensor_name, tensor_metadata.shape, container_ptr);
+            constructor(tensor);
+        }
+    }
 };
 
 

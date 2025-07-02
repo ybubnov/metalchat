@@ -15,6 +15,7 @@ namespace metalchat {
 
 
 struct kernel_queue;
+using kernel_callback_type = std::function<void()>;
 
 
 struct dim3 {
@@ -60,6 +61,9 @@ private:
     void
     encode_memory_barrier(metal::shared_buffer buffer);
 
+    void
+    on_completed(kernel_callback_type callback);
+
 public:
     hardware_function_encoder(std::shared_ptr<kernel_queue> queue, allocator_type alloc);
 
@@ -101,6 +105,23 @@ public:
         encode(container->storage(), container->storage_offset());
     }
 
+    template <typename T, immutable_filebuf_tensor_t<T> Tensor>
+    void
+    encode(const Tensor& tensor)
+    {
+        using container_type = std::remove_cvref_t<typename Tensor::container_type>;
+        container_type container = tensor.container();
+
+        on_completed([container = container]() { container.park(); });
+
+        auto alloc = rebind_hardware_allocator<T, allocator_type>(_m_allocator);
+        auto container_ptr = alloc.allocate(tensor.data_ptr(), tensor.numel());
+
+        auto layout = tensor.layout();
+        encode(&layout, sizeof(layout));
+        encode(container_ptr->storage(), container_ptr->storage_offset());
+    }
+
     void
     dispatch(dim3 grid, dim3 group);
 };
@@ -115,7 +136,6 @@ concept hardware_encodable_function
 
 class kernel_thread {
 public:
-    using callback_type = std::function<void()>;
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
 
 private:
@@ -137,7 +157,7 @@ private:
     /// Completion handler is executed once all commands in a command buffer are
     /// completed. All registered handlers are executed.
     void
-    on_completed(callback_type callback);
+    on_completed(kernel_callback_type callback);
 
 public:
     kernel_thread(const kernel_thread&) noexcept = default;
@@ -161,7 +181,7 @@ public:
 
     template <hardware_encodable_function F>
     std::shared_future<void>
-    push(F& f, std::optional<callback_type> callback = std::nullopt)
+    push(F& f, std::optional<kernel_callback_type> callback = std::nullopt)
     {
         if (!joinable()) {
             throw std::runtime_error(

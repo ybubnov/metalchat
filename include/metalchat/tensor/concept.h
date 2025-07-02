@@ -123,4 +123,11 @@ template <typename Tensor, typename T>
 concept optional_tensor_t = optional_tensor<Tensor, T>::value;
 
 
+template <typename Tensor, typename T>
+concept immutable_filebuf_tensor_t = immutable_tensor_t<Tensor, T>
+                                     && std::same_as<
+                                         typename Tensor::container_type,
+                                         filebuf_memory_container<typename Tensor::value_type>>;
+
+
 } // namespace metalchat

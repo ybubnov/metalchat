@@ -144,25 +144,26 @@ construct_llama3_1b(
 )
 {
     metalchat::bpe bpe(tokens_path);
-    metalchat::safetensor_file weights(weights_path);
-
     metalchat::hardware_accelerator gpu0;
-
-    auto memfile = weights.file();
-    auto padding_size = memfile->tellp() - memfile->tell();
 
     // Move memory file to a resident set, do not copy the underlying memory.
     auto alloc0 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
     auto alloc1 = hardware_resident_allocator(alloc0, gpu0.get_metal_device());
-    auto container = alloc1.allocate(memfile->tellp(), memfile->size() - padding_size);
+
+    auto weights_file = std::make_shared<basic_memfile>(weights_path);
+    weights_file->declare_mapped();
+    auto container = alloc1.allocate((void*)(weights_file->data()), weights_file->size());
 
     // Allocate all subsequent tensors from the buffer allocator, it will maintain
-    // correct offset from the buffer and does not cause any memory allocations.
-    // For all other remaining allocations, use a generic allocator.
+    // correct offset from the buffer and does not cause any container allocations.
+    //
+    // For all other remaining allocations, use a generic allocator from accelerator,
+    // which will be also placed into resident memory.
     auto alloc2 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
     auto alloc3 = hardware_resident_allocator(alloc2, gpu0.get_metal_device());
     auto alloc4 = hardware_buffer_allocator(alloc3, container->storage());
-    gpu0.set_allocator(std::move(alloc4));
+    auto alloc5 = hardware_aliasing_allocator(alloc4, weights_file);
+    gpu0.set_allocator(std::move(alloc5));
 
     auto options = options_.value_or(default_llama3_1b_options());
     auto attention_options = nn::attention_options{
@@ -173,13 +174,66 @@ construct_llama3_1b(
         .rope_theta = options.rope_theta()
     };
 
-    nn::llama<dtype::bf16> m(options.n_layers(), attention_options, gpu0);
-    m.initialize(weights, make_rebind_allocator<dtype::bf16>(gpu0.get_allocator()));
+    using value_type = dtype::bf16;
+    using container_type = hardware_memory_container<value_type>;
+    using estimator_type = nn::llama<value_type, container_type>;
 
-    auto alloc5 = hardware_heap_allocator<void>(gpu0.get_metal_device(), options.heap_size());
-    auto alloc6 = hardware_nocopy_allocator(alloc5, gpu0.get_metal_device());
+    auto m = estimator_type(options.n_layers(), attention_options, gpu0);
+
+    auto alloc = make_rebind_allocator<value_type>(gpu0.get_allocator());
+    auto tensors = safetensors::load(*weights_file, alloc);
+    m.initialize(tensors);
+
+    auto alloc6 = hardware_heap_allocator<void>(gpu0.get_metal_device(), options.heap_size());
+    auto alloc7 = hardware_nocopy_allocator(alloc6, gpu0.get_metal_device());
 
     gpu0.set_allocator(std::move(alloc6));
+
+    auto transformer = language_transformer(std::move(m));
+    auto agent = polymorphic_chat(std::move(transformer), bpe);
+
+    return agent;
+}
+
+
+polymorphic_chat
+construct_llama3_1b_minimal(
+    const std::filesystem::path& weights_path,
+    const std::filesystem::path& tokens_path,
+    std::optional<llama3_options> options_
+)
+{
+    metalchat::bpe bpe(tokens_path);
+    metalchat::hardware_accelerator gpu0(2);
+
+    auto alloc0 = hardware_resident_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
+    gpu0.set_allocator(std::move(alloc0));
+
+    basic_memfile weights_file(weights_path);
+
+    auto options = options_.value_or(default_llama3_1b_options());
+    auto attention_options = nn::attention_options{
+        .head_dim = options.head_dim(),
+        .n_heads = options.n_heads(),
+        .n_kv_heads = options.n_kv_heads(),
+        .max_seq_len = options.max_seq_len(),
+        .rope_theta = options.rope_theta()
+    };
+
+    using value_type = dtype::bf16;
+    using container_type = filebuf_memory_container<value_type>;
+    using estimator_type = nn::llama<value_type, container_type>;
+
+    auto m = estimator_type(options.n_layers(), attention_options, gpu0);
+
+    auto alloc = filebuf_memory_allocator<value_type>();
+    auto tensors = safetensors::load(weights_file, alloc);
+    m.initialize(tensors);
+
+    auto alloc3 = hardware_heap_allocator<void>(gpu0.get_metal_device(), options.heap_size());
+    auto alloc4 = hardware_nocopy_allocator(alloc3, gpu0.get_metal_device());
+
+    gpu0.set_allocator(std::move(alloc4));
 
     auto transformer = language_transformer(std::move(m));
     auto agent = polymorphic_chat(std::move(transformer), bpe);

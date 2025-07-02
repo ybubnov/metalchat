@@ -99,9 +99,9 @@ public:
     /// This method uses a parameter `N` to define the maximum number of dimensions of tensors
     /// to allocate. From the efficiency perspective it is limited by 8, but could be extended
     /// up to arbitrary number of dimensions.
-    template <allocator Allocator, std::size_t N = 8>
+    template <contiguous_container Container, std::size_t N = 8>
     void
-    initialize(const safetensor_file& weights, Allocator alloc)
+    initialize(const std::unordered_map<std::string, safetensor<Container>>& weights)
     {
         auto visitor = [&](const std::string& param_name, polymorphic_tensor param) {
             if (auto it = weights.find(param_name); it != weights.end()) {
@@ -109,7 +109,12 @@ public:
                 std::size_t dim = weight.dim();
 
                 constexpr_switch(dim, std::make_index_sequence<N>{}, [&](auto i) {
-                    param.emplace(std::move(weight.as<i, Allocator>(alloc)));
+                    using value_type = typename Container::value_type;
+                    using tensor_type = tensor<value_type, i, Container>;
+                    auto sizes = weight.sizes();
+                    param.emplace(
+                        std::move(tensor_type(sizes.begin(), sizes.end(), weight.container()))
+                    );
                 });
             }
         };
