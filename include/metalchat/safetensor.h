@@ -150,10 +150,10 @@ private:
 };
 
 
-template <typename Constructor, typename Allocator>
-concept invocable_with_safetensor = requires(Constructor constructor) {
+template <typename UnaryOp, typename Allocator>
+concept invocable_with_safetensor = requires {
     requires allocator<Allocator>;
-    requires std::invocable<Constructor, safetensor<typename Allocator::container_type>>;
+    requires std::invocable<UnaryOp, safetensor<typename Allocator::container_type>>;
 };
 
 
@@ -171,9 +171,9 @@ struct safetensors {
         return tensors;
     }
 
-    template <allocator Allocator, invocable_with_safetensor<Allocator> Constructor>
+    template <allocator Allocator, invocable_with_safetensor<Allocator> UnaryOp>
     static void
-    load(basic_memfile& file, Allocator alloc, Constructor constructor)
+    load(basic_memfile& file, Allocator alloc, UnaryOp unary_op)
     {
         // Read the length of the header and then the header itself, ensure that the
         // the file contains enough data to avoid reading from inaccessible regions.
@@ -248,7 +248,7 @@ struct safetensors {
             }
 
             auto tensor = tensor_type(tensor_metadata.name, tensor_metadata.shape, container_ptr);
-            constructor(tensor);
+            unary_op(tensor);
         }
     }
 };
