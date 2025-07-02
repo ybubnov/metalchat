@@ -196,8 +196,7 @@ struct safetensors {
         using container_pointer = typename Allocator::container_pointer;
         using tensor_type = safetensor<container_type>;
 
-        using meta_type = std::pair<std::string, safetensor_metadata>;
-        std::vector<meta_type> metadata;
+        std::vector<safetensor_metadata> metadata;
 
         for (auto json_field : json_object) {
             std::string_view field_name = json_field.unescaped_key();
@@ -211,22 +210,23 @@ struct safetensors {
                 throw std::runtime_error(simdjson::error_message(error));
             }
 
-            metadata.emplace_back(field_name, tensor_metadata);
+            tensor_metadata.name = field_name;
+            metadata.push_back(tensor_metadata);
         }
 
         // Order metadata entries to ensure that we access file sequentially.
-        auto metadata_comp = [](const meta_type& a, const meta_type& b) {
-            return a.second.data_offsets[0] < b.second.data_offsets[0];
+        auto metadata_comp = [](const safetensor_metadata& a, const safetensor_metadata& b) {
+            return a.data_offsets[0] < b.data_offsets[0];
         };
         std::sort(metadata.begin(), metadata.end(), metadata_comp);
 
-        for (const auto& [tensor_name, tensor_metadata] : metadata) {
+        for (const auto& tensor_metadata : metadata) {
             auto tensor_pos = start_pos + tensor_metadata.data_offsets[0];
 
             if (tensor_pos >= file.size()) {
                 throw std::runtime_error(std::format(
                     "safetensor: start data position {} for a tensor {} is out of bounds",
-                    tensor_pos, tensor_name
+                    tensor_pos, tensor_metadata.name
                 ));
             }
 
@@ -247,7 +247,7 @@ struct safetensors {
                 container_ptr = alloc.allocate((const_pointer)(container.get()), tensor_numel);
             }
 
-            auto tensor = tensor_type(tensor_name, tensor_metadata.shape, container_ptr);
+            auto tensor = tensor_type(tensor_metadata.name, tensor_metadata.shape, container_ptr);
             constructor(tensor);
         }
     }
