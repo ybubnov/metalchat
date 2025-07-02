@@ -187,7 +187,7 @@ construct_llama3_1b(
     auto alloc6 = hardware_heap_allocator<void>(gpu0.get_metal_device(), options.heap_size());
     auto alloc7 = hardware_nocopy_allocator(alloc6, gpu0.get_metal_device());
 
-    gpu0.set_allocator(std::move(alloc6));
+    gpu0.set_allocator(std::move(alloc7));
 
     auto transformer = language_transformer(std::move(m));
     auto agent = polymorphic_chat(std::move(transformer), bpe);
