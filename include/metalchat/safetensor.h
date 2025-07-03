@@ -102,6 +102,28 @@ struct safetensors {
 
     template <allocator Allocator>
     static auto
+    load(const std::filesystem::path& p, Allocator alloc)
+    {
+        auto file = std::make_shared<basic_memfile>(p);
+        file->declare_mapped();
+
+        auto alloc0 = aliasing_allocator(alloc, file);
+        return load(*file, alloc0);
+    }
+
+    template <hardware_allocator Allocator>
+    static auto
+    load(const std::filesystem::path& p, Allocator alloc)
+    {
+        auto file = std::make_shared<basic_memfile>(p);
+        file->declare_mapped();
+
+        auto alloc0 = hardware_aliasing_allocator(alloc, file);
+        return load(*file, alloc0);
+    }
+
+    template <allocator Allocator>
+    static auto
     load(basic_memfile& file, Allocator alloc)
     {
         using container_type = typename Allocator::container_type;

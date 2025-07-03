@@ -14,7 +14,6 @@ using namespace metalchat::dtype;
 TEST_CASE("Test model load", "[safetensor]")
 {
     metalchat::hardware_accelerator gpu0(16);
-    metalchat::safetensor_file tensors("../llama32.safetensors");
 
     auto options = nn::attention_options{
         .head_dim = 64,
@@ -27,8 +26,10 @@ TEST_CASE("Test model load", "[safetensor]")
     auto alloc0 = gpu0.get_allocator();
     auto alloc1 = make_rebind_allocator<bf16>(alloc0);
 
+    auto tensors = safetensors::load("../llama32.safetensors", alloc1);
+
     nn::llama<bf16> m(16, options, gpu0);
-    m.initialize(tensors, alloc1);
+    m.initialize(tensors);
 
     auto params = m.get_parameters();
 

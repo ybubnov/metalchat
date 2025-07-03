@@ -19,7 +19,6 @@ TEST_CASE("Test make model", "[llama]")
 {
     metalchat::byte_pair_encoder bpe("../Llama-3.2-1B/original/tokenizer.model");
     metalchat::hardware_accelerator gpu0;
-    metalchat::safetensor_file tensors("../llama32.safetensors");
 
     auto alloc1 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
     auto alloc2 = hardware_resident_allocator(alloc1, gpu0.get_metal_device());
@@ -33,8 +32,11 @@ TEST_CASE("Test make model", "[llama]")
         .rope_theta = 500000.0
     };
 
+    auto alloc = make_rebind_allocator<bf16>(gpu0.get_allocator());
+    auto tensors = safetensors::load("../llama32.safetensors", alloc);
+
     nn::llama<bf16> m(16, options, gpu0);
-    m.initialize(tensors, make_rebind_allocator<bf16>(gpu0.get_allocator()));
+    m.initialize(tensors);
 
     auto heap_size = std::size_t(512) * 1024 * 1024;
     auto alloc3 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);
