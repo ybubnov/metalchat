@@ -75,10 +75,12 @@ template <typename T> struct memory_container {
     using pointer = value_type*;
     using const_pointer = const value_type*;
 
+    /// Get a write access to the underlying container data.
     virtual pointer
     data()
         = 0;
 
+    /// Get a read access to the underlying container data.
     virtual const_pointer
     data() const
         = 0;
@@ -299,6 +301,10 @@ make_scalar_container(T data)
 }
 
 
+/// A container that keeps data within a temporary file.
+///
+/// When users need to get read (or write) access to the file, it's mapped to the memory and
+/// remains mapped, when `filebuf_memory_container::park` method is called.
 template <typename T> struct filebuf_memory_container : public memory_container<T> {
 private:
     std::shared_ptr<basic_memfile> _m_filebuf;
@@ -308,12 +314,16 @@ public:
     using pointer = value_type*;
     using const_pointer = const pointer;
 
+    /// Constructs a new instance of a file-buffered container and initializes it with
+    /// the provided data. After construction file is not mapped into the memory.
     filebuf_memory_container(const_pointer data, std::size_t size)
     : _m_filebuf(std::make_shared<basic_memfile>())
     {
         _m_filebuf->write(data, sizeof(value_type) * size);
     }
 
+    /// Method evicts memory-mapped file from the memory. When the file is not memory-mapped
+    /// method does absolutely nothing, so calling method multiple time is safe.
     void
     park() const
     {

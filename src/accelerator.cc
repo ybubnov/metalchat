@@ -97,8 +97,9 @@ hardware_accelerator::set_allocator(hardware_accelerator::allocator_type alloc)
 std::string
 hardware_accelerator::name() const
 {
-    auto device_name = NS::TransferPtr(_m_device->ptr->name());
-    return std::string(device_name->utf8String());
+    std::cout << "get name" << std::endl;
+    auto device_name = _m_device->ptr->name();
+    return std::string(device_name->utf8String(), device_name->length());
 }
 
 
