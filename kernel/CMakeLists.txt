@@ -1,4 +1,7 @@
+set(metalchat_SDK macosx)
+# set(metalchat_SDK iphoneos)
 set(metalchat_TARGET "air64-apple-macos14.0")
+# set(metalchat_TARGET "air64-apple-ios18.0")
 set(metalchat_KERNEL_LIBRARY "metalchat.metallib")
 
 string(STRIP metalchat_TARGET ${metalchat_TARGET})
@@ -16,7 +19,7 @@ foreach(metalchat_KERNEL_SOURCE ${metalchat_KERNEL_SOURCES})
             ${CMAKE_CURRENT_SOURCE_DIR}/${metalchat_KERNEL_NAME}.metal
             ${COMMON_DEPENDENCIES}
             ${metalchat_KERNEL_HEADERS}
-        COMMAND xcrun -v -sdk macosx metal
+        COMMAND xcrun -v -sdk ${metalchat_SDK} metal
         ${METAL_FLAGS}
         -I .
         -I ${PROJECT_SOURCE_DIR}/include
@@ -38,7 +41,7 @@ add_custom_target(
     ${metalchat_KERNEL_LIBRARY}
     DEPENDS ${metalchat_KERNELS}
     ${metalchat_KERNEL_NAME}.air
-    COMMAND xcrun -sdk macosx metallib
+    COMMAND xcrun -sdk ${metalchat_SDK} metallib
     *.air
     -o ${CMAKE_BINARY_DIR}/${metalchat_KERNEL_LIBRARY}
 )

@@ -293,7 +293,7 @@ public:
 
     template <language_transformer_t Transformer>
     polymorphic_chat(Transformer&& transformer, const bpe& encoder)
-    : _m_chat(polymorphic_language_transformer(std::move(transformer)), encoder)
+    : _m_chat(chat<polymorphic_language_transformer>(std::move(transformer), encoder))
     {}
 
     void
@@ -470,6 +470,14 @@ construct_llama3_1b_compact(
 
 polymorphic_chat
 construct_llama3_1b(
+    const std::string& weights_path,
+    const std::string& tokens_path,
+    std::optional<llama3_options> options = std::nullopt
+);
+
+
+polymorphic_chat
+construct_llama3_1b_compact(
     const std::string& weights_path,
     const std::string& tokens_path,
     std::optional<llama3_options> options = std::nullopt

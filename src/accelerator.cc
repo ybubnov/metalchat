@@ -97,7 +97,6 @@ hardware_accelerator::set_allocator(hardware_accelerator::allocator_type alloc)
 std::string
 hardware_accelerator::name() const
 {
-    std::cout << "get name" << std::endl;
     auto device_name = _m_device->ptr->name();
     return std::string(device_name->utf8String(), device_name->length());
 }
@@ -110,8 +109,8 @@ hardware_accelerator::load(const std::string& name)
         return it->second;
     }
 
-    auto fn_name = NS::TransferPtr(NS::String::string(name.c_str(), NS::UTF8StringEncoding));
-    auto fn_ptr = NS::TransferPtr(_m_library->ptr->newFunction(fn_name.get()));
+    auto fn_name = NS::RetainPtr(NS::String::string(name.c_str(), NS::UTF8StringEncoding));
+    auto fn_ptr = NS::RetainPtr(_m_library->ptr->newFunction(fn_name.get()));
     if (!fn_ptr) {
         throw std::invalid_argument(
             std::format("hardware_accelerator: function {} not found in a shader library", name)
@@ -120,15 +119,15 @@ hardware_accelerator::load(const std::string& name)
 
     fn_ptr->setLabel(fn_name.get());
 
-    NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
+    NS::SharedPtr<NS::Error> error = NS::RetainPtr(NS::Error::alloc());
     NS::Error* error_ptr = error.get();
 
-    auto descriptor = NS::TransferPtr(MTL::ComputePipelineDescriptor::alloc());
+    auto descriptor = NS::RetainPtr(MTL::ComputePipelineDescriptor::alloc());
     descriptor->init();
     descriptor->setComputeFunction(fn_ptr.get());
     descriptor->setLabel(fn_name.get());
 
-    auto pipeline_ptr = NS::TransferPtr(_m_device->ptr->newComputePipelineState(
+    auto pipeline_ptr = NS::RetainPtr(_m_device->ptr->newComputePipelineState(
         descriptor.get(), MTL::PipelineOptionNone, nullptr, &error_ptr
     ));
 
@@ -143,6 +142,7 @@ hardware_accelerator::load(const std::string& name)
     auto kernel = basic_kernel(kernel_ptr, *this);
 
     _m_kernels.insert_or_assign(name, kernel);
+
     return _m_kernels.at(name);
 }
 

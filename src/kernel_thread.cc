@@ -10,7 +10,7 @@ struct kernel_queue {
     std::size_t id;
 
     NS::SharedPtr<MTL::CommandQueue> queue;
-    MTL::CommandBuffer* commands;
+    NS::SharedPtr<MTL::CommandBuffer> commands;
     NS::SharedPtr<MTL::ComputeCommandEncoder> encoder;
     NS::SharedPtr<MTL::Event> event;
 
@@ -18,15 +18,13 @@ struct kernel_queue {
 
     kernel_queue(metal::shared_device device)
     : id(0),
-      queue(NS::TransferPtr(device->ptr->newCommandQueue())),
-      commands(queue->commandBuffer()),
-      encoder(NS::TransferPtr(commands->computeCommandEncoder(MTL::DispatchTypeConcurrent))),
-      event(NS::TransferPtr(device->ptr->newEvent()))
+      queue(NS::RetainPtr(device->ptr->newCommandQueue())),
+      commands(NS::RetainPtr(queue->commandBuffer())),
+      encoder(NS::RetainPtr(commands->computeCommandEncoder(MTL::DispatchTypeConcurrent))),
+      event(NS::RetainPtr(device->ptr->newEvent()))
     {
-        // Labels in NS objects are released during release of the object itself,
-        // therefore there is no need to create shared pointer for the NS::String.
-        auto label = NS::String::string("metalchat", NS::UTF8StringEncoding);
-        queue->setLabel(label);
+        auto label = NS::RetainPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
+        queue->setLabel(label.get());
     }
 
     kernel_queue
@@ -35,12 +33,12 @@ struct kernel_queue {
         kernel_queue kq = *this;
 
         kq.id++;
-        kq.commands = kq.queue->commandBuffer();
+        kq.commands = NS::RetainPtr(kq.queue->commandBuffer());
         kq.commands->enqueue();
         kq.commands->encodeWait(kq.event.get(), id);
 
         auto encoder = kq.commands->computeCommandEncoder(MTL::DispatchTypeConcurrent);
-        kq.encoder = NS::TransferPtr(encoder);
+        kq.encoder = NS::RetainPtr(encoder);
         return kq;
     }
 
@@ -108,8 +106,8 @@ hardware_function_encoder::dispatch(dim3 grid, dim3 group)
     command_name_stream << _m_name << "<" << grid << "," << group << ">" << std::endl;
 
     auto command_name = command_name_stream.str();
-    auto command_name_label = NS::String::string(command_name.c_str(), NS::UTF8StringEncoding);
-    _m_queue->encoder->setLabel(command_name_label);
+    auto cmd_name = NS::RetainPtr(NS::String::string(command_name.c_str(), NS::UTF8StringEncoding));
+    _m_queue->encoder->setLabel(cmd_name.get());
 
     MTL::Size threads_per_grid(grid.x, grid.y, grid.z);
     MTL::Size threads_per_group(group.x, group.y, group.z);
@@ -183,11 +181,11 @@ kernel_thread::make_ready_at_thread_exit()
 {
     if (!_m_committed) {
         auto label = std::format("metalchat commands (size={})", _m_size);
-        auto commands_label = NS::String::string(label.c_str(), NS::UTF8StringEncoding);
+        auto cmd_label = NS::RetainPtr(NS::String::string(label.c_str(), NS::UTF8StringEncoding));
 
         _m_queue->encoder->endEncoding();
 
-        _m_queue->commands->setLabel(commands_label);
+        _m_queue->commands->setLabel(cmd_label.get());
         _m_queue->commands->encodeSignalEvent(_m_queue->event.get(), _m_queue->id + 1);
         _m_queue->commands->commit();
 

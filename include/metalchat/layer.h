@@ -259,6 +259,8 @@ public:
         }
     }
 
+    virtual ~layer() {}
+
 private:
     parameter_container _m_params;
     layer_container _m_layers;

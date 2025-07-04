@@ -1,5 +1,7 @@
 #include <metalchat/chat.h>
 
+#include "metal_impl.h"
+
 
 namespace metalchat {
 
@@ -204,12 +206,16 @@ construct_llama3_1b_compact(
 )
 {
     metalchat::bpe bpe(tokens_path);
-    metalchat::hardware_accelerator gpu0(2);
+    std::cout << "loaded bpe" << std::endl;
+    metalchat::hardware_accelerator gpu0(64);
+    std::cout << "created accelerator " << gpu0.name() << std::endl;
 
     auto alloc0 = hardware_resident_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
     gpu0.set_allocator(std::move(alloc0));
+    std::cout << "created resident allocator" << std::endl;
 
     basic_memfile weights_file(weights_path);
+    std::cout << "opened weights file" << std::endl;
 
     auto options = options_.value_or(default_llama3_1b_options());
     auto attention_options = nn::attention_options{
@@ -225,18 +231,24 @@ construct_llama3_1b_compact(
     using estimator_type = nn::llama<value_type, container_type>;
 
     auto m = estimator_type(options.n_layers(), attention_options, gpu0);
+    std::cout << "created estimator" << std::endl;
 
     auto alloc = filebuf_memory_allocator<value_type>();
     auto tensors = safetensors::load(weights_file, alloc);
+    std::cout << "loaded weights" << std::endl;
+
     m.initialize(tensors);
+    std::cout << "initialized estimator" << std::endl;
 
     auto alloc3 = hardware_heap_allocator<void>(gpu0.get_metal_device(), options.heap_size());
     auto alloc4 = hardware_nocopy_allocator(alloc3, gpu0.get_metal_device());
 
     gpu0.set_allocator(std::move(alloc4));
+    std::cout << "created a new allocator" << std::endl;
 
     auto transformer = language_transformer(std::move(m));
     auto agent = polymorphic_chat(std::move(transformer), bpe);
+    std::cout << "created poly chat" << std::endl;
 
     return agent;
 }
@@ -253,6 +265,20 @@ construct_llama3_1b(
     auto tokens_fs_path = std::filesystem::path(tokens_path);
 
     return construct_llama3_1b(weights_fs_path, tokens_fs_path, options);
+}
+
+
+polymorphic_chat
+construct_llama3_1b_compact(
+    const std::string& weights_path,
+    const std::string& tokens_path,
+    std::optional<llama3_options> options
+)
+{
+    auto weights_fs_path = std::filesystem::path(weights_path);
+    auto tokens_fs_path = std::filesystem::path(tokens_path);
+
+    return construct_llama3_1b_compact(weights_fs_path, tokens_fs_path, options);
 }
 
 

@@ -7,7 +7,7 @@ namespace metalchat {
 
 
 basic_kernel::basic_kernel(metal::shared_kernel kernel, const hardware_accelerator& accelerator)
-: _m_name(kernel->function->name()->utf8String()),
+: _m_name(kernel->function->name()->utf8String(), kernel->function->name()->length()),
   _m_kernel(kernel),
   _m_accelerator(accelerator)
 {}

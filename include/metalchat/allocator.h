@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <mutex>
 #include <new>
 
 #include <metalchat/container.h>
@@ -377,6 +378,7 @@ private:
     struct _HardwareResidentAllocator_data;
 
     std::shared_ptr<_HardwareResidentAllocator_data> _m_data;
+    std::shared_ptr<std::mutex> _m_mutex;
     std::shared_ptr<std::size_t> _m_size;
 
 public:
@@ -545,6 +547,7 @@ private:
     struct _HardwareHeapAllocator_data;
 
     std::shared_ptr<_HardwareHeapAllocator_data> _m_data;
+    std::shared_ptr<std::mutex> _m_mutex;
     std::shared_ptr<std::size_t> _m_size;
 
 public:

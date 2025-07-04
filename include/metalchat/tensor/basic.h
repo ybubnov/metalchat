@@ -54,6 +54,8 @@ public:
     virtual std::size_t
     numel() const
         = 0;
+
+    virtual ~basic_tensor() {}
 };
 
 
