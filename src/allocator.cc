@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <format>
 #include <memory>
 #include <mutex>
@@ -163,24 +164,45 @@ _HardwareMemoryAllocator::allocate(const void* ptr, std::size_t size)
 
 
 _HardwareBufferAllocator::_HardwareBufferAllocator(metal::shared_buffer buffer)
-: _m_buffer(buffer)
+: _m_containers({std::make_shared<container_type>(buffer)})
 {}
+
+
+_HardwareBufferAllocator::_HardwareBufferAllocator(container_pointer container_ptr)
+: _m_containers({container_ptr})
+{}
+
+
+_HardwareBufferAllocator::_HardwareBufferAllocator(std::vector<container_pointer> containers)
+: _m_containers(containers)
+{
+    auto comp = [](container_pointer a, container_pointer b) {
+        return a->storage_ptr() < b->storage_ptr();
+    };
+    std::sort(_m_containers.begin(), _m_containers.end(), comp);
+}
 
 
 _HardwareBufferAllocator::container_pointer
 _HardwareBufferAllocator::allocate(const void* ptr, std::size_t size)
 {
-    const auto alloc_ptr = static_cast<const std::uint8_t*>(ptr);
+    const std::uint8_t* alloc_ptr = static_cast<const std::uint8_t*>(ptr);
 
-    const auto begin_ptr = static_cast<const std::uint8_t*>(_m_buffer->ptr->contents());
-    const auto end_ptr = begin_ptr + _m_buffer->ptr->length();
+    auto comp = [](container_pointer container, const void* p) { return container->end() < p; };
 
-    if ((alloc_ptr < begin_ptr) || (alloc_ptr + size > end_ptr)) {
-        throw alloc_error("metalchat::hardware_buffer_allocator: bad allocation request");
+    auto container_it = std::lower_bound(_m_containers.begin(), _m_containers.end(), ptr, comp);
+
+    for (; container_it != _m_containers.end(); ++container_it) {
+        auto container_ptr = *container_it;
+        const std::uint8_t* begin_ptr = static_cast<const std::uint8_t*>(container_ptr->begin());
+
+        if (container_ptr->contains(alloc_ptr) && container_ptr->contains(alloc_ptr + size)) {
+            std::size_t off = alloc_ptr - begin_ptr;
+            return std::make_shared<container_type>(container_ptr->storage(), /*off=*/off);
+        }
     }
 
-    std::size_t off = alloc_ptr - begin_ptr;
-    return std::make_shared<container_type>(_m_buffer, /*off=*/off);
+    throw alloc_error("hardware_buffer_allocator: no container found");
 }
 
 

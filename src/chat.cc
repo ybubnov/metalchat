@@ -154,7 +154,11 @@ construct_llama3_1b(
 
     auto weights_file = std::make_shared<basic_memfile>(weights_path);
     weights_file->declare_mapped();
+    std::cout << "declare mapped" << std::endl;
     auto container = alloc1.allocate((void*)(weights_file->data()), weights_file->size());
+    std::cout << "allocate container" << std::endl;
+    // auto alloc2 = paginated_allocator_adapter(alloc1, gpu0.max_buffer_size());
+    // auto containers = alloc2.allocate(weights_file->data(), weights_file->size());
 
     // Allocate all subsequent tensors from the buffer allocator, it will maintain
     // correct offset from the buffer and does not cause any container allocations.
@@ -166,6 +170,7 @@ construct_llama3_1b(
     auto alloc4 = hardware_buffer_allocator(alloc3, container->storage());
     auto alloc5 = hardware_aliasing_allocator(alloc4, weights_file);
     gpu0.set_allocator(std::move(alloc5));
+    std::cout << "create all allocators" << std::endl;
 
     auto options = options_.value_or(default_llama3_1b_options());
     auto attention_options = nn::attention_options{
@@ -183,7 +188,9 @@ construct_llama3_1b(
     auto m = estimator_type(options.n_layers(), attention_options, gpu0);
 
     auto alloc = make_rebind_allocator<value_type>(gpu0.get_allocator());
-    auto tensors = safetensors::load(*weights_file, alloc);
+    std::cout << "create a model" << std::endl;
+    auto tensors = safetensors::load(weights_file, alloc);
+    std::cout << "load tensors" << std::endl;
     m.initialize(tensors);
 
     auto alloc6 = hardware_heap_allocator<void>(gpu0.get_metal_device(), options.heap_size());

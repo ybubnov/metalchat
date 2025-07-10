@@ -100,6 +100,9 @@ struct safetensors {
     static std::vector<safetensor_metadata>
     load_header(basic_memfile& file);
 
+    static std::vector<safetensor_metadata>
+    load_header(std::shared_ptr<basic_memfile> file_ptr);
+
     template <allocator Allocator>
     static auto
     load(const std::filesystem::path& p, Allocator alloc)
@@ -124,6 +127,13 @@ struct safetensors {
 
     template <allocator Allocator>
     static auto
+    load(std::shared_ptr<basic_memfile> file_ptr, Allocator alloc)
+    {
+        return load(*file_ptr, alloc);
+    }
+
+    template <allocator Allocator>
+    static auto
     load(basic_memfile& file, Allocator alloc)
     {
         using container_type = typename Allocator::container_type;
@@ -139,7 +149,6 @@ struct safetensors {
     load(basic_memfile& file, Allocator alloc, UnaryOp unary_op)
     {
         auto metadata = load_header(file);
-        auto start_pos = file.tellg();
 
         using value_type = typename Allocator::value_type;
         using const_pointer = typename Allocator::const_pointer;
@@ -148,7 +157,7 @@ struct safetensors {
         using tensor_type = safetensor<container_type>;
 
         for (const auto& tensor_metadata : metadata) {
-            auto tensor_pos = start_pos + tensor_metadata.data_offsets[0];
+            auto tensor_pos = tensor_metadata.data_offsets[0];
 
             if (tensor_pos >= file.size()) {
                 throw std::runtime_error(std::format(

@@ -12,6 +12,10 @@ void*
 data(const shared_buffer buffer);
 
 
+std::size_t
+size(const shared_buffer buffer);
+
+
 struct device;
 using shared_device = std::shared_ptr<device>;
 

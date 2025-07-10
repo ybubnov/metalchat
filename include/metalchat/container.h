@@ -101,6 +101,15 @@ concept contiguous_container = requires {
 } && std::derived_from<Container, memory_container<typename Container::value_type>>;
 
 
+template <typename It>
+concept forward_container_iterator_t = std::forward_iterator<It> && requires(It it) {
+    typename std::iterator_traits<It>::value_type;
+    typename std::iterator_traits<It>::value_type::element_type;
+
+    requires contiguous_container<typename std::iterator_traits<It>::value_type::element_type>;
+};
+
+
 template <typename T> struct reference_memory_container : public memory_container<T> {
 private:
     T* _m_data = nullptr;
@@ -244,6 +253,24 @@ template <typename T> struct hardware_memory_container : public memory_container
     operator hardware_memory_container<U>() const
     {
         return hardware_memory_container<U>(_m_mem);
+    }
+
+    bool
+    contains(const void* ptr) const
+    {
+        return (ptr >= begin()) && (ptr <= end());
+    }
+
+    const void*
+    begin() const
+    {
+        return storage_ptr();
+    }
+
+    const void*
+    end() const
+    {
+        return static_cast<const std::uint8_t*>(begin()) + metal::size(_m_mem);
     }
 
     metal::shared_buffer

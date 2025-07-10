@@ -3,6 +3,8 @@
 #include <concepts>
 #include <mutex>
 #include <new>
+// TODO: Move implementation to .cc file
+#include <unistd.h>
 
 #include <metalchat/container.h>
 
@@ -312,17 +314,19 @@ private:
 
 
 class _HardwareBufferAllocator {
-private:
-    metal::shared_buffer _m_buffer;
-
 public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
     _HardwareBufferAllocator(metal::shared_buffer buffer);
+    _HardwareBufferAllocator(container_pointer container_ptr);
+    _HardwareBufferAllocator(std::vector<container_pointer> containers);
 
     container_pointer
     allocate(const void* ptr, std::size_t size);
+
+private:
+    std::vector<container_pointer> _m_containers;
 };
 
 
@@ -353,6 +357,16 @@ public:
     hardware_buffer_allocator(Allocator alloc, metal::shared_buffer buffer)
     : _m_alloc(alloc),
       _m_buffer_alloc(buffer)
+    {}
+
+    hardware_buffer_allocator(Allocator alloc, container_pointer container_ptr)
+    : _m_alloc(alloc),
+      _m_buffer_alloc(container_ptr)
+    {}
+
+    hardware_buffer_allocator(Allocator alloc, std::vector<container_pointer> containers)
+    : _m_alloc(alloc),
+      _m_buffer_alloc(containers)
     {}
 
     container_pointer
@@ -823,6 +837,114 @@ template <typename T> struct filebuf_memory_allocator {
     {
         return std::make_shared<container_type>(ptr, size);
     }
+};
+
+
+template <allocator Allocator> class paginated_allocator_adapter {
+public:
+    using value_type = typename Allocator::value_type;
+    using pointer = typename Allocator::pointer;
+    using const_pointer = typename Allocator::const_pointer;
+    using size_type = typename Allocator::size_type;
+    using container_type = typename Allocator::container_type;
+    using container_pointer = typename Allocator::container_pointer;
+
+    paginated_allocator_adapter(Allocator alloc, std::size_t max_size, std::size_t page_size)
+    : _m_alloc(alloc),
+      _m_max_size(max_size),
+      _m_page_size(page_size)
+    {}
+
+    paginated_allocator_adapter(Allocator alloc, std::size_t max_size)
+    : _m_alloc(alloc),
+      _m_max_size(max_size),
+      _m_page_size(0)
+    {
+        auto page_size = sysconf(_SC_PAGESIZE);
+        if (page_size == -1) {
+            throw std::runtime_error("paginated_allocator_adapter: failed to query system page size"
+            );
+        }
+
+        _m_page_size = page_size;
+    }
+
+    auto
+    allocate(std::vector<std::size_t> sizes)
+    {
+        std::vector<container_pointer> containers;
+        std::size_t block_size = 0;
+
+        for (std::size_t i = 0; i < sizes.size(); i++) {
+            if (sizes[i] > _m_max_size) {
+                return std::vector<container_pointer>();
+            }
+
+            if (block_size + sizes[i] >= _m_max_size) {
+                containers.push_back(_m_alloc.allocate(block_size));
+                block_size = 0;
+            }
+
+            block_size = sizes[i];
+        }
+
+        containers.push_back(_m_alloc.allocate(block_size));
+        return containers;
+    }
+
+    auto
+    allocate(std::size_t size)
+    {
+        return allocate(std::vector({size}));
+    }
+
+    auto
+    allocate(const_pointer ptr, std::vector<std::size_t> sizes)
+    {
+        std::vector<container_pointer> containers;
+        std::size_t block_size = 0;
+
+        for (std::size_t i = 0; i < sizes.size(); i++) {
+            if (sizes[i] > _m_max_size) {
+                return std::vector<container_pointer>();
+            }
+
+            if (block_size + sizes[i] >= _m_max_size) {
+                // TODO: align by page size?.
+                containers.push_back(_m_alloc.allocate(ptr, block_size));
+                ptr += block_size;
+                block_size = 0;
+            }
+
+            block_size = sizes[i];
+        }
+
+        containers.push_back(_m_alloc.allocate(ptr, block_size));
+        return containers;
+    }
+
+    auto
+    allocate(const void* ptr, std::vector<std::size_t> sizes)
+    {
+        return allocate(static_cast<const_pointer>(ptr), sizes);
+    }
+
+    auto
+    allocate(const_pointer ptr, std::size_t size)
+    {
+        return allocate(ptr, std::vector({size}));
+    }
+
+    auto
+    allocate(const void* ptr, std::size_t size)
+    {
+        return allocate(static_cast<const_pointer>(ptr), size);
+    }
+
+private:
+    Allocator _m_alloc;
+    std::size_t _m_page_size;
+    std::size_t _m_max_size;
 };
 
 

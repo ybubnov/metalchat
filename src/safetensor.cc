@@ -78,6 +78,7 @@ safetensors::load_header(basic_memfile& file)
     auto json_object = json_document.get_object();
 
     std::vector<safetensor_metadata> metadata;
+    auto start_pos = file.tellg();
 
     for (auto json_field : json_object) {
         std::string_view field_name = json_field.unescaped_key();
@@ -91,6 +92,10 @@ safetensors::load_header(basic_memfile& file)
             throw std::runtime_error(simdjson::error_message(error));
         }
 
+        for (auto& offset : tensor_metadata.data_offsets) {
+            offset += start_pos;
+        }
+
         tensor_metadata.name = field_name;
         metadata.push_back(tensor_metadata);
     }
@@ -102,6 +107,13 @@ safetensors::load_header(basic_memfile& file)
     std::sort(metadata.begin(), metadata.end(), metadata_comp);
 
     return metadata;
+}
+
+
+std::vector<safetensor_metadata>
+safetensors::load_header(std::shared_ptr<basic_memfile> file_ptr)
+{
+    return load_header(*file_ptr);
 }
 
 
