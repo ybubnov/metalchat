@@ -158,8 +158,11 @@ construct_llama3_1b(
 
     std::cout << "allocate container" << std::endl;
     auto alloc2 = paginated_allocator_adapter(alloc1, gpu0.max_buffer_size());
-    auto containers = alloc2.allocate(weights_file->data(), weights_file->size());
+    auto containers = alloc2.allocate(weights.data(), weights.sizes());
     std::cout << "allocated containers n=" << containers.size() << std::endl;
+    for (const auto& c : containers) {
+        std::cout << "container size=" << metal::size(c->storage()) << std::endl;
+    }
 
     // Allocate all subsequent tensors from the buffer allocator, it will maintain
     // correct offset from the buffer and does not cause any container allocations.

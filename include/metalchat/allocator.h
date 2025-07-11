@@ -885,7 +885,7 @@ public:
                 block_size = 0;
             }
 
-            block_size = sizes[i];
+            block_size += sizes[i];
         }
 
         containers.push_back(_m_alloc.allocate(block_size));
@@ -917,7 +917,7 @@ public:
                 block_size = 0;
             }
 
-            block_size = sizes[i];
+            block_size += sizes[i];
         }
 
         containers.push_back(_m_alloc.allocate(const_pointer(pointer), block_size));

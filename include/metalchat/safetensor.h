@@ -106,6 +106,24 @@ public:
       _m_metadata(load_header(file))
     {}
 
+    void*
+    data() noexcept
+    {
+        std::size_t offset = _m_metadata.empty() ? 0 : _m_metadata.front().data_offsets[0];
+        std::cout << "read offset=" << offset << std::endl;
+        return _m_file->data() + offset;
+    }
+
+    std::vector<std::size_t>
+    sizes() const
+    {
+        std::vector<std::size_t> result;
+        for (const auto& metadata : _m_metadata) {
+            result.push_back(metadata.data_offsets[1] - metadata.data_offsets[0]);
+        }
+        return result;
+    }
+
     static std::vector<safetensor_metadata>
     load_header(basic_memfile& file);
 
