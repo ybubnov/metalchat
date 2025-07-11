@@ -154,8 +154,8 @@ construct_llama3_1b(
 
     auto weights_file = std::make_shared<basic_memfile>(weights_path);
     weights_file->declare_mapped();
-    std::cout << "declare mapped" << std::endl;
-    // auto container = alloc1.allocate((void*)(weights_file->data()), weights_file->size());
+    metalchat::safetensor_document weights(weights_file);
+
     std::cout << "allocate container" << std::endl;
     auto alloc2 = paginated_allocator_adapter(alloc1, gpu0.max_buffer_size());
     auto containers = alloc2.allocate(weights_file->data(), weights_file->size());
@@ -190,7 +190,7 @@ construct_llama3_1b(
 
     auto alloc = make_rebind_allocator<value_type>(gpu0.get_allocator());
     std::cout << "create a model" << std::endl;
-    auto tensors = safetensors::load(weights_file, alloc);
+    auto tensors = weights.load(alloc);
     std::cout << "load tensors" << std::endl;
     m.initialize(tensors);
 
@@ -222,7 +222,7 @@ construct_llama3_1b_compact(
     gpu0.set_allocator(std::move(alloc0));
     std::cout << "created resident allocator" << std::endl;
 
-    basic_memfile weights_file(weights_path);
+    auto weights_file = std::make_shared<basic_memfile>(weights_path);
     std::cout << "opened weights file" << std::endl;
 
     auto options = options_.value_or(default_llama3_1b_options());
@@ -242,7 +242,8 @@ construct_llama3_1b_compact(
     std::cout << "created estimator" << std::endl;
 
     auto alloc = filebuf_memory_allocator<value_type>();
-    auto tensors = safetensors::load(weights_file, alloc);
+    auto weights = safetensor_document(weights_file);
+    auto tensors = weights.load(alloc);
     std::cout << "loaded weights" << std::endl;
 
     m.initialize(tensors);

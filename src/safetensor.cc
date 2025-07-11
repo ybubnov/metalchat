@@ -61,7 +61,7 @@ namespace metalchat {
 
 
 std::vector<safetensor_metadata>
-safetensors::load_header(basic_memfile& file)
+safetensor_document::load_header(basic_memfile& file)
 {
     // Read the length of the header and then the header itself, ensure that the
     // the file contains enough data to avoid reading from inaccessible regions.
@@ -111,7 +111,7 @@ safetensors::load_header(basic_memfile& file)
 
 
 std::vector<safetensor_metadata>
-safetensors::load_header(std::shared_ptr<basic_memfile> file_ptr)
+safetensor_document::load_header(std::shared_ptr<basic_memfile> file_ptr)
 {
     return load_header(*file_ptr);
 }

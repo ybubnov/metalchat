@@ -33,7 +33,7 @@ TEST_CASE("Test make model", "[llama]")
     };
 
     auto alloc = make_rebind_allocator<bf16>(gpu0.get_allocator());
-    auto tensors = safetensors::load("../llama32.safetensors", alloc);
+    auto tensors = safetensor_document::load("../llama32.safetensors", alloc);
 
     nn::llama<bf16> m(16, options, gpu0);
     m.initialize(tensors);

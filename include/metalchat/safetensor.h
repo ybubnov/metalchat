@@ -95,7 +95,16 @@ concept invocable_with_safetensor = requires {
 };
 
 
-struct safetensors {
+class safetensor_document {
+private:
+    std::shared_ptr<basic_memfile> _m_file;
+    std::vector<safetensor_metadata> _m_metadata;
+
+public:
+    safetensor_document(std::shared_ptr<basic_memfile> file)
+    : _m_file(file),
+      _m_metadata(load_header(file))
+    {}
 
     static std::vector<safetensor_metadata>
     load_header(basic_memfile& file);
@@ -111,7 +120,7 @@ struct safetensors {
         file->declare_mapped();
 
         auto alloc0 = aliasing_allocator(alloc, file);
-        return load(*file, alloc0);
+        return load(alloc0);
     }
 
     template <hardware_allocator Allocator>
@@ -120,46 +129,38 @@ struct safetensors {
     {
         auto file = std::make_shared<basic_memfile>(p);
         file->declare_mapped();
+        auto document = safetensor_document(file);
 
         auto alloc0 = hardware_aliasing_allocator(alloc, file);
-        return load(*file, alloc0);
+        return document.load(alloc0);
     }
 
     template <allocator Allocator>
-    static auto
-    load(std::shared_ptr<basic_memfile> file_ptr, Allocator alloc)
-    {
-        return load(*file_ptr, alloc);
-    }
-
-    template <allocator Allocator>
-    static auto
-    load(basic_memfile& file, Allocator alloc)
+    auto
+    load(Allocator alloc)
     {
         using container_type = typename Allocator::container_type;
         using safetensor_type = safetensor<container_type>;
 
         std::unordered_map<std::string, safetensor_type> tensors;
-        load(file, alloc, [&](safetensor_type s) { tensors.insert_or_assign(s.name(), s); });
+        load(alloc, [&](safetensor_type s) { tensors.insert_or_assign(s.name(), s); });
         return tensors;
     }
 
     template <allocator Allocator, invocable_with_safetensor<Allocator> UnaryOp>
-    static void
-    load(basic_memfile& file, Allocator alloc, UnaryOp unary_op)
+    void
+    load(Allocator alloc, UnaryOp unary_op)
     {
-        auto metadata = load_header(file);
-
         using value_type = typename Allocator::value_type;
         using const_pointer = typename Allocator::const_pointer;
         using container_type = typename Allocator::container_type;
         using container_pointer = typename Allocator::container_pointer;
         using tensor_type = safetensor<container_type>;
 
-        for (const auto& tensor_metadata : metadata) {
+        for (const auto& tensor_metadata : _m_metadata) {
             auto tensor_pos = tensor_metadata.data_offsets[0];
 
-            if (tensor_pos >= file.size()) {
+            if (tensor_pos >= _m_file->size()) {
                 throw std::runtime_error(std::format(
                     "safetensor: start data position {} for a tensor {} is out of bounds",
                     tensor_pos, tensor_metadata.name
@@ -173,12 +174,12 @@ struct safetensors {
 
             container_pointer container_ptr(nullptr);
 
-            if (file.is_mapped()) {
-                const basic_memfile::char_type* container = file.data() + tensor_pos;
+            if (_m_file->is_mapped()) {
+                const basic_memfile::char_type* container = _m_file->data() + tensor_pos;
                 container_ptr = alloc.allocate((const_pointer)(container), tensor_numel);
             } else {
                 auto container = std::make_shared<value_type[]>(tensor_numel);
-                file.read(container.get(), sizeof(value_type) * tensor_numel);
+                _m_file->read(container.get(), sizeof(value_type) * tensor_numel);
 
                 container_ptr = alloc.allocate((const_pointer)(container.get()), tensor_numel);
             }
