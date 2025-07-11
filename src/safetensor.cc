@@ -60,6 +60,31 @@ simdjson::ondemand::value::get() noexcept
 namespace metalchat {
 
 
+safetensor_document::safetensor_document(std::shared_ptr<basic_memfile> file)
+: _m_file(file),
+  _m_metadata(load_header(file))
+{}
+
+
+void*
+safetensor_document::data() noexcept
+{
+    std::size_t offset = _m_metadata.empty() ? 0 : _m_metadata.front().data_offsets[0];
+    return _m_file->data() + offset;
+}
+
+
+std::vector<std::size_t>
+safetensor_document::sizes() const
+{
+    std::vector<std::size_t> result;
+    for (const auto& metadata : _m_metadata) {
+        result.push_back(metadata.data_offsets[1] - metadata.data_offsets[0]);
+    }
+    return result;
+}
+
+
 std::vector<safetensor_metadata>
 safetensor_document::load_header(basic_memfile& file)
 {

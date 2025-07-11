@@ -148,21 +148,18 @@ construct_llama3_1b(
     metalchat::bpe bpe(tokens_path);
     metalchat::hardware_accelerator gpu0;
 
-    // Move memory file to a resident set, do not copy the underlying memory.
-    auto alloc0 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
-    auto alloc1 = hardware_resident_allocator(alloc0, gpu0.get_metal_device());
-
     auto weights_file = std::make_shared<basic_memfile>(weights_path);
     weights_file->declare_mapped();
     metalchat::safetensor_document weights(weights_file);
 
-    std::cout << "allocate container" << std::endl;
+    // Move memory file to a resident set, do not copy the underlying memory.
+    //
+    // On some metal devices, a single buffer could be limited by a "max_buffer_size",
+    // for such devices, allocate multiple containers that tile the underlying memory.
+    auto alloc0 = hardware_nocopy_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
+    auto alloc1 = hardware_resident_allocator(alloc0, gpu0.get_metal_device());
     auto alloc2 = paginated_allocator_adapter(alloc1, gpu0.max_buffer_size());
     auto containers = alloc2.allocate(weights.data(), weights.sizes());
-    std::cout << "allocated containers n=" << containers.size() << std::endl;
-    for (const auto& c : containers) {
-        std::cout << "container size=" << metal::size(c->storage()) << std::endl;
-    }
 
     // Allocate all subsequent tensors from the buffer allocator, it will maintain
     // correct offset from the buffer and does not cause any container allocations.
@@ -174,7 +171,6 @@ construct_llama3_1b(
     auto alloc5 = hardware_buffer_allocator(alloc4, containers);
     auto alloc6 = hardware_aliasing_allocator(alloc5, weights_file);
     gpu0.set_allocator(std::move(alloc6));
-    std::cout << "create all allocators" << std::endl;
 
     auto options = options_.value_or(default_llama3_1b_options());
     auto attention_options = nn::attention_options{
@@ -192,9 +188,7 @@ construct_llama3_1b(
     auto m = estimator_type(options.n_layers(), attention_options, gpu0);
 
     auto alloc = make_rebind_allocator<value_type>(gpu0.get_allocator());
-    std::cout << "create a model" << std::endl;
     auto tensors = weights.load(alloc);
-    std::cout << "load tensors" << std::endl;
     m.initialize(tensors);
 
     auto alloc7 = hardware_heap_allocator<void>(gpu0.get_metal_device(), options.heap_size());
@@ -217,16 +211,12 @@ construct_llama3_1b_compact(
 )
 {
     metalchat::bpe bpe(tokens_path);
-    std::cout << "loaded bpe" << std::endl;
     metalchat::hardware_accelerator gpu0(64);
-    std::cout << "created accelerator " << gpu0.name() << std::endl;
 
     auto alloc0 = hardware_resident_allocator(gpu0.get_allocator(), gpu0.get_metal_device());
     gpu0.set_allocator(std::move(alloc0));
-    std::cout << "created resident allocator" << std::endl;
 
     auto weights_file = std::make_shared<basic_memfile>(weights_path);
-    std::cout << "opened weights file" << std::endl;
 
     auto options = options_.value_or(default_llama3_1b_options());
     auto attention_options = nn::attention_options{
@@ -242,25 +232,20 @@ construct_llama3_1b_compact(
     using estimator_type = nn::llama<value_type, container_type>;
 
     auto m = estimator_type(options.n_layers(), attention_options, gpu0);
-    std::cout << "created estimator" << std::endl;
 
     auto alloc = filebuf_memory_allocator<value_type>();
     auto weights = safetensor_document(weights_file);
     auto tensors = weights.load(alloc);
-    std::cout << "loaded weights" << std::endl;
 
     m.initialize(tensors);
-    std::cout << "initialized estimator" << std::endl;
 
     auto alloc3 = hardware_heap_allocator<void>(gpu0.get_metal_device(), options.heap_size());
     auto alloc4 = hardware_nocopy_allocator(alloc3, gpu0.get_metal_device());
 
     gpu0.set_allocator(std::move(alloc4));
-    std::cout << "created a new allocator" << std::endl;
 
     auto transformer = language_transformer(std::move(m));
     auto agent = polymorphic_chat(std::move(transformer), bpe);
-    std::cout << "created poly chat" << std::endl;
 
     return agent;
 }
