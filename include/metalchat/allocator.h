@@ -840,7 +840,7 @@ template <typename T> struct filebuf_memory_allocator {
 };
 
 
-template <allocator Allocator> class paginated_allocator_adapter {
+template <allocator_t<void> Allocator> class paginated_allocator_adapter {
 public:
     using value_type = typename Allocator::value_type;
     using pointer = typename Allocator::pointer;
@@ -903,6 +903,7 @@ public:
     {
         std::vector<container_pointer> containers;
         std::size_t block_size = 0;
+        const std::uint8_t* pointer = static_cast<const std::uint8_t*>(ptr);
 
         for (std::size_t i = 0; i < sizes.size(); i++) {
             if (sizes[i] > _m_max_size) {
@@ -911,34 +912,22 @@ public:
 
             if (block_size + sizes[i] >= _m_max_size) {
                 // TODO: align by page size?.
-                containers.push_back(_m_alloc.allocate(ptr, block_size));
-                ptr += block_size;
+                containers.push_back(_m_alloc.allocate(const_pointer(pointer), block_size));
+                pointer += block_size;
                 block_size = 0;
             }
 
             block_size = sizes[i];
         }
 
-        containers.push_back(_m_alloc.allocate(ptr, block_size));
+        containers.push_back(_m_alloc.allocate(const_pointer(pointer), block_size));
         return containers;
-    }
-
-    auto
-    allocate(const void* ptr, std::vector<std::size_t> sizes)
-    {
-        return allocate(static_cast<const_pointer>(ptr), sizes);
     }
 
     auto
     allocate(const_pointer ptr, std::size_t size)
     {
         return allocate(ptr, std::vector({size}));
-    }
-
-    auto
-    allocate(const void* ptr, std::size_t size)
-    {
-        return allocate(static_cast<const_pointer>(ptr), size);
     }
 
 private:

@@ -71,6 +71,9 @@ public:
     std::string
     name() const;
 
+    std::size_t
+    max_buffer_size() const;
+
     std::shared_ptr<kernel_thread>
     get_this_thread();
 

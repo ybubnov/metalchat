@@ -66,6 +66,13 @@ hardware_accelerator::hardware_accelerator(std::size_t thread_capacity)
 }
 
 
+std::size_t
+hardware_accelerator::max_buffer_size() const
+{
+    return _m_device->ptr->maxBufferLength();
+}
+
+
 std::shared_ptr<kernel_thread>
 hardware_accelerator::get_this_thread()
 {
