@@ -1,31 +1,24 @@
-=================================
+:html_theme.sidebar_secondary.remove: true
+
 Llama inference for Apple Devices
 =================================
 
-TBD
+.. grid:: 1 2 2 3
+   :gutter: 3
 
-Installation
-------------
+   .. grid-item-card:: Open Source
 
-TBD
+      Distributed under a copy-left AGPL license, MetalChat is developed and maintained
+      `publicly on GitHub <https://github.com/ybubnov/metalchat>`_.
 
-Usage
------
+   .. grid-item-card:: Easy to use
 
-TBD
-
-Documentation
--------------
-
-Consider visiting the guides and API reference for further implementation and usage details.
-
-- :doc:`reference/index`
-
+      MetalChat high level API makes it accessible and productive for programmers
+      from any background and or experience level.
 
 .. toctree::
    :hidden:
-   :caption: Documentation
-   :maxdepth: 2
 
-   guides/index
-   reference/index
+   Install <install>
+   User Guide <guides/index>
+   Reference <reference/index>

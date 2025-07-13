@@ -16,8 +16,8 @@ Prerequisites to walk through this guide is like in the table below:
    * - Metal Framework Version
      - 3.2
 
-Downloading Model
-^^^^^^^^^^^^^^^^^
+Downloading a Model
+^^^^^^^^^^^^^^^^^^^
 
 In our application we will show how programmatically to send questions to a Llama 3.2 chat. For
 this purpose you will need a copy of the model weights and model vocabulary in the
@@ -45,9 +45,9 @@ Here is an example Python script showing how it code be done:
    save_file(tensors, "instruct.safetensors")
 
 
-.. code-block:: bash
+.. prompt:: bash
 
-   % python convert.py consolidated.00.pth
+   python convert.py consolidated.00.pth
 
 
 Please, note the highlighted line that instructs that output weight should be copied. This tensor
@@ -55,8 +55,8 @@ for performance reasons is a reference to the embedding tensor of the same model
 not support references due to memory safety reasons, so in order to make this model work with
 `metalchat`, we need to create a materialized copy of that tensor.
 
-Writing Application
-^^^^^^^^^^^^^^^^^^^
+Writing an Application
+^^^^^^^^^^^^^^^^^^^^^^
 
 The next step is to write a C++ application. In the example below we use method
 `construct_llama3_1b` that uses various optimizations to load model, and uses default Llama 3.2
@@ -88,15 +88,15 @@ section.
    }
 
 
-Building Executable
-^^^^^^^^^^^^^^^^^^^
+Building an Executable
+^^^^^^^^^^^^^^^^^^^^^^
 
 The last step is building the executable to launch a Llama-based chat and receive an answer
 to the question. Here we assume that `MetalChat` framework is located within a working directory,
 therefore we set framework lookup path (`-F`) as a current path.
 
-.. code-block:: bash
+.. prompt:: bash
 
-   % clang++ -std=c++23 -rpath . -F. -framework MetalChat main.cc -o chat
-   % ./chat
-   The capital of France is Paris.
+   clang++ -std=c++23 -rpath . -F. -framework MetalChat main.cc -o chat
+   ./chat
+   # The capital of France is Paris.

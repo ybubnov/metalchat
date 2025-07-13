@@ -12,8 +12,11 @@ copyright = f"2024-present, {author}"
 need_sphinx = "4.4"
 extensions = [
     "breathe",
+    "sphinx_copybutton",
+    "sphinx_design",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
+    "sphinx_prompt",
 ]
 
 
@@ -35,9 +38,19 @@ html_title = project
 html_theme = "pydata_sphinx_theme"
 html_theme_options = {
     "navbar_align": "left",
-    "use_edit_page_button": False,
+    "use_edit_page_button": True,
     "search_bar_text": "Search",
-    "github_url": "https://github.com/ybubnov/metalchat",
+    "show_nav_level": 2,
+    "show_prev_next": True,
+    "navigation_depth": 2,
+    "collapse_navigation": False,
+    "sidebar_includehidden": True,
+}
+html_context = {
+    "github_user": "ybubnov",
+    "github_repo": "metalchat",
+    "github_version": "main",
+    "doc_path": "documentation",
 }
 html_static_path = ["_static"]
 html_css_files = ["overrides.css"]

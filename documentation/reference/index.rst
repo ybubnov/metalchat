@@ -1,3 +1,6 @@
+:html_theme.sidebar_secondary.remove:
+
+
 API Reference
 =============
 
@@ -5,7 +8,7 @@ TBD
 
 .. toctree::
    :hidden:
-   :maxdepth: 1
+   :maxdepth: 2
 
    allocator
    container

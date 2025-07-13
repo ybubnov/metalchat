@@ -1,11 +1,9 @@
 Guides
 ======
 
-TBD
-
 .. toctree::
-   :hidden:
-   :maxdepth: 1
+   :numbered:
+   :maxdepth: 2
 
    getting_started
    development

@@ -1,3 +1,8 @@
 .bd-sidebar-primary {
     width: 250px;
 }
+
+.bd-article li.toctree-l1 > a {
+    font-size: 150%;
+    font-weight: bold;
+};

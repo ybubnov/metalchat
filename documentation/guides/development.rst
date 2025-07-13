@@ -16,8 +16,8 @@ Prerequisites to walk through this guide is like in the table below:
    * - Metal Framework Version
      - 3.2
 
-Creating Environment
-^^^^^^^^^^^^^^^^^^^^
+Creating an Environment
+^^^^^^^^^^^^^^^^^^^^^^^
 
 The building of the library and tests is implemented using a `conan <https://conan.io/>`_ to
 resolve C++ dependencies, and `CMake <https://cmake.org/>`_ plus `ninja <https://ninja-build.org/>`_
@@ -26,13 +26,13 @@ as a build system.
 All of those tools are available through `brew <https://brew.sh/>`_ package manager on MacOS, so
 you could install them like following:
 
-.. code-block:: bash
+.. prompt:: bash
 
-   % brew install cmake conan ninja
+   brew install cmake conan ninja
 
 
-Configuring Development Build
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Configuring a Development Build
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 On the next step you need to setup conan profile, usually a default conan profile would work
 without modifications to compile a library on MacOS, nevertheless here we present an example
@@ -57,17 +57,17 @@ we need a C++ compiler with 23 standard support.
 After that you could use this profile to install missing C++ dependencies and create a build
 environment. Run this command from the project directory root (it will create `build` directory):
 
-.. code-block:: bash
+.. prompt:: bash
 
-   % conan install --build=missing --output-folder build --profile:host=metalchat-debug .
+   conan install --build=missing --output-folder build --profile:host=metalchat-debug .
 
 Once conan installs necessary dependencies, change the directory to `build`, and launch cmake
 generator like following:
 
-.. code-block:: bash
+.. prompt:: bash
 
-   % cd build
-   % cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=./build/Debug/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug ..
+   cd build
+   cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=./build/Debug/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug ..
 
 
 Building a Library
@@ -76,7 +76,7 @@ Building a Library
 On the last step, compile the library and all related unit tests, and then optionally launch unit
 tests, like in the following snippet:
 
-.. code-block:: bash
+.. prompt:: bash
 
-   % ninja
-   % ninja test
+   ninja
+   ninja test
