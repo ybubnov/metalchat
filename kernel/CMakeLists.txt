@@ -1,8 +1,13 @@
 set(metalchat_SDK macosx)
-# set(metalchat_SDK iphoneos)
 set(metalchat_TARGET "air64-apple-macos14.0")
-# set(metalchat_TARGET "air64-apple-ios18.0")
 set(metalchat_KERNEL_LIBRARY "metalchat.metallib")
+
+# When the target system is iOS, choose a different target for the xrun command.
+if (CMAKE_SYSTEM_NAME EQUAL iOS)
+    set(metalchat_SDK iphoneos)
+    set(metalchat_TARGET "air64-apple-ios18.0")
+endif()
+
 
 string(STRIP metalchat_TARGET ${metalchat_TARGET})
 

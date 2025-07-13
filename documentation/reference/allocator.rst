@@ -45,6 +45,13 @@ Hardware No-Copy Allocator
    :members:
 
 
+Hardware Aliasing Allocator
+---------------------------
+
+.. doxygenclass:: metalchat::hardware_aliasing_allocator
+   :members:
+
+
 Rebind Hardware Allocator
 ----------------------------
 
@@ -73,4 +80,11 @@ Random Memory Allocator
 -----------------------
 
 .. doxygenstruct:: metalchat::random_memory_allocator
+   :members:
+
+
+Paginated Allocator Adapter
+---------------------------
+
+.. doxygenclass:: metalchat::paginated_allocator_adapter
    :members:

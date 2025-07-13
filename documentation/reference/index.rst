@@ -37,18 +37,27 @@ Allocator library
    * - :cpp:class:`metalchat::hardware_resident_allocator`
      - Moves all hardware allocations to the residency set.
 
+   * - :cpp:class:`metalchat::hardware_aliasing_allocator`
+     - Provides a way to assign ownership of an existing resource to the allocated
+       container.
+
    * - :cpp:class:`metalchat::rebind_hardware_allocator`
      - Provides a way to obtain a hardware allocator of a different type.
+
+   * - :cpp:class:`metalchat::random_memory_allocator`
+     - Allocates containers from random access memory.
+
+   * - :cpp:class:`metalchat::scalar_memory_allocator`
+     - Allocates containers that holds a single scalar value (int, float, double, etc.).
+
+   * - :cpp:class:`metalchat::paginated_allocator_adapter`
+     - Provides a way to allocate multiple small-sized containers backing large
+       allocation request.
 
    * - :cpp:class:`metalchat::polymorphic_hardware_memory_allocator`
      - An allocator that exhibits different allocation behaviour depending on particular
        implementation.
 
-   * - :cpp:class:`metalchat::random_memory_allocator`
-     - TBD.
-
-   * - :cpp:class:`metalchat::scalar_memory_allocator`
-     - TBD.
 
 Allocator concepts
 ^^^^^^^^^^^^^^^^^^

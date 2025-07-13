@@ -18,6 +18,12 @@ public:
     : _m_what(what)
     {}
 
+    const char*
+    what() const noexcept
+    {
+        return _m_what.c_str();
+    }
+
 private:
     std::string _m_what;
 };
@@ -156,6 +162,8 @@ concept basic_hardware_allocator_t
 /// auto alloc_ptr = std::make_shared(std::move(alloc3));
 /// gpu.set_allocator(alloc_ptr);
 /// ```
+///
+/// \tparam T Scalar type of the container data.
 template <typename T> class polymorphic_hardware_memory_allocator {
 public:
     using value_type = T;
@@ -849,13 +857,13 @@ public:
     using container_type = typename Allocator::container_type;
     using container_pointer = typename Allocator::container_pointer;
 
-    paginated_allocator_adapter(Allocator alloc, std::size_t max_size, std::size_t page_size)
+    paginated_allocator_adapter(Allocator alloc, size_type max_size, size_type page_size)
     : _m_alloc(alloc),
       _m_max_size(max_size),
       _m_page_size(page_size)
     {}
 
-    paginated_allocator_adapter(Allocator alloc, std::size_t max_size)
+    paginated_allocator_adapter(Allocator alloc, size_type max_size)
     : _m_alloc(alloc),
       _m_max_size(max_size),
       _m_page_size(0)
@@ -870,10 +878,10 @@ public:
     }
 
     auto
-    allocate(std::vector<std::size_t> sizes)
+    allocate(std::vector<size_type> sizes)
     {
         std::vector<container_pointer> containers;
-        std::size_t block_size = 0;
+        size_type block_size = 0;
 
         for (std::size_t i = 0; i < sizes.size(); i++) {
             if (sizes[i] > _m_max_size) {
@@ -893,16 +901,16 @@ public:
     }
 
     auto
-    allocate(std::size_t size)
+    allocate(size_type size)
     {
         return allocate(std::vector({size}));
     }
 
     auto
-    allocate(const_pointer ptr, std::vector<std::size_t> sizes)
+    allocate(const_pointer ptr, std::vector<size_type> sizes)
     {
         std::vector<container_pointer> containers;
-        std::size_t block_size = 0;
+        size_type block_size = 0;
         const std::uint8_t* pointer = static_cast<const std::uint8_t*>(ptr);
 
         for (std::size_t i = 0; i < sizes.size(); i++) {
@@ -925,15 +933,15 @@ public:
     }
 
     auto
-    allocate(const_pointer ptr, std::size_t size)
+    allocate(const_pointer ptr, size_type size)
     {
         return allocate(ptr, std::vector({size}));
     }
 
 private:
     Allocator _m_alloc;
-    std::size_t _m_page_size;
-    std::size_t _m_max_size;
+    size_type _m_page_size;
+    size_type _m_max_size;
 };
 
 
