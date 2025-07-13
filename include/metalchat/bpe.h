@@ -27,6 +27,7 @@ class regexp_iterator;
 class regexp {
 public:
     regexp(const std::string& regex);
+    regexp(const char* regex);
 
     regexp_iterator
     begin(const std::string&) const;
@@ -124,6 +125,21 @@ enum special_token {
 };
 
 
+/// Token encoder that splits arbitrary utf-8 encoded string into a sequence of tokens
+/// that could be used to run the inference of a language transformer. The approach and the
+/// implementation is inspired by [tiktoken](https://github.com/openai/tiktoken).
+///
+/// Consider the following basic example:
+/// ```c++
+/// using namespace metalchat;
+///
+/// byte_pair_encoder tokenizer("tokenizer.model");
+/// auto tokens = tokenizer.encode("This is a test sentence.");
+/// auto string = tokenizer.decode(tokens.begin(), tokens.end());
+///
+/// std::cout << string << std::endl;
+/// // output: This is a test sentence.
+/// ```
 template <typename RegularExpression = regexp> class byte_pair_encoder {
 public:
     using string_type = std::string;
@@ -240,12 +256,11 @@ public:
 
     byte_pair_encoder(const byte_pair_encoder&) = default;
 
-    /// Create an instance of a byte-pair encoder using a base64-encoded token map.
+    /// Create an instance of byte-pair encoder using a base64-encoded token map.
     ///
-    /// Such map is distributed altogether with, for example, Llama model and is called
-    /// `tokenizer.model`. When the provided file does not exist or has invalid format,
-    /// constructor will raise an exception.
-    byte_pair_encoder(const std::filesystem::path& p)
+    /// This constructor allows to specify a custom token regular expression that fits
+    /// best to the target language model.
+    byte_pair_encoder(const std::filesystem::path& p, const std::string& token_regex)
     : _m_fmap(),
       _m_rmap(),
       _m_re(std::make_shared<RegularExpression>(token_regex))
@@ -269,6 +284,21 @@ public:
         }
     }
 
+
+    /// Create an instance of a byte-pair encoder using a base64-encoded token map.
+    ///
+    /// Such map is distributed altogether with, for example, Llama model and is called
+    /// `tokenizer.model`. When the provided file does not exist or has invalid format,
+    /// constructor will raise an exception.
+    ///
+    /// By default, encoder uses regular expression for Meta Llama 3.2 model.
+    byte_pair_encoder(const std::filesystem::path& p)
+    : byte_pair_encoder(p, byte_pair_encoder::token_regex)
+    {}
+
+    /// Convenience constructor, interprets `path` argument as path to the tokenizer model.
+    ///
+    /// \param path A path to the tokenizer model.
     byte_pair_encoder(const char* path)
     : byte_pair_encoder(std::filesystem::path(path))
     {}

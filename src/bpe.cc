@@ -46,6 +46,11 @@ regexp::regexp(const std::string& regex)
 }
 
 
+regexp::regexp(const char* regex)
+: regexp(std::string(regex))
+{}
+
+
 regexp_iterator
 regexp::begin(const std::string& input) const
 {
