@@ -46,8 +46,8 @@ TEST_CASE("Test make model", "[llama]")
     auto input_text = std::string("I have a dog called");
 
     std::vector<int32_t> ids;
-    bpe.encode(special_token::begin_text, ids);
-    bpe.encode(input_text, ids);
+    bpe.encode(special_token::begin_text, std::back_inserter(ids));
+    bpe.encode(input_text, std::back_inserter(ids));
 
     auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));
     auto logit0 = m(input0, 0);

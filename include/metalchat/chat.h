@@ -14,18 +14,6 @@
 namespace metalchat {
 
 
-template <typename Encodable, typename PushBackContainer>
-concept __byte_pair_encodable = requires(const Encodable encodable, PushBackContainer& container) {
-    requires push_back_container<PushBackContainer>;
-
-    { encodable.encode(std::declval<const bpe&>(), container) } -> std::same_as<void>;
-};
-
-
-template <typename Encodable>
-concept byte_pair_encodable = __byte_pair_encodable<Encodable, std::vector<bpe::index_type>>;
-
-
 class basic_message {
 public:
     basic_message(const std::string& role, const std::string& content)
@@ -43,15 +31,15 @@ public:
       _m_content()
     {}
 
-    template <push_back_container PushBackContainer>
+    template <std::output_iterator<int32_t> OutputIt>
     void
-    encode(const bpe& encoder, PushBackContainer& container) const
+    encode(const bpe& encoder, OutputIt output) const
     {
-        encoder.encode(special_token::begin_header, container);
-        encoder.encode(_m_role, container);
-        encoder.encode(special_token::end_header, container);
-        encoder.encode("\n\n", container);
-        encoder.encode(_m_content, container);
+        encoder.encode(special_token::begin_header, output);
+        encoder.encode(_m_role, output);
+        encoder.encode(special_token::end_header, output);
+        encoder.encode("\n\n", output);
+        encoder.encode(_m_content, output);
     }
 
     std::string
@@ -231,12 +219,12 @@ public:
       _m_encoding(1, encoder.encode(special_token::begin_text))
     {}
 
-    template <byte_pair_encodable Message>
     void
-    send(const Message& message)
+    send(const basic_message& message)
     {
-        message.encode(_m_encoder, _m_encoding);
-        _m_encoder.encode(special_token::end_turn, _m_encoding);
+        auto output = std::back_inserter(_m_encoding);
+        message.encode(_m_encoder, output);
+        _m_encoder.encode(special_token::end_turn, output);
     }
 
     std::string
@@ -249,7 +237,7 @@ public:
     receive()
     {
         basic_message query("assistant");
-        query.encode(_m_encoder, _m_encoding);
+        query.encode(_m_encoder, std::back_inserter(_m_encoding));
 
         std::vector<index_type> encoding;
         _m_encoding.swap(encoding);

@@ -103,15 +103,6 @@ public:
 };
 
 
-/// The concept `metalchat::push_back_container` specifies that a type T has a member type
-/// `value_type` and type implements method `void push_back(value_type)`.
-template <typename T>
-concept push_back_container = requires(T t) {
-    typename T::value_type;
-    { t.push_back(typename T::value_type{}) } -> std::same_as<void>;
-};
-
-
 enum special_token {
     begin_text,
     end_text,
@@ -206,9 +197,9 @@ private:
     ///    priority to the highest. Where priority is an index in the token map.
     /// 3. Join to adjacent encodings, only when such encoding exists.
     /// 4. Then push encodings to the specified container of identifiers.
-    template <push_back_container PushBackContainer>
+    template <std::output_iterator<index_type> OutputIt>
     void
-    _m_encode_byte_pairs(const std::string& s, PushBackContainer& ids) const
+    _m_encode_byte_pairs(const std::string& s, OutputIt output) const
     {
         std::size_t priority_limit = std::numeric_limits<index_type>::max();
 
@@ -260,7 +251,7 @@ private:
             auto begin = encoding[i].second;
             auto end = encoding[i + 1].second;
             auto key = s.substr(begin, end - begin);
-            ids.push_back(_m_fmap.at(key));
+            *output++ = _m_fmap.at(key);
         }
     }
 
@@ -323,19 +314,19 @@ public:
     /// Encode the provided string into tokens.
     ///
     /// This method iteratively splits the string into tokens and then appends a corresponding
-    /// token index into end of the provided container `ids`. When the token is not presented
+    /// token index into end of the provided iterator `output`. When the token is not presented
     /// in the token dictionary, it is divided into byte-pairs, then index of the byte pair is
     /// appended to the end of the container.
-    template <push_back_container PushBackContainer>
+    template <std::output_iterator<index_type> OutputIt>
     void
-    encode(const std::string& s, PushBackContainer& ids) const
+    encode(const std::string& s, OutputIt output) const
     {
         for (auto match = _m_re->begin(s); match != _m_re->end(); ++match) {
             auto key = (*match);
             if (auto it = _m_fmap.find(key); it != _m_fmap.end()) {
-                ids.push_back(it->second);
+                *output++ = it->second;
             } else {
-                _m_encode_byte_pairs(key, ids);
+                _m_encode_byte_pairs(key, output);
             }
         }
     }
@@ -357,20 +348,20 @@ public:
 
     /// Encode a special token.
     ///
-    /// Method encodes the provided special token and pushes the result to the container `ids`.
-    template <push_back_container PushBackContainer>
+    /// Method encodes the provided special token and pushes the result to the output iterator.
+    template <std::output_iterator<index_type> OutputIt>
     void
-    encode(const special_token& s, PushBackContainer& ids) const
+    encode(const special_token& s, OutputIt output) const
     {
-        ids.push_back(encode(s));
+        *output++ = encode(s);
     }
 
     auto
     encode(const std::string& s) const
     {
-        std::vector<index_type> ids;
-        encode(s, ids);
-        return to_tensor<index_type>({ids.size()}, ids.cbegin(), ids.cend());
+        std::vector<index_type> output;
+        encode(s, std::back_inserter(output));
+        return to_tensor<index_type>({output.size()}, output.cbegin(), output.cend());
     }
 
     /// Decode a single position-encoded token to the string representation.
@@ -394,12 +385,12 @@ public:
     /// The result of decoding is sequentially appended to the specified container. If one
     /// of the tokens is not decoded correctly, an exception is raised. All successfully
     /// decoded tokens before thrown exception are left in the container.
-    template <std::forward_iterator ForwardIt, push_back_container PushBackContainer>
+    template <std::forward_iterator ForwardIt, std::output_iterator<std::string> OutputIt>
     void
-    decode(ForwardIt first, ForwardIt last, PushBackContainer output) const
+    decode(ForwardIt first, ForwardIt last, OutputIt output) const
     {
         for (auto id = first; id != last; ++id) {
-            output.push_back(decode(*id));
+            *output++ = decode(*id);
         }
     }
 
@@ -411,19 +402,7 @@ public:
     decode(ForwardIt first, ForwardIt last) const
     {
         std::stringstream output;
-
-        struct _StringStreamContainer {
-            void
-            push_back(const string_type& s)
-            {
-                (*_m_ss) << s;
-            }
-
-            using value_type = string_type;
-            std::stringstream* _m_ss;
-        } __stream{&output};
-
-        decode(first, last, __stream);
+        decode(first, last, std::ostream_iterator<std::string>(output));
         return output.str();
     }
 };
