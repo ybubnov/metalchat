@@ -9,8 +9,14 @@ Chat library
 Byte Pair Encoder
 -----------------
 
+.. doxygenconcept:: metalchat::push_back_container
+
 .. doxygenclass:: metalchat::byte_pair_encoder
    :members:
+
+
+Language Chat
+-------------
 
 .. doxygenclass:: metalchat::chat
    :members:

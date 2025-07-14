@@ -103,6 +103,8 @@ public:
 };
 
 
+/// The concept `metalchat::push_back_container` specifies that a type T has a member type
+/// `value_type` and type implements method `void push_back(value_type)`.
 template <typename T>
 concept push_back_container = requires(T t) {
     typename T::value_type;
@@ -128,6 +130,20 @@ enum special_token {
 /// Token encoder that splits arbitrary utf-8 encoded string into a sequence of tokens
 /// that could be used to run the inference of a language transformer. The approach and the
 /// implementation is inspired by [tiktoken](https://github.com/openai/tiktoken).
+///
+/// Constructors of this class require a path to a token map, such map is distributed altogether
+/// with, for example, Llama model and is called `tokenizer.model`. When the provided file does
+/// not exist or has invalid format, constructor will raise an exception.
+///
+/// Here is an example of a tokenizer model: in the first column - a base64-encoded token, in the
+/// second column - a token identifier of `byte_pair_encoder::index_type`):
+///
+/// ```txt
+/// 4LmM4LiB4Lij 0
+/// zrbOsQ== 1
+/// IOuNlOyasQ== 2
+/// 2YjZhNin2Ko= 3
+/// ```
 ///
 /// Consider the following basic example:
 /// ```c++
@@ -260,6 +276,9 @@ public:
     ///
     /// This constructor allows to specify a custom token regular expression that fits
     /// best to the target language model.
+    ///
+    /// \param p A path to the tokenizer model.
+    /// \param token_regex A regular expression to split the input string into tokens.
     byte_pair_encoder(const std::filesystem::path& p, const std::string& token_regex)
     : _m_fmap(),
       _m_rmap(),
@@ -287,11 +306,9 @@ public:
 
     /// Create an instance of a byte-pair encoder using a base64-encoded token map.
     ///
-    /// Such map is distributed altogether with, for example, Llama model and is called
-    /// `tokenizer.model`. When the provided file does not exist or has invalid format,
-    /// constructor will raise an exception.
-    ///
     /// By default, encoder uses regular expression for Meta Llama 3.2 model.
+    ///
+    /// \param p A path to the tokenizer model.
     byte_pair_encoder(const std::filesystem::path& p)
     : byte_pair_encoder(p, byte_pair_encoder::token_regex)
     {}
@@ -323,6 +340,9 @@ public:
         }
     }
 
+    /// Encode a special token.
+    ///
+    /// Method returns a position of a special token within a tokenizer model.
     index_type
     encode(const special_token& s) const
     {
@@ -335,6 +355,9 @@ public:
         return _m_fmap.size() + index;
     }
 
+    /// Encode a special token.
+    ///
+    /// Method encodes the provided special token and pushes the result to the container `ids`.
     template <push_back_container PushBackContainer>
     void
     encode(const special_token& s, PushBackContainer& ids) const
@@ -380,6 +403,9 @@ public:
         }
     }
 
+    /// Iteratively decode a sequence of position-encoded tokens.
+    ///
+    /// All decoded tokens will be concatenated into a resulting string.
     template <std::forward_iterator ForwardIt>
     std::string
     decode(ForwardIt first, ForwardIt last) const
