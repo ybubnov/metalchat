@@ -44,6 +44,8 @@ private:
     std::shared_ptr<recursive_kernel_thread> _m_thread;
 
 public:
+    hardware_accelerator(const hardware_accelerator& accelerator) = default;
+
     /// Create hardware accelerator from the kernel (shader) library.
     ///
     /// You can create a new hardware accelerator in the following way:

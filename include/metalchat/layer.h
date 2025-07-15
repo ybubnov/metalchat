@@ -76,23 +76,13 @@ public:
     using parameter_container = std::unordered_map<std::string, polymorphic_tensor>;
     using layer_container = std::unordered_map<std::string, pointer>;
 
-    layer(hardware_accelerator accelerator)
-    : _m_layers(),
-      _m_params(),
-      _m_accelerator(accelerator)
-    {}
+    layer(const hardware_accelerator& accelerator);
 
     const hardware_accelerator&
-    accelerator() const
-    {
-        return _m_accelerator;
-    }
+    accelerator() const;
 
     hardware_accelerator&
-    accelerator()
-    {
-        return _m_accelerator;
-    }
+    accelerator();
 
     /// Initialize a layer and all upstream layers with a given safetensor file.
     ///
@@ -163,20 +153,10 @@ public:
     /// returns layers registered at the current layer. If layer is not registered, method
     /// throws exception.
     const layer&
-    get_layer(const std::string& name) const
-    {
-        try {
-            return (*_m_layers.at(name).get());
-        } catch (std::out_of_range) {
-            throw std::runtime_error(std::format("layer '{}' is not registered", name));
-        }
-    }
+    get_layer(const std::string& name) const;
 
     void
-    register_parameter(const std::string& name, polymorphic_tensor tensor)
-    {
-        _m_params.insert_or_assign(name, tensor);
-    }
+    register_parameter(const std::string& name, polymorphic_tensor tensor);
 
     template <immutable_tensor Tensor>
     void
@@ -204,31 +184,7 @@ public:
     }
 
     polymorphic_tensor
-    get_parameter(const std::string& name) const
-    {
-        if (auto it = _m_params.find(name); it != _m_params.end()) {
-            return it->second;
-        }
-
-        const layer* this_layer = this;
-
-        std::size_t start_pos = 0, pos = 0;
-        const char delimiter = '.';
-
-        for (pos = name.find(delimiter); pos != name.npos; pos = name.find(delimiter, start_pos)) {
-            const auto layer_name = name.substr(start_pos, pos - start_pos);
-            start_pos = pos + 1;
-
-            this_layer = &this_layer->get_layer(layer_name);
-        }
-
-        auto param_name = name.substr(start_pos);
-        if (auto it = this_layer->_m_params.find(param_name); it != this_layer->_m_params.end()) {
-            return it->second;
-        }
-
-        throw std::invalid_argument(std::format("parameter '{}' is not registered", name));
-    }
+    get_parameter(const std::string& name) const;
 
     /// Return a set of parameters with fully-qualified names. Parameters of different layers
     /// are separated using dot (".") delimiter symbol.
@@ -236,17 +192,7 @@ public:
     /// If you want to return only parameters of the current layer and drop upstream parameters,
     /// you could call this method with `recurse = false`.
     const parameter_container
-    get_parameters(bool recurse = true) const
-    {
-        parameter_container params;
-
-        auto visitor = [&](const std::string& name, polymorphic_tensor param) {
-            params.insert_or_assign(name, param);
-        };
-
-        visit_parameters(visitor, recurse);
-        return params;
-    }
+    get_parameters(bool recurse = true) const;
 
     template <std::invocable<const std::string&, polymorphic_tensor> Visitor>
     void
