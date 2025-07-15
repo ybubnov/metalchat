@@ -5,4 +5,9 @@
 .bd-article li.toctree-l1 > a {
     font-size: 150%;
     font-weight: bold;
-};
+}
+
+
+dl.enumerator {
+    margin-bottom: 0 !important;
+}

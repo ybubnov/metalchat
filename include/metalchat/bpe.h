@@ -103,6 +103,8 @@ public:
 };
 
 
+/// Special token is an enumeration of token values used to produce complex prompts for a
+/// language model.
 enum special_token {
     begin_text,
     end_text,

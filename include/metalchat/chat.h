@@ -61,17 +61,20 @@ private:
 /// generating. All types should be inherited from `metalchat::layer` type to able assign
 /// context of the model during runtime.
 ///
-/// **Concept determination**
+/// \verbatim embed:rst:leading-slashes
+/// .. dropdown:: Concept determination
+///    :icon: code
 ///
-/// - A type declares indexing type `index_type`.
-/// - A type declares value type `value_type`.
-/// - A type declares input tensor type `input_tensor`: the first dimension is a batch dimension,
-///   and the second dimension is a length of the input sequence.
-/// - A type declare output tensor type `output_tensor`: the first dimension is a batch dimension,
-///   the second dimension is a sequence length dimension, and the third dimension is a length of
-///   model vocabulary.
-/// - A type declares a method `estimate(input_tensor, std::size_t) -> output_tensor` that
-///   implements the estimation logic and returns a tensor of logits.
+///    - A type declares indexing type `index_type`.
+///    - A type declares value type `value_type`.
+///    - A type declares input tensor type `input_tensor`: the first dimension is a batch
+///      dimension, and the second dimension is a length of the input sequence.
+///    - A type declare output tensor type `output_tensor`: the first dimension is a batch
+///      dimension, the second dimension is a sequence length dimension, and the third dimension
+///      is a length of model vocabulary.
+///    - A type declares a method `estimate(input_tensor, std::size_t) -> output_tensor` that
+///      implements the estimation logic and returns a tensor of logits.
+/// \endverbatim
 template <typename Estimator>
 concept language_estimator_t = requires(Estimator estimator) {
     typename Estimator::index_type;
@@ -98,6 +101,17 @@ static_assert(language_estimator_t<nn::llama<dtype::bf16>>);
 ///
 /// Types that comply to this concept are expected to produce index on the next token in the
 /// model's vocabulary.
+///
+/// \verbatim embed:rst:leading-slashes
+/// .. dropdown:: Concept determination
+///    :icon: code
+///
+///    - A type declares indexing type `index_type`.
+///    - A type declares an immutable 2-dimensional input tensor type `input_tensor`.
+///    - A type declares an immutable 2-dimensional output tensor type `output_tensor`.
+///    - A type declares a method `transform(input_tensor, std::size_t) -> output_tensor` that
+///      implements a token transformation logic.
+/// \endverbatim
 template <typename Transformer>
 concept language_transformer_t = requires(Transformer transformer) {
     typename Transformer::index_type;

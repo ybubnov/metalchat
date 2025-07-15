@@ -204,9 +204,26 @@ public:
     {
         if (auto it = _m_params.find(name); it != _m_params.end()) {
             return it->second;
-        } else {
-            throw std::invalid_argument(std::format("parameter '{}' is not registered", name));
         }
+
+        const layer* this_layer = this;
+
+        std::size_t start_pos = 0, pos = 0;
+        const char delimiter = '.';
+
+        for (pos = name.find(delimiter); pos != name.npos; pos = name.find(delimiter, start_pos)) {
+            const auto layer_name = name.substr(start_pos, pos - start_pos);
+            start_pos = pos + 1;
+
+            this_layer = &this_layer->get_layer(layer_name);
+        }
+
+        auto param_name = name.substr(start_pos);
+        if (auto it = this_layer->_m_params.find(param_name); it != this_layer->_m_params.end()) {
+            return it->second;
+        }
+
+        throw std::invalid_argument(std::format("parameter '{}' is not registered", name));
     }
 
     /// Return a set of parameters with fully-qualified names. Parameters of different layers

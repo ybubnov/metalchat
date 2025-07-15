@@ -1,6 +1,9 @@
 Allocator library
 =================
 
+Allocator Concepts
+------------------
+
 .. doxygenconcept:: metalchat::allocator
 
 .. doxygenconcept:: metalchat::allocator_t
