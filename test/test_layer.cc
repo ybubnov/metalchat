@@ -72,18 +72,11 @@ TEST_CASE("Test recurse parameter query", "[layer]")
     REQUIRE(param.size(0) == 1);
     REQUIRE(param.size(1) == 2);
 
-    REQUIRE_THROWS_WITH(
-        tl.get_parameter("inner.linear3.weight"),
-        Catch::Matchers::ContainsSubstring("key not found")
-    );
-    REQUIRE_THROWS_WITH(
-        tl.get_parameter("inner.linear1"), Catch::Matchers::ContainsSubstring("is not registered")
-    );
-    REQUIRE_THROWS_WITH(tl.get_parameter("."), Catch::Matchers::ContainsSubstring("key not found"));
-    REQUIRE_THROWS_WITH(
-        tl.get_parameter("inner....."), Catch::Matchers::ContainsSubstring("key not found")
-    );
-    REQUIRE_THROWS_WITH(
-        tl.get_parameter(""), Catch::Matchers::ContainsSubstring("is not registered")
-    );
+    auto match_not_registered = Catch::Matchers::ContainsSubstring("is not registered");
+
+    REQUIRE_THROWS_WITH(tl.get_parameter("inner.linear3.weight"), match_not_registered);
+    REQUIRE_THROWS_WITH(tl.get_parameter("inner.linear1"), match_not_registered);
+    REQUIRE_THROWS_WITH(tl.get_parameter("."), match_not_registered);
+    REQUIRE_THROWS_WITH(tl.get_parameter("inner....."), match_not_registered);
+    REQUIRE_THROWS_WITH(tl.get_parameter(""), match_not_registered);
 }

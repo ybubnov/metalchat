@@ -165,7 +165,11 @@ public:
     const layer&
     get_layer(const std::string& name) const
     {
-        return (*_m_layers.at(name).get());
+        try {
+            return (*_m_layers.at(name).get());
+        } catch (std::out_of_range) {
+            throw std::runtime_error(std::format("layer '{}' is not registered", name));
+        }
     }
 
     void
