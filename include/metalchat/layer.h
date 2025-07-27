@@ -22,18 +22,23 @@ constexpr_switch(T index, std::integer_sequence<T, Indices...>, Function functio
 }
 
 
+/// A Wrapper around a shared pointer for arbitrary layer implementation provides invocable
+/// functionality for `Layer` implementations.
 template <typename Layer> class shared_layer {
 public:
+    /// Construct a shared layer with no managed layer, i.e. empty `shared_ptr`.
     shared_layer()
     : _m_value(nullptr)
     {}
 
+    /// Construct a shared layer that takes ownership from the specified `Layer` instance.
     shared_layer(Layer&& layer)
     : _m_value(std::move(layer))
     {}
 
-    shared_layer(std::shared_ptr<Layer> shared_layer)
-    : _m_value(shared_layer)
+    /// Construct a shared layer which shares ownership of the layer managed by `r`.
+    shared_layer(const std::shared_ptr<Layer>& r)
+    : _m_value(r)
     {}
 
     template <class... Args>
@@ -43,18 +48,21 @@ public:
         return (*_m_value)(std::forward<Args>(args)...);
     }
 
+    /// Return the raw shared pointer to the layer.
     std::shared_ptr<Layer>
     get()
     {
         return _m_value;
     }
 
+    /// Dereference the stored pointer to the Layer.
     Layer*
     operator->() noexcept
     {
         return _m_value;
     }
 
+    /// Dereference the stored pointer to the Layer.
     Layer&
     operator*() noexcept
     {
@@ -76,11 +84,14 @@ public:
     using parameter_container = std::unordered_map<std::string, polymorphic_tensor>;
     using layer_container = std::unordered_map<std::string, pointer>;
 
+    /// Construct a layer that is a associated with the specified hardware accelerator.
     layer(const hardware_accelerator& accelerator);
 
+    /// Get a constant reference to the hardware accelerator.
     const hardware_accelerator&
     accelerator() const;
 
+    /// Get a reference to the hardware accelerator.
     hardware_accelerator&
     accelerator();
 

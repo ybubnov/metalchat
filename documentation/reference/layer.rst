@@ -5,7 +5,13 @@ Layer
 -----
 
 .. doxygenclass:: metalchat::layer
-   :project: metalchat
+   :members:
+
+
+Shared Layer
+------------
+
+.. doxygenclass:: metalchat::shared_layer
    :members:
 
 

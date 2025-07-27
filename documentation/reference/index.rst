@@ -227,13 +227,16 @@ Layer library
    :widths: 45 55
 
    * - :cpp:class:`metalchat::layer`
-     - TBD
+     - A basic building block of neural networks in MetalChat.
+
+   * - :cpp:class:`metalchat::shared_layer`
+     - A convenience class for a :cpp:class:`metalchat::layer` type to share layer ownership.
 
    * - :cpp:class:`metalchat::nn::embedding`
      - A simple lookup table that stores embeddings of a fixed dictionary and size.
 
    * - :cpp:class:`metalchat::nn::rope`
-     - TBD
+     - A rotary positional encoding layer.
 
    * - :cpp:class:`metalchat::nn::linear`
      - Applies an affine transformation to the incoming data.
