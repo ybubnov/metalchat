@@ -343,46 +343,25 @@ public:
     rope_theta(std::optional<float> rope_theta) const noexcept;
 
     std::size_t
-    head_dim() const noexcept
-    {
-        return _m_head_dim;
-    }
+    head_dim() const noexcept;
 
     std::size_t
-    n_heads() const noexcept
-    {
-        return _m_n_heads;
-    }
+    n_heads() const noexcept;
 
     std::size_t
-    n_kv_heads() const noexcept
-    {
-        return _m_n_kv_heads;
-    }
+    n_kv_heads() const noexcept;
 
     std::size_t
-    n_layers() const noexcept
-    {
-        return _m_n_layers;
-    }
+    n_layers() const noexcept;
 
     std::size_t
-    max_seq_len() const noexcept
-    {
-        return _m_max_seq_len;
-    }
+    max_seq_len() const noexcept;
 
     std::size_t
-    heap_size() const noexcept
-    {
-        return _m_heap_size;
-    }
+    heap_size() const noexcept;
 
     float
-    rope_theta() const noexcept
-    {
-        return _m_rope_theta;
-    }
+    rope_theta() const noexcept;
 
 private:
     std::size_t _m_head_dim = 0;
@@ -394,46 +373,25 @@ private:
     float _m_rope_theta = 0.0f;
 
     void
-    set_head_dim(std::size_t head_dim)
-    {
-        _m_head_dim = head_dim;
-    }
+    set_head_dim(std::size_t head_dim);
 
     void
-    set_n_heads(std::size_t n_heads)
-    {
-        _m_n_heads = n_heads;
-    }
+    set_n_heads(std::size_t n_heads);
 
     void
-    set_n_kv_heads(std::size_t n_kv_heads)
-    {
-        _m_n_kv_heads = n_kv_heads;
-    }
+    set_n_kv_heads(std::size_t n_kv_heads);
 
     void
-    set_n_layers(std::size_t n_layers)
-    {
-        _m_n_layers = n_layers;
-    }
+    set_n_layers(std::size_t n_layers);
 
     void
-    set_max_seq_len(std::size_t max_seq_len)
-    {
-        _m_max_seq_len = max_seq_len;
-    }
+    set_max_seq_len(std::size_t max_seq_len);
 
     void
-    set_heap_size(std::size_t heap_size)
-    {
-        _m_heap_size = heap_size;
-    }
+    set_heap_size(std::size_t heap_size);
 
     void
-    set_rope_theta(float rope_theta)
-    {
-        _m_rope_theta = rope_theta;
-    }
+    set_rope_theta(float rope_theta);
 };
 
 
@@ -455,7 +413,7 @@ using llama3_chat_type = llama3_traits<dtype::bf16>::type;
 
 
 polymorphic_chat
-construct_llama3_1b(
+make_llama3(
     const std::filesystem::path& weights_path,
     const std::filesystem::path& tokens_path,
     std::optional<llama3_options> options = std::nullopt
@@ -463,7 +421,7 @@ construct_llama3_1b(
 
 
 polymorphic_chat
-construct_llama3_1b_compact(
+make_llama3_compact(
     const std::filesystem::path& weights_path,
     const std::filesystem::path& tokens_path,
     std::optional<llama3_options> options = std::nullopt
@@ -471,7 +429,7 @@ construct_llama3_1b_compact(
 
 
 polymorphic_chat
-construct_llama3_1b(
+make_llama3(
     const std::string& weights_path,
     const std::string& tokens_path,
     std::optional<llama3_options> options = std::nullopt
@@ -479,7 +437,7 @@ construct_llama3_1b(
 
 
 polymorphic_chat
-construct_llama3_1b_compact(
+make_llama3_compact(
     const std::string& weights_path,
     const std::string& tokens_path,
     std::optional<llama3_options> options = std::nullopt
