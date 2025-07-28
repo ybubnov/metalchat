@@ -40,7 +40,7 @@ struct attention_options {
 };
 
 
-template <typename T, contiguous_container Container> class attention : public layer {
+template <typename T, contiguous_container Container> class attention : public basic_layer {
 private:
     static constexpr std::size_t input_size = 4;
 
@@ -74,7 +74,7 @@ public:
     attention(
         attention_options& options, hardware_accelerator accelerator, std::size_t max_batch_size = 1
     )
-    : layer(accelerator),
+    : basic_layer(accelerator),
       _m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
       _m_options(options),
       _m_scale(options.scale()),
@@ -141,7 +141,7 @@ public:
 };
 
 
-template <typename T, contiguous_container Container>
+template <typename T, contiguous_container Container = hardware_memory_container<T>>
 using shared_attention = shared_layer<attention<T, Container>>;
 
 

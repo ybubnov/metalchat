@@ -10,14 +10,14 @@ namespace metalchat {
 namespace nn {
 
 /// Applies Root Mean Square Layer Normalization over a mini-batch of inputs.
-template <typename T, contiguous_container Container> class rmsnorm : public layer {
+template <typename T, contiguous_container Container> class rmsnorm : public basic_layer {
 private:
     shared_tensor<T, 1, Container> _m_weight;
     kernel::rmsnorm<T> _m_norm;
 
 public:
     rmsnorm(tensor<T, 1, Container>&& weight, hardware_accelerator accelerator)
-    : layer(accelerator),
+    : basic_layer(accelerator),
       _m_weight(std::move(weight)),
       _m_norm(accelerator)
     {
@@ -45,7 +45,7 @@ public:
 };
 
 
-template <typename T, contiguous_container Container>
+template <typename T, contiguous_container Container = hardware_memory_container<T>>
 using shared_rmsnorm = shared_layer<rmsnorm<T, Container>>;
 
 

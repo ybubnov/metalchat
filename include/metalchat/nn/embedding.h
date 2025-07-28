@@ -13,14 +13,14 @@ namespace metalchat {
 namespace nn {
 
 
-template <typename T, contiguous_container Container> class embedding : public layer {
+template <typename T, contiguous_container Container> class embedding : public basic_layer {
 private:
     shared_tensor<T, 2, Container> _m_weight;
     kernel::embedding<T> _m_embedding;
 
 public:
     embedding(shared_tensor<T, 2, Container> weight, hardware_accelerator accelerator)
-    : layer(accelerator),
+    : basic_layer(accelerator),
       _m_weight(weight),
       _m_embedding(accelerator)
     {
@@ -52,7 +52,7 @@ public:
 };
 
 
-template <typename T, contiguous_container Container>
+template <typename T, contiguous_container Container = hardware_memory_container<T>>
 using shared_embedding = shared_layer<embedding<T, Container>>;
 
 
@@ -61,7 +61,7 @@ using shared_embedding = shared_layer<embedding<T, Container>>;
 /// In this implementation we cache the frequencies for each position. When user requests an
 /// embedding with start position that is not presented in the cache, the module will recompute
 /// the cached frequencies for a range `[start_pos, start_pos + max_seq_len)`.
-template <typename T> class rope : public layer {
+template <typename T> class rope : public basic_layer {
 public:
     using value_type = T;
     using freqs_tensor = future_tensor<float, 2>;
@@ -120,7 +120,7 @@ private:
 
 public:
     rope(std::size_t dim, std::size_t max_seq_len, float theta, hardware_accelerator accelerator)
-    : layer(accelerator),
+    : basic_layer(accelerator),
       _m_start_pos(0),
       _m_dim(dim),
       _m_seq_len(max_seq_len * 2),

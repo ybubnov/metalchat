@@ -58,8 +58,8 @@ private:
 ///
 /// Types that comply to this concept are expected to produce logits for the all tokens
 /// (characters, words, word combinations, etc.) that the given model is capable of
-/// generating. All types should be inherited from `metalchat::layer` type to able assign
-/// context of the model during runtime.
+/// generating. All types should be inherited from `metalchat::basic_layer` type to able
+/// assign context of the model during runtime.
 ///
 /// \verbatim embed:rst:leading-slashes
 /// .. dropdown:: Concept determination
@@ -82,7 +82,7 @@ concept language_estimator_t = requires(Estimator estimator) {
     typename Estimator::input_tensor;
     typename Estimator::output_tensor;
 
-    requires std::derived_from<Estimator, layer>;
+    requires std::derived_from<Estimator, basic_layer>;
 
     requires immutable_tensor2_t<typename Estimator::input_tensor, typename Estimator::index_type>;
     requires immutable_tensor3_t<typename Estimator::output_tensor, typename Estimator::value_type>;

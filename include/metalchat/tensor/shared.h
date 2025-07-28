@@ -10,7 +10,8 @@
 namespace metalchat {
 
 
-template <typename T, std::size_t N, contiguous_container Container> class shared_tensor {
+template <typename T, std::size_t N, contiguous_container Container = hardware_memory_container<T>>
+class shared_tensor {
 public:
     using tensor_type = tensor<T, N, Container>;
 

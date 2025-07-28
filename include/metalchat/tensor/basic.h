@@ -721,6 +721,15 @@ empty(std::size_t (&&sizes)[N], Allocator alloc)
 }
 
 
+template <typename T, std::size_t N>
+auto
+empty(std::size_t (&&sizes)[N], hardware_accelerator& accelerator)
+{
+    using container_type = hardware_memory_container<T>;
+    return empty<T, N, container_type>(std::move(sizes), accelerator.get_allocator());
+}
+
+
 template <typename T, std::size_t N> requires(N > 0)
 auto
 empty(std::size_t (&&sizes)[N])

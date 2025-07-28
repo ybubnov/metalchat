@@ -62,26 +62,6 @@ Allocator library
        implementation.
 
 
-Allocator concepts
-^^^^^^^^^^^^^^^^^^
-
-.. list-table::
-   :width: 100%
-   :widths: 45 55
-
-   * - :cpp:concept:`metalchat::allocator`
-     - TBD
-
-   * - :cpp:concept:`metalchat::allocator_t`
-     - TBD
-
-   * - :cpp:concept:`metalchat::hardware_allocator`
-     - TBD
-
-   * - :cpp:concept:`metalchat::hardware_allocator_t`
-     - TBD
-
-
 Container library
 -----------------
 
@@ -105,17 +85,6 @@ Container library
      - TBD.
 
 
-Container concepts
-^^^^^^^^^^^^^^^^^^
-
-.. list-table::
-   :width: 100%
-   :widths: 45 55
-
-   * - :cpp:concept:`metalchat::contiguous_container`
-     - TBD.
-
-
 Tensor library
 --------------
 
@@ -134,38 +103,6 @@ Tensor library
 
    * - :cpp:class:`metalchat::future_tensor`
      - A tensor associated with a computation task, which result is not ready yet.
-
-
-Tensor concepts
-^^^^^^^^^^^^^^^
-
-.. list-table::
-   :width: 100%
-   :widths: 45 55
-
-   * - :cpp:concept:`metalchat::immutable_tensor`
-     - TBD
-
-   * - :cpp:concept:`metalchat::immutable_tensor_t`
-     - TBD
-
-   * - :cpp:concept:`metalchat::immutable_tensor1_t`
-     - TBD
-
-   * - :cpp:concept:`metalchat::immutable_tensor2_t`
-     - TBD
-
-   * - :cpp:concept:`metalchat::immutable_tensor3_t`
-     - TBD
-
-   * - :cpp:concept:`metalchat::immutable_tensor4_t`
-     - TBD
-
-   * - :cpp:concept:`metalchat::immutable_hardware_tensor_t`
-     - TBD
-
-   * - :cpp:concept:`metalchat::asynchronously_invocable`
-     - A concept specifies that a type T can be called asynchronously.
 
 
 Tensor functions
@@ -208,17 +145,6 @@ Kernel library
      - TBD
 
 
-Kernel Concepts
-^^^^^^^^^^^^^^^
-
-.. list-table::
-   :width: 100%
-   :widths: 45 55
-
-   * - :cpp:concept:`metalchat::hardware_encodable_function`
-     - TBD
-
-
 Layer library
 -------------
 
@@ -226,7 +152,7 @@ Layer library
    :width: 100%
    :widths: 45 55
 
-   * - :cpp:class:`metalchat::layer`
+   * - :cpp:class:`metalchat::basic_layer`
      - A basic building block of neural networks in MetalChat.
 
    * - :cpp:class:`metalchat::shared_layer`
@@ -258,19 +184,8 @@ Chat library
    * - :cpp:class:`metalchat::chat`
      - A language model adapter to receive and send messages.
 
+   * - :cpp:class:`metalchat::polymorphic_chat`
+     - TBD
+
    * - :cpp:class:`metalchat::language_transformer`
      - A language estimator adapter to predict the next token.
-
-
-Chat concepts
-^^^^^^^^^^^^^
-
-.. list-table::
-   :width: 100%
-   :widths: 45 55
-
-   * - :cpp:concept:`metalchat::language_estimator_t`
-     - Specifies that a type is a language estimator, producing logits of next token.
-
-   * - :cpp:concept:`metalchat::language_transformer_t`
-     - Specifies that a type is a language transformer, producing a next token.

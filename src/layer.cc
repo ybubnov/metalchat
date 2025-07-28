@@ -6,7 +6,7 @@
 namespace metalchat {
 
 
-layer::layer(const hardware_accelerator& accelerator)
+basic_layer::basic_layer(const hardware_accelerator& accelerator)
 : _m_layers(),
   _m_params(),
   _m_accelerator(accelerator)
@@ -14,21 +14,21 @@ layer::layer(const hardware_accelerator& accelerator)
 
 
 const hardware_accelerator&
-layer::accelerator() const
+basic_layer::accelerator() const
 {
     return _m_accelerator;
 }
 
 
 hardware_accelerator&
-layer::accelerator()
+basic_layer::accelerator()
 {
     return _m_accelerator;
 }
 
 
-const layer&
-layer::get_layer(const std::string& name) const
+const basic_layer&
+basic_layer::get_layer(const std::string& name) const
 {
     try {
         return (*_m_layers.at(name).get());
@@ -39,20 +39,20 @@ layer::get_layer(const std::string& name) const
 
 
 void
-layer::register_parameter(const std::string& name, polymorphic_tensor tensor)
+basic_layer::register_parameter(const std::string& name, polymorphic_tensor tensor)
 {
     _m_params.insert_or_assign(name, tensor);
 }
 
 
 polymorphic_tensor
-layer::get_parameter(const std::string& name) const
+basic_layer::get_parameter(const std::string& name) const
 {
     if (auto it = _m_params.find(name); it != _m_params.end()) {
         return it->second;
     }
 
-    const layer* this_layer = this;
+    const basic_layer* this_layer = this;
 
     std::size_t start_pos = 0, pos = 0;
     const char delimiter = '.';
@@ -73,8 +73,8 @@ layer::get_parameter(const std::string& name) const
 }
 
 
-const layer::parameter_container
-layer::get_parameters(bool recurse) const
+const basic_layer::parameter_container
+basic_layer::get_parameters(bool recurse) const
 {
     parameter_container params;
 

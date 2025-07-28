@@ -4,7 +4,7 @@ Layer library
 Layer
 -----
 
-.. doxygenclass:: metalchat::layer
+.. doxygenclass:: metalchat::basic_layer
    :members:
 
 

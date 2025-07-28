@@ -77,15 +77,15 @@ private:
 /// Layer is a basic building block of neural networks in MetalChat. A layer specifies a set of
 /// (trainable) parameters it uses for computation and a set of upstream layers, used within a
 /// layer computation logic.
-class layer {
+class basic_layer {
 public:
-    using pointer = std::shared_ptr<layer>;
+    using pointer = std::shared_ptr<basic_layer>;
 
     using parameter_container = std::unordered_map<std::string, polymorphic_tensor>;
     using layer_container = std::unordered_map<std::string, pointer>;
 
     /// Construct a layer that is a associated with the specified hardware accelerator.
-    layer(const hardware_accelerator& accelerator);
+    basic_layer(const hardware_accelerator& accelerator);
 
     /// Get a constant reference to the hardware accelerator.
     const hardware_accelerator&
@@ -124,7 +124,7 @@ public:
     }
 
     /// Register an upstream layer for the current layer. The layer could be accessed using
-    /// the given name using `layer::get_layer` method.
+    /// the given name using `basic_layer::get_layer` method.
     ///
     /// The registry of layers owns the upstream layer, and the method returns a object pointing
     /// to that owned layer.
@@ -135,7 +135,7 @@ public:
     /// ```cpp
     /// using namespace metalchat;
     ///
-    /// class custom_layer : public layer {
+    /// class custom_layer : public basic_layer {
     /// private:
     ///     // Declare upstream layers here.
     ///     nn::shared_linear<float> linear1;
@@ -143,7 +143,7 @@ public:
     ///
     /// public:
     ///    custom_layer(hardware_accelerator accelerator)
-    ///    : layer(accelerator)
+    ///    : basic_layer(accelerator)
     ///    {
     ///       // Register layers here.
     ///       linear1 = register_layer("linear1", nn::linear<float>(accelerator));
@@ -163,12 +163,38 @@ public:
     /// Get upstream layer by name. This method does not perform recursive lookup and only
     /// returns layers registered at the current layer. If layer is not registered, method
     /// throws exception.
-    const layer&
+    const basic_layer&
     get_layer(const std::string& name) const;
 
+    /// Add a parameter to the layer.
+    ///
+    /// The parameter can be accessed using `get_parameter` method and updated with `set_parameter`
+    /// method.
+    ///
+    /// A common practice is registering parameters of the layers that could be updated
+    /// externally (loaded from a file, or stored after inference):
+    ///
+    /// ```cpp
+    /// using namespace metalchat;
+    ///
+    /// class custom_layer : public basic_layer {
+    /// private:
+    ///     // Declare parameters here.
+    ///     shared_tensor<float, 3> weight;
+    ///
+    /// public:
+    ///     custom_layer(hardware_accelerator accelerator)
+    ///     : basic_layer(accelerator),
+    ///       weight(empty<float>({10, 4, 3}, accelerator)),
+    ///     {
+    ///         register_parameter("weight", weight.get());
+    ///     }
+    /// };
+    /// ```
     void
     register_parameter(const std::string& name, polymorphic_tensor tensor);
 
+    /// Add a parameter to the layer.
     template <immutable_tensor Tensor>
     void
     register_parameter(const std::string& name, Tensor&& tensor)
@@ -176,9 +202,10 @@ public:
         register_parameter(name, polymorphic_tensor(std::move(tensor)));
     }
 
+    /// Add a parameter to the layer.
     template <immutable_tensor Tensor>
     void
-    register_parameter(const std::string& name, std::shared_ptr<Tensor> tensor_ptr)
+    register_parameter(const std::string& name, const std::shared_ptr<Tensor>& tensor_ptr)
     {
         register_parameter(name, polymorphic_tensor(tensor_ptr));
     }
@@ -237,7 +264,7 @@ public:
         }
     }
 
-    virtual ~layer() {}
+    virtual ~basic_layer() {}
 
 private:
     parameter_container _m_params;

@@ -26,7 +26,7 @@ template <
     typename T,
     contiguous_container Container = hardware_memory_container<T>,
     cache_t<T> Cache = sink_cache<T>>
-class llama : public layer {
+class llama : public basic_layer {
 private:
     nn::shared_embedding<T, Container> _m_embedding;
     nn::shared_rmsnorm<T, Container> _m_norm;
@@ -44,7 +44,7 @@ public:
 
     llama(std::size_t nlayers, attention_options& options, hardware_accelerator gpu)
         requires cache_constructible<Cache>
-    : layer(gpu)
+    : basic_layer(gpu)
     {
         _m_embedding = register_layer("tok_embeddings", nn::embedding<T, Container>(gpu));
         _m_norm = register_layer("norm", nn::rmsnorm<T, Container>(gpu));

@@ -16,13 +16,13 @@ namespace nn {
 /// This module does not support bias adjustment to the input tensor, and only multiplies
 /// it (input) by the specified weight tensor. Meaning it effectively works as matrix
 /// multiplication operation.
-template <typename T, contiguous_container WeightContainer> class linear : public layer {
+template <typename T, contiguous_container WeightContainer> class linear : public basic_layer {
 private:
     shared_tensor<T, 2, WeightContainer> _m_weight;
 
 public:
     linear(shared_tensor<T, 2, WeightContainer> weight, hardware_accelerator accelerator)
-    : layer(accelerator),
+    : basic_layer(accelerator),
       _m_weight(weight)
     {
         register_parameter("weight", _m_weight.get());
@@ -53,7 +53,7 @@ public:
 };
 
 
-template <typename T, contiguous_container WeightContainer>
+template <typename T, contiguous_container WeightContainer = hardware_memory_container<T>>
 using shared_linear = shared_layer<linear<T, WeightContainer>>;
 
 

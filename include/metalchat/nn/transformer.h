@@ -17,7 +17,7 @@ namespace metalchat {
 namespace nn {
 
 
-template <typename T, contiguous_container Container> class feed_forward : public layer {
+template <typename T, contiguous_container Container> class feed_forward : public basic_layer {
 private:
     nn::shared_linear<T, Container> _m_w1;
     nn::shared_linear<T, Container> _m_w2;
@@ -25,7 +25,7 @@ private:
 
 public:
     feed_forward(hardware_accelerator gpu)
-    : layer(gpu)
+    : basic_layer(gpu)
     {
         _m_w1 = register_layer("w1", nn::linear<T, Container>(gpu));
         _m_w2 = register_layer("w2", nn::linear<T, Container>(gpu));
@@ -55,7 +55,7 @@ template <typename T, contiguous_container Container>
 using shared_feed_forward = shared_layer<feed_forward<T, Container>>;
 
 
-template <typename T, contiguous_container Container> class transformer : public layer {
+template <typename T, contiguous_container Container> class transformer : public basic_layer {
 private:
     nn::shared_attention<T, Container> _m_attention;
     nn::shared_rmsnorm<T, Container> _m_attention_norm;
@@ -65,7 +65,7 @@ private:
 
 public:
     transformer(attention_options& options, hardware_accelerator gpu)
-    : layer(gpu)
+    : basic_layer(gpu)
     {
         _m_attention = register_layer("attention", nn::attention<T, Container>(options, gpu));
         _m_attention_norm = register_layer("attention_norm", nn::rmsnorm<T, Container>(gpu));
