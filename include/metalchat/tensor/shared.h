@@ -10,22 +10,23 @@
 namespace metalchat {
 
 
-template <typename T, std::size_t N, contiguous_container Container = hardware_memory_container<T>>
-class shared_tensor {
+template <immutable_tensor Tensor> class shared_tensor_ptr {
 public:
-    using tensor_type = tensor<T, N, Container>;
+    using tensor_type = Tensor;
 
     using value_type = tensor_type::value_type;
+
+    static constexpr std::size_t N = tensor_type::dim();
 
     using pointer_type = tensor_type::pointer_type;
 
     using container_type = tensor_type::container_type;
 
-    using iterator = tensor_iterator<T, N>;
+    using iterator = tensor_type::iterator;
 
-    using const_iterator = const iterator;
+    using const_iterator = tensor_type::const_iterator;
 
-    shared_tensor(tensor_type&& t)
+    shared_tensor_ptr(tensor_type&& t)
     : _m_value(std::make_shared<tensor_type>(std::move(t)))
     {}
 
@@ -147,53 +148,58 @@ public:
     auto
     index_select(const S&... slices) requires(sizeof...(slices) == N)
     {
-        return shared_tensor(_m_value->index_select(slices...));
+        return shared_tensor_ptr(_m_value->index_select(slices...));
     }
 
-    shared_tensor<T, N + 1, Container>
+    auto
     expand_dims(std::size_t dim) const
     {
-        return shared_tensor<T, N + 1, Container>(_m_value->expand_dims(dim));
+        using tensor_t = change_tensor_dimensions_t<tensor_type, N + 1>;
+        return shared_tensor_ptr<tensor_t>(_m_value->expand_dims(dim));
     }
 
     template <std::size_t M>
-    shared_tensor<T, M, Container>
+    auto
     view(int (&&dims)[M]) const requires(M > 0)
     {
-        return shared_tensor<T, M, Container>(_m_value->view(std::move(dims)));
+        using tensor_t = change_tensor_dimensions_t<tensor_type, M>;
+        return shared_tensor_ptr<tensor_t>(_m_value->view(std::move(dims)));
     }
 
     template <std::size_t M>
-    shared_tensor<T, M, Container>
+    auto
     view(const std::span<int, M> dims) const
     {
-        return shared_tensor<T, M, Container>(_m_value->view(dims));
+        using tensor_t = change_tensor_dimensions_t<tensor_type, M>;
+        return shared_tensor_ptr<tensor_t>(_m_value->view(dims));
     }
 
     template <std::size_t M>
-    shared_tensor<T, M, Container>
+    auto
     view(const std::span<std::size_t, M> dims) const
     {
-        return shared_tensor<T, M, Container>(_m_value->view(dims));
+        using tensor_t = change_tensor_dimensions_t<tensor_type, M>;
+        return shared_tensor_ptr<tensor_t>(_m_value->view(dims));
     }
 
     template <std::size_t M>
-    shared_tensor<T, M, Container>
+    auto
     flatten() const
     {
-        return shared_tensor<T, M, Container>(_m_value->template flatten<M>());
+        using tensor_t = change_tensor_dimensions_t<tensor_type, M>;
+        return shared_tensor_ptr<tensor_t>(_m_value->template flatten<M>());
     }
 
-    shared_tensor
+    shared_tensor_ptr
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
-        return shared_tensor(_m_value->narrow(dim, start, length));
+        return shared_tensor_ptr(_m_value->narrow(dim, start, length));
     }
 
-    shared_tensor
+    shared_tensor_ptr
     transpose(const std::size_t (&&dims)[N]) const
     {
-        return shared_tensor(_m_value->transpose(std::move(dims)));
+        return shared_tensor_ptr(_m_value->transpose(std::move(dims)));
     }
 
     tensor_layout<N>
@@ -203,14 +209,14 @@ public:
     }
 
     template <indexing::size_convertible... S>
-    T&
+    value_type&
     operator[](const S&... sizes) requires(sizeof...(sizes) == N)
     {
         return _m_value->value_select(sizes...);
     }
 
     template <indexing::size_convertible... S>
-    const T&
+    const value_type&
     operator[](const S&... sizes) const requires(sizeof...(sizes) == N)
     {
         return _m_value->value_select(sizes...);
@@ -220,13 +226,19 @@ public:
     auto
     operator[](const S&... slices) requires(sizeof...(slices) == N)
     {
-        return shared_tensor(_m_value->index_select(slices...));
+        return shared_tensor_ptr(_m_value->index_select(slices...));
     }
 
     auto
     operator[](std::size_t i) requires(N > 1)
     {
-        return shared_tensor<T, N - 1, reference_memory_container<T>>(_m_value->at(i));
+        using container_type = reference_memory_container<value_type>;
+
+        using tensor0_t = tensor_type;
+        using tensor1_t = change_tensor_dimensions_t<tensor0_t, N - 1>;
+        using tensor2_t = change_tensor_container_t<tensor1_t, container_type>;
+
+        return shared_tensor_ptr<tensor2_t>(_m_value->at(i));
     }
 
 private:
@@ -234,12 +246,12 @@ private:
 };
 
 
+template <typename T, std::size_t N, contiguous_container Container>
+using shared_tensor = shared_tensor_ptr<tensor<T, N, Container>>;
+
+
 template <typename T, std::size_t N>
 using shared_hardware_tensor = shared_tensor<T, N, hardware_memory_container<T>>;
-
-
-template <typename T, std::size_t N, contiguous_container Container>
-shared_tensor(tensor<T, N, Container>&&) -> shared_tensor<T, N, Container>;
 
 
 template <typename T, immutable_tensor Tensor, allocator Allocator>

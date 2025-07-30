@@ -43,9 +43,7 @@ public:
         auto output = shared_empty<int32_t>({num_rows, sample_size}, _m_kernel.get_allocator());
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto task_future = task.bind_front(
-            output, input, shared_tensor(scalar(init_state)), shared_tensor(scalar(init_seq))
-        );
+        auto task_future = task.bind_front(output, input, scalar(init_state), scalar(init_seq));
 
         return future_tensor(output, std::move(task_future));
     }

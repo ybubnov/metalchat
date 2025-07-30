@@ -55,9 +55,8 @@ public:
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto task_future = task.bind_front(
-            output_view, input_view, shared_tensor(scalar<int32_t>(shift)),
-            shared_tensor(scalar<int32_t>(input.size(dim))),
-            shared_tensor(scalar<int32_t>(input.stride(dim)))
+            output_view, input_view, scalar<int32_t>(shift), scalar<int32_t>(input.size(dim)),
+            scalar<int32_t>(input.stride(dim))
         );
 
         return future_tensor(output, std::move(task_future));

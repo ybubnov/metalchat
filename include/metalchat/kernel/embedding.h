@@ -94,8 +94,8 @@ public:
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto task_future = task.bind_front(
-            output_view, input_view, freqs_cos, freqs_sin, shared_tensor(scalar<int32_t>(bs)),
-            shared_tensor(scalar<int32_t>(n_head)), shared_tensor(scalar<int32_t>(start_pos))
+            output_view, input_view, freqs_cos, freqs_sin, scalar<int32_t>(bs),
+            scalar<int32_t>(n_head), scalar<int32_t>(start_pos)
         );
 
         auto output = future_tensor(output_view, std::move(task_future));
@@ -141,8 +141,8 @@ public:
 
         auto task = kernel_task(_m_kernel, grid, thread);
         auto task_future = task.bind_front(
-            freqs_cos, freqs_sin, shared_tensor(scalar<int32_t>(_m_dim)),
-            shared_tensor(scalar<int32_t>(start_pos)), shared_tensor(scalar<T>(_m_theta))
+            freqs_cos, freqs_sin, scalar<int32_t>(_m_dim), scalar<int32_t>(start_pos),
+            scalar<T>(_m_theta)
         );
 
         auto cos_future = future_tensor(freqs_cos, std::move(task_future));

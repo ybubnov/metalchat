@@ -69,6 +69,20 @@ concept immutable_tensor = requires(std::remove_reference_t<Tensor> const t) {
 };
 
 
+template <immutable_tensor Tensor, std::size_t N> struct change_tensor_dimensions;
+
+
+template <immutable_tensor Tensor, std::size_t N>
+using change_tensor_dimensions_t = typename change_tensor_dimensions<Tensor, N>::type;
+
+
+template <immutable_tensor Tensor, contiguous_container Container> struct change_tensor_container;
+
+
+template <immutable_tensor Tensor, contiguous_container Container>
+using change_tensor_container_t = typename change_tensor_container<Tensor, Container>::type;
+
+
 /// Ensures that the tensor of a given value type, so a binary operation (for example,
 /// a Hadamard product) could be computed on tensors of the same value type, and never
 /// on tensors of different types (meaning, no automatic type cast).

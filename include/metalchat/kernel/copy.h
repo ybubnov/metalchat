@@ -86,7 +86,7 @@ public:
         auto mask_view = flatten<2>(mask);
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto task_future = task.bind_front(input_view, mask_view, shared_tensor(scalar(value)));
+        auto task_future = task.bind_front(input_view, mask_view, scalar(value));
 
         auto output = future_tensor(input, std::move(task_future));
         return output.view(input.shape());

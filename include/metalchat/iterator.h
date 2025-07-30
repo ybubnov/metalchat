@@ -46,7 +46,7 @@ public:
       _m_offsets(offsets),
       _m_index(0),
       _m_num(0),
-      _m_indices({0})
+      _m_indices({})
     {
         if (start) {
             auto start_num = start.value() - 1;

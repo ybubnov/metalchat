@@ -29,7 +29,7 @@ public:
         auto [grid, thread] = make_kernel_grid_2d(input, BlockSize);
 
         auto task = kernel_task(_m_kernel, grid, thread);
-        auto task_future = task.bind_front(output_view, input_view, shared_tensor(scalar(value)));
+        auto task_future = task.bind_front(output_view, input_view, scalar(value));
 
         auto output = future_tensor(output_view, std::move(task_future));
         return output.view(input.shape());

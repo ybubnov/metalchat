@@ -19,11 +19,6 @@
 namespace metalchat {
 
 
-template <typename T, contiguous_container Container> struct tensor_traits {
-    using size_type = std::shared_ptr<memory_container<std::size_t>>;
-};
-
-
 class basic_tensor {
 public:
     virtual std::size_t
@@ -74,13 +69,15 @@ public:
 
     using const_iterator = const iterator;
 
-    using traits_type = tensor_traits<T, container_type>;
+    using descriptor_type = memory_container<std::size_t>;
+
+    using descriptor_pointer = std::shared_ptr<descriptor_type>;
 
     tensor() { _m_initialize(); }
 
     tensor(tensor&& t) noexcept = default;
 
-    tensor(const tensor& t) noexcept = delete;
+    tensor(const tensor& t) noexcept = default;
 
     template <allocator_t<T> Allocator = scalar_memory_allocator<T>>
     tensor(const T& value, Allocator alloc = Allocator())
@@ -598,9 +595,9 @@ public:
 
 protected:
     container_pointer m_data = nullptr;
-    traits_type::size_type m_shape = nullptr;
-    traits_type::size_type m_strides = nullptr;
-    traits_type::size_type m_offsets = nullptr;
+    descriptor_pointer m_shape = nullptr;
+    descriptor_pointer m_strides = nullptr;
+    descriptor_pointer m_offsets = nullptr;
 
     // Make all specialization of the tensor friends to the current specialization.
     template <typename FriendT, std::size_t FriendN, contiguous_container FriendContainer>
@@ -662,9 +659,9 @@ protected:
 
     tensor(
         const container_pointer& data,
-        traits_type::size_type&& shape,
-        traits_type::size_type&& strides,
-        traits_type::size_type&& offsets
+        descriptor_pointer&& shape,
+        descriptor_pointer&& strides,
+        descriptor_pointer&& offsets
     )
     : m_data(data),
       m_shape(std::move(shape)),
@@ -680,6 +677,22 @@ protected:
           make_reference_container(offsets)
       )
     {}
+};
+
+
+template <typename T, std::size_t N, contiguous_container Container, std::size_t M>
+struct change_tensor_dimensions<tensor<T, N, Container>, M> {
+    using type = tensor<T, M, Container>;
+};
+
+
+template <
+    typename T,
+    std::size_t N,
+    contiguous_container ContainerIn,
+    contiguous_container ContainerOut>
+struct change_tensor_container<tensor<T, N, ContainerIn>, ContainerOut> {
+    using type = tensor<T, N, ContainerOut>;
 };
 
 

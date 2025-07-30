@@ -267,7 +267,7 @@ public:
     auto
     operator()(Input1 input1, const T input2)
     {
-        return operator()(input1, shared_tensor(scalar(input2)));
+        return operator()(input1, scalar(input2));
     }
 };
 
