@@ -69,15 +69,7 @@ public:
         }
     }
 
-    tensor_iterator(const iterator& it)
-    : _m_data(it._m_data),
-      _m_sizes(it._m_sizes),
-      _m_strides(it._m_strides),
-      _m_offsets(it._m_offsets),
-      _m_index(it._m_index),
-      _m_num(it._m_num),
-      _m_indices(it._m_indices)
-    {}
+    tensor_iterator(const iterator& it) = default;
 
     iterator&
     operator++()
