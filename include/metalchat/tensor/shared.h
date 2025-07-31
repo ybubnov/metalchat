@@ -37,7 +37,7 @@ public:
     }
 
     std::shared_ptr<tensor_type>
-    get()
+    get() const
     {
         return _m_value;
     }

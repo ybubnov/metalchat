@@ -25,7 +25,7 @@ public:
     : basic_layer(accelerator),
       _m_weight(weight)
     {
-        register_parameter("weight", _m_weight.get());
+        register_parameter("weight", _m_weight);
     }
 
     linear(tensor<T, 2, WeightContainer>&& weight, hardware_accelerator accelerator)
@@ -54,7 +54,7 @@ public:
 
 
 template <typename T, contiguous_container WeightContainer = hardware_memory_container<T>>
-using shared_linear = shared_layer<linear<T, WeightContainer>>;
+using shared_linear = shared_layer_ptr<linear<T, WeightContainer>>;
 
 
 } // namespace nn

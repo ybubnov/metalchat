@@ -38,14 +38,7 @@ basic_layer::get_layer(const std::string& name) const
 }
 
 
-void
-basic_layer::register_parameter(const std::string& name, polymorphic_tensor tensor)
-{
-    _m_params.insert_or_assign(name, tensor);
-}
-
-
-polymorphic_tensor
+basic_layer::parameter_pointer
 basic_layer::get_parameter(const std::string& name) const
 {
     if (auto it = _m_params.find(name); it != _m_params.end()) {
@@ -78,7 +71,7 @@ basic_layer::get_parameters(bool recurse) const
 {
     parameter_container params;
 
-    auto visitor = [&](const std::string& name, polymorphic_tensor param) {
+    auto visitor = [&](const std::string& name, parameter_pointer param) {
         params.insert_or_assign(name, param);
     };
 

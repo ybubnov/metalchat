@@ -52,7 +52,7 @@ public:
 
 
 template <typename T, contiguous_container Container>
-using shared_feed_forward = shared_layer<feed_forward<T, Container>>;
+using shared_feed_forward = shared_layer_ptr<feed_forward<T, Container>>;
 
 
 template <typename T, contiguous_container Container> class transformer : public basic_layer {
@@ -94,7 +94,7 @@ public:
 
 
 template <typename T, contiguous_container Container>
-using shared_transformer = shared_layer<transformer<T, Container>>;
+using shared_transformer = shared_layer_ptr<transformer<T, Container>>;
 
 
 } // namespace nn

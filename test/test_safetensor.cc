@@ -35,6 +35,6 @@ TEST_CASE("Test model load", "[safetensor]")
 
     REQUIRE(params.size() == 147);
     for (auto [name, param] : params) {
-        REQUIRE(param.numel() > 0);
+        REQUIRE(param->numel() > 0);
     }
 }

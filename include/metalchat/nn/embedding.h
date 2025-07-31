@@ -24,7 +24,7 @@ public:
       _m_weight(weight),
       _m_embedding(accelerator)
     {
-        register_parameter("weight", _m_weight.get());
+        register_parameter("weight", _m_weight);
     }
 
     embedding(tensor<T, 2, Container>&& weight, hardware_accelerator accelerator)
@@ -53,7 +53,7 @@ public:
 
 
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-using shared_embedding = shared_layer<embedding<T, Container>>;
+using shared_embedding = shared_layer_ptr<embedding<T, Container>>;
 
 
 /// This class implements Rotary Positional Embeddings (RoPE).

@@ -6,7 +6,6 @@
 
 #include <metalchat/safetensor.h>
 #include <metalchat/tensor/concept.h>
-#include <metalchat/tensor/polymorphic.h>
 
 
 namespace metalchat {
@@ -24,20 +23,20 @@ constexpr_switch(T index, std::integer_sequence<T, Indices...>, Function functio
 
 /// A Wrapper around a shared pointer for arbitrary layer implementation provides invocable
 /// functionality for `Layer` implementations.
-template <typename Layer> class shared_layer {
+template <typename Layer> class shared_layer_ptr {
 public:
     /// Construct a shared layer with no managed layer, i.e. empty `shared_ptr`.
-    shared_layer()
+    shared_layer_ptr()
     : _m_value(nullptr)
     {}
 
     /// Construct a shared layer that takes ownership from the specified `Layer` instance.
-    shared_layer(Layer&& layer)
+    shared_layer_ptr(Layer&& layer)
     : _m_value(std::move(layer))
     {}
 
     /// Construct a shared layer which shares ownership of the layer managed by `r`.
-    shared_layer(const std::shared_ptr<Layer>& r)
+    shared_layer_ptr(const std::shared_ptr<Layer>& r)
     : _m_value(r)
     {}
 
@@ -79,10 +78,11 @@ private:
 /// layer computation logic.
 class basic_layer {
 public:
-    using pointer = std::shared_ptr<basic_layer>;
+    using parameter_pointer = std::shared_ptr<basic_tensor>;
+    using layer_pointer = std::shared_ptr<basic_layer>;
 
-    using parameter_container = std::unordered_map<std::string, polymorphic_tensor>;
-    using layer_container = std::unordered_map<std::string, pointer>;
+    using parameter_container = std::unordered_map<std::string, parameter_pointer>;
+    using layer_container = std::unordered_map<std::string, layer_pointer>;
 
     /// Construct a layer that is a associated with the specified hardware accelerator.
     basic_layer(const hardware_accelerator& accelerator);
@@ -104,18 +104,19 @@ public:
     void
     initialize(const std::unordered_map<std::string, safetensor<Container>>& weights)
     {
-        auto visitor = [&](const std::string& param_name, polymorphic_tensor param) {
+        auto visitor = [&](const std::string& param_name, parameter_pointer param) {
             if (auto it = weights.find(param_name); it != weights.end()) {
-                auto [_, weight] = *it;
+                auto& [_, weight] = *it;
                 std::size_t dim = weight.dim();
 
                 constexpr_switch(dim, std::make_index_sequence<N>{}, [&](auto i) {
+                    auto sizes = weight.sizes();
+
                     using value_type = typename Container::value_type;
                     using tensor_type = tensor<value_type, i, Container>;
-                    auto sizes = weight.sizes();
-                    param.emplace(
-                        std::move(tensor_type(sizes.begin(), sizes.end(), weight.container()))
-                    );
+
+                    auto tensor = tensor_type(sizes.begin(), sizes.end(), weight.container());
+                    move_tensor_to_pointer(param, std::move(tensor));
                 });
             }
         };
@@ -132,7 +133,7 @@ public:
     /// A common practice is registering upstream layers within a downstream layer constructor
     /// like in the example below.
     ///
-    /// ```cpp
+    /// ```c++
     /// using namespace metalchat;
     ///
     /// class custom_layer : public basic_layer {
@@ -152,12 +153,12 @@ public:
     /// };
     /// ```
     template <typename Layer>
-    shared_layer<Layer>
+    shared_layer_ptr<Layer>
     register_layer(const std::string& name, Layer&& l)
     {
         auto layer_ptr = std::make_shared<Layer>(std::move(l));
         _m_layers.emplace(name, layer_ptr);
-        return shared_layer(layer_ptr);
+        return shared_layer_ptr(layer_ptr);
     }
 
     /// Get upstream layer by name. This method does not perform recursive lookup and only
@@ -174,7 +175,7 @@ public:
     /// A common practice is registering parameters of the layers that could be updated
     /// externally (loaded from a file, or stored after inference):
     ///
-    /// ```cpp
+    /// ```c++
     /// using namespace metalchat;
     ///
     /// class custom_layer : public basic_layer {
@@ -184,30 +185,27 @@ public:
     ///
     /// public:
     ///     custom_layer(hardware_accelerator accelerator)
-    ///     : basic_layer(accelerator),
-    ///       weight(empty<float>({10, 4, 3}, accelerator)),
+    ///     : basic_layer(accelerator)
     ///     {
-    ///         register_parameter("weight", weight.get());
+    ///         weight = register_parameter("weight", empty<float>({10, 4, 3}, accelerator));
     ///     }
     /// };
     /// ```
-    void
-    register_parameter(const std::string& name, polymorphic_tensor tensor);
-
-    /// Add a parameter to the layer.
     template <immutable_tensor Tensor>
-    void
-    register_parameter(const std::string& name, Tensor&& tensor)
+    shared_tensor_ptr<Tensor>
+    register_parameter(const std::string& name, const shared_tensor_ptr<Tensor>& tensor_ptr)
     {
-        register_parameter(name, polymorphic_tensor(std::move(tensor)));
+        _m_params.insert_or_assign(name, tensor_ptr.get());
+        return tensor_ptr;
     }
 
     /// Add a parameter to the layer.
     template <immutable_tensor Tensor>
-    void
-    register_parameter(const std::string& name, const std::shared_ptr<Tensor>& tensor_ptr)
+    shared_tensor_ptr<Tensor>
+    register_parameter(const std::string& name, Tensor&& tensor)
     {
-        register_parameter(name, polymorphic_tensor(tensor_ptr));
+        auto tensor_ptr = shared_tensor_ptr(std::move(tensor));
+        return register_parameter(name, tensor_ptr);
     }
 
     template <immutable_tensor Tensor>
@@ -215,13 +213,13 @@ public:
     set_parameter(const std::string& name, Tensor&& tensor)
     {
         if (auto it = _m_params.find(name); it != _m_params.end()) {
-            it->second.emplace(std::move(tensor));
+            move_tensor_to_pointer(it->second, std::move(tensor));
         } else {
             throw std::invalid_argument(std::format("parameter '{}' is not registered", name));
         }
     }
 
-    polymorphic_tensor
+    parameter_pointer
     get_parameter(const std::string& name) const;
 
     /// Return a set of parameters with fully-qualified names. Parameters of different layers
@@ -232,7 +230,7 @@ public:
     const parameter_container
     get_parameters(bool recurse = true) const;
 
-    template <std::invocable<const std::string&, polymorphic_tensor> Visitor>
+    template <std::invocable<const std::string&, parameter_pointer> Visitor>
     void
     visit_parameters(Visitor visitor, bool recurse = true) const
     {
@@ -270,6 +268,18 @@ private:
     parameter_container _m_params;
     layer_container _m_layers;
     hardware_accelerator _m_accelerator;
+
+    template <immutable_tensor Tensor>
+    void
+    move_tensor_to_pointer(std::shared_ptr<basic_tensor>& ptr, Tensor&& tensor)
+    {
+        auto tensor_ptr = std::dynamic_pointer_cast<Tensor>(ptr);
+        if (!tensor_ptr) {
+            throw std::invalid_argument("basic_layer::move_tensor: tensor types are not compatible"
+            );
+        }
+        *tensor_ptr = std::move(tensor);
+    }
 };
 
 

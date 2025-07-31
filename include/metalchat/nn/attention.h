@@ -142,7 +142,7 @@ public:
 
 
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-using shared_attention = shared_layer<attention<T, Container>>;
+using shared_attention = shared_layer_ptr<attention<T, Container>>;
 
 
 } // namespace nn

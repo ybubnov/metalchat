@@ -17,7 +17,7 @@ Tensor Iterator
 Shared Tensor
 -------------
 
-.. doxygenclass:: metalchat::shared_tensor
+.. doxygenclass:: metalchat::shared_tensor_ptr
 
 
 Future Tensor

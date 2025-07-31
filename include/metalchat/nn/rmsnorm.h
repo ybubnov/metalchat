@@ -21,7 +21,7 @@ public:
       _m_weight(std::move(weight)),
       _m_norm(accelerator)
     {
-        register_parameter("weight", _m_weight.get());
+        register_parameter("weight", _m_weight);
     }
 
     rmsnorm(hardware_accelerator accelerator)
@@ -46,7 +46,7 @@ public:
 
 
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-using shared_rmsnorm = shared_layer<rmsnorm<T, Container>>;
+using shared_rmsnorm = shared_layer_ptr<rmsnorm<T, Container>>;
 
 
 } // namespace nn

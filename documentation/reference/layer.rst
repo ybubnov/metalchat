@@ -11,7 +11,7 @@ Layer
 Shared Layer
 ------------
 
-.. doxygenclass:: metalchat::shared_layer
+.. doxygenclass:: metalchat::shared_layer_ptr
    :members:
 
 

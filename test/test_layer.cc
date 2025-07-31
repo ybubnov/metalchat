@@ -17,9 +17,9 @@ TEST_CASE("Test layer parameters", "[layer]")
     linear.set_parameter("weight", full<float>({3, 5}, 4.0));
 
     auto weight = linear.get_parameter("weight");
-    REQUIRE(weight.dimensions() == 2);
-    REQUIRE(weight.size(0) == 3);
-    REQUIRE(weight.size(1) == 5);
+    REQUIRE(weight->dimensions() == 2);
+    REQUIRE(weight->size(0) == 3);
+    REQUIRE(weight->size(1) == 5);
 
     auto output = linear(shared_tensor(full<float>({10, 5}, 2.0))).get();
     REQUIRE(output.dim() == 2);
@@ -36,8 +36,8 @@ TEST_CASE("Test recurse parameter query", "[layer]")
     using linear = nn::linear<float, random_memory_container<float>>;
 
     struct test_layer : public basic_layer {
-        shared_layer<linear> linear1;
-        shared_layer<linear> linear2;
+        shared_layer_ptr<linear> linear1;
+        shared_layer_ptr<linear> linear2;
 
         test_layer(hardware_accelerator gpu)
         : basic_layer(gpu)
@@ -48,8 +48,8 @@ TEST_CASE("Test recurse parameter query", "[layer]")
     };
 
     struct test_layer_outer : public basic_layer {
-        shared_layer<test_layer> inner;
-        shared_layer<linear> linear0;
+        shared_layer_ptr<test_layer> inner;
+        shared_layer_ptr<linear> linear0;
 
         test_layer_outer(hardware_accelerator gpu)
         : basic_layer(gpu)
@@ -63,14 +63,14 @@ TEST_CASE("Test recurse parameter query", "[layer]")
     test_layer_outer tl(gpu0);
 
     auto param = tl.get_parameter("inner.layer1.weight");
-    REQUIRE(param.dimensions() == 2);
-    REQUIRE(param.size(0) == 3);
-    REQUIRE(param.size(1) == 4);
+    REQUIRE(param->dimensions() == 2);
+    REQUIRE(param->size(0) == 3);
+    REQUIRE(param->size(1) == 4);
 
     param = tl.get_parameter("linear0.weight");
-    REQUIRE(param.dimensions() == 2);
-    REQUIRE(param.size(0) == 1);
-    REQUIRE(param.size(1) == 2);
+    REQUIRE(param->dimensions() == 2);
+    REQUIRE(param->size(0) == 1);
+    REQUIRE(param->size(1) == 2);
 
     auto match_not_registered = Catch::Matchers::ContainsSubstring("is not registered");
 

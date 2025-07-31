@@ -98,7 +98,7 @@ Tensor library
    * - :cpp:class:`metalchat::tensor_iterator`
      - A sequential accessor to the tensor's elements.
 
-   * - :cpp:class:`metalchat::shared_tensor`
+   * - :cpp:class:`metalchat::shared_tensor_ptr`
      - A tensor that could be shared by multiple owners.
 
    * - :cpp:class:`metalchat::future_tensor`
@@ -155,7 +155,7 @@ Layer library
    * - :cpp:class:`metalchat::basic_layer`
      - A basic building block of neural networks in MetalChat.
 
-   * - :cpp:class:`metalchat::shared_layer`
+   * - :cpp:class:`metalchat::shared_layer_ptr`
      - A convenience class for a :cpp:class:`metalchat::layer` type to share layer ownership.
 
    * - :cpp:class:`metalchat::nn::embedding`
