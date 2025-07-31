@@ -51,6 +51,8 @@ public:
 
     using container_type = result_type::container_type;
 
+    using container_pointer = result_type::container_pointer;
+
     using iterator = result_type::iterator;
 
     using const_iterator = result_type::const_iterator;
@@ -191,6 +193,12 @@ public:
     container() const
     {
         return _m_result.container();
+    }
+
+    container_pointer
+    container_ptr() const
+    {
+        return _m_result.container_ptr();
     }
 
     pointer_type

@@ -127,13 +127,13 @@ public:
     : reference_memory_container(ref._m_data)
     {}
 
-    inline pointer
+    pointer
     data()
     {
         return _m_data;
     }
 
-    inline const_pointer
+    const_pointer
     data() const
     {
         return _m_data;
@@ -153,7 +153,7 @@ make_reference_container(T* data)
 
 template <typename T> struct random_memory_container : public memory_container<T> {
 private:
-    T* _m_data = nullptr;
+    std::shared_ptr<T[]> _m_data = nullptr;
 
 public:
     using value_type = T;
@@ -164,24 +164,16 @@ public:
     : _m_data(data)
     {}
 
-    random_memory_container(const random_memory_container& ref) = delete;
-
-    ~random_memory_container()
-    {
-        delete[] _m_data;
-        _m_data = nullptr;
-    }
-
-    inline pointer
+    pointer
     data()
     {
-        return _m_data;
+        return _m_data.get();
     }
 
-    inline const_pointer
+    const_pointer
     data() const
     {
-        return _m_data;
+        return _m_data.get();
     }
 
     template <typename U> requires std::convertible_to<U, T>
@@ -209,13 +201,13 @@ public:
     : _m_data()
     {}
 
-    inline pointer
+    pointer
     data()
     {
         return _m_data.data();
     }
 
-    inline const value_type*
+    const value_type*
     data() const
     {
         const value_type* ptr = _m_data.data();

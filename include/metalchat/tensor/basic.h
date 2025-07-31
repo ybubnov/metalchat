@@ -12,8 +12,8 @@
 #include <metalchat/allocator.h>
 #include <metalchat/container.h>
 #include <metalchat/indexing.h>
-#include <metalchat/iterator.h>
 #include <metalchat/tensor/concept.h>
+#include <metalchat/tensor/iterator.h>
 
 
 namespace metalchat {
@@ -270,6 +270,12 @@ public:
         return *m_data;
     }
 
+    container_pointer
+    container_ptr() const
+    {
+        return m_data;
+    }
+
     std::size_t
     container_offset() const
     {
@@ -293,25 +299,25 @@ public:
     iterator
     begin()
     {
-        return iterator(m_data, m_shape, m_strides, m_offsets);
+        return iterator(*this);
     }
 
     const_iterator
     begin() const
     {
-        return const_iterator(m_data, m_shape, m_strides, m_offsets);
+        return const_iterator(*this);
     }
 
     iterator
     end()
     {
-        return iterator(m_data, m_shape, m_strides, m_offsets, numel());
+        return iterator(*this, numel());
     }
 
     const_iterator
     end() const
     {
-        return const_iterator(m_data, m_shape, m_strides, m_offsets, numel());
+        return const_iterator(*this, numel());
     }
 
     auto

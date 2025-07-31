@@ -40,6 +40,7 @@ concept immutable_tensor = requires(std::remove_reference_t<Tensor> const t) {
     typename Tensor::value_type;
     typename Tensor::pointer_type;
     typename Tensor::container_type;
+    typename Tensor::container_pointer;
     typename Tensor::iterator;
     typename Tensor::const_iterator;
 
@@ -59,6 +60,7 @@ concept immutable_tensor = requires(std::remove_reference_t<Tensor> const t) {
     { t.numel() } -> std::same_as<std::size_t>;
 
     { t.container() } -> std::same_as<typename Tensor::container_type&>;
+    { t.container_ptr() } -> std::same_as<typename Tensor::container_pointer>;
     { t.layout() } -> std::same_as<tensor_layout<Tensor::dim()>>;
 
     { t.narrow(std::size_t(), std::size_t(), std::size_t()) } -> std::same_as<Tensor>;

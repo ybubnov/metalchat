@@ -22,6 +22,8 @@ public:
 
     using container_type = tensor_type::container_type;
 
+    using container_pointer = tensor_type::container_pointer;
+
     using iterator = tensor_type::iterator;
 
     using const_iterator = tensor_type::const_iterator;
@@ -64,6 +66,12 @@ public:
     container() const
     {
         return _m_value->container();
+    }
+
+    container_pointer
+    container_ptr() const
+    {
+        return _m_value->container_ptr();
     }
 
     pointer_type

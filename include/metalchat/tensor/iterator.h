@@ -20,12 +20,14 @@ concept forward_tensor_iterator_t = std::forward_iterator<It> && requires(It it)
 
 
 template <typename T, std::size_t N> class tensor_iterator {
+private:
+
 public:
+    using value_type = T;
+
     using iterator_category = std::forward_iterator_tag;
 
     using iterator = tensor_iterator<T, N>;
-
-    using value_type = T;
 
     using reference = value_type&;
 
@@ -33,17 +35,14 @@ public:
 
     using difference_type = std::ptrdiff_t;
 
-    tensor_iterator(
-        std::shared_ptr<memory_container<T>> data,
-        std::shared_ptr<memory_container<std::size_t>> sizes,
-        std::shared_ptr<memory_container<std::size_t>> strides,
-        std::shared_ptr<memory_container<std::size_t>> offsets,
-        std::optional<std::size_t> start = std::nullopt
-    )
-    : _m_data(data),
-      _m_sizes(sizes),
-      _m_strides(strides),
-      _m_offsets(offsets),
+    using container_pointer = std::shared_ptr<memory_container<value_type>>;
+
+    template <immutable_tensor Tensor>
+    tensor_iterator(const Tensor& tensor, std::optional<std::size_t> start = std::nullopt)
+    : _m_data(tensor.container_ptr()),
+      _m_sizes(tensor.sizes().begin(), tensor.sizes().end()),
+      _m_strides(tensor.strides().begin(), tensor.strides().end()),
+      _m_offsets(tensor.offsets().begin(), tensor.offsets().end()),
       _m_index(0),
       _m_num(0),
       _m_indices({})
@@ -55,13 +54,13 @@ public:
             // Calculate the total number of elements in the given tensor.
             std::size_t numel = 1;
             for (std::size_t i = 0; i < N; i++) {
-                numel *= size(i);
+                numel *= _m_sizes[i];
             }
 
             // Generate the index of the element in multidimensional tensor, so
             // that increment operator could start from the correct position.
             for (std::size_t i = 0; i < N; i++) {
-                numel = numel / size(i);
+                numel = numel / _m_sizes[i];
                 _m_indices[i] = start_num / numel;
                 start_num = start_num % numel;
             }
@@ -117,33 +116,15 @@ public:
     }
 
 private:
-    std::shared_ptr<memory_container<T>> _m_data;
-    std::shared_ptr<memory_container<std::size_t>> _m_sizes;
-    std::shared_ptr<memory_container<std::size_t>> _m_strides;
-    std::shared_ptr<memory_container<std::size_t>> _m_offsets;
+    container_pointer _m_data;
+    std::vector<std::size_t> _m_sizes;
+    std::vector<std::size_t> _m_strides;
+    std::vector<std::size_t> _m_offsets;
 
     std::size_t _m_index;
     std::size_t _m_num;
 
     std::array<std::size_t, N> _m_indices;
-
-    inline std::size_t
-    size(std::size_t dim)
-    {
-        return _m_sizes->data()[dim];
-    }
-
-    inline std::size_t
-    stride(std::size_t dim)
-    {
-        return _m_strides->data()[dim];
-    }
-
-    inline std::size_t
-    offset(std::size_t dim)
-    {
-        return _m_offsets->data()[dim];
-    }
 
     inline reference
     data(std::size_t index)
@@ -156,15 +137,15 @@ private:
     {
         std::size_t index = 0;
         for (std::size_t i = 0; i < N; i++) {
-            index = index + stride(i) * _m_indices[i] + offset(i);
+            index = index + _m_strides[i] * _m_indices[i] + _m_offsets[i];
         }
 
         // Update indices in the array.
         std::size_t carry = 1;
         for (std::size_t i = N - 1; i < N; i--) {
             auto sum = _m_indices[i] + carry;
-            _m_indices[i] = sum % size(i);
-            carry = sum / size(i);
+            _m_indices[i] = sum % _m_sizes[i];
+            carry = sum / _m_sizes[i];
         }
 
         return index;
