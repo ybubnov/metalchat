@@ -51,6 +51,13 @@ public:
         = 0;
 
     virtual ~basic_tensor() {}
+
+protected:
+    void
+    deduce_view_sizes(const int* begin, std::size_t count, std::size_t* result) const;
+
+    void
+    deduce_view_strides(const std::size_t* sizes, std::size_t count, std::size_t* strides) const;
 };
 
 
@@ -500,38 +507,8 @@ public:
     tensor<T, M, Container>
     view(const std::span<int, M> dims) const requires(M > 0)
     {
-        std::size_t tensor_numel = numel();
-        std::size_t view_numel = 1;
-
-        auto inferred_size = tensor_numel;
-        auto inferred_dim = -1;
-
         std::size_t view_sizes[M];
-
-        for (std::size_t i = 0; i < M; i++) {
-            if (dims[i] == -1) {
-                if (inferred_dim >= 0) {
-                    throw std::invalid_argument("tensor::view: only one position can be inferred");
-                }
-                inferred_dim = i;
-            } else {
-                view_sizes[i] = std::size_t(dims[i]);
-                view_numel *= std::size_t(dims[i]);
-                inferred_size = inferred_size / dims[i];
-            }
-        }
-        if (inferred_dim >= 0) {
-            view_sizes[inferred_dim] = inferred_size;
-            view_numel *= inferred_size;
-        }
-
-        if (view_numel != tensor_numel) {
-            throw std::invalid_argument(std::format(
-                "tensor::view: view numel is not the same as tensor numel {} != {}", view_numel,
-                tensor_numel
-            ));
-        }
-
+        deduce_view_sizes(dims.data(), M, view_sizes);
         return view(std::span<std::size_t, M>(view_sizes));
     }
 
@@ -540,43 +517,7 @@ public:
     view(const std::span<std::size_t, M> view_sizes) const requires(M > 0)
     {
         std::size_t view_strides[M];
-        std::size_t tensor_numel = 1;
-        std::size_t view_numel = 1;
-
-        int view_i = M - 1;
-        auto base_stride = stride(N - 1);
-
-        for (int i = N - 1; i >= 0; i--) {
-            tensor_numel *= size(i);
-
-            // When tensor stride is not equal to the "default" stride (which could happen
-            // in case of slicing or narrowing a tensor), try computing new strides according
-            // to the layout of the original tensor.
-            //
-            // A new shape of a view might break the contiguous layout of memory, in this
-            // case throw an `invalid_argument` exception to the caller.
-            if (i == 0 || stride(i - 1) != tensor_numel * base_stride) {
-                while (view_i >= 0 && (view_numel < tensor_numel || view_sizes[view_i] == 1)) {
-                    view_strides[view_i] = view_numel * base_stride;
-                    view_numel *= view_sizes[view_i];
-                    view_i--;
-                }
-
-                if (view_numel != tensor_numel) {
-                    throw std::invalid_argument(std::format(
-                        ("tensor::view: shape is invalid for input of size {}, "
-                         "considering copying the tensor"),
-                        numel()
-                    ));
-                }
-
-                if (i > 0) {
-                    base_stride = stride(i - 1);
-                    tensor_numel = 1;
-                    view_numel = 1;
-                }
-            }
-        }
+        deduce_view_strides(view_sizes.data(), M, view_strides);
 
         auto t = tensor<T, M, Container>(view_sizes, m_data);
         t.set_offset(0, container_offset());
