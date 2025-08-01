@@ -58,9 +58,9 @@ struct _HardwareHeapAllocator::_HardwareHeapAllocator_data {
 
 
 _HardwareHeapAllocator::_HardwareHeapAllocator(metal::shared_device device, std::size_t capacity)
-: _m_data(std::make_shared<_HardwareHeapAllocator::_HardwareHeapAllocator_data>()),
-  _m_mutex(std::make_shared<std::mutex>()),
-  _m_size(std::make_shared<std::size_t>(0))
+: _M_data(std::make_shared<_HardwareHeapAllocator::_HardwareHeapAllocator_data>()),
+  _M_mutex(std::make_shared<std::mutex>()),
+  _M_size(std::make_shared<std::size_t>(0))
 {
     auto heap_options_ptr = MTL::HeapDescriptor::alloc();
     auto heap_options = NS::RetainPtr(heap_options_ptr->init());
@@ -72,8 +72,8 @@ _HardwareHeapAllocator::_HardwareHeapAllocator(metal::shared_device device, std:
     heap_options->setHazardTrackingMode(MTL::HazardTrackingModeUntracked);
     heap_options->setCpuCacheMode(MTL::CPUCacheModeDefaultCache);
 
-    _m_data->heap = NS::RetainPtr(device->ptr->newHeap(heap_options.get()));
-    if (!_m_data->heap) {
+    _M_data->heap = NS::RetainPtr(device->ptr->newHeap(heap_options.get()));
+    if (!_M_data->heap) {
         throw std::runtime_error("metalchat::hardware_heap_allocator: failed creating a new heap");
     }
 
@@ -87,32 +87,32 @@ _HardwareHeapAllocator::_HardwareHeapAllocator(metal::shared_device device, std:
     NS::SharedPtr<NS::Error> error = NS::RetainPtr(NS::Error::alloc());
     NS::Error* error_ptr = error.get();
 
-    _m_data->rset = NS::RetainPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
-    if (!_m_data->rset) {
+    _M_data->rset = NS::RetainPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
+    if (!_M_data->rset) {
         auto failure_reason = error_ptr->localizedDescription();
         throw std::runtime_error(failure_reason->utf8String());
     }
 
-    _m_data->rset->addAllocation(_m_data->heap.get());
-    _m_data->rset->commit();
-    _m_data->rset->requestResidency();
+    _M_data->rset->addAllocation(_M_data->heap.get());
+    _M_data->rset->commit();
+    _M_data->rset->requestResidency();
 }
 
 
 _HardwareHeapAllocator::container_pointer
 _HardwareHeapAllocator::allocate(std::size_t size)
 {
-    const std::scoped_lock __lock(*_m_mutex);
+    const std::scoped_lock __lock(*_M_mutex);
 
-    auto device = _m_data->heap->device();
+    auto device = _M_data->heap->device();
     auto placement = device->heapBufferSizeAndAlign(size, MTL::ResourceStorageModeShared);
 
     auto mask = placement.align - 1;
     auto alloc_size = ((placement.size + mask) & (~mask));
 
-    auto memory_ptr = _m_data->heap->newBuffer(alloc_size, MTL::ResourceStorageModeShared);
+    auto memory_ptr = _M_data->heap->newBuffer(alloc_size, MTL::ResourceStorageModeShared);
     if (memory_ptr == nullptr) {
-        auto cap = _m_data->heap->maxAvailableSize(placement.align);
+        auto cap = _M_data->heap->maxAvailableSize(placement.align);
         throw alloc_error(std::format(
             "metalchat::hardware_heap_allocator: failed to allocate buffer of size={}, "
             "heap remaining capacity={}",
@@ -120,9 +120,9 @@ _HardwareHeapAllocator::allocate(std::size_t size)
         ));
     }
 
-    *_m_size = (*_m_size) + 1;
+    *_M_size = (*_M_size) + 1;
 
-    auto deleter = _HardwareIterativeResidenceDeleter{_m_data->rset, _m_mutex, _m_size};
+    auto deleter = _HardwareIterativeResidenceDeleter{_M_data->rset, _M_mutex, _M_size};
     auto buffer_ptr = metal::make_buffer(memory_ptr, deleter);
 
     return std::make_shared<container_type>(buffer_ptr);
@@ -139,14 +139,14 @@ struct _HardwareMemoryAllocator::_HardwareMemoryAllocator_data {
 
 
 _HardwareMemoryAllocator::_HardwareMemoryAllocator(metal::shared_device device)
-: _m_data(std::make_shared<_HardwareMemoryAllocator::_HardwareMemoryAllocator_data>(device->ptr))
+: _M_data(std::make_shared<_HardwareMemoryAllocator::_HardwareMemoryAllocator_data>(device->ptr))
 {}
 
 
 _HardwareMemoryAllocator::container_pointer
 _HardwareMemoryAllocator::allocate(std::size_t size)
 {
-    auto memory_ptr = _m_data->device->newBuffer(size, MTL::ResourceStorageModeShared);
+    auto memory_ptr = _M_data->device->newBuffer(size, MTL::ResourceStorageModeShared);
     auto buffer_ptr = metal::make_buffer(memory_ptr);
 
     return std::make_shared<_HardwareMemoryAllocator::container_type>(buffer_ptr);
@@ -156,7 +156,7 @@ _HardwareMemoryAllocator::allocate(std::size_t size)
 _HardwareMemoryAllocator::container_pointer
 _HardwareMemoryAllocator::allocate(const void* ptr, std::size_t size)
 {
-    auto memory_ptr = _m_data->device->newBuffer(ptr, size, MTL::ResourceStorageModeShared);
+    auto memory_ptr = _M_data->device->newBuffer(ptr, size, MTL::ResourceStorageModeShared);
     auto buffer_ptr = metal::make_buffer(memory_ptr);
 
     return std::make_shared<container_type>(buffer_ptr);
@@ -164,22 +164,22 @@ _HardwareMemoryAllocator::allocate(const void* ptr, std::size_t size)
 
 
 _HardwareBufferAllocator::_HardwareBufferAllocator(metal::shared_buffer buffer)
-: _m_containers({std::make_shared<container_type>(buffer)})
+: _M_containers({std::make_shared<container_type>(buffer)})
 {}
 
 
 _HardwareBufferAllocator::_HardwareBufferAllocator(container_pointer container_ptr)
-: _m_containers({container_ptr})
+: _M_containers({container_ptr})
 {}
 
 
 _HardwareBufferAllocator::_HardwareBufferAllocator(std::vector<container_pointer> containers)
-: _m_containers(containers)
+: _M_containers(containers)
 {
     auto comp = [](container_pointer a, container_pointer b) {
         return a->storage_ptr() < b->storage_ptr();
     };
-    std::sort(_m_containers.begin(), _m_containers.end(), comp);
+    std::sort(_M_containers.begin(), _M_containers.end(), comp);
 }
 
 
@@ -190,9 +190,9 @@ _HardwareBufferAllocator::allocate(const void* ptr, std::size_t size)
 
     auto comp = [](container_pointer container, const void* p) { return container->end() < p; };
 
-    auto container_it = std::lower_bound(_m_containers.begin(), _m_containers.end(), ptr, comp);
+    auto container_it = std::lower_bound(_M_containers.begin(), _M_containers.end(), ptr, comp);
 
-    for (; container_it != _m_containers.end(); ++container_it) {
+    for (; container_it != _M_containers.end(); ++container_it) {
         auto container_ptr = *container_it;
         const std::uint8_t* begin_ptr = static_cast<const std::uint8_t*>(container_ptr->begin());
 
@@ -216,7 +216,7 @@ struct _HardwareNocopyAllocator::_HardwareNocopyAllocator_data {
 
 
 _HardwareNocopyAllocator::_HardwareNocopyAllocator(metal::shared_device device)
-: _m_data(std::make_shared<_HardwareNocopyAllocator::_HardwareNocopyAllocator_data>(device->ptr))
+: _M_data(std::make_shared<_HardwareNocopyAllocator::_HardwareNocopyAllocator_data>(device->ptr))
 {}
 
 
@@ -224,7 +224,7 @@ _HardwareNocopyAllocator::container_pointer
 _HardwareNocopyAllocator::allocate(const void* ptr, std::size_t size)
 {
     auto options = MTL::ResourceStorageModeShared | MTL::ResourceHazardTrackingModeUntracked;
-    auto memory_ptr = _m_data->device->newBuffer(ptr, size, options, nullptr);
+    auto memory_ptr = _M_data->device->newBuffer(ptr, size, options, nullptr);
 
     if (memory_ptr == nullptr) {
         throw alloc_error(
@@ -245,9 +245,9 @@ struct _HardwareResidentAllocator::_HardwareResidentAllocator_data {
 _HardwareResidentAllocator::_HardwareResidentAllocator(
     metal::shared_device device, std::size_t capacity
 )
-: _m_data(std::make_shared<_HardwareResidentAllocator::_HardwareResidentAllocator_data>()),
-  _m_mutex(std::make_shared<std::mutex>()),
-  _m_size(std::make_shared<std::size_t>(0))
+: _M_data(std::make_shared<_HardwareResidentAllocator::_HardwareResidentAllocator_data>()),
+  _M_mutex(std::make_shared<std::mutex>()),
+  _M_size(std::make_shared<std::size_t>(0))
 {
     auto rset_options_ptr = MTL::ResidencySetDescriptor::alloc();
     auto rset_options = NS::RetainPtr(rset_options_ptr->init());
@@ -256,8 +256,8 @@ _HardwareResidentAllocator::_HardwareResidentAllocator(
     NS::SharedPtr<NS::Error> error = NS::RetainPtr(NS::Error::alloc());
     NS::Error* error_ptr = error.get();
 
-    _m_data->rset = NS::RetainPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
-    if (!_m_data->rset) {
+    _M_data->rset = NS::RetainPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
+    if (!_M_data->rset) {
         auto failure_reason = error_ptr->localizedDescription();
         throw std::runtime_error(
             std::format("metalchat::hardware_resident_allocator: {}", failure_reason->utf8String())
@@ -272,11 +272,11 @@ _HardwareResidentAllocator::~_HardwareResidentAllocator() { detach(); }
 void
 _HardwareResidentAllocator::detach()
 {
-    const std::scoped_lock __lock(*_m_mutex);
+    const std::scoped_lock __lock(*_M_mutex);
 
-    if ((*_m_size) != 0) {
-        _m_data->rset->commit();
-        _m_data->rset->requestResidency();
+    if ((*_M_size) != 0) {
+        _M_data->rset->commit();
+        _M_data->rset->requestResidency();
     }
 }
 
@@ -284,14 +284,14 @@ _HardwareResidentAllocator::detach()
 _HardwareResidentAllocator::container_pointer
 _HardwareResidentAllocator::allocate(_HardwareResidentAllocator::container_pointer&& container)
 {
-    const std::scoped_lock __lock(*_m_mutex);
+    const std::scoped_lock __lock(*_M_mutex);
 
     auto buffer_ptr = container->storage();
 
-    _m_data->rset->addAllocation(buffer_ptr->ptr);
-    *_m_size = (*_m_size) + 1;
+    _M_data->rset->addAllocation(buffer_ptr->ptr);
+    *_M_size = (*_M_size) + 1;
 
-    auto deleter = _HardwareCompleteResidenceDeleter{_m_data->rset, _m_mutex, _m_size};
+    auto deleter = _HardwareCompleteResidenceDeleter{_M_data->rset, _M_mutex, _M_size};
 
     auto deleter_ptr = std::get_deleter<metal::buffer_deleter>(buffer_ptr);
     deleter_ptr->invoke_before_destroy(deleter);

@@ -22,18 +22,18 @@ _StringHash::operator()(const std::string& s) const noexcept
 hardware_accelerator::hardware_accelerator(
     const std::filesystem::path& path, std::size_t thread_capacity
 )
-: _m_device(metal::make_device()),
-  _m_library(metal::make_library(path, _m_device)),
-  _m_kernels(),
-  _m_thread(std::make_shared<recursive_kernel_thread>(_m_device, thread_capacity))
+: _M_device(metal::make_device()),
+  _M_library(metal::make_library(path, _M_device)),
+  _M_kernels(),
+  _M_thread(std::make_shared<recursive_kernel_thread>(_M_device, thread_capacity))
 {}
 
 
 hardware_accelerator::hardware_accelerator(std::size_t thread_capacity)
-: _m_device(metal::make_device()),
-  _m_library(),
-  _m_kernels(),
-  _m_thread(std::make_shared<recursive_kernel_thread>(_m_device, thread_capacity))
+: _M_device(metal::make_device()),
+  _M_library(),
+  _M_kernels(),
+  _M_thread(std::make_shared<recursive_kernel_thread>(_M_device, thread_capacity))
 {
     auto bundle_id = CFStringCreateWithCString(
         kCFAllocatorDefault, framework_identifier.c_str(), kCFStringEncodingUTF8
@@ -57,7 +57,7 @@ hardware_accelerator::hardware_accelerator(std::size_t thread_capacity)
         kCFAllocatorDefault, resources_url, library_name, /*isDirectory=*/false
     );
 
-    _m_library = metal::make_library(reinterpret_cast<const NS::URL*>(library_url), _m_device);
+    _M_library = metal::make_library(reinterpret_cast<const NS::URL*>(library_url), _M_device);
 
     CFRelease(library_url);
     CFRelease(library_name);
@@ -69,42 +69,42 @@ hardware_accelerator::hardware_accelerator(std::size_t thread_capacity)
 std::size_t
 hardware_accelerator::max_buffer_size() const
 {
-    return _m_device->ptr->maxBufferLength();
+    return _M_device->ptr->maxBufferLength();
 }
 
 
 std::shared_ptr<kernel_thread>
 hardware_accelerator::get_this_thread()
 {
-    return _m_thread->get_this_thread();
+    return _M_thread->get_this_thread();
 }
 
 
 metal::shared_device
 hardware_accelerator::get_metal_device()
 {
-    return _m_device;
+    return _M_device;
 }
 
 
 hardware_accelerator::allocator_type
 hardware_accelerator::get_allocator() const
 {
-    return _m_thread->get_allocator();
+    return _M_thread->get_allocator();
 }
 
 
 void
 hardware_accelerator::set_allocator(hardware_accelerator::allocator_type alloc)
 {
-    _m_thread->set_allocator(alloc);
+    _M_thread->set_allocator(alloc);
 }
 
 
 std::string
 hardware_accelerator::name() const
 {
-    auto device_name = _m_device->ptr->name();
+    auto device_name = _M_device->ptr->name();
     return std::string(device_name->utf8String(), device_name->length());
 }
 
@@ -112,12 +112,12 @@ hardware_accelerator::name() const
 const basic_kernel&
 hardware_accelerator::load(const std::string& name)
 {
-    if (auto it = _m_kernels.find(name); it != _m_kernels.end()) {
+    if (auto it = _M_kernels.find(name); it != _M_kernels.end()) {
         return it->second;
     }
 
     auto fn_name = NS::RetainPtr(NS::String::string(name.c_str(), NS::UTF8StringEncoding));
-    auto fn_ptr = NS::RetainPtr(_m_library->ptr->newFunction(fn_name.get()));
+    auto fn_ptr = NS::RetainPtr(_M_library->ptr->newFunction(fn_name.get()));
     if (!fn_ptr) {
         throw std::invalid_argument(
             std::format("hardware_accelerator: function {} not found in a shader library", name)
@@ -134,7 +134,7 @@ hardware_accelerator::load(const std::string& name)
     descriptor->setComputeFunction(fn_ptr.get());
     descriptor->setLabel(fn_name.get());
 
-    auto pipeline_ptr = NS::RetainPtr(_m_device->ptr->newComputePipelineState(
+    auto pipeline_ptr = NS::RetainPtr(_M_device->ptr->newComputePipelineState(
         descriptor.get(), MTL::PipelineOptionNone, nullptr, &error_ptr
     ));
 
@@ -148,9 +148,9 @@ hardware_accelerator::load(const std::string& name)
     auto kernel_ptr = std::make_shared<metal::kernel>(fn_ptr, pipeline_ptr);
     auto kernel = basic_kernel(kernel_ptr, *this);
 
-    _m_kernels.insert_or_assign(name, kernel);
+    _M_kernels.insert_or_assign(name, kernel);
 
-    return _m_kernels.at(name);
+    return _M_kernels.at(name);
 }
 
 

@@ -37,7 +37,7 @@ public:
 
 private:
     struct _RegularExpression;
-    std::shared_ptr<_RegularExpression> _m_impl;
+    std::shared_ptr<_RegularExpression> _M_impl;
 
     friend class regexp_iterator;
 };
@@ -82,7 +82,7 @@ public:
 
 private:
     struct _RegularExpressionIterator;
-    std::shared_ptr<_RegularExpressionIterator> _m_impl;
+    std::shared_ptr<_RegularExpressionIterator> _M_impl;
 
     /// Advance the iterator to the next match group.
     void
@@ -177,10 +177,10 @@ public:
     };
 
 private:
-    std::unordered_map<string_type, index_type, _StringHash> _m_fmap;
-    std::unordered_map<index_type, string_type> _m_rmap;
+    std::unordered_map<string_type, index_type, _StringHash> _M_fmap;
+    std::unordered_map<index_type, string_type> _M_rmap;
 
-    std::shared_ptr<RegularExpression> _m_re;
+    std::shared_ptr<RegularExpression> _M_re;
 
     /// A regular expression string that is used to split the input text into tokens.
     static constexpr const char* token_regex = (R"((?i:'s|'t|'re|'ve|'m|'ll|'d)|)"
@@ -201,7 +201,7 @@ private:
     /// 4. Then push encodings to the specified container of identifiers.
     template <std::output_iterator<index_type> OutputIt>
     void
-    _m_encode_byte_pairs(const std::string& s, OutputIt output) const
+    _M_encode_byte_pairs(const std::string& s, OutputIt output) const
     {
         std::size_t priority_limit = std::numeric_limits<index_type>::max();
 
@@ -213,7 +213,7 @@ private:
         // Get the priority from the map, when the key is not resented, return a
         // limit of the priority type.
         auto get_priority = [&](const std::string& key) -> index_type {
-            if (auto it = _m_fmap.find(key); it != _m_fmap.end()) {
+            if (auto it = _M_fmap.find(key); it != _M_fmap.end()) {
                 return it->second;
             }
             return priority_limit;
@@ -253,7 +253,7 @@ private:
             auto begin = encoding[i].second;
             auto end = encoding[i + 1].second;
             auto key = s.substr(begin, end - begin);
-            *output++ = _m_fmap.at(key);
+            *output++ = _M_fmap.at(key);
         }
     }
 
@@ -273,9 +273,9 @@ public:
     /// \param p A path to the tokenizer model.
     /// \param token_regex A regular expression to split the input string into tokens.
     byte_pair_encoder(const std::filesystem::path& p, const std::string& token_regex)
-    : _m_fmap(),
-      _m_rmap(),
-      _m_re(std::make_shared<RegularExpression>(token_regex))
+    : _M_fmap(),
+      _M_rmap(),
+      _M_re(std::make_shared<RegularExpression>(token_regex))
     {
         std::ifstream file(p, std::ios::binary);
         if (!file.is_open()) {
@@ -291,8 +291,8 @@ public:
             index_type key = std::stoi(value_part);
             string_type value = base64::decode(key_part);
 
-            _m_fmap.insert(std::make_pair(value, key));
-            _m_rmap.insert(std::make_pair(key, value));
+            _M_fmap.insert(std::make_pair(value, key));
+            _M_rmap.insert(std::make_pair(key, value));
         }
     }
 
@@ -323,12 +323,12 @@ public:
     void
     encode(const std::string& s, OutputIt output) const
     {
-        for (auto match = _m_re->begin(s); match != _m_re->end(); ++match) {
+        for (auto match = _M_re->begin(s); match != _M_re->end(); ++match) {
             auto key = (*match);
-            if (auto it = _m_fmap.find(key); it != _m_fmap.end()) {
+            if (auto it = _M_fmap.find(key); it != _M_fmap.end()) {
                 *output++ = it->second;
             } else {
-                _m_encode_byte_pairs(key, output);
+                _M_encode_byte_pairs(key, output);
             }
         }
     }
@@ -345,7 +345,7 @@ public:
                 std::format("byte_pair_encoder: unknown special token '{}'", index)
             );
         }
-        return _m_fmap.size() + index;
+        return _M_fmap.size() + index;
     }
 
     /// Encode a special token.
@@ -373,10 +373,10 @@ public:
     const std::string
     decode(index_type id) const
     {
-        if (auto tok = _m_rmap.find(id); tok != _m_rmap.end()) {
+        if (auto tok = _M_rmap.find(id); tok != _M_rmap.end()) {
             return tok->second;
         }
-        if (auto tok = special_tokens.find(id - _m_rmap.size()); tok != special_tokens.end()) {
+        if (auto tok = special_tokens.find(id - _M_rmap.size()); tok != special_tokens.end()) {
             return tok->second;
         }
         throw std::runtime_error(std::format("byte_pair_encoder: unable to decode id '{}'", id));

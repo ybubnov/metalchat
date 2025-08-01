@@ -9,48 +9,48 @@ namespace metalchat {
 polymorphic_language_transformer::polymorphic_language_transformer(
     std::shared_ptr<basic_language_transformer> ptr
 )
-: _m_transformer(ptr)
+: _M_transformer(ptr)
 {}
 
 
 polymorphic_language_transformer::output_tensor
 polymorphic_language_transformer::transform(input_tensor input, std::size_t start_pos)
 {
-    return _m_transformer->transform(input, start_pos);
+    return _M_transformer->transform(input, start_pos);
 }
 
 
 hardware_accelerator
 polymorphic_language_transformer::get_accelerator()
 {
-    return _m_transformer->get_accelerator();
+    return _M_transformer->get_accelerator();
 }
 
 void
 polymorphic_chat::send(const basic_message& message)
 {
-    _m_chat.send(message);
+    _M_chat.send(message);
 }
 
 
 basic_message
 polymorphic_chat::receive()
 {
-    return _m_chat.receive();
+    return _M_chat.receive();
 }
 
 
 std::string
 polymorphic_chat::receive_text()
 {
-    return _m_chat.receive_text();
+    return _M_chat.receive_text();
 }
 
 
 void
 llama3_options::set_head_dim(std::size_t head_dim)
 {
-    _m_head_dim = head_dim;
+    _M_head_dim = head_dim;
 }
 
 
@@ -68,14 +68,14 @@ llama3_options::head_dim(std::optional<std::size_t> head_dim) const noexcept
 std::size_t
 llama3_options::head_dim() const noexcept
 {
-    return _m_head_dim;
+    return _M_head_dim;
 }
 
 
 void
 llama3_options::set_n_heads(std::size_t n_heads)
 {
-    _m_n_heads = n_heads;
+    _M_n_heads = n_heads;
 }
 
 
@@ -93,14 +93,14 @@ llama3_options::n_heads(std::optional<std::size_t> n_heads) const noexcept
 std::size_t
 llama3_options::n_heads() const noexcept
 {
-    return _m_n_heads;
+    return _M_n_heads;
 }
 
 
 void
 llama3_options::set_n_kv_heads(std::size_t n_kv_heads)
 {
-    _m_n_kv_heads = n_kv_heads;
+    _M_n_kv_heads = n_kv_heads;
 }
 
 
@@ -118,14 +118,14 @@ llama3_options::n_kv_heads(std::optional<std::size_t> n_kv_heads) const noexcept
 std::size_t
 llama3_options::n_kv_heads() const noexcept
 {
-    return _m_n_kv_heads;
+    return _M_n_kv_heads;
 }
 
 
 void
 llama3_options::set_n_layers(std::size_t n_layers)
 {
-    _m_n_layers = n_layers;
+    _M_n_layers = n_layers;
 }
 
 
@@ -143,14 +143,14 @@ llama3_options::n_layers(std::optional<std::size_t> n_layers) const noexcept
 std::size_t
 llama3_options::n_layers() const noexcept
 {
-    return _m_n_layers;
+    return _M_n_layers;
 }
 
 
 void
 llama3_options::set_max_seq_len(std::size_t max_seq_len)
 {
-    _m_max_seq_len = max_seq_len;
+    _M_max_seq_len = max_seq_len;
 }
 
 
@@ -168,14 +168,14 @@ llama3_options::max_seq_len(std::optional<std::size_t> max_seq_len) const noexce
 std::size_t
 llama3_options::max_seq_len() const noexcept
 {
-    return _m_max_seq_len;
+    return _M_max_seq_len;
 }
 
 
 void
 llama3_options::set_heap_size(std::size_t heap_size)
 {
-    _m_heap_size = heap_size;
+    _M_heap_size = heap_size;
 }
 
 
@@ -193,14 +193,14 @@ llama3_options::heap_size(std::optional<std::size_t> heap_size) const noexcept
 std::size_t
 llama3_options::heap_size() const noexcept
 {
-    return _m_heap_size;
+    return _M_heap_size;
 }
 
 
 void
 llama3_options::set_rope_theta(float rope_theta)
 {
-    _m_rope_theta = rope_theta;
+    _M_rope_theta = rope_theta;
 }
 
 
@@ -218,7 +218,7 @@ llama3_options::rope_theta(std::optional<float> rope_theta) const noexcept
 float
 llama3_options::rope_theta() const noexcept
 {
-    return _m_rope_theta;
+    return _M_rope_theta;
 }
 
 

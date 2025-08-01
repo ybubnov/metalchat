@@ -26,11 +26,11 @@ __ceil_pow2(std::size_t value)
 
 template <typename T, std::size_t BlockSize = 32> class sort {
 private:
-    basic_kernel _m_kernel;
+    basic_kernel _M_kernel;
 
 public:
     sort(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load<T, BlockSize>("sort"))
+    : _M_kernel(gpu.load<T, BlockSize>("sort"))
     {}
 
     template <immutable_tensor_t<T> Input>
@@ -44,15 +44,15 @@ public:
         auto input_view = input.view({-1, int(dim_size)});
         auto dim_size_aligned = __ceil_pow2(dim_size);
 
-        auto values = shared_empty<T>({num_rows, dim_size_aligned}, _m_kernel.get_allocator());
+        auto values = shared_empty<T>({num_rows, dim_size_aligned}, _M_kernel.get_allocator());
         auto indices
-            = shared_empty<int32_t>({num_rows, dim_size_aligned}, _m_kernel.get_allocator());
+            = shared_empty<int32_t>({num_rows, dim_size_aligned}, _M_kernel.get_allocator());
 
         auto thread_size = ceil_div(dim_size_aligned, BlockSize);
         auto thread = dim3(thread_size);
         auto grid = dim3(thread_size * num_rows);
 
-        auto task = kernel_task(_m_kernel, grid, thread);
+        auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(values, indices, input_view);
 
         // A single kernel task produces both outputs (values and indices), but a future

@@ -55,32 +55,32 @@ struct kernel_queue {
 hardware_function_encoder::hardware_function_encoder(
     std::shared_ptr<kernel_queue> queue_ptr, hardware_function_encoder::allocator_type alloc
 )
-: _m_allocator(alloc),
-  _m_queue(queue_ptr),
-  _m_buffer(0),
-  _m_name()
+: _M_allocator(alloc),
+  _M_queue(queue_ptr),
+  _M_buffer(0),
+  _M_name()
 {}
 
 
 void
 hardware_function_encoder::initialize(const std::string& name, const metal::shared_kernel kernel)
 {
-    _m_name = name;
-    _m_queue->encoder->setComputePipelineState(kernel->pipeline.get());
+    _M_name = name;
+    _M_queue->encoder->setComputePipelineState(kernel->pipeline.get());
 }
 
 
 void
 hardware_function_encoder::encode(const void* data, std::size_t size)
 {
-    _m_queue->encoder->setBytes(data, size, _m_buffer++);
+    _M_queue->encoder->setBytes(data, size, _M_buffer++);
 }
 
 
 void
 hardware_function_encoder::encode(metal::shared_buffer buffer, std::size_t offset)
 {
-    _m_queue->encoder->setBuffer(buffer->ptr, offset, _m_buffer++);
+    _M_queue->encoder->setBuffer(buffer->ptr, offset, _M_buffer++);
 }
 
 
@@ -88,14 +88,14 @@ void
 hardware_function_encoder::encode_memory_barrier(metal::shared_buffer buffer)
 {
     const MTL::Resource* resources[1] = {buffer->ptr};
-    _m_queue->encoder->memoryBarrier(resources, 1);
+    _M_queue->encoder->memoryBarrier(resources, 1);
 }
 
 
 void
 hardware_function_encoder::on_completed(kernel_callback_type callback)
 {
-    _m_queue->on_completed(callback);
+    _M_queue->on_completed(callback);
 }
 
 
@@ -103,31 +103,31 @@ void
 hardware_function_encoder::dispatch(dim3 grid, dim3 group)
 {
     std::stringstream command_name_stream;
-    command_name_stream << _m_name << "<" << grid << "," << group << ">" << std::endl;
+    command_name_stream << _M_name << "<" << grid << "," << group << ">" << std::endl;
 
     auto command_name = command_name_stream.str();
     auto cmd_name = NS::RetainPtr(NS::String::string(command_name.c_str(), NS::UTF8StringEncoding));
-    _m_queue->encoder->setLabel(cmd_name.get());
+    _M_queue->encoder->setLabel(cmd_name.get());
 
     MTL::Size threads_per_grid(grid.x, grid.y, grid.z);
     MTL::Size threads_per_group(group.x, group.y, group.z);
-    _m_queue->encoder->dispatchThreads(threads_per_grid, threads_per_group);
+    _M_queue->encoder->dispatchThreads(threads_per_grid, threads_per_group);
 }
 
 
 kernel_thread::kernel_thread(const kernel_queue& queue, std::size_t capacity, allocator_type alloc)
-: _m_allocator(alloc),
-  _m_queue(std::make_shared<kernel_queue>(queue)),
-  _m_promise(std::make_shared<promise_type>()),
-  _m_future(_m_promise->get_future()),
-  _m_size(0),
-  _m_capacity(capacity),
-  _m_committed(false)
+: _M_allocator(alloc),
+  _M_queue(std::make_shared<kernel_queue>(queue)),
+  _M_promise(std::make_shared<promise_type>()),
+  _M_future(_M_promise->get_future()),
+  _M_size(0),
+  _M_capacity(capacity),
+  _M_committed(false)
 {
     // After the completion of the kernel execution, release the promise and all blocks
     // waiting for the completion of this kernel.
-    _m_queue->commands->addCompletedHandler([promise
-                                             = _m_promise](const MTL::CommandBuffer* buffer) {
+    _M_queue->commands->addCompletedHandler([promise
+                                             = _M_promise](const MTL::CommandBuffer* buffer) {
         if (buffer->error() != nullptr) {
             auto failure_reason = buffer->error()->localizedDescription();
             auto exception_ptr
@@ -143,7 +143,7 @@ kernel_thread::kernel_thread(const kernel_queue& queue, std::size_t capacity, al
 void
 kernel_thread::on_completed(kernel_callback_type callback)
 {
-    _m_queue->on_completed(callback);
+    _M_queue->on_completed(callback);
 }
 
 
@@ -158,38 +158,38 @@ kernel_thread::~kernel_thread()
 std::size_t
 kernel_thread::size() const
 {
-    return _m_size;
+    return _M_size;
 }
 
 
 std::size_t
 kernel_thread::capacity() const
 {
-    return _m_capacity;
+    return _M_capacity;
 }
 
 
 bool
 kernel_thread::joinable() const
 {
-    return (!_m_committed) && (_m_size < _m_capacity);
+    return (!_M_committed) && (_M_size < _M_capacity);
 }
 
 
 void
 kernel_thread::make_ready_at_thread_exit()
 {
-    if (!_m_committed) {
-        auto label = std::format("metalchat commands (size={})", _m_size);
+    if (!_M_committed) {
+        auto label = std::format("metalchat commands (size={})", _M_size);
         auto cmd_label = NS::RetainPtr(NS::String::string(label.c_str(), NS::UTF8StringEncoding));
 
-        _m_queue->encoder->endEncoding();
+        _M_queue->encoder->endEncoding();
 
-        _m_queue->commands->setLabel(cmd_label.get());
-        _m_queue->commands->encodeSignalEvent(_m_queue->event.get(), _m_queue->id + 1);
-        _m_queue->commands->commit();
+        _M_queue->commands->setLabel(cmd_label.get());
+        _M_queue->commands->encodeSignalEvent(_M_queue->event.get(), _M_queue->id + 1);
+        _M_queue->commands->commit();
 
-        _m_committed = true;
+        _M_committed = true;
     }
 }
 
@@ -197,24 +197,24 @@ kernel_thread::make_ready_at_thread_exit()
 recursive_kernel_thread::recursive_kernel_thread(
     metal::shared_device device, std::size_t thread_capacity
 )
-: _m_allocator(std::make_shared<hardware_memory_allocator<void>>(device)),
-  _m_queue(std::make_shared<kernel_queue>(device)),
-  _m_thread(std::make_shared<kernel_thread>(*_m_queue, thread_capacity, _m_allocator)),
-  _m_thread_capacity(thread_capacity)
+: _M_allocator(std::make_shared<hardware_memory_allocator<void>>(device)),
+  _M_queue(std::make_shared<kernel_queue>(device)),
+  _M_thread(std::make_shared<kernel_thread>(*_M_queue, thread_capacity, _M_allocator)),
+  _M_thread_capacity(thread_capacity)
 {}
 
 
 std::shared_ptr<kernel_thread>
 recursive_kernel_thread::get_this_thread()
 {
-    if (!_m_thread->joinable()) {
-        auto queue = std::make_shared<kernel_queue>(_m_queue->partition());
-        auto thread = std::make_shared<kernel_thread>(*queue, _m_thread_capacity, _m_allocator);
+    if (!_M_thread->joinable()) {
+        auto queue = std::make_shared<kernel_queue>(_M_queue->partition());
+        auto thread = std::make_shared<kernel_thread>(*queue, _M_thread_capacity, _M_allocator);
 
-        _m_queue.swap(queue);
-        _m_thread.swap(thread);
+        _M_queue.swap(queue);
+        _M_thread.swap(thread);
     }
-    return _m_thread;
+    return _M_thread;
 }
 
 

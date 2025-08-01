@@ -29,7 +29,7 @@ public:
     using const_iterator = tensor_type::const_iterator;
 
     shared_tensor_ptr(tensor_type&& t)
-    : _m_value(std::make_shared<tensor_type>(std::move(t)))
+    : _M_value(std::make_shared<tensor_type>(std::move(t)))
     {}
 
     static constexpr std::size_t
@@ -41,129 +41,129 @@ public:
     std::shared_ptr<tensor_type>
     get() const
     {
-        return _m_value;
+        return _M_value;
     }
 
     tensor_type&
     operator*()
     {
-        return *_m_value;
+        return *_M_value;
     }
 
     const tensor_type&
     operator*() const
     {
-        return *_m_value;
+        return *_M_value;
     }
 
     std::size_t
     numel() const
     {
-        return _m_value->numel();
+        return _M_value->numel();
     }
 
     container_type&
     container() const
     {
-        return _m_value->container();
+        return _M_value->container();
     }
 
     container_pointer
     container_ptr() const
     {
-        return _m_value->container_ptr();
+        return _M_value->container_ptr();
     }
 
     pointer_type
     data_ptr()
     {
-        return _m_value->data_ptr();
+        return _M_value->data_ptr();
     }
 
     pointer_type
     data_ptr() const
     {
-        return _m_value->data_ptr();
+        return _M_value->data_ptr();
     }
 
     std::size_t
     size(std::size_t dim) const
     {
-        return _m_value->size(dim);
+        return _M_value->size(dim);
     }
 
     const std::span<std::size_t>
     sizes() const
     {
-        return _m_value->sizes();
+        return _M_value->sizes();
     }
 
     const std::span<std::size_t, N>
     shape() const
     {
-        return _m_value->shape();
+        return _M_value->shape();
     }
 
     std::size_t
     stride(std::size_t dim) const
     {
-        return _m_value->stride(dim);
+        return _M_value->stride(dim);
     }
 
     const std::span<std::size_t>
     strides() const
     {
-        return _m_value->strides();
+        return _M_value->strides();
     }
 
     std::size_t
     offset(std::size_t dim) const
     {
-        return _m_value->offset(dim);
+        return _M_value->offset(dim);
     }
 
     const std::span<std::size_t>
     offsets() const
     {
-        return _m_value->offsets();
+        return _M_value->offsets();
     }
 
     iterator
     begin()
     {
-        return _m_value->begin();
+        return _M_value->begin();
     }
 
     iterator
     end()
     {
-        return _m_value->end();
+        return _M_value->end();
     }
 
     const_iterator
     begin() const
     {
-        return _m_value->begin();
+        return _M_value->begin();
     }
 
     const_iterator
     end() const
     {
-        return _m_value->end();
+        return _M_value->end();
     }
 
     template <indexing::slice_convertible... S>
     auto
     index_select(const S&... slices) requires(sizeof...(slices) == N)
     {
-        return shared_tensor_ptr(_m_value->index_select(slices...));
+        return shared_tensor_ptr(_M_value->index_select(slices...));
     }
 
     auto
     expand_dims(std::size_t dim) const
     {
         using tensor_t = change_tensor_dimensions_t<tensor_type, N + 1>;
-        return shared_tensor_ptr<tensor_t>(_m_value->expand_dims(dim));
+        return shared_tensor_ptr<tensor_t>(_M_value->expand_dims(dim));
     }
 
     template <std::size_t M>
@@ -171,7 +171,7 @@ public:
     view(int (&&dims)[M]) const requires(M > 0)
     {
         using tensor_t = change_tensor_dimensions_t<tensor_type, M>;
-        return shared_tensor_ptr<tensor_t>(_m_value->view(std::move(dims)));
+        return shared_tensor_ptr<tensor_t>(_M_value->view(std::move(dims)));
     }
 
     template <std::size_t M>
@@ -179,7 +179,7 @@ public:
     view(const std::span<int, M> dims) const
     {
         using tensor_t = change_tensor_dimensions_t<tensor_type, M>;
-        return shared_tensor_ptr<tensor_t>(_m_value->view(dims));
+        return shared_tensor_ptr<tensor_t>(_M_value->view(dims));
     }
 
     template <std::size_t M>
@@ -187,7 +187,7 @@ public:
     view(const std::span<std::size_t, M> dims) const
     {
         using tensor_t = change_tensor_dimensions_t<tensor_type, M>;
-        return shared_tensor_ptr<tensor_t>(_m_value->view(dims));
+        return shared_tensor_ptr<tensor_t>(_M_value->view(dims));
     }
 
     template <std::size_t M>
@@ -195,46 +195,46 @@ public:
     flatten() const
     {
         using tensor_t = change_tensor_dimensions_t<tensor_type, M>;
-        return shared_tensor_ptr<tensor_t>(_m_value->template flatten<M>());
+        return shared_tensor_ptr<tensor_t>(_M_value->template flatten<M>());
     }
 
     shared_tensor_ptr
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
-        return shared_tensor_ptr(_m_value->narrow(dim, start, length));
+        return shared_tensor_ptr(_M_value->narrow(dim, start, length));
     }
 
     shared_tensor_ptr
     transpose(const std::size_t (&&dims)[N]) const
     {
-        return shared_tensor_ptr(_m_value->transpose(std::move(dims)));
+        return shared_tensor_ptr(_M_value->transpose(std::move(dims)));
     }
 
     tensor_layout<N>
     layout() const
     {
-        return _m_value->layout();
+        return _M_value->layout();
     }
 
     template <indexing::size_convertible... S>
     value_type&
     operator[](const S&... sizes) requires(sizeof...(sizes) == N)
     {
-        return _m_value->value_select(sizes...);
+        return _M_value->value_select(sizes...);
     }
 
     template <indexing::size_convertible... S>
     const value_type&
     operator[](const S&... sizes) const requires(sizeof...(sizes) == N)
     {
-        return _m_value->value_select(sizes...);
+        return _M_value->value_select(sizes...);
     }
 
     template <indexing::slice_convertible... S>
     auto
     operator[](const S&... slices) requires(sizeof...(slices) == N)
     {
-        return shared_tensor_ptr(_m_value->index_select(slices...));
+        return shared_tensor_ptr(_M_value->index_select(slices...));
     }
 
     auto
@@ -246,11 +246,11 @@ public:
         using tensor1_t = change_tensor_dimensions_t<tensor0_t, N - 1>;
         using tensor2_t = change_tensor_container_t<tensor1_t, container_type>;
 
-        return shared_tensor_ptr<tensor2_t>(_m_value->at(i));
+        return shared_tensor_ptr<tensor2_t>(_M_value->at(i));
     }
 
 private:
-    std::shared_ptr<tensor_type> _m_value;
+    std::shared_ptr<tensor_type> _M_value;
 };
 
 

@@ -12,11 +12,11 @@ namespace kernel {
 
 template <typename T, std::size_t BlockSize = 16> class cumsum {
 private:
-    basic_kernel _m_kernel;
+    basic_kernel _M_kernel;
 
 public:
     cumsum(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load<T, BlockSize>("cumsum"))
+    : _M_kernel(gpu.load<T, BlockSize>("cumsum"))
     {}
 
     template <immutable_tensor_t<T> Input>
@@ -26,9 +26,9 @@ public:
         auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
 
         auto input_view = flatten<2>(input);
-        auto output_view = shared_empty_like<T>(input_view, _m_kernel.get_allocator());
+        auto output_view = shared_empty_like<T>(input_view, _M_kernel.get_allocator());
 
-        auto task = kernel_task(_m_kernel, grid, thread);
+        auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(output_view, input_view);
 
         auto output = future_tensor(output_view, std::move(task_future));

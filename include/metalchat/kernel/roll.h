@@ -15,18 +15,18 @@ namespace kernel {
 /// rolling and then restored to the original shape.
 template <typename T, std::size_t BlockSize = 32> class roll {
 private:
-    basic_kernel _m_kernel;
+    basic_kernel _M_kernel;
 
 public:
     roll(hardware_accelerator& accelerator)
-    : _m_kernel(accelerator.load<T, BlockSize>("roll"))
+    : _M_kernel(accelerator.load<T, BlockSize>("roll"))
     {}
 
     template <immutable_tensor_t<T> Input>
     auto
     operator()(Input input, int32_t shift, std::size_t dim)
     {
-        auto output = shared_empty_like<T>(input, _m_kernel.get_allocator());
+        auto output = shared_empty_like<T>(input, _M_kernel.get_allocator());
         return operator()(input, output, shift, dim);
     }
 
@@ -44,7 +44,7 @@ public:
         // and make_kernel_grid_2d) won't fit our needs. So schedule a grid that allocates
         // as large threads as possible (or as needed, depending on the tensor sizes).
         auto input_numel = input_view.numel();
-        auto thread_size = std::min(input_numel, _m_kernel.max_threads_per_threadgroup());
+        auto thread_size = std::min(input_numel, _M_kernel.max_threads_per_threadgroup());
         auto thread = dim3(thread_size);
         auto grid = dim3(ceil_div(input_numel, thread_size) * thread_size);
 
@@ -53,7 +53,7 @@ public:
             shift = int32_t(input.size(dim)) + shift;
         }
 
-        auto task = kernel_task(_m_kernel, grid, thread);
+        auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(
             output_view, input_view, scalar<int32_t>(shift), scalar<int32_t>(input.size(dim)),
             scalar<int32_t>(input.stride(dim))

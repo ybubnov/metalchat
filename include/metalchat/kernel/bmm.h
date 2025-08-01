@@ -13,11 +13,11 @@ namespace kernel {
 
 template <typename T, std::size_t BlockSize = 8> class bmm {
 private:
-    basic_kernel _m_kernel;
+    basic_kernel _M_kernel;
 
 public:
     bmm(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load<T, BlockSize>("bmm"))
+    : _M_kernel(gpu.load<T, BlockSize>("bmm"))
     {}
 
     template <immutable_tensor3_t<T> Input, immutable_tensor3_t<T> Weight>
@@ -45,7 +45,7 @@ public:
         }
 
         auto output
-            = shared_empty<T>({num_batches, input_size1, weight_size2}, _m_kernel.get_allocator());
+            = shared_empty<T>({num_batches, input_size1, weight_size2}, _M_kernel.get_allocator());
 
         auto grid = dim3(
             ceil_div(input_size1, BlockSize) * BlockSize,
@@ -53,7 +53,7 @@ public:
         );
         auto thread = dim3(BlockSize, BlockSize);
 
-        auto task = kernel_task(_m_kernel, grid, thread);
+        auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(output, input, weight);
 
         // A(MxK) @ B(KxN) -> C(MxN)

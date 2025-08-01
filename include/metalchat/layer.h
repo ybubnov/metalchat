@@ -27,49 +27,49 @@ template <typename Layer> class shared_layer_ptr {
 public:
     /// Construct a shared layer with no managed layer, i.e. empty `shared_ptr`.
     shared_layer_ptr()
-    : _m_value(nullptr)
+    : _M_value(nullptr)
     {}
 
     /// Construct a shared layer that takes ownership from the specified `Layer` instance.
     shared_layer_ptr(Layer&& layer)
-    : _m_value(std::move(layer))
+    : _M_value(std::move(layer))
     {}
 
     /// Construct a shared layer which shares ownership of the layer managed by `r`.
     shared_layer_ptr(const std::shared_ptr<Layer>& r)
-    : _m_value(r)
+    : _M_value(r)
     {}
 
     template <class... Args>
     auto
     operator()(Args&&... args)
     {
-        return (*_m_value)(std::forward<Args>(args)...);
+        return (*_M_value)(std::forward<Args>(args)...);
     }
 
     /// Return the raw shared pointer to the layer.
     std::shared_ptr<Layer>
     get()
     {
-        return _m_value;
+        return _M_value;
     }
 
     /// Dereference the stored pointer to the Layer.
     Layer*
     operator->() noexcept
     {
-        return _m_value;
+        return _M_value;
     }
 
     /// Dereference the stored pointer to the Layer.
     Layer&
     operator*() noexcept
     {
-        return (*_m_value);
+        return (*_M_value);
     }
 
 private:
-    std::shared_ptr<Layer> _m_value;
+    std::shared_ptr<Layer> _M_value;
 };
 
 
@@ -157,7 +157,7 @@ public:
     register_layer(const std::string& name, Layer&& l)
     {
         auto layer_ptr = std::make_shared<Layer>(std::move(l));
-        _m_layers.emplace(name, layer_ptr);
+        _M_layers.emplace(name, layer_ptr);
         return shared_layer_ptr(layer_ptr);
     }
 
@@ -195,7 +195,7 @@ public:
     shared_tensor_ptr<Tensor>
     register_parameter(const std::string& name, const shared_tensor_ptr<Tensor>& tensor_ptr)
     {
-        _m_params.insert_or_assign(name, tensor_ptr.get());
+        _M_params.insert_or_assign(name, tensor_ptr.get());
         return tensor_ptr;
     }
 
@@ -212,7 +212,7 @@ public:
     void
     set_parameter(const std::string& name, Tensor&& tensor)
     {
-        if (auto it = _m_params.find(name); it != _m_params.end()) {
+        if (auto it = _M_params.find(name); it != _M_params.end()) {
             move_tensor_to_pointer(it->second, std::move(tensor));
         } else {
             throw std::invalid_argument(std::format("parameter '{}' is not registered", name));
@@ -234,7 +234,7 @@ public:
     void
     visit_parameters(Visitor visitor, bool recurse = true) const
     {
-        for (const auto& [full_name, param] : _m_params) {
+        for (const auto& [full_name, param] : _M_params) {
             visitor(full_name, param);
         }
 
@@ -243,19 +243,19 @@ public:
         }
 
         using layer_type = layer_container::value_type;
-        std::deque<layer_type> layers(_m_layers.begin(), _m_layers.end());
+        std::deque<layer_type> layers(_M_layers.begin(), _M_layers.end());
 
         while (!layers.empty()) {
             auto [name, layer_ptr] = layers.front();
             layers.pop_front();
 
             // Iterate over the downstream layers, and push them back to the queue.
-            for (auto [child_name, child_layer_ref] : layer_ptr->_m_layers) {
+            for (auto [child_name, child_layer_ref] : layer_ptr->_M_layers) {
                 auto full_name = name + "." + child_name;
                 layers.emplace_back(full_name, child_layer_ref);
             }
 
-            for (auto [param_name, param] : layer_ptr->_m_params) {
+            for (auto [param_name, param] : layer_ptr->_M_params) {
                 auto full_name = name + "." + param_name;
                 visitor(full_name, param);
             }
@@ -265,9 +265,9 @@ public:
     virtual ~basic_layer() {}
 
 private:
-    parameter_container _m_params;
-    layer_container _m_layers;
-    hardware_accelerator _m_accelerator;
+    parameter_container _M_params;
+    layer_container _M_layers;
+    hardware_accelerator _M_accelerator;
 
     template <immutable_tensor Tensor>
     void

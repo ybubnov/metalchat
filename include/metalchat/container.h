@@ -62,11 +62,11 @@ public:
     ~basic_memfile();
 
 private:
-    std::FILE* _m_file = nullptr;
-    std::size_t _m_file_size = 0;
-    pos_type _m_file_p = 0;
-    pos_type _m_file_g = 0;
-    char_type* _m_map = nullptr;
+    std::FILE* _M_file = nullptr;
+    std::size_t _M_file_size = 0;
+    pos_type _M_file_p = 0;
+    pos_type _M_file_g = 0;
+    char_type* _M_map = nullptr;
 };
 
 
@@ -112,7 +112,7 @@ concept forward_container_iterator_t = std::forward_iterator<It> && requires(It 
 
 template <typename T> struct reference_memory_container : public memory_container<T> {
 private:
-    T* _m_data = nullptr;
+    T* _M_data = nullptr;
 
 public:
     using value_type = T;
@@ -120,26 +120,26 @@ public:
     using const_pointer = const pointer;
 
     reference_memory_container(pointer data)
-    : _m_data(data)
+    : _M_data(data)
     {}
 
     reference_memory_container(const reference_memory_container& ref)
-    : reference_memory_container(ref._m_data)
+    : reference_memory_container(ref._M_data)
     {}
 
     pointer
     data()
     {
-        return _m_data;
+        return _M_data;
     }
 
     const_pointer
     data() const
     {
-        return _m_data;
+        return _M_data;
     }
 
-    ~reference_memory_container() { _m_data = nullptr; }
+    ~reference_memory_container() { _M_data = nullptr; }
 };
 
 
@@ -153,7 +153,7 @@ make_reference_container(T* data)
 
 template <typename T> struct random_memory_container : public memory_container<T> {
 private:
-    std::shared_ptr<T[]> _m_data = nullptr;
+    std::shared_ptr<T[]> _M_data = nullptr;
 
 public:
     using value_type = T;
@@ -161,32 +161,32 @@ public:
     using const_pointer = const pointer;
 
     random_memory_container(T* data)
-    : _m_data(data)
+    : _M_data(data)
     {}
 
     pointer
     data()
     {
-        return _m_data.get();
+        return _M_data.get();
     }
 
     const_pointer
     data() const
     {
-        return _m_data.get();
+        return _M_data.get();
     }
 
     template <typename U> requires std::convertible_to<U, T>
     operator random_memory_container<U>() const
     {
-        return random_memory_container<U>(_m_data);
+        return random_memory_container<U>(_M_data);
     }
 };
 
 
 template <typename T> struct vector_memory_container : public memory_container<T> {
 private:
-    std::vector<T> _m_data;
+    std::vector<T> _M_data;
 
 public:
     using value_type = T;
@@ -194,23 +194,23 @@ public:
     using const_pointer = const pointer;
 
     vector_memory_container(std::vector<T>&& data)
-    : _m_data(std::move(data))
+    : _M_data(std::move(data))
     {}
 
     vector_memory_container()
-    : _m_data()
+    : _M_data()
     {}
 
     pointer
     data()
     {
-        return _m_data.data();
+        return _M_data.data();
     }
 
     const value_type*
     data() const
     {
-        const value_type* ptr = _m_data.data();
+        const value_type* ptr = _M_data.data();
         return ptr;
     }
 };
@@ -221,12 +221,12 @@ template <typename T> struct hardware_memory_container : public memory_container
     using pointer = value_type*;
     using const_pointer = const pointer;
 
-    metal::shared_buffer _m_mem;
-    std::size_t _m_off;
+    metal::shared_buffer _M_mem;
+    std::size_t _M_off;
 
     hardware_memory_container(metal::shared_buffer mem, std::size_t off = 0)
-    : _m_mem(mem),
-      _m_off(off)
+    : _M_mem(mem),
+      _M_off(off)
     {}
 
     pointer
@@ -244,7 +244,7 @@ template <typename T> struct hardware_memory_container : public memory_container
     template <typename U> requires std::convertible_to<U, T>
     operator hardware_memory_container<U>() const
     {
-        return hardware_memory_container<U>(_m_mem);
+        return hardware_memory_container<U>(_M_mem);
     }
 
     bool
@@ -262,32 +262,32 @@ template <typename T> struct hardware_memory_container : public memory_container
     const void*
     end() const
     {
-        return static_cast<const std::uint8_t*>(begin()) + metal::size(_m_mem);
+        return static_cast<const std::uint8_t*>(begin()) + metal::size(_M_mem);
     }
 
     metal::shared_buffer
     storage() const
     {
-        return _m_mem;
+        return _M_mem;
     }
 
     std::size_t
     storage_offset() const
     {
-        return _m_off;
+        return _M_off;
     }
 
     void*
     storage_ptr() const
     {
-        return static_cast<std::uint8_t*>(metal::data(_m_mem)) + storage_offset();
+        return static_cast<std::uint8_t*>(metal::data(_M_mem)) + storage_offset();
     }
 };
 
 
 template <typename T> struct scalar_memory_container : public memory_container<T> {
 private:
-    T _m_data;
+    T _M_data;
 
 public:
     using value_type = T;
@@ -295,19 +295,19 @@ public:
     using const_pointer = const pointer;
 
     scalar_memory_container(T data)
-    : _m_data(data)
+    : _M_data(data)
     {}
 
     pointer
     data()
     {
-        return &_m_data;
+        return &_M_data;
     }
 
     const_pointer
     data() const
     {
-        return const_pointer(&_m_data);
+        return const_pointer(&_M_data);
     }
 };
 
@@ -326,7 +326,7 @@ make_scalar_container(T data)
 /// remains mapped, when `filebuf_memory_container::park` method is called.
 template <typename T> struct filebuf_memory_container : public memory_container<T> {
 private:
-    std::shared_ptr<basic_memfile> _m_filebuf;
+    std::shared_ptr<basic_memfile> _M_filebuf;
 
 public:
     using value_type = T;
@@ -336,9 +336,9 @@ public:
     /// Constructs a new instance of a file-buffered container and initializes it with
     /// the provided data. After construction file is not mapped into the memory.
     filebuf_memory_container(const_pointer data, std::size_t size)
-    : _m_filebuf(std::make_shared<basic_memfile>())
+    : _M_filebuf(std::make_shared<basic_memfile>())
     {
-        _m_filebuf->write(data, sizeof(value_type) * size);
+        _M_filebuf->write(data, sizeof(value_type) * size);
     }
 
     /// Method evicts memory-mapped file from the memory. When the file is not memory-mapped
@@ -346,21 +346,21 @@ public:
     void
     park() const
     {
-        _m_filebuf->undeclare_mapped();
+        _M_filebuf->undeclare_mapped();
     }
 
     pointer
     data()
     {
-        _m_filebuf->declare_mapped();
-        return reinterpret_cast<pointer>(_m_filebuf->data());
+        _M_filebuf->declare_mapped();
+        return reinterpret_cast<pointer>(_M_filebuf->data());
     }
 
     const_pointer
     data() const
     {
-        _m_filebuf->declare_mapped();
-        return reinterpret_cast<const_pointer>(_m_filebuf->data());
+        _M_filebuf->declare_mapped();
+        return reinterpret_cast<const_pointer>(_M_filebuf->data());
     }
 };
 

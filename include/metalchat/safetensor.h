@@ -36,55 +36,55 @@ public:
     safetensor(
         const std::string& name, const shape_type& shape, const container_pointer& container_ptr
     )
-    : _m_name(name),
-      _m_shape(shape),
-      _m_container(container_ptr)
+    : _M_name(name),
+      _M_shape(shape),
+      _M_container(container_ptr)
     {}
 
     const std::string&
     name() const
     {
-        return _m_name;
+        return _M_name;
     }
 
     /// Return the number of dimensions in the tensor.
     std::size_t
     dim() const
     {
-        return _m_shape.size();
+        return _M_shape.size();
     }
 
     /// Return the total number of elements in the tensor.
     std::size_t
     numel() const
     {
-        return std::accumulate(_m_shape.begin(), _m_shape.end(), 1, std::multiplies<std::size_t>());
+        return std::accumulate(_M_shape.begin(), _M_shape.end(), 1, std::multiplies<std::size_t>());
     }
 
     const std::span<std::size_t>
     sizes() const
     {
-        auto data_ptr = const_cast<std::size_t*>(_m_shape.data());
-        return std::span<std::size_t>(data_ptr, _m_shape.size());
+        auto data_ptr = const_cast<std::size_t*>(_M_shape.data());
+        return std::span<std::size_t>(data_ptr, _M_shape.size());
     }
 
     container_pointer
     container() const
     {
-        return _m_container;
+        return _M_container;
     }
 
     friend std::ostream&
     operator<<(std::ostream& os, const safetensor& st)
     {
-        os << "safetensor(" << st._m_name << ", shape=[" << st._m_shape << "])";
+        os << "safetensor(" << st._M_name << ", shape=[" << st._M_shape << "])";
         return os;
     }
 
 private:
-    std::string _m_name;
-    shape_type _m_shape;
-    container_pointer _m_container;
+    std::string _M_name;
+    shape_type _M_shape;
+    container_pointer _M_container;
 };
 
 
@@ -97,8 +97,8 @@ concept invocable_with_safetensor = requires {
 
 class safetensor_document {
 private:
-    std::shared_ptr<basic_memfile> _m_file;
-    std::vector<safetensor_metadata> _m_metadata;
+    std::shared_ptr<basic_memfile> _M_file;
+    std::vector<safetensor_metadata> _M_metadata;
 
 public:
     safetensor_document(std::shared_ptr<basic_memfile> file);
@@ -160,10 +160,10 @@ public:
         using container_pointer = typename Allocator::container_pointer;
         using tensor_type = safetensor<container_type>;
 
-        for (const auto& tensor_metadata : _m_metadata) {
+        for (const auto& tensor_metadata : _M_metadata) {
             auto tensor_pos = tensor_metadata.data_offsets[0];
 
-            if (tensor_pos >= _m_file->size()) {
+            if (tensor_pos >= _M_file->size()) {
                 throw std::runtime_error(std::format(
                     "safetensor: start data position {} for a tensor {} is out of bounds",
                     tensor_pos, tensor_metadata.name
@@ -177,12 +177,12 @@ public:
 
             container_pointer container_ptr(nullptr);
 
-            if (_m_file->is_mapped()) {
-                const basic_memfile::char_type* container = _m_file->data() + tensor_pos;
+            if (_M_file->is_mapped()) {
+                const basic_memfile::char_type* container = _M_file->data() + tensor_pos;
                 container_ptr = alloc.allocate((const_pointer)(container), tensor_numel);
             } else {
                 auto container = std::make_shared<value_type[]>(tensor_numel);
-                _m_file->read(container.get(), sizeof(value_type) * tensor_numel);
+                _M_file->read(container.get(), sizeof(value_type) * tensor_numel);
 
                 container_ptr = alloc.allocate((const_pointer)(container.get()), tensor_numel);
             }

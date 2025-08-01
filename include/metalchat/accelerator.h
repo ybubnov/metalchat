@@ -37,11 +37,11 @@ public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
 
 private:
-    metal::shared_device _m_device;
-    metal::shared_library _m_library;
+    metal::shared_device _M_device;
+    metal::shared_library _M_library;
 
-    std::unordered_map<std::string, basic_kernel> _m_kernels;
-    std::shared_ptr<recursive_kernel_thread> _m_thread;
+    std::unordered_map<std::string, basic_kernel> _M_kernels;
+    std::shared_ptr<recursive_kernel_thread> _M_thread;
 
 public:
     hardware_accelerator(const hardware_accelerator& accelerator) = default;
@@ -106,7 +106,7 @@ public:
     void
     set_allocator(Allocator&& alloc)
     {
-        _m_thread->set_allocator(std::move(alloc));
+        _M_thread->set_allocator(std::move(alloc));
     }
 
     /// Load the kernel from the kernel library.

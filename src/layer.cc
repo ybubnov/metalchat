@@ -7,23 +7,23 @@ namespace metalchat {
 
 
 basic_layer::basic_layer(const hardware_accelerator& accelerator)
-: _m_layers(),
-  _m_params(),
-  _m_accelerator(accelerator)
+: _M_layers(),
+  _M_params(),
+  _M_accelerator(accelerator)
 {}
 
 
 const hardware_accelerator&
 basic_layer::accelerator() const
 {
-    return _m_accelerator;
+    return _M_accelerator;
 }
 
 
 hardware_accelerator&
 basic_layer::accelerator()
 {
-    return _m_accelerator;
+    return _M_accelerator;
 }
 
 
@@ -31,7 +31,7 @@ const basic_layer&
 basic_layer::get_layer(const std::string& name) const
 {
     try {
-        return (*_m_layers.at(name).get());
+        return (*_M_layers.at(name).get());
     } catch (std::out_of_range) {
         throw std::runtime_error(std::format("layer '{}' is not registered", name));
     }
@@ -41,7 +41,7 @@ basic_layer::get_layer(const std::string& name) const
 basic_layer::parameter_pointer
 basic_layer::get_parameter(const std::string& name) const
 {
-    if (auto it = _m_params.find(name); it != _m_params.end()) {
+    if (auto it = _M_params.find(name); it != _M_params.end()) {
         return it->second;
     }
 
@@ -58,7 +58,7 @@ basic_layer::get_parameter(const std::string& name) const
     }
 
     auto param_name = name.substr(start_pos);
-    if (auto it = this_layer->_m_params.find(param_name); it != this_layer->_m_params.end()) {
+    if (auto it = this_layer->_M_params.find(param_name); it != this_layer->_M_params.end()) {
         return it->second;
     }
 

@@ -80,7 +80,7 @@ public:
 
     using descriptor_pointer = std::shared_ptr<descriptor_type>;
 
-    tensor() { _m_initialize(); }
+    tensor() { initialize(); }
 
     tensor(tensor&& t) noexcept = default;
 
@@ -88,10 +88,10 @@ public:
 
     template <allocator_t<T> Allocator = scalar_memory_allocator<T>>
     tensor(const T& value, Allocator alloc = Allocator())
-    : m_data(alloc.allocate(1)),
-      m_shape(make_scalar_container<std::size_t>(0)),
-      m_strides(make_scalar_container<std::size_t>(0)),
-      m_offsets(make_scalar_container<std::size_t>(0))
+    : _M_data(alloc.allocate(1)),
+      _M_sizes(make_scalar_container<std::size_t>(0)),
+      _M_strides(make_scalar_container<std::size_t>(0)),
+      _M_offsets(make_scalar_container<std::size_t>(0))
     {
         *data_ptr() = value;
     }
@@ -99,8 +99,8 @@ public:
     template <std::forward_iterator ForwardIt, allocator_t<T> Allocator> requires(N > 0)
     tensor(ForwardIt first, ForwardIt last, Allocator alloc)
     {
-        _m_initialize(first, last);
-        m_data = alloc.allocate(numel());
+        initialize(first, last);
+        _M_data = alloc.allocate(numel());
     }
 
     template <
@@ -108,15 +108,15 @@ public:
         allocator_t<T> Allocator = random_memory_allocator<T>>
     tensor(ForwardIt first, ForwardIt last, T* data, Allocator alloc = Allocator())
     {
-        _m_initialize(first, last);
-        m_data = alloc.allocate(data, numel());
+        initialize(first, last);
+        _M_data = alloc.allocate(data, numel());
     }
 
     template <std::forward_iterator ForwardIt>
     tensor(ForwardIt first, ForwardIt last, const container_pointer& data)
     {
-        _m_initialize(first, last);
-        m_data = data;
+        initialize(first, last);
+        _M_data = data;
     }
 
     template <allocator_t<T> Allocator = random_memory_allocator<T>>
@@ -144,11 +144,11 @@ public:
         const container_pointer& data
     )
     {
-        _m_initialize();
-        std::copy(sizes.begin(), sizes.end(), m_shape->data());
-        std::copy(strides.begin(), strides.end(), m_strides->data());
-        std::copy(offsets.begin(), offsets.end(), m_offsets->data());
-        m_data = data;
+        initialize();
+        std::copy(sizes.begin(), sizes.end(), _M_sizes->data());
+        std::copy(strides.begin(), strides.end(), _M_strides->data());
+        std::copy(offsets.begin(), offsets.end(), _M_offsets->data());
+        _M_data = data;
     }
 
     static constexpr std::size_t
@@ -172,10 +172,10 @@ public:
     T*
     data_ptr() const noexcept
     {
-        if (!m_data) {
+        if (!_M_data) {
             return nullptr;
         }
-        return m_data->data();
+        return _M_data->data();
     }
 
     std::size_t
@@ -186,19 +186,19 @@ public:
                 std::format("tensor::stride: dim {} exceeds tensor dimensionality {}", dim, N)
             );
         }
-        return m_strides->data()[dim];
+        return _M_strides->data()[dim];
     }
 
     void
     set_stride(std::size_t dim, std::size_t i)
     {
-        m_strides->data()[dim] = i;
+        _M_strides->data()[dim] = i;
     }
 
     const std::span<std::size_t>
     strides() const noexcept
     {
-        return std::span<std::size_t, N>(m_strides->data(), N);
+        return std::span<std::size_t, N>(_M_strides->data(), N);
     }
 
     std::size_t
@@ -209,19 +209,19 @@ public:
                 std::format("tensor::size: dim {} exceeds tensor dimensionality {}", dim, N)
             );
         }
-        return m_shape->data()[dim];
+        return _M_sizes->data()[dim];
     }
 
     const std::span<std::size_t>
     sizes() const noexcept
     {
-        return std::span<std::size_t, N>(m_shape->data(), N);
+        return std::span<std::size_t, N>(_M_sizes->data(), N);
     }
 
     const std::span<std::size_t, N>
     shape() const noexcept
     {
-        return std::span<std::size_t, N>(m_shape->data(), N);
+        return std::span<std::size_t, N>(_M_sizes->data(), N);
     }
 
     std::size_t
@@ -232,26 +232,26 @@ public:
                 std::format("tensor::offset: dim {} exceed tensor dimensionality {}", dim, N)
             );
         }
-        return m_offsets->data()[dim];
+        return _M_offsets->data()[dim];
     }
 
     void
     set_offset(std::size_t dim, std::size_t i)
     {
-        m_offsets->data()[dim] = i;
+        _M_offsets->data()[dim] = i;
     }
 
     const std::span<std::size_t>
     offsets() const noexcept
     {
-        return std::span<std::size_t, N>(m_offsets->data(), N);
+        return std::span<std::size_t, N>(_M_offsets->data(), N);
     }
 
     bool
     is_contiguous() const
     {
         for (size_t i = 0; i < N; i++) {
-            if (m_offsets->data()[i] != 0) {
+            if (_M_offsets->data()[i] != 0) {
                 return false;
             }
         }
@@ -271,16 +271,16 @@ public:
     container_type&
     container() const
     {
-        if (!m_data) {
+        if (!_M_data) {
             throw std::logic_error("tensor::container: empty container cannot be accessed");
         }
-        return *m_data;
+        return *_M_data;
     }
 
     container_pointer
     container_ptr() const
     {
-        return m_data;
+        return _M_data;
     }
 
     std::size_t
@@ -297,9 +297,9 @@ public:
     layout() const
     {
         tensor_layout<N> layout;
-        std::copy_n(m_shape->data(), N, layout.sizes);
-        std::copy_n(m_strides->data(), N, layout.strides);
-        std::copy_n(m_offsets->data(), N, layout.offsets);
+        std::copy_n(_M_sizes->data(), N, layout.sizes);
+        std::copy_n(_M_strides->data(), N, layout.strides);
+        std::copy_n(_M_offsets->data(), N, layout.offsets);
         return layout;
     }
 
@@ -336,9 +336,9 @@ public:
         }
 
         auto data = data_ptr() + stride(0) * i + offset(0);
-        auto sizes = m_shape->data() + 1;
-        auto strides = m_strides->data() + 1;
-        auto offsets = m_offsets->data() + 1;
+        auto sizes = _M_sizes->data() + 1;
+        auto strides = _M_strides->data() + 1;
+        auto offsets = _M_offsets->data() + 1;
         return tensor<T, N - 1, reference_memory_container<T>>(data, sizes, strides, offsets);
     }
 
@@ -352,7 +352,7 @@ public:
     auto
     index_select(const S&... slices) requires(sizeof...(slices) == N)
     {
-        tensor t(m_data);
+        tensor t(_M_data);
         std::size_t dim = 0;
 
         ([&] {
@@ -402,7 +402,7 @@ public:
     auto
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
-        tensor t(m_data);
+        tensor t(_M_data);
         for (std::size_t i = 0; i < N; i++) {
             t.set_size(i, size(i));
             t.set_stride(i, stride(i));
@@ -462,7 +462,7 @@ public:
     auto
     transpose(const std::size_t (&&dims)[N]) const requires(N > 0)
     {
-        tensor t(m_data);
+        tensor t(_M_data);
         for (std::size_t i = 0; i < N; i++) {
             t.set_size(i, size(dims[i]));
             t.set_stride(i, stride(dims[i]));
@@ -519,7 +519,7 @@ public:
         std::size_t view_strides[M];
         deduce_view_strides(view_sizes.data(), M, view_strides);
 
-        auto t = tensor<T, M, Container>(view_sizes, m_data);
+        auto t = tensor<T, M, Container>(view_sizes, _M_data);
         t.set_offset(0, container_offset());
         for (std::size_t dim = 0; dim < M; dim++) {
             t.set_stride(dim, view_strides[dim]);
@@ -541,10 +541,10 @@ public:
     }
 
 protected:
-    container_pointer m_data = nullptr;
-    descriptor_pointer m_shape = nullptr;
-    descriptor_pointer m_strides = nullptr;
-    descriptor_pointer m_offsets = nullptr;
+    container_pointer _M_data = nullptr;
+    descriptor_pointer _M_sizes = nullptr;
+    descriptor_pointer _M_strides = nullptr;
+    descriptor_pointer _M_offsets = nullptr;
 
     // Make all specialization of the tensor friends to the current specialization.
     template <typename FriendT, std::size_t FriendN, contiguous_container FriendContainer>
@@ -553,55 +553,55 @@ protected:
     void
     set_size(std::size_t dim, std::size_t i)
     {
-        m_shape->data()[dim] = i;
+        _M_sizes->data()[dim] = i;
     }
 
     void
-    _m_initialize()
+    initialize()
     {
         auto allocator = random_memory_allocator<std::size_t>();
-        m_shape = allocator.allocate(N);
-        m_strides = allocator.allocate(N);
-        m_offsets = allocator.allocate(N);
+        _M_sizes = allocator.allocate(N);
+        _M_strides = allocator.allocate(N);
+        _M_offsets = allocator.allocate(N);
     }
 
     void
-    _m_initialize_strides()
+    initialize_strides()
     {
-        m_strides->data()[N - 1] = 1;
+        _M_strides->data()[N - 1] = 1;
         for (std::size_t i = N - 2; i < N; --i) {
-            m_strides->data()[i] = m_strides->data()[i + 1] * m_shape->data()[i + 1];
+            _M_strides->data()[i] = _M_strides->data()[i + 1] * _M_sizes->data()[i + 1];
         }
     }
 
     void
-    _m_initialize(const std::span<std::size_t, N> sizes)
+    initialize(const std::span<std::size_t, N> sizes)
     {
-        _m_initialize(sizes.begin(), sizes.end());
-        _m_initialize_strides();
+        initialize(sizes.begin(), sizes.end());
+        initialize_strides();
     }
 
     void
-    _m_initialize(std::size_t (&&sizes)[N])
+    initialize(std::size_t (&&sizes)[N])
     {
-        _m_initialize(std::span<std::size_t, N>(sizes, N));
+        initialize(std::span<std::size_t, N>(sizes, N));
     }
 
     template <std::forward_iterator ForwardIt>
     void
-    _m_initialize(ForwardIt first, ForwardIt last)
+    initialize(ForwardIt first, ForwardIt last)
     {
         assert(std::distance(first, last) == N);
 
-        _m_initialize();
-        std::copy(first, last, m_shape->data());
-        _m_initialize_strides();
+        initialize();
+        std::copy(first, last, _M_sizes->data());
+        initialize_strides();
     }
 
     tensor(const container_pointer& data)
-    : m_data(data)
+    : _M_data(data)
     {
-        _m_initialize();
+        initialize();
     }
 
     tensor(
@@ -610,10 +610,10 @@ protected:
         descriptor_pointer&& strides,
         descriptor_pointer&& offsets
     )
-    : m_data(data),
-      m_shape(std::move(shape)),
-      m_strides(std::move(strides)),
-      m_offsets(std::move(offsets))
+    : _M_data(data),
+      _M_sizes(std::move(shape)),
+      _M_strides(std::move(strides)),
+      _M_offsets(std::move(offsets))
     {}
 
     tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)

@@ -55,9 +55,9 @@ make_kernel_grid_2d(const Tensor& t, std::size_t block_size)
 
 class basic_kernel {
 private:
-    std::string _m_name;
-    metal::shared_kernel _m_kernel;
-    hardware_accelerator _m_accelerator;
+    std::string _M_name;
+    metal::shared_kernel _M_kernel;
+    hardware_accelerator _M_accelerator;
 
 public:
     basic_kernel(metal::shared_kernel kernel, const hardware_accelerator& accelerator);
@@ -83,26 +83,26 @@ template <immutable_tensor... Args> class kernel_task {
 private:
     using arguments_type = std::tuple<Args...>;
 
-    basic_kernel _m_kernel;
-    std::shared_ptr<kernel_thread> _m_this_thread_ptr;
+    basic_kernel _M_kernel;
+    std::shared_ptr<kernel_thread> _M_this_thread_ptr;
 
-    arguments_type _m_args;
+    arguments_type _M_args;
 
     /// Configuration of the Metal grid to invoke this particular kernel. Grid specifies
     /// the total number of threads in a grid, while thread defines a number of threads
     /// in a threadgroup.
-    dim3 _m_grid;
-    dim3 _m_thread;
+    dim3 _M_grid;
+    dim3 _M_thread;
 
 public:
     kernel_task(const kernel_task& task) noexcept = default;
 
     kernel_task(basic_kernel kernel, dim3 grid, dim3 thread, std::tuple<Args...>&& args)
-    : _m_kernel(kernel),
-      _m_this_thread_ptr(nullptr),
-      _m_args(args),
-      _m_grid(grid),
-      _m_thread(thread)
+    : _M_kernel(kernel),
+      _M_this_thread_ptr(nullptr),
+      _M_args(args),
+      _M_grid(grid),
+      _M_thread(thread)
     {
         auto max_threads = kernel.max_threads_per_threadgroup();
         if (thread.numel() > max_threads) {
@@ -128,25 +128,25 @@ public:
     std::shared_future<void>
     operator()()
     {
-        if (_m_this_thread_ptr != nullptr) {
+        if (_M_this_thread_ptr != nullptr) {
             throw std::runtime_error(std::format("kernel_task: the kernel has already been invoked")
             );
         }
 
-        _m_this_thread_ptr = _m_kernel.get_accelerator().get_this_thread();
-        return _m_this_thread_ptr->push(*this);
+        _M_this_thread_ptr = _M_kernel.get_accelerator().get_this_thread();
+        return _M_this_thread_ptr->push(*this);
     }
 
     std::shared_future<void>
     operator()(std::function<void()> callback)
     {
-        if (_m_this_thread_ptr != nullptr) {
+        if (_M_this_thread_ptr != nullptr) {
             throw std::runtime_error(std::format("kernel_task: the kernel has already been invoked")
             );
         }
 
-        _m_this_thread_ptr = _m_kernel.get_accelerator().get_this_thread();
-        return _m_this_thread_ptr->push(*this, callback);
+        _M_this_thread_ptr = _M_kernel.get_accelerator().get_this_thread();
+        return _M_this_thread_ptr->push(*this, callback);
     }
 
     void
@@ -159,24 +159,24 @@ public:
     void
     encode(hardware_function_encoder encoder, std::index_sequence<Indices...>)
     {
-        encoder.initialize(_m_kernel.name(), _m_kernel.get_metal_kernel());
+        encoder.initialize(_M_kernel.name(), _M_kernel.get_metal_kernel());
 
         ([&] {
             using tensor_type = std::tuple_element<Indices, arguments_type>::type;
             using value_type = tensor_type::value_type;
 
-            const auto& arg = std::get<Indices>(_m_args);
+            const auto& arg = std::get<Indices>(_M_args);
             encoder.encode<value_type>(arg);
         }(), ...);
 
-        encoder.dispatch(_m_grid, _m_thread);
+        encoder.dispatch(_M_grid, _M_thread);
     }
 
     void
     make_ready_at_thread_exit()
     {
-        if (_m_this_thread_ptr != nullptr) {
-            _m_this_thread_ptr->make_ready_at_thread_exit();
+        if (_M_this_thread_ptr != nullptr) {
+            _M_this_thread_ptr->make_ready_at_thread_exit();
         } else {
             throw std::runtime_error(std::format("kernel_task: task was not invoked"));
         }
@@ -187,7 +187,7 @@ public:
     bind_front(FrontArgs... front_args)
     {
         return kernel_task<FrontArgs..., Args...>(
-            _m_kernel, _m_grid, _m_thread, std::tuple_cat(std::make_tuple(front_args...), _m_args)
+            _M_kernel, _M_grid, _M_thread, std::tuple_cat(std::make_tuple(front_args...), _M_args)
         );
     }
 
@@ -196,25 +196,25 @@ public:
     bind_back(BackArgs... back_args)
     {
         return kernel_task<Args..., BackArgs...>(
-            _m_kernel, _m_grid, _m_thread, std::tuple_cat(_m_args, std::make_tuple(back_args...))
+            _M_kernel, _M_grid, _M_thread, std::tuple_cat(_M_args, std::make_tuple(back_args...))
         );
     }
 
     std::string
     name()
     {
-        return _m_kernel.name();
+        return _M_kernel.name();
     }
 };
 
 
 template <typename T, std::size_t BlockSize> class binary_kernel_wrapper {
 private:
-    basic_kernel _m_kernel;
+    basic_kernel _M_kernel;
 
 public:
     binary_kernel_wrapper(basic_kernel kernel)
-    : _m_kernel(kernel)
+    : _M_kernel(kernel)
     {}
 
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
@@ -223,14 +223,14 @@ public:
     {
         if (auto size1 = input1.sizes().back(), size2 = input2.sizes().back(); size1 != size2) {
             throw std::invalid_argument(std::format(
-                "{}: last dimension should be the same for both tensors {} != {}", _m_kernel.name(),
+                "{}: last dimension should be the same for both tensors {} != {}", _M_kernel.name(),
                 size1, size2
             ));
         }
 
         if (auto numel1 = input1.numel(), numel2 = input2.numel(); numel1 != numel2) {
             throw std::invalid_argument(std::format(
-                "{}: data size should be the same for both tensors {} != {}", _m_kernel.name(),
+                "{}: data size should be the same for both tensors {} != {}", _M_kernel.name(),
                 numel1, numel2
             ));
         }
@@ -238,9 +238,9 @@ public:
         auto [grid, thread] = make_kernel_grid_2d(input1, BlockSize);
         auto input1_view = flatten<2>(input1);
         auto input2_view = flatten<2>(input2);
-        auto output_view = shared_empty_like<T>(input1_view, _m_kernel.get_allocator());
+        auto output_view = shared_empty_like<T>(input1_view, _M_kernel.get_allocator());
 
-        auto task = kernel_task(_m_kernel, grid, thread);
+        auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(output_view, input1_view, input2_view);
 
         auto output = future_tensor(output_view, std::move(task_future));
@@ -252,11 +252,11 @@ public:
     operator()(Input1 input1, Input2 input2)
     {
         auto input_view = flatten<2>(input1);
-        auto output_view = shared_empty_like<T>(input_view, _m_kernel.get_allocator());
+        auto output_view = shared_empty_like<T>(input_view, _M_kernel.get_allocator());
 
         auto [grid, thread] = make_kernel_grid_2d(input1, BlockSize);
 
-        auto task = kernel_task(_m_kernel, grid, thread);
+        auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(output_view, input_view, input2);
 
         auto output = future_tensor(output_view, std::move(task_future));

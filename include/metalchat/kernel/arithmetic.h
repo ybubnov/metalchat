@@ -14,29 +14,29 @@ namespace kernel {
 
 template <typename T, std::size_t BlockSize = 32> class add {
 private:
-    binary_kernel_wrapper<T, BlockSize> _m_kernel;
+    binary_kernel_wrapper<T, BlockSize> _M_kernel;
 
 public:
     add(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load<T, BlockSize>("add"))
+    : _M_kernel(gpu.load<T, BlockSize>("add"))
     {}
 
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        return _m_kernel(input1, input2);
+        return _M_kernel(input1, input2);
     }
 };
 
 
 template <typename T, std::size_t BlockSize = 8> class add2 {
 private:
-    basic_kernel _m_kernel;
+    basic_kernel _M_kernel;
 
 public:
     add2(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load<T, BlockSize>("add2"))
+    : _M_kernel(gpu.load<T, BlockSize>("add2"))
     {}
 
     template <immutable_tensor_t<T> Input1, immutable_tensor2_t<T> Input2>
@@ -59,14 +59,14 @@ public:
         }
 
         auto input1_view = input1.view({-1, int(dim0_size), int(dim1_size)});
-        auto output_view = shared_empty_like<T>(input1_view, _m_kernel.get_allocator());
+        auto output_view = shared_empty_like<T>(input1_view, _M_kernel.get_allocator());
 
         auto thread_size_x = ceil_div(dim0_size, BlockSize);
         auto thread_size_z = ceil_div(dim1_size, BlockSize);
         auto thread = dim3(thread_size_x, 1, thread_size_z);
         auto grid = dim3(thread_size_x * num_rows, BlockSize, thread_size_z);
 
-        auto task = kernel_task(_m_kernel, grid, thread);
+        auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(output_view, input1_view, input2);
 
         auto output = future_tensor(output_view, std::move(task_future));
@@ -77,18 +77,18 @@ public:
 
 template <typename T, std::size_t BlockSize = 32> class sub {
 private:
-    binary_kernel_wrapper<T, BlockSize> _m_kernel;
+    binary_kernel_wrapper<T, BlockSize> _M_kernel;
 
 public:
     sub(hardware_accelerator& gpu)
-    : _m_kernel(gpu.load<T, BlockSize>("sub"))
+    : _M_kernel(gpu.load<T, BlockSize>("sub"))
     {}
 
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        return _m_kernel(input1, input2);
+        return _M_kernel(input1, input2);
     }
 };
 

@@ -47,10 +47,10 @@ public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
 
 private:
-    allocator_type _m_allocator;
-    std::shared_ptr<kernel_queue> _m_queue;
-    std::size_t _m_buffer;
-    std::string _m_name;
+    allocator_type _M_allocator;
+    std::shared_ptr<kernel_queue> _M_queue;
+    std::size_t _M_buffer;
+    std::string _M_name;
 
     void
     encode(const void* data, std::size_t size);
@@ -97,7 +97,7 @@ public:
     void
     encode(const Tensor& tensor)
     {
-        auto alloc = rebind_hardware_allocator<T, allocator_type>(_m_allocator);
+        auto alloc = rebind_hardware_allocator<T, allocator_type>(_M_allocator);
         auto container = alloc.allocate(tensor.data_ptr(), tensor.numel());
 
         auto layout = tensor.layout();
@@ -114,7 +114,7 @@ public:
 
         on_completed([container = container]() { container.park(); });
 
-        auto alloc = rebind_hardware_allocator<T, allocator_type>(_m_allocator);
+        auto alloc = rebind_hardware_allocator<T, allocator_type>(_M_allocator);
         auto container_ptr = alloc.allocate(tensor.data_ptr(), tensor.numel());
 
         auto layout = tensor.layout();
@@ -141,16 +141,16 @@ public:
 private:
     using promise_type = std::promise<void>;
 
-    allocator_type _m_allocator;
+    allocator_type _M_allocator;
 
-    std::shared_ptr<kernel_queue> _m_queue;
-    std::shared_ptr<promise_type> _m_promise;
-    std::shared_future<void> _m_future;
+    std::shared_ptr<kernel_queue> _M_queue;
+    std::shared_ptr<promise_type> _M_promise;
+    std::shared_future<void> _M_future;
 
-    std::size_t _m_size;
-    std::size_t _m_capacity;
+    std::size_t _M_size;
+    std::size_t _M_capacity;
 
-    bool _m_committed;
+    bool _M_committed;
 
     /// Register callback, which will be executed on a command completion.
     ///
@@ -192,14 +192,14 @@ public:
             on_completed(callback.value());
         }
 
-        f.encode(hardware_function_encoder(_m_queue, _m_allocator));
+        f.encode(hardware_function_encoder(_M_queue, _M_allocator));
 
-        _m_size++;
+        _M_size++;
 
-        if (_m_size == _m_capacity) {
+        if (_M_size == _M_capacity) {
             make_ready_at_thread_exit();
         }
-        return _m_future;
+        return _M_future;
     }
 
     void
@@ -212,11 +212,11 @@ public:
     using allocator_type = polymorphic_hardware_memory_allocator<void>;
 
 private:
-    allocator_type _m_allocator;
+    allocator_type _M_allocator;
 
-    std::shared_ptr<kernel_queue> _m_queue;
-    std::shared_ptr<kernel_thread> _m_thread;
-    std::size_t _m_thread_capacity;
+    std::shared_ptr<kernel_queue> _M_queue;
+    std::shared_ptr<kernel_thread> _M_thread;
+    std::size_t _M_thread_capacity;
 
 public:
     recursive_kernel_thread(const recursive_kernel_thread&) noexcept = default;
@@ -226,19 +226,19 @@ public:
     allocator_type
     get_allocator() const
     {
-        return _m_allocator;
+        return _M_allocator;
     }
 
     void
     set_allocator(std::shared_ptr<allocator_type::outer_allocator_type> alloc)
     {
-        _m_allocator = allocator_type(alloc);
+        _M_allocator = allocator_type(alloc);
     }
 
     void
     set_allocator(allocator_type alloc)
     {
-        _m_allocator = alloc;
+        _M_allocator = alloc;
     }
 
     template <basic_hardware_allocator_t<void> Allocator>

@@ -17,18 +17,18 @@ namespace metalchat {
 class basic_message {
 public:
     basic_message(const std::string& role, const std::string& content)
-    : _m_role(role),
-      _m_content(content)
+    : _M_role(role),
+      _M_content(content)
     {}
 
     basic_message(std::string&& role, std::string&& content)
-    : _m_role(std::move(role)),
-      _m_content(std::move(content))
+    : _M_role(std::move(role)),
+      _M_content(std::move(content))
     {}
 
     basic_message(const std::string& role)
-    : _m_role(role),
-      _m_content()
+    : _M_role(role),
+      _M_content()
     {}
 
     template <std::output_iterator<int32_t> OutputIt>
@@ -36,21 +36,21 @@ public:
     encode(const bpe& encoder, OutputIt output) const
     {
         encoder.encode(special_token::begin_header, output);
-        encoder.encode(_m_role, output);
+        encoder.encode(_M_role, output);
         encoder.encode(special_token::end_header, output);
         encoder.encode("\n\n", output);
-        encoder.encode(_m_content, output);
+        encoder.encode(_M_content, output);
     }
 
     std::string
     content() const
     {
-        return _m_content;
+        return _M_content;
     }
 
 private:
-    std::string _m_role;
-    std::string _m_content;
+    std::string _M_role;
+    std::string _M_content;
 };
 
 
@@ -159,7 +159,7 @@ public:
 
     template <language_transformer_t Transformer>
     polymorphic_language_transformer(Transformer&& transformer)
-    : _m_transformer(std::make_shared<Transformer>(std::move(transformer)))
+    : _M_transformer(std::make_shared<Transformer>(std::move(transformer)))
     {}
 
     polymorphic_language_transformer(std::shared_ptr<basic_language_transformer> ptr);
@@ -171,7 +171,7 @@ public:
     get_accelerator();
 
 private:
-    std::shared_ptr<basic_language_transformer> _m_transformer;
+    std::shared_ptr<basic_language_transformer> _M_transformer;
 };
 
 
@@ -186,38 +186,38 @@ public:
         value_type temperature = value_type(0.6),
         value_type p = value_type(0.9)
     )
-    : _m_estimator(std::move(estimator)),
-      _m_temperature(temperature),
-      _m_p(p)
+    : _M_estimator(std::move(estimator)),
+      _M_temperature(temperature),
+      _M_p(p)
     {}
 
     hardware_accelerator
     get_accelerator()
     {
-        return _m_estimator.accelerator();
+        return _M_estimator.accelerator();
     }
 
     output_tensor
     transform(input_tensor input, std::size_t start_pos)
     {
-        auto gpu = _m_estimator.accelerator();
-        auto logits = _m_estimator(input, start_pos);
-        return top_p(logits.template flatten<2>(), _m_temperature, _m_p, gpu);
+        auto gpu = _M_estimator.accelerator();
+        auto logits = _M_estimator(input, start_pos);
+        return top_p(logits.template flatten<2>(), _M_temperature, _M_p, gpu);
     }
 
     template <immutable_tensor2_t<index_type> Input>
     output_tensor
     transform(Input input, std::size_t start_pos)
     {
-        auto gpu = _m_estimator.accelerator();
-        auto logits = _m_estimator(input, start_pos);
-        return top_p(logits.template flatten<2>(), _m_temperature, _m_p, gpu);
+        auto gpu = _M_estimator.accelerator();
+        auto logits = _M_estimator(input, start_pos);
+        return top_p(logits.template flatten<2>(), _M_temperature, _M_p, gpu);
     }
 
 private:
-    Estimator _m_estimator;
-    value_type _m_temperature;
-    value_type _m_p;
+    Estimator _M_estimator;
+    value_type _M_temperature;
+    value_type _M_p;
 };
 
 
@@ -227,18 +227,18 @@ public:
     using container_type = vector_memory_container<index_type>;
 
     chat(Transformer&& transformer, const bpe& encoder)
-    : _m_transformer(std::move(transformer)),
-      _m_encoder(encoder),
-      _m_start_pos(0),
-      _m_encoding(1, encoder.encode(special_token::begin_text))
+    : _M_transformer(std::move(transformer)),
+      _M_encoder(encoder),
+      _M_start_pos(0),
+      _M_encoding(1, encoder.encode(special_token::begin_text))
     {}
 
     void
     send(const basic_message& message)
     {
-        auto output = std::back_inserter(_m_encoding);
-        message.encode(_m_encoder, output);
-        _m_encoder.encode(special_token::end_turn, output);
+        auto output = std::back_inserter(_M_encoding);
+        message.encode(_M_encoder, output);
+        _M_encoder.encode(special_token::end_turn, output);
     }
 
     std::string
@@ -251,27 +251,27 @@ public:
     receive()
     {
         basic_message query("assistant");
-        query.encode(_m_encoder, std::back_inserter(_m_encoding));
+        query.encode(_M_encoder, std::back_inserter(_M_encoding));
 
         std::vector<index_type> encoding;
-        _m_encoding.swap(encoding);
+        _M_encoding.swap(encoding);
 
         auto encoding_size = encoding.size();
         auto container_ptr = std::make_shared<container_type>(std::move(encoding));
 
-        auto alloc = _m_transformer.get_accelerator().get_allocator();
+        auto alloc = _M_transformer.get_accelerator().get_allocator();
         auto input = future_tensor(tensor({1, encoding_size}, container_ptr), alloc);
-        auto output = _m_transformer.transform(input, _m_start_pos);
+        auto output = _M_transformer.transform(input, _M_start_pos);
 
         auto token = output.get()[0, 0];
 
-        _m_start_pos += encoding_size;
+        _M_start_pos += encoding_size;
         std::stringstream content;
 
-        auto end_turn = _m_encoder.encode(special_token::end_turn);
+        auto end_turn = _M_encoder.encode(special_token::end_turn);
         while (token != end_turn) {
-            content << _m_encoder.decode(token);
-            output = _m_transformer.transform(output, _m_start_pos++);
+            content << _M_encoder.decode(token);
+            output = _M_transformer.transform(output, _M_start_pos++);
             token = output.get()[0, 0];
         }
 
@@ -280,11 +280,11 @@ public:
 
 
 private:
-    Transformer _m_transformer;
-    bpe _m_encoder;
+    Transformer _M_transformer;
+    bpe _M_encoder;
 
-    std::size_t _m_start_pos;
-    std::vector<index_type> _m_encoding;
+    std::size_t _M_start_pos;
+    std::vector<index_type> _M_encoding;
 };
 
 
@@ -295,7 +295,7 @@ public:
 
     template <language_transformer_t Transformer>
     polymorphic_chat(Transformer&& transformer, const bpe& encoder)
-    : _m_chat(chat<polymorphic_language_transformer>(std::move(transformer), encoder))
+    : _M_chat(chat<polymorphic_language_transformer>(std::move(transformer), encoder))
     {}
 
     void
@@ -308,7 +308,7 @@ public:
     receive();
 
 private:
-    chat<polymorphic_language_transformer> _m_chat;
+    chat<polymorphic_language_transformer> _M_chat;
 };
 
 
@@ -364,13 +364,13 @@ public:
     rope_theta() const noexcept;
 
 private:
-    std::size_t _m_head_dim = 0;
-    std::size_t _m_n_heads = 0;
-    std::size_t _m_n_kv_heads = 0;
-    std::size_t _m_n_layers = 0;
-    std::size_t _m_max_seq_len = 0;
-    std::size_t _m_heap_size = 0;
-    float _m_rope_theta = 0.0f;
+    std::size_t _M_head_dim = 0;
+    std::size_t _M_n_heads = 0;
+    std::size_t _M_n_kv_heads = 0;
+    std::size_t _M_n_layers = 0;
+    std::size_t _M_max_seq_len = 0;
+    std::size_t _M_heap_size = 0;
+    float _M_rope_theta = 0.0f;
 
     void
     set_head_dim(std::size_t head_dim);
