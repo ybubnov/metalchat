@@ -1,8 +1,8 @@
 Layer library
 =============
 
-Layer
------
+Basic Layer
+-----------
 
 .. doxygenclass:: metalchat::basic_layer
    :members:
