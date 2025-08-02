@@ -28,12 +28,12 @@ template <
     cache_t<T> Cache = sink_cache<T>>
 class llama : public basic_layer {
 private:
-    nn::shared_embedding<T, Container> _m_embedding;
-    nn::shared_rmsnorm<T, Container> _m_norm;
-    nn::shared_linear<T, Container> _m_output;
+    nn::shared_embedding<T, Container> _M_embedding;
+    nn::shared_rmsnorm<T, Container> _M_norm;
+    nn::shared_linear<T, Container> _M_output;
 
-    std::vector<shared_transformer<T, Container>> _m_transforms;
-    std::vector<Cache> _m_cache;
+    std::vector<shared_transformer<T, Container>> _M_transforms;
+    std::vector<Cache> _M_cache;
 
 public:
     using index_type = int32_t;
@@ -46,9 +46,9 @@ public:
         requires cache_constructible<Cache>
     : basic_layer(gpu)
     {
-        _m_embedding = register_layer("tok_embeddings", nn::embedding<T, Container>(gpu));
-        _m_norm = register_layer("norm", nn::rmsnorm<T, Container>(gpu));
-        _m_output = register_layer("output", nn::linear<T, Container>(gpu));
+        _M_embedding = register_layer("tok_embeddings", nn::embedding<T, Container>(gpu));
+        _M_norm = register_layer("norm", nn::rmsnorm<T, Container>(gpu));
+        _M_output = register_layer("output", nn::linear<T, Container>(gpu));
 
         using layer_type = nn::transformer<T, Container>;
 
@@ -65,8 +65,8 @@ public:
             auto layer_value = layer_type(options, gpu);
             auto layer_ptr = register_layer(layer_name, std::move(layer_value));
 
-            _m_transforms.push_back(layer_ptr);
-            _m_cache.emplace_back(cache_opts, gpu);
+            _M_transforms.push_back(layer_ptr);
+            _M_cache.emplace_back(cache_opts, gpu);
         }
     }
 
@@ -74,21 +74,21 @@ public:
     output_tensor
     operator()(Input input, std::size_t start_pos = 0)
     {
-        auto x = _m_embedding(input);
+        auto x = _M_embedding(input);
 
-        for (std::size_t i = 0; i < _m_transforms.size(); i++) {
-            auto& transform = _m_transforms[i];
-            auto& cache = _m_cache[i];
+        for (std::size_t i = 0; i < _M_transforms.size(); i++) {
+            auto& transform = _M_transforms[i];
+            auto& cache = _M_cache[i];
 
             x = transform(x, cache, start_pos);
         }
 
-        auto output = _m_norm(x);
+        auto output = _M_norm(x);
 
         auto len = output.size(1);
         output = output.narrow(1, len - 1, 1);
 
-        return _m_output(output);
+        return _M_output(output);
     }
 };
 

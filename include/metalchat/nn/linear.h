@@ -18,14 +18,14 @@ namespace nn {
 /// multiplication operation.
 template <typename T, contiguous_container WeightContainer> class linear : public basic_layer {
 private:
-    shared_tensor<T, 2, WeightContainer> _m_weight;
+    shared_tensor<T, 2, WeightContainer> _M_weight;
 
 public:
     linear(shared_tensor<T, 2, WeightContainer> weight, hardware_accelerator accelerator)
     : basic_layer(accelerator),
-      _m_weight(weight)
+      _M_weight(weight)
     {
-        register_parameter("weight", _m_weight);
+        register_parameter("weight", _M_weight);
     }
 
     linear(tensor<T, 2, WeightContainer>&& weight, hardware_accelerator accelerator)
@@ -40,14 +40,14 @@ public:
     auto
     operator()(Input input)
     {
-        return matmul(input, _m_weight.transpose({1, 0}), accelerator());
+        return matmul(input, _M_weight.transpose({1, 0}), accelerator());
     }
 
     friend std::ostream&
     operator<<(std::ostream& os, const linear& l)
     {
         os << "nn::linear<" << type_traits<T>::name() << ">";
-        os << "(" << l._m_weight.sizes() << ")";
+        os << "(" << l._M_weight.sizes() << ")";
         return os;
     }
 };

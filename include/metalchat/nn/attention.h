@@ -44,17 +44,17 @@ template <typename T, contiguous_container Container> class attention : public b
 private:
     static constexpr std::size_t input_size = 4;
 
-    nn::shared_linear<T, Container> m_wq;
-    nn::shared_linear<T, Container> m_wk;
-    nn::shared_linear<T, Container> m_wv;
-    nn::shared_linear<T, Container> m_wo;
+    nn::shared_linear<T, Container> _M_wq;
+    nn::shared_linear<T, Container> _M_wk;
+    nn::shared_linear<T, Container> _M_wv;
+    nn::shared_linear<T, Container> _M_wo;
 
-    nn::rope<T> _m_rope;
+    nn::rope<T> _M_rope;
 
-    nn::attention_options _m_options;
-    T _m_scale;
+    nn::attention_options _M_options;
+    T _M_scale;
 
-    kernel::cpy<T> _m_cpy;
+    kernel::cpy<T> _M_cpy;
 
     template <immutable_tensor_t<T> Input>
     auto
@@ -63,7 +63,7 @@ private:
         auto output = future_tensor(empty_like<T>(input, accelerator().get_allocator()));
 
         for (std::size_t offset = 0; offset < output.size(dim); offset++) {
-            auto future = _m_cpy(input.narrow(dim, offset, 1), output.narrow(dim, offset, 1));
+            auto future = _M_cpy(input.narrow(dim, offset, 1), output.narrow(dim, offset, 1));
             output = future_tensor(output, future);
         }
 
@@ -75,15 +75,15 @@ public:
         attention_options& options, hardware_accelerator accelerator, std::size_t max_batch_size = 1
     )
     : basic_layer(accelerator),
-      _m_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
-      _m_options(options),
-      _m_scale(options.scale()),
-      _m_cpy(accelerator)
+      _M_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
+      _M_options(options),
+      _M_scale(options.scale()),
+      _M_cpy(accelerator)
     {
-        m_wq = register_layer("wq", nn::linear<T, Container>(accelerator));
-        m_wk = register_layer("wk", nn::linear<T, Container>(accelerator));
-        m_wv = register_layer("wv", nn::linear<T, Container>(accelerator));
-        m_wo = register_layer("wo", nn::linear<T, Container>(accelerator));
+        _M_wq = register_layer("wq", nn::linear<T, Container>(accelerator));
+        _M_wk = register_layer("wk", nn::linear<T, Container>(accelerator));
+        _M_wv = register_layer("wv", nn::linear<T, Container>(accelerator));
+        _M_wo = register_layer("wo", nn::linear<T, Container>(accelerator));
     }
 
     template <immutable_tensor3_t<T> Input, cache_t<T> Cache>
@@ -92,17 +92,17 @@ public:
     {
         int bs = input.size(0);
         int len = input.size(1);
-        int n_heads = _m_options.n_heads;
-        int n_kv_heads = _m_options.n_kv_heads;
-        auto n_reps = _m_options.repeats();
-        const int head_dim = _m_options.head_dim;
+        int n_heads = _M_options.n_heads;
+        int n_kv_heads = _M_options.n_kv_heads;
+        auto n_reps = _M_options.repeats();
+        const int head_dim = _M_options.head_dim;
 
-        auto q = m_wq(input).view({bs, len, n_heads, head_dim});
-        auto k = m_wk(input).view({bs, len, n_kv_heads, head_dim});
-        auto v = m_wv(input).view({bs, len, n_kv_heads, head_dim});
+        auto q = _M_wq(input).view({bs, len, n_heads, head_dim});
+        auto k = _M_wk(input).view({bs, len, n_kv_heads, head_dim});
+        auto v = _M_wv(input).view({bs, len, n_kv_heads, head_dim});
 
-        q = _m_rope(q, /*start_pos=*/start_pos);
-        k = _m_rope(k, /*start_pos=*/start_pos);
+        q = _M_rope(q, /*start_pos=*/start_pos);
+        k = _M_rope(k, /*start_pos=*/start_pos);
 
         auto [kk, vv, mask] = cache.update(k, v, start_pos);
 
@@ -120,7 +120,7 @@ public:
         keys = keys.transpose({0, 2, 3, 1});
         values = values.transpose({0, 2, 1, 3});
 
-        auto scores = mul(matmul(queries, keys, accelerator()), _m_scale, accelerator());
+        auto scores = mul(matmul(queries, keys, accelerator()), _M_scale, accelerator());
         if (mask.has_value()) {
             scores = add2(scores, mask.value(), accelerator());
         }
@@ -129,7 +129,7 @@ public:
         auto output = matmul(scores, values, accelerator()).transpose({0, 2, 1, 3});
         output = contiguous(output, /*dim=*/1);
 
-        return m_wo(output.view({bs, len, -1}));
+        return _M_wo(output.view({bs, len, -1}));
     }
 
     friend std::ostream&

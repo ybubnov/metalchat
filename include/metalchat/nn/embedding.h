@@ -15,16 +15,16 @@ namespace nn {
 
 template <typename T, contiguous_container Container> class embedding : public basic_layer {
 private:
-    shared_tensor<T, 2, Container> _m_weight;
-    kernel::embedding<T> _m_embedding;
+    shared_tensor<T, 2, Container> _M_weight;
+    kernel::embedding<T> _M_embedding;
 
 public:
     embedding(shared_tensor<T, 2, Container> weight, hardware_accelerator accelerator)
     : basic_layer(accelerator),
-      _m_weight(weight),
-      _m_embedding(accelerator)
+      _M_weight(weight),
+      _M_embedding(accelerator)
     {
-        register_parameter("weight", _m_weight);
+        register_parameter("weight", _M_weight);
     }
 
     embedding(tensor<T, 2, Container>&& weight, hardware_accelerator accelerator)
@@ -39,14 +39,14 @@ public:
     auto
     operator()(Input input)
     {
-        return _m_embedding(input, _m_weight);
+        return _M_embedding(input, _M_weight);
     }
 
     friend std::ostream&
     operator<<(std::ostream& os, const embedding& e)
     {
         os << "nn::embedding<" << type_traits<T>::name() << ">";
-        os << "(" << e._m_weight.sizes() << ")";
+        os << "(" << e._M_weight.sizes() << ")";
         return os;
     }
 };
@@ -67,22 +67,22 @@ public:
     using freqs_tensor = future_tensor<float, 2>;
 
 private:
-    std::size_t _m_start_pos;
-    // note: in case llama3.2 _m_dim is equal to 64.
-    std::size_t _m_dim;
-    std::size_t _m_seq_len;
-    float _m_theta;
+    std::size_t _M_start_pos;
+    // note: in case llama3.2 _M_dim is equal to 64.
+    std::size_t _M_dim;
+    std::size_t _M_seq_len;
+    float _M_theta;
 
-    freqs_tensor _m_freqs_cos;
-    freqs_tensor _m_freqs_sin;
+    freqs_tensor _M_freqs_cos;
+    freqs_tensor _M_freqs_sin;
 
-    kernel::rope<T> _m_rope;
-    kernel::rope_freqs<float> _m_rope_freqs;
+    kernel::rope<T> _M_rope;
+    kernel::rope_freqs<float> _M_rope_freqs;
 
     auto
     alloc()
     {
-        return future_tensor(empty<float>({_m_seq_len, _m_dim / 2}, accelerator().get_allocator()));
+        return future_tensor(empty<float>({_M_seq_len, _M_dim / 2}, accelerator().get_allocator()));
     }
 
     void
@@ -114,21 +114,21 @@ private:
     void
     update(std::size_t start_pos)
     {
-        _m_start_pos = start_pos;
-        std::tie(_m_freqs_cos, _m_freqs_sin) = _m_rope_freqs(_m_freqs_cos, _m_freqs_sin, start_pos);
+        _M_start_pos = start_pos;
+        std::tie(_M_freqs_cos, _M_freqs_sin) = _M_rope_freqs(_M_freqs_cos, _M_freqs_sin, start_pos);
     }
 
 public:
     rope(std::size_t dim, std::size_t max_seq_len, float theta, hardware_accelerator accelerator)
     : basic_layer(accelerator),
-      _m_start_pos(0),
-      _m_dim(dim),
-      _m_seq_len(max_seq_len * 2),
-      _m_theta(theta),
-      _m_freqs_cos(alloc()),
-      _m_freqs_sin(alloc()),
-      _m_rope(accelerator),
-      _m_rope_freqs(dim, _m_seq_len, theta, accelerator)
+      _M_start_pos(0),
+      _M_dim(dim),
+      _M_seq_len(max_seq_len * 2),
+      _M_theta(theta),
+      _M_freqs_cos(alloc()),
+      _M_freqs_sin(alloc()),
+      _M_rope(accelerator),
+      _M_rope_freqs(dim, _M_seq_len, theta, accelerator)
     {
         update(0);
     }
@@ -137,20 +137,20 @@ public:
     auto
     operator()(Input input, std::size_t start_pos = 0)
     {
-        if (_m_dim != input.sizes().back()) {
+        if (_M_dim != input.sizes().back()) {
             throw std::invalid_argument(std::format(
-                "nn::rope: the last dimensions has wrong size {} != {}", _m_dim,
+                "nn::rope: the last dimensions has wrong size {} != {}", _M_dim,
                 input.sizes().back()
             ));
         }
 
         // When the requested start position is outside of the frequencies range, recompute
         // the frequencies for a new position.
-        if (start_pos < _m_start_pos || start_pos >= _m_start_pos + _m_seq_len) {
+        if (start_pos < _M_start_pos || start_pos >= _M_start_pos + _M_seq_len) {
             update(start_pos);
         }
 
-        return _m_rope(input, _m_freqs_cos, _m_freqs_sin, start_pos - _m_start_pos);
+        return _M_rope(input, _M_freqs_cos, _M_freqs_sin, start_pos - _M_start_pos);
     }
 };
 

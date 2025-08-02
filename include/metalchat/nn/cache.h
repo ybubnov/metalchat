@@ -70,12 +70,12 @@ public:
     using return_type = std::tuple<input_tensor, input_tensor, mask_tensor>;
 
     sink_cache(std::size_t pre_len, const cache_options& options, hardware_accelerator accelerator)
-    : _m_accelerator(accelerator),
-      _m_copy(accelerator),
-      _m_options(options),
-      _m_keys(alloc(options)),
-      _m_vals(alloc(options)),
-      _m_pre_len(pre_len)
+    : _M_accelerator(accelerator),
+      _M_copy(accelerator),
+      _M_options(options),
+      _M_keys(alloc(options)),
+      _M_vals(alloc(options)),
+      _M_pre_len(pre_len)
     {}
 
     sink_cache(const cache_options& options, hardware_accelerator accelerator)
@@ -92,11 +92,11 @@ public:
             ));
         }
 
-        auto [cache_keys, k] = copy(_m_keys, keys, start_pos);
-        auto [cache_vals, v] = copy(_m_vals, vals, start_pos);
+        auto [cache_keys, k] = copy(_M_keys, keys, start_pos);
+        auto [cache_vals, v] = copy(_M_vals, vals, start_pos);
 
-        _m_keys = cache_keys;
-        _m_vals = cache_vals;
+        _M_keys = cache_keys;
+        _M_vals = cache_vals;
 
         auto len = keys.size(1);
         auto mask_len = k.size(1);
@@ -114,7 +114,7 @@ private:
         if (len > 1) {
             const T infinity = T(std::numeric_limits<float>::infinity());
 
-            auto alloc = _m_accelerator.get_allocator();
+            auto alloc = _M_accelerator.get_allocator();
             auto m = full<T>({len, mask_len}, -infinity, alloc);
 
             triu(m.narrow(1, mask_len - len, len));
@@ -129,7 +129,7 @@ private:
     {
         return future_tensor(empty<T>(
             {options.max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
-            _m_accelerator.get_allocator()
+            _M_accelerator.get_allocator()
         ));
     }
 
@@ -151,7 +151,7 @@ private:
         const auto len = input.size(1);
         const auto cache_size = cache.size(1);
 
-        const std::size_t post_len = cache_size - _m_pre_len;
+        const std::size_t post_len = cache_size - _M_pre_len;
 
         if (len > cache_size) {
             throw std::invalid_argument(std::format(
@@ -164,18 +164,18 @@ private:
         // of the cache), rotate it left and store the inferred results into the right-most
         // position.
         if (start_pos >= cache_size) {
-            auto cache_new = alloc(_m_options);
-            auto cache_new_pre = cache_new.narrow(1, 0, _m_pre_len);
-            auto cache_pre = cache.narrow(1, 0, _m_pre_len);
+            auto cache_new = alloc(_M_options);
+            auto cache_new_pre = cache_new.narrow(1, 0, _M_pre_len);
+            auto cache_pre = cache.narrow(1, 0, _M_pre_len);
 
             // Copy the prefix of the cache to a newly allocated memory.
-            cache_new = future_tensor(cache_new, _m_copy(cache_pre, cache_new_pre));
+            cache_new = future_tensor(cache_new, _M_copy(cache_pre, cache_new_pre));
 
-            auto cache_new_post = cache_new.narrow(1, _m_pre_len, post_len);
-            auto cache_post = cache.narrow(1, _m_pre_len, post_len);
+            auto cache_new_post = cache_new.narrow(1, _M_pre_len, post_len);
+            auto cache_post = cache.narrow(1, _M_pre_len, post_len);
 
             // Roll the remaining cache by the size of a new input length.
-            auto cache_rolled = roll(cache_post, cache_new_post, int32_t(len), 1, _m_accelerator);
+            auto cache_rolled = roll(cache_post, cache_new_post, int32_t(len), 1, _M_accelerator);
 
             cache = future_tensor(cache_new, cache_rolled);
 
@@ -188,20 +188,20 @@ private:
         auto end_pos = start_pos + len;
         auto target = cache[s(0, bs), s(start_pos, end_pos), s(), s()];
 
-        cache = future_tensor(cache, _m_copy(input, target));
+        cache = future_tensor(cache, _M_copy(input, target));
         auto cached_data = cache[s(0, bs), s(0, end_pos), s(), s()];
 
         return std::make_tuple(cache, cached_data);
     }
 
-    hardware_accelerator _m_accelerator;
-    kernel::cpy<value_type> _m_copy;
-    cache_options _m_options;
+    hardware_accelerator _M_accelerator;
+    kernel::cpy<value_type> _M_copy;
+    cache_options _M_options;
 
-    input_tensor _m_keys;
-    input_tensor _m_vals;
+    input_tensor _M_keys;
+    input_tensor _M_vals;
 
-    std::size_t _m_pre_len;
+    std::size_t _M_pre_len;
 };
 
 

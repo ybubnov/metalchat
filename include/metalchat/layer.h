@@ -135,19 +135,20 @@ public:
     /// The registry of layers owns the upstream layer, and the method returns a object pointing
     /// to that owned layer.
     ///
+    /// \note You can explore a variety of different layers in
+    /// \verbatim embed:rst:inline :doc:`nn` \endverbatim.
+    ///
     /// A common practice is registering upstream layers within a downstream layer constructor
     /// like in the example below.
     ///
     /// ```c++
     /// using namespace metalchat;
     ///
-    /// class custom_layer : public basic_layer {
-    /// private:
+    /// struct custom_layer : public basic_layer {
     ///     // Declare upstream layers here.
     ///     nn::shared_linear<float> linear1;
     ///     nn::shared_linear<float> linear2;
     ///
-    /// public:
     ///    custom_layer(hardware_accelerator accelerator)
     ///    : basic_layer(accelerator)
     ///    {
@@ -183,16 +184,42 @@ public:
     /// ```c++
     /// using namespace metalchat;
     ///
-    /// class custom_layer : public basic_layer {
-    /// private:
+    /// struct custom_layer : public basic_layer {
     ///     // Declare parameters here.
     ///     shared_tensor<float, 3> weight;
     ///
-    /// public:
     ///     custom_layer(hardware_accelerator accelerator)
     ///     : basic_layer(accelerator)
     ///     {
     ///         weight = register_parameter("weight", empty<float>({10, 4, 3}, accelerator));
+    ///     }
+    /// };
+    /// ```
+    template <immutable_tensor Tensor>
+    shared_tensor_ptr<Tensor>
+    register_parameter(const std::string& name, Tensor&& tensor)
+    {
+        auto tensor_ptr = shared_tensor_ptr(std::move(tensor));
+        return register_parameter(name, tensor_ptr);
+    }
+
+    /// Add a parameter to the layer.
+    ///
+    /// This method shared ownership of the tensor (parameter) with the caller. Consider the
+    /// following example, where the parameter is constructed with the basic layer using
+    /// delegated constructors, and then registered in the body of the constructor:
+    /// ```c++
+    /// using namespace metalchat;
+    ///
+    /// struct custom_layer : public basic_layer {
+    ///     // Declare parameters here.
+    ///     shared_tensor<float, 3> weight;
+    ///
+    ///     custom_layer(hardware_accelerator accelerator)
+    ///     : basic_layer(accelerator),
+    ///       weight(full<float>({5, 4, 2}, 4.0, accelerator))
+    ///     {
+    ///         register_parameter("weight", weight);
     ///     }
     /// };
     /// ```
@@ -204,15 +231,6 @@ public:
         return tensor_ptr;
     }
 
-    /// Add a parameter to the layer.
-    template <immutable_tensor Tensor>
-    shared_tensor_ptr<Tensor>
-    register_parameter(const std::string& name, Tensor&& tensor)
-    {
-        auto tensor_ptr = shared_tensor_ptr(std::move(tensor));
-        return register_parameter(name, tensor_ptr);
-    }
-
     /// Set value to the registered layer parameter.
     ///
     /// When the specified parameter is not found, the method throws an exception. The method
@@ -222,11 +240,11 @@ public:
     ///
     /// ```c++
     /// using namespace metalchat;
-    /// using namespace metalchat::dtype;
     ///
-    /// hardware_accelerator accelerator;
-    /// nn::llama<bf16> m(16, attention_options, accelerator);
-    /// m.set_parameter("layers.0.attention.wk.weight", empty<bf16>({512, 2048}, accelerator));
+    /// auto accelerator = hardware_accelerator(32);
+    /// auto linear = nn::linear<float>(accelerator);
+    ///
+    /// linear.set_parameter("weight", empty<float>({4, 4}, accelerator));
     /// ```
     template <immutable_tensor Tensor>
     void
