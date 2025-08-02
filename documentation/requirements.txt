@@ -4,4 +4,4 @@ sphinx-autobuild
 sphinx-prompt
 sphinx-copybutton
 sphinx-design
-furo>=2022.6.4
+sphinx-pydata-theme

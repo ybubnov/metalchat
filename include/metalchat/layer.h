@@ -40,6 +40,9 @@ public:
     : _M_value(r)
     {}
 
+    /// Invoke the stored layer target with the parameters `args`.
+    ///
+    /// Effectively does `f(std::forward<Args>(args)...);`, where `f` is the target layer.
     template <class... Args>
     auto
     operator()(Args&&... args)
@@ -78,7 +81,9 @@ private:
 /// layer computation logic.
 class basic_layer {
 public:
+    /// A shared pointer to the basic tensor.
     using parameter_pointer = std::shared_ptr<basic_tensor>;
+    /// A shared pointer to the basic layer.
     using layer_pointer = std::shared_ptr<basic_layer>;
 
     using parameter_container = std::unordered_map<std::string, parameter_pointer>;
@@ -169,8 +174,8 @@ public:
 
     /// Add a parameter to the layer.
     ///
-    /// The parameter can be accessed using `get_parameter` method and updated with `set_parameter`
-    /// method.
+    /// The parameter can be accessed using `basic_layer::get_parameter` method and updated with
+    /// `basic_layer::set_parameter` method respectively.
     ///
     /// A common practice is registering parameters of the layers that could be updated
     /// externally (loaded from a file, or stored after inference):
@@ -208,6 +213,21 @@ public:
         return register_parameter(name, tensor_ptr);
     }
 
+    /// Set value to the registered layer parameter.
+    ///
+    /// When the specified parameter is not found, the method throws an exception. The method
+    /// supports assignment of the nested parameters.
+    ///
+    /// Example:
+    ///
+    /// ```c++
+    /// using namespace metalchat;
+    /// using namespace metalchat::dtype;
+    ///
+    /// hardware_accelerator accelerator;
+    /// nn::llama<bf16> m(16, attention_options, accelerator);
+    /// m.set_parameter("layers.0.attention.wk.weight", empty<bf16>({512, 2048}, accelerator));
+    /// ```
     template <immutable_tensor Tensor>
     void
     set_parameter(const std::string& name, Tensor&& tensor)
@@ -219,6 +239,10 @@ public:
         }
     }
 
+    /// Return a pointer to the registered parameter by the specified name.
+    ///
+    /// This method also supports recursive lookup of the parameter within children layers
+    /// if the name contains a dot ('.') delimiter.
     parameter_pointer
     get_parameter(const std::string& name) const;
 
@@ -230,6 +254,10 @@ public:
     const parameter_container
     get_parameters(bool recurse = true) const;
 
+    /// Apply a function to every parameters of the layer.
+    ///
+    /// This method traverses all parameters in breadth-first way, when `recurse` parameter is set
+    /// to `true`. Otherwise, only parameters of the current layer are visited.
     template <std::invocable<const std::string&, parameter_pointer> Visitor>
     void
     visit_parameters(Visitor visitor, bool recurse = true) const

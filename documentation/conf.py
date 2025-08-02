@@ -45,6 +45,13 @@ html_theme_options = {
     "navigation_depth": 2,
     "collapse_navigation": False,
     "sidebar_includehidden": True,
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/ybubnov/metalchat",
+            "icon": "fa-brands fa-github",
+        },
+    ],
 }
 html_context = {
     "github_user": "ybubnov",

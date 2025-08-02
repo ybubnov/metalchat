@@ -2,6 +2,20 @@ Tensor library
 ==============
 
 
+Tensor Concepts
+---------------
+
+
+.. doxygenconcept:: metalchat::immutable_tensor
+
+
+
+Basic Tensor
+------------
+
+.. doxygenclass:: metalchat::basic_tensor
+
+
 Tensor
 ------
 
