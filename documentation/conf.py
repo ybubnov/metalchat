@@ -43,7 +43,7 @@ html_theme_options = {
     "show_nav_level": 2,
     "show_prev_next": True,
     "navigation_depth": 2,
-    "collapse_navigation": False,
+    "collapse_navigation": True,
     "sidebar_includehidden": True,
     "icon_links": [
         {

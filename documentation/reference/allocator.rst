@@ -1,3 +1,6 @@
+.. _allocator_library:
+
+
 Allocator library
 =================
 

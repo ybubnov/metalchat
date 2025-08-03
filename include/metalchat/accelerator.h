@@ -97,7 +97,7 @@ public:
     /// is used to transfer all tensors allocated outside of the GPU memory to GPU memory.
     ///
     /// \note You can explore a variety of different allocators in
-    /// \verbatim embed:rst:inline :doc:`allocator` \endverbatim.
+    /// \verbatim embed:rst:inline :doc:`../allocator` \endverbatim.
     void
     set_allocator(allocator_type alloc);
 

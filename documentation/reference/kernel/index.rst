@@ -1,6 +1,10 @@
 Kernel library
 ==============
 
+.. toctree::
+   :hidden:
+
+   metal
 
 Hardware Accelerator
 --------------------

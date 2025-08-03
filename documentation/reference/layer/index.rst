@@ -1,7 +1,6 @@
 Layer library
 =============
 
-
 .. toctree::
    :hidden:
 

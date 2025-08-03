@@ -13,7 +13,7 @@ TBD
    allocator
    container
    tensor
-   kernel
+   kernel/index
    layer/index
    chat
 
