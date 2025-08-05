@@ -40,11 +40,13 @@ html_theme_options = {
     "navbar_align": "left",
     "use_edit_page_button": True,
     "search_bar_text": "Search",
-    "show_nav_level": 2,
     "show_prev_next": True,
+    "navigation_with_keys": False,
     "navigation_depth": 2,
-    "collapse_navigation": True,
+    "collapse_navigation": False,
     "sidebar_includehidden": True,
+    "show_nav_level": 1,
+    "show_toc_level": 1,
     "icon_links": [
         {
             "name": "GitHub",

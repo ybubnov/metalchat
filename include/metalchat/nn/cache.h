@@ -146,7 +146,6 @@ private:
     auto
     copy(Cache cache, Input input, std::size_t start_pos)
     {
-        using s = indexing::slice;
         const auto bs = input.size(0);
         const auto len = input.size(1);
         const auto cache_size = cache.size(1);
@@ -186,10 +185,10 @@ private:
         // it on the next iteration again. To make precise inference, model will use all
         // previously cached results (or up to the end position).
         auto end_pos = start_pos + len;
-        auto target = cache[s(0, bs), s(start_pos, end_pos), s(), s()];
+        auto target = cache[slice(0, bs), slice(start_pos, end_pos), slice(), slice()];
 
         cache = future_tensor(cache, _M_copy(input, target));
-        auto cached_data = cache[s(0, bs), s(0, end_pos), s(), s()];
+        auto cached_data = cache[slice(0, bs), slice(0, end_pos), slice(), slice()];
 
         return std::make_tuple(cache, cached_data);
     }

@@ -152,9 +152,9 @@ public:
         return _M_value->end();
     }
 
-    template <indexing::slice_convertible... S>
+    template <convertible_to_slice... SliceTypes>
     auto
-    index_select(const S&... slices) requires(sizeof...(slices) == N)
+    index_select(const SliceTypes&... slices) requires(sizeof...(slices) == N)
     {
         return shared_tensor_ptr(_M_value->index_select(slices...));
     }
@@ -216,23 +216,23 @@ public:
         return _M_value->layout();
     }
 
-    template <indexing::size_convertible... S>
+    template <convertible_to_index... IndexTypes>
     value_type&
-    operator[](const S&... sizes) requires(sizeof...(sizes) == N)
+    operator[](const IndexTypes&... indices) requires(sizeof...(indices) == N)
     {
-        return _M_value->value_select(sizes...);
+        return _M_value->value_select(indices...);
     }
 
-    template <indexing::size_convertible... S>
+    template <convertible_to_index... IndexTypes>
     const value_type&
-    operator[](const S&... sizes) const requires(sizeof...(sizes) == N)
+    operator[](const IndexTypes&... indices) const requires(sizeof...(indices) == N)
     {
-        return _M_value->value_select(sizes...);
+        return _M_value->value_select(indices...);
     }
 
-    template <indexing::slice_convertible... S>
+    template <convertible_to_slice... SliceTypes>
     auto
-    operator[](const S&... slices) requires(sizeof...(slices) == N)
+    operator[](const SliceTypes&... slices) requires(sizeof...(slices) == N)
     {
         return shared_tensor_ptr(_M_value->index_select(slices...));
     }

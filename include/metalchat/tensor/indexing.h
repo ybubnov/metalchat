@@ -8,7 +8,6 @@
 
 
 namespace metalchat {
-namespace indexing {
 
 struct slice {
     std::optional<std::size_t> start;
@@ -52,12 +51,11 @@ struct slice {
 
 
 template <class T>
-concept slice_convertible = std::is_convertible_v<T, slice>;
+concept convertible_to_slice = std::convertible_to<T, slice>;
 
 
 template <class T>
-concept size_convertible = std::is_convertible_v<T, std::size_t>;
+concept convertible_to_index = std::convertible_to<T, std::size_t>;
 
 
-} // namespace indexing
 } // namespace metalchat

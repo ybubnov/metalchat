@@ -339,9 +339,9 @@ public:
         return _M_result.layout();
     }
 
-    template <indexing::slice_convertible... S>
+    template <convertible_to_slice... SliceTypes>
     auto
-    operator[](const S&... slices) requires(sizeof...(slices) == N)
+    operator[](const SliceTypes&... slices) requires(sizeof...(slices) == N)
     {
         return future_tensor(
             _M_result.index_select(slices...), _M_future_mutex, _M_future, _M_future_wait

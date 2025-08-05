@@ -65,9 +65,8 @@ public:
         // be a different size. Slice the result according to the input dimension size, and
         // then rescale batch dimensions as they where originally defined in the input
         // tensor.
-        using s = indexing::slice;
-        auto values_sorted = values_future[s(), s(0, dim_size)].view(input.shape());
-        auto indices_sorted = indices_future[s(), s(0, dim_size)].view(input.shape());
+        auto values_sorted = values_future[slice(), slice(0, dim_size)].view(input.shape());
+        auto indices_sorted = indices_future[slice(), slice(0, dim_size)].view(input.shape());
 
         return std::make_tuple(values_sorted, indices_sorted);
     }

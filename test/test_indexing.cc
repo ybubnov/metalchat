@@ -8,7 +8,6 @@
 
 using namespace metalchat;
 using namespace metalchat::dtype;
-using namespace metalchat::indexing;
 
 
 TEST_CASE("Read-write 2d tensor slicing", "[tensor::operator]")

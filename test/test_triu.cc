@@ -9,7 +9,6 @@
 
 
 using namespace metalchat;
-using namespace metalchat::indexing;
 
 
 TEST_CASE("Tensor", "triu")

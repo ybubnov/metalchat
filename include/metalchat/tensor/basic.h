@@ -11,8 +11,8 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/allocator.h>
 #include <metalchat/container.h>
-#include <metalchat/indexing.h>
 #include <metalchat/tensor/concept.h>
+#include <metalchat/tensor/indexing.h>
 #include <metalchat/tensor/iterator.h>
 
 
@@ -348,7 +348,7 @@ public:
         return const_cast<tensor const&>(*this).at(i);
     }
 
-    template <indexing::slice_convertible... S>
+    template <convertible_to_slice... S>
     auto
     index_select(const S&... slices) requires(sizeof...(slices) == N)
     {
@@ -356,9 +356,9 @@ public:
         std::size_t dim = 0;
 
         ([&] {
-            indexing::slice slice(slices);
-            auto stop = std::min(slice.stop.value_or(size(dim)), size(dim));
-            auto start = std::min(slice.start.value_or(0), stop);
+            auto s = slice(slices);
+            auto stop = std::min(s.stop.value_or(size(dim)), size(dim));
+            auto start = std::min(s.start.value_or(0), stop);
 
             t.set_size(dim, stop - start);
             t.set_stride(dim, stride(dim));
@@ -369,9 +369,9 @@ public:
         return t;
     }
 
-    template <indexing::size_convertible... S>
+    template <convertible_to_index... IndexTypes>
     const T&
-    value_select(const S&... indices) const requires(sizeof...(indices) == N)
+    value_select(const IndexTypes&... indices) const requires(sizeof...(indices) == N)
     {
         std::size_t ptr_offset = 0;
         std::size_t dim = 0;
@@ -392,11 +392,19 @@ public:
         return *(data_ptr() + ptr_offset);
     }
 
-    template <indexing::size_convertible... S>
+    /// Returns a reference to the `indices`-th element of the tensor.
+    ///
+    /// \param indices the indices of the element to access.
+    ///
+    /// ```c++
+    /// auto T = rand<float>({3, 4});
+    /// std::cout << T.value_select(0, 2) << std::endl;
+    /// ```
+    template <convertible_to_index... IndexTypes>
     T&
-    value_select(const S&... sizes) requires(sizeof...(sizes) == N)
+    value_select(const IndexTypes&... indices) requires(sizeof...(indices) == N)
     {
-        return const_cast<T&>(const_cast<tensor const&>(*this).value_select(sizes...));
+        return const_cast<T&>(const_cast<tensor const&>(*this).value_select(indices...));
     }
 
     auto
@@ -431,21 +439,42 @@ public:
     operator=(tensor&& other)
         = default;
 
-    template <indexing::size_convertible... S>
+    /// Returns a reference to the `indices`-th element of the tensor.
+    ///
+    /// \param indices the indices of the element to access.
+    ///
+    /// ```c++
+    /// using namespace metalchat;
+    ///
+    /// auto T = rand<float>({3, 4});
+    /// std::cout << T[0, 2] << std::endl;
+    /// ```
+    template <convertible_to_index... IndexTypes>
     T&
-    operator[](const S&... sizes) requires(sizeof...(sizes) == N)
+    operator[](const IndexTypes&... indices) requires(sizeof...(indices) == N)
     {
-        return value_select(sizes...);
+        return value_select(indices...);
     }
 
-    template <indexing::size_convertible... S>
+    /// Returns a constant reference to the `indices`-th element of the tensor.
+    template <convertible_to_index... IndexTypes>
     const T&
-    operator[](const S&... sizes) const requires(sizeof...(sizes) == N)
+    operator[](const IndexTypes&... indices) const requires(sizeof...(indices) == N)
     {
-        return value_select(sizes...);
+        return value_select(indices...);
     }
 
-    template <indexing::slice_convertible... S>
+    /// Returns a slice of the tensor.
+    ///
+    /// \param slices the minors of the tensor to access.
+    ///
+    /// ```c++
+    /// using namespace metalchat;
+    ///
+    /// auto T = rand<float>({10, 20, 3});
+    /// std::cout << T[slice(1, 4), slice(2, 4), slice(0, 2)] << std::endl;
+    /// ```
+    template <convertible_to_slice... S>
     auto
     operator[](const S&... slices) requires(sizeof...(slices) == N)
     {

@@ -9,7 +9,6 @@
 
 using namespace metalchat;
 using namespace metalchat::dtype;
-using namespace metalchat::indexing;
 
 
 TEST_CASE("Iterate 3d tensor slice", "[tensor_iterator]")

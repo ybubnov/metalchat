@@ -7,6 +7,13 @@ Container Concepts
 .. doxygenconcept:: metalchat::contiguous_container
 
 
+Memory Container
+----------------
+
+.. doxygenstruct:: metalchat::memory_container
+   :members:
+
+
 Hardware Memory Container
 -------------------------
 
