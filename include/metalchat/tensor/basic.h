@@ -397,6 +397,8 @@ public:
     /// \param indices the indices of the element to access.
     ///
     /// ```c++
+    /// using namespace metalchat;
+    ///
     /// auto T = rand<float>({3, 4});
     /// std::cout << T.value_select(0, 2) << std::endl;
     /// ```
@@ -407,7 +409,21 @@ public:
         return const_cast<T&>(const_cast<tensor const&>(*this).value_select(indices...));
     }
 
-    auto
+    /// Return a new tensor that is a narrowed version of the current tensor. The returned
+    /// tensor and input tensor share the same underlying container.
+    ///
+    /// \param dim the dimension along which to narrow.
+    /// \param start index of the element to start the narrowed dimension from.
+    /// \param length length of the narrowed dimension.
+    ///
+    /// ```c++
+    /// using namespace metalchat;
+    ///
+    /// auto T = rand<float>({3, 3});
+    /// std::cout << T.narrow(0, 0, 2).sizes() << std::endl;
+    /// // out: 2, 3
+    /// ```
+    tensor
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
         tensor t(_M_data);
@@ -487,8 +503,18 @@ public:
         return at(i);
     }
 
-    /// Returns a tensor with dimensions transposed.
-    auto
+    /// Returns a tensor with dimensions transposed. The dimension values should not exceed
+    /// the dimensionality of the tensor you transpose.
+    ///
+    /// \param dims dimensions to transpose
+    ///
+    /// ```c++
+    /// using namespace metalchat;
+    ///
+    /// auto T = rand<float>({10, 4, 8, 128});
+    /// std::cout << T.transpose({1, 0, 3, 2}) << std::endl;
+    /// ```
+    tensor
     transpose(const std::size_t (&&dims)[N]) const requires(N > 0)
     {
         tensor t(_M_data);

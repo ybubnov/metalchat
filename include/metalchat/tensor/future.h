@@ -317,6 +317,7 @@ public:
         );
     }
 
+    /// See `metalchat::tensor::narrow`.
     future_tensor
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
@@ -325,6 +326,7 @@ public:
         );
     }
 
+    /// See `metalchat::tensor::transpose`.
     future_tensor
     transpose(const std::size_t (&&dims)[N]) const
     {
