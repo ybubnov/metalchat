@@ -2,7 +2,6 @@
 
 #include <iostream>
 
-#include <metalchat/format.h>
 #include <metalchat/functional.h>
 #include <metalchat/layer.h>
 

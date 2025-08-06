@@ -20,6 +20,7 @@ Tensor
 ------
 
 .. doxygenclass:: metalchat::tensor
+   :members:
 
 
 Tensor Iterator

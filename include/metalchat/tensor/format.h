@@ -41,11 +41,11 @@ struct comma {
 } // namespace fmt
 
 
-template <typename T, std::size_t N, contiguous_container Container> struct tensor_format_base {
+template <typename T, std::size_t N, contiguous_container Container> struct basic_tensor_format {
     const tensor<T, N, Container>& t;
     const int w;
 
-    tensor_format_base(const tensor<T, N, Container>& t_, const int w_ = 0)
+    basic_tensor_format(const tensor<T, N, Container>& t_, const int w_ = 0)
     : t(t_),
       w(w_)
     {}
@@ -53,9 +53,9 @@ template <typename T, std::size_t N, contiguous_container Container> struct tens
 
 
 template <typename T, std::size_t N, contiguous_container Container>
-struct tensor_format : public tensor_format_base<T, N, Container> {
+struct tensor_format : public basic_tensor_format<T, N, Container> {
     tensor_format(const tensor<T, N, Container>& tensor, const int w = 0)
-    : tensor_format_base<T, N, Container>(tensor, w)
+    : basic_tensor_format<T, N, Container>(tensor, w)
     {}
 
     friend std::ostream&
@@ -96,9 +96,9 @@ struct tensor_format : public tensor_format_base<T, N, Container> {
 
 
 template <typename T, contiguous_container Container>
-struct tensor_format<T, 1, Container> : public tensor_format_base<T, 1, Container> {
+struct tensor_format<T, 1, Container> : public basic_tensor_format<T, 1, Container> {
     tensor_format(const tensor<T, 1, Container>& tensor, const int w = 0)
-    : tensor_format_base<T, 1, Container>(tensor, w)
+    : basic_tensor_format<T, 1, Container>(tensor, w)
     {}
 
     friend std::ostream&
@@ -130,9 +130,9 @@ struct tensor_format<T, 1, Container> : public tensor_format_base<T, 1, Containe
 
 
 template <typename T, contiguous_container Container>
-struct tensor_format<T, 0, Container> : public tensor_format_base<T, 0, Container> {
+struct tensor_format<T, 0, Container> : public basic_tensor_format<T, 0, Container> {
     tensor_format(const tensor<T, 0, Container>& tensor, const int w = 0)
-    : tensor_format_base<T, 0, Container>(tensor, w)
+    : basic_tensor_format<T, 0, Container>(tensor, w)
     {}
 
     friend std::ostream&

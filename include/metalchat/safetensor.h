@@ -12,7 +12,6 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/allocator.h>
 #include <metalchat/container.h>
-#include <metalchat/format.h>
 #include <metalchat/tensor/basic.h>
 
 

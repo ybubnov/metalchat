@@ -3,7 +3,6 @@
 
 #include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
-#include <metalchat/format.h>
 #include <metalchat/kernel/silu.h>
 #include <metalchat/tensor.h>
 

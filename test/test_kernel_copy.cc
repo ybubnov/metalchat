@@ -1,9 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <metalchat/format.h>
 #include <metalchat/kernel/copy.h>
-#include <metalchat/tensor/shared.h>
 
 
 using namespace metalchat;
