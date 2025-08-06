@@ -526,7 +526,10 @@ public:
         return t;
     }
 
-    auto
+    /// Returns a tensor with dimension transposed, expects 2-D tensor.
+    ///
+    /// See also `metalchat::tensor::transpose`.
+    tensor
     t() const requires(N == 2)
     {
         return transpose({1, 0});
@@ -583,6 +586,19 @@ public:
         return t;
     }
 
+    /// Flattens the tensor by reshaping (creating a view) it into lower-dimensionality tensor.
+    ///
+    /// The resulting tensor dimensionality should be lesser then the flattenting tensor
+    /// dimensionality (M ≤ N). The resulting tensor is always a view of the original tensor data,
+    /// therefore method raises an exception if it is not possible to create a view for the tensor.
+    ///
+    /// ```c++
+    /// using namespace metalchat;
+    ///
+    /// auto T = rand<float>({2, 4, 8, 10});
+    /// std::cout << T.flatten<2>().sizes() << std::endl;
+    /// // out: 64, 10
+    /// ```
     template <std::size_t M>
     tensor<T, M, Container>
     flatten() const requires(M <= N)

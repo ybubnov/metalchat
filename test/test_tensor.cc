@@ -177,3 +177,14 @@ TEST_CASE("Tensor expand dimensions", "[tensor::expand_dims]")
     REQUIRE(t0.size(4) == 2);
     REQUIRE(t0.numel() == t.numel());
 }
+
+
+TEST_CASE("Tensor flatten dimensions", "[tensor::flatten]")
+{
+    auto t = rand<float>({2, 4, 8, 10});
+    auto t0 = t.flatten<2>();
+
+    REQUIRE(t0.dim() == 2);
+    REQUIRE(t0.size(0) == 64);
+    REQUIRE(t0.size(1) == 10);
+}

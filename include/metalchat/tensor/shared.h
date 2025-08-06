@@ -190,6 +190,7 @@ public:
         return shared_tensor_ptr<tensor_t>(_M_value->view(dims));
     }
 
+    /// See `metalchat::tensor::flatten`.
     template <std::size_t M>
     auto
     flatten() const
@@ -198,18 +199,21 @@ public:
         return shared_tensor_ptr<tensor_t>(_M_value->template flatten<M>());
     }
 
+    /// See `metalchat::tensor::transpose`.
     shared_tensor_ptr
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
         return shared_tensor_ptr(_M_value->narrow(dim, start, length));
     }
 
+    /// See `metalchat::tensor::transpose`.
     shared_tensor_ptr
     transpose(const std::size_t (&&dims)[N]) const
     {
         return shared_tensor_ptr(_M_value->transpose(std::move(dims)));
     }
 
+    /// See `metalchat::tensor::layout`.
     tensor_layout<N>
     layout() const
     {

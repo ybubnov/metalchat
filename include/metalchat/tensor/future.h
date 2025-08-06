@@ -308,6 +308,7 @@ public:
         );
     }
 
+    /// See `metalchat::tensor::flatten`.
     template <std::size_t M>
     future_tensor<T, M>
     flatten() const
@@ -335,6 +336,7 @@ public:
         );
     }
 
+    /// See `metalchat::tensor::layout`.
     tensor_layout<N>
     layout() const
     {
