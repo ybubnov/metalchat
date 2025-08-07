@@ -348,9 +348,33 @@ public:
         return const_cast<tensor const&>(*this).at(i);
     }
 
-    template <convertible_to_slice... S>
-    auto
-    index_select(const S&... slices) requires(sizeof...(slices) == N)
+    /// Return a tensor minor from the current tensor. The returned tensor and input tensor share
+    /// the same underlying container.
+    ///
+    /// \param slices the slices of the tensor minor.
+    ///
+    /// ```c++
+    /// using namespace metalchat;
+    ///
+    /// auto T = rand<float>({3, 4});
+    /// const auto M = T[slice(0, 1), slice(1, 3)];
+    /// ```
+    template <convertible_to_slice... SliceTypes>
+    tensor
+    index_select(const SliceTypes&... slices) requires(sizeof...(slices) == N)
+    {
+        return const_cast<tensor const&>(*this).index_select(slices...);
+    }
+
+    /// Return a constant tensor minor from the current tensor. The returned tensor and input
+    /// tensor share the same underlying container.
+    ///
+    /// \param slices the slices of the tensor minor.
+    ///
+    /// See also \ref tensor::index_select.
+    template <convertible_to_slice... SliceTypes>
+    const tensor
+    index_select(const SliceTypes&... slices) const requires(sizeof...(slices) == N)
     {
         tensor t(_M_data);
         std::size_t dim = 0;
@@ -369,6 +393,32 @@ public:
         return t;
     }
 
+    /// Returns a reference to the `indices`-th element of the tensor. The returned tensor and
+    /// input tensor share the same underlying container.
+    ///
+    /// \param indices the indices of the element to access.
+    ///
+    /// ```c++
+    /// using namespace metalchat;
+    ///
+    /// auto T = rand<float>({3, 4});
+    /// std::cout << T.value_select(0, 2) << std::endl;
+    /// ```
+    ///
+    /// See also \ref tensor::operator[]
+    template <convertible_to_index... IndexTypes>
+    T&
+    value_select(const IndexTypes&... indices) requires(sizeof...(indices) == N)
+    {
+        return const_cast<T&>(const_cast<tensor const&>(*this).value_select(indices...));
+    }
+
+    /// Return a constant reference to the `indices`-th element of the tensor. The returned tensor
+    /// and input tensor shared the same underlying container.
+    ///
+    /// \param indices the indices of the element to access.
+    ///
+    /// See also \ref tensor::value_select.
     template <convertible_to_index... IndexTypes>
     const T&
     value_select(const IndexTypes&... indices) const requires(sizeof...(indices) == N)
@@ -390,23 +440,6 @@ public:
         }(), ...);
 
         return *(data_ptr() + ptr_offset);
-    }
-
-    /// Returns a reference to the `indices`-th element of the tensor.
-    ///
-    /// \param indices the indices of the element to access.
-    ///
-    /// ```c++
-    /// using namespace metalchat;
-    ///
-    /// auto T = rand<float>({3, 4});
-    /// std::cout << T.value_select(0, 2) << std::endl;
-    /// ```
-    template <convertible_to_index... IndexTypes>
-    T&
-    value_select(const IndexTypes&... indices) requires(sizeof...(indices) == N)
-    {
-        return const_cast<T&>(const_cast<tensor const&>(*this).value_select(indices...));
     }
 
     /// Return a new tensor that is a narrowed version of the current tensor. The returned
@@ -490,9 +523,9 @@ public:
     /// auto T = rand<float>({10, 20, 3});
     /// std::cout << T[slice(1, 4), slice(2, 4), slice(0, 2)] << std::endl;
     /// ```
-    template <convertible_to_slice... S>
+    template <convertible_to_slice... SliceTypes>
     auto
-    operator[](const S&... slices) requires(sizeof...(slices) == N)
+    operator[](const SliceTypes&... slices) requires(sizeof...(slices) == N)
     {
         return index_select(slices...);
     }
@@ -528,7 +561,7 @@ public:
 
     /// Returns a tensor with dimension transposed, expects 2-D tensor.
     ///
-    /// See also `metalchat::tensor::transpose`.
+    /// See also `tensor::transpose`.
     tensor
     t() const requires(N == 2)
     {

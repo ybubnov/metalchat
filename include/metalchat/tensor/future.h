@@ -308,7 +308,7 @@ public:
         );
     }
 
-    /// See `metalchat::tensor::flatten`.
+    /// See `tensor::flatten`.
     template <std::size_t M>
     future_tensor<T, M>
     flatten() const
@@ -318,7 +318,7 @@ public:
         );
     }
 
-    /// See `metalchat::tensor::narrow`.
+    /// See `tensor::narrow`.
     future_tensor
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
@@ -327,7 +327,7 @@ public:
         );
     }
 
-    /// See `metalchat::tensor::transpose`.
+    /// See `tensor::transpose`.
     future_tensor
     transpose(const std::size_t (&&dims)[N]) const
     {
@@ -336,7 +336,7 @@ public:
         );
     }
 
-    /// See `metalchat::tensor::layout`.
+    /// See `tensor::layout`.
     tensor_layout<N>
     layout() const
     {
