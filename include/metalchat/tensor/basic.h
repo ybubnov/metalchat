@@ -178,6 +178,19 @@ public:
         return _M_data->data();
     }
 
+    /// Returns the stride of the specified tensor dimension.
+    ///
+    /// \param dim the dimension for which to retrieve the stride.
+    ///
+    /// ```c++
+    /// auto T = empty<float>({2, 5});
+    /// std::cout << T.stride(0) << std::endl;
+    /// // out: 5
+    /// std::cout << T.stride(1) << std::endl;
+    /// // out: 1
+    /// ```
+    ///
+    /// See also \ref tensor::strides.
     std::size_t
     stride(std::size_t dim) const
     {
@@ -195,12 +208,30 @@ public:
         _M_strides->data()[dim] = i;
     }
 
+    /// Returns strides of the tensor.
+    ///
+    /// ```c++
+    /// auto T = empty<float>({2, 5});
+    /// std::cout << T.strides() << std::endl;
+    /// // out: 5, 1
+    /// ```
+    ///
+    /// See also \ref tensor::stride.
     const std::span<std::size_t>
     strides() const noexcept
     {
         return std::span<std::size_t, N>(_M_strides->data(), N);
     }
 
+    /// Returns the size of the specified tensor dimension.
+    ///
+    /// \param dim the dimension for which to retrieve the size.
+    ///
+    /// ```c++
+    /// auto T = empty<float>({3, 4, 5});
+    /// std::cout << T.size(1) << std::endl;
+    /// // out: 4
+    /// ```
     std::size_t
     size(std::size_t dim) const
     {
@@ -212,12 +243,25 @@ public:
         return _M_sizes->data()[dim];
     }
 
+    /// Returns the sizes of the tensor.
+    ///
+    /// ```c++
+    /// auto T = empty<float>({3, 4, 5});
+    /// std::cout << T.sizes() << std::endl;
+    /// // out: 3, 4, 5
+    /// ```
+    ///
+    /// See also \ref tensor::shape.
     const std::span<std::size_t>
     sizes() const noexcept
     {
         return std::span<std::size_t, N>(_M_sizes->data(), N);
     }
 
+    /// Returns the sizes of the tensor. Unlike \ref tensor::sizes method, this method returns
+    /// a span with the fixed extent.
+    ///
+    /// See also \ref tensor::sizes.
     const std::span<std::size_t, N>
     shape() const noexcept
     {
@@ -354,8 +398,6 @@ public:
     /// \param slices the slices of the tensor minor.
     ///
     /// ```c++
-    /// using namespace metalchat;
-    ///
     /// auto T = rand<float>({3, 4});
     /// const auto M = T[slice(0, 1), slice(1, 3)];
     /// ```
@@ -399,8 +441,6 @@ public:
     /// \param indices the indices of the element to access.
     ///
     /// ```c++
-    /// using namespace metalchat;
-    ///
     /// auto T = rand<float>({3, 4});
     /// std::cout << T.value_select(0, 2) << std::endl;
     /// ```
@@ -450,8 +490,6 @@ public:
     /// \param length length of the narrowed dimension.
     ///
     /// ```c++
-    /// using namespace metalchat;
-    ///
     /// auto T = rand<float>({3, 3});
     /// std::cout << T.narrow(0, 0, 2).sizes() << std::endl;
     /// // out: 2, 3
@@ -493,8 +531,6 @@ public:
     /// \param indices the indices of the element to access.
     ///
     /// ```c++
-    /// using namespace metalchat;
-    ///
     /// auto T = rand<float>({3, 4});
     /// std::cout << T[0, 2] << std::endl;
     /// ```
@@ -518,8 +554,6 @@ public:
     /// \param slices the minors of the tensor to access.
     ///
     /// ```c++
-    /// using namespace metalchat;
-    ///
     /// auto T = rand<float>({10, 20, 3});
     /// std::cout << T[slice(1, 4), slice(2, 4), slice(0, 2)] << std::endl;
     /// ```
@@ -542,8 +576,6 @@ public:
     /// \param dims dimensions to transpose
     ///
     /// ```c++
-    /// using namespace metalchat;
-    ///
     /// auto T = rand<float>({10, 4, 8, 128});
     /// std::cout << T.transpose({1, 0, 3, 2}) << std::endl;
     /// ```
@@ -626,8 +658,6 @@ public:
     /// therefore method raises an exception if it is not possible to create a view for the tensor.
     ///
     /// ```c++
-    /// using namespace metalchat;
-    ///
     /// auto T = rand<float>({2, 4, 8, 10});
     /// std::cout << T.flatten<2>().sizes() << std::endl;
     /// // out: 64, 10

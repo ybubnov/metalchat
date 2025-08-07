@@ -126,6 +126,45 @@ public:
     ///
     /// A new tensor will wait for completion of both self task and a new asynchronously
     /// invocable task, and only then makes result accessible.
+    ///
+    /// ```c++
+    /// #include <future>
+    ///
+    /// using namespace metalchat;
+    ///
+    /// struct noop_async_func {
+    ///     std::promise<void> promise;
+    ///
+    ///     noop_async_func()
+    ///     : promise()
+    ///     {
+    ///         promise.set_value();
+    ///     }
+    ///
+    ///     std::shared_future<void>
+    ///     operator()()
+    ///     {
+    ///         return std::shared_future(promise.get_future());
+    ///     }
+    ///
+    ///     // In this example, callback is executed immediately since the promise
+    ///     // is ready on the class instantiation.
+    ///     std::shared_future<void>
+    ///     operator()(std::function<void()> callback)
+    ///     {
+    ///         callback();
+    ///         return std::shared_future(promise.get_future());
+    ///     }
+    /// };
+    ///
+    ///
+    /// auto accelerator = hardware_accelerator(16);
+    /// auto T = future_tensor(empty<float>({3, 2}, accelerator));
+    ///
+    /// // Tensor `F` will be waiting for the completion of the specified
+    /// // asynchronously_invocable function.
+    /// auto F = future_tensor(T, noop_async_func());
+    /// ```
     template <asynchronously_invocable Task>
     future_tensor(future_tensor result, Task&& task)
     : future_tensor(result, future_tensor(result._M_result, std::move(task)))
@@ -157,6 +196,7 @@ public:
         return _M_result;
     }
 
+    /// Blocks until the result becomes available.
     void
     wait()
     {

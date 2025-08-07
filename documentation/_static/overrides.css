@@ -11,3 +11,9 @@
 dl.enumerator {
     margin-bottom: 0 !important;
 }
+
+
+.cpp .function .k {
+    font-style: italic;
+    font-weight: normal;
+}
