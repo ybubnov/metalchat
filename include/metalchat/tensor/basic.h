@@ -198,11 +198,32 @@ public:
     : tensor(sizes.begin(), sizes.end(), data)
     {}
 
+    /// Constructs an empty tensor with the uninitialized contents of the specified size.
+    ///
+    /// \param sizes a sequence of unsigned integers defining the shape of the output tensor.
+    /// \param alloc allocator to use for all memory allocations of this container.
+    ///
+    /// ```c++
+    /// auto alloc = random_memory_allocator<float>();
+    /// auto T = tensor<float>({3, 4, 5}, alloc);
+    /// ```
     template <allocator_t<T> Allocator = random_memory_allocator<T>>
     tensor(std::size_t (&&sizes)[N], Allocator alloc = Allocator())
     : tensor(std::span<std::size_t, N>(sizes, N), alloc)
     {}
 
+    /// Constructs a new tensor with contents of the specified container `data`. The constructor
+    /// does not validates that all elements of the tensor are within the container.
+    ///
+    /// \param sizes a sequence of unsigned integers defining the shape of the output tensor.
+    /// \param data initial data of the tensor.
+    ///
+    /// ```c++
+    /// auto alloc = random_memory_allocator<float>();
+    /// auto container_ptr = alloc.allocate(120);
+    ///
+    /// auto T = tensor<float>({1, 2, 3, 4, 5}, container_ptr);
+    /// ```
     tensor(std::size_t (&&sizes)[N], const container_pointer& data)
     : tensor(std::span<std::size_t, N>(sizes, N), data)
     {}
