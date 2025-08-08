@@ -122,9 +122,9 @@ public:
     /// auto gpu = hardware_accelerator();
     /// auto kernel = gpu.load<float, 16>("hadamard");
     ///
-    /// auto output = future_tensor(empty<float>({32}));
-    /// auto input1 = future_tensor(rand<float>({32}));
-    /// auto input2 = future_tensor(rand<float>({32}));
+    /// auto output = future_tensor(empty<float>({32}, gpu));
+    /// auto input1 = future_tensor(rand<float>({32}, gpu));
+    /// auto input2 = future_tensor(rand<float>({32}, gpu));
     ///
     /// // Schedule a kernel task with 2 thread groups, each of 16 threads size.
     /// auto task = kernel_task(kernel, dim3(32), dim3(16));

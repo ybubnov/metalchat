@@ -80,7 +80,7 @@ public:
         return _M_value->data_ptr();
     }
 
-    pointer_type
+    const pointer_type
     data_ptr() const
     {
         return _M_value->data_ptr();
@@ -235,7 +235,7 @@ public:
     }
 
     template <convertible_to_slice... SliceTypes>
-    auto
+    const shared_tensor_ptr
     operator[](const SliceTypes&... slices) requires(sizeof...(slices) == N)
     {
         return shared_tensor_ptr(_M_value->index_select(slices...));

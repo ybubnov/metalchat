@@ -64,8 +64,10 @@ protected:
 template <typename T, std::size_t N, contiguous_container Container = random_memory_container<T>>
 class tensor : public basic_tensor {
 public:
+    /// Alias of the tensor type.
     using value_type = T;
 
+    /// Pointer to the tensor type.
     using pointer_type = T*;
 
     using container_type = Container;
@@ -86,6 +88,17 @@ public:
 
     tensor(const tensor& t) noexcept = default;
 
+    /// Constructs a new tensor with a scalar value. By default, method is using a \ref
+    /// scalar_memory_allocator, but an arbitrary typed allocator could be used.
+    ///
+    /// \param value the value to initialize a tensor with.
+    /// \param alloc allocator to use for all memory allocations of this container.
+    ///
+    /// ```c++
+    /// auto T = tensor<float, 0, scalar_memory_container<float>>(3.0f);
+    /// // Same as:
+    /// auto S = scalar<float>(3.0f);
+    /// ```
     template <allocator_t<T> Allocator = scalar_memory_allocator<T>>
     tensor(const T& value, Allocator alloc = Allocator())
     : _M_data(alloc.allocate(1)),
@@ -96,6 +109,20 @@ public:
         *data_ptr() = value;
     }
 
+    /// Constructs a new empty tensor with the size defined by the content of the range
+    /// [`first`, `last`). Each iterator in [`first`, `last`) is dereferenced exactly once.
+    ///
+    /// The distance `std::distance(first, last)` between iterators should be equal to the
+    /// tensor dimensionality `N`.
+    ///
+    /// \param first, last the pair of iterators defining the range of dimensions of the tensor
+    ///     to copy from.
+    /// \param alloc allocator to use for all memory allocations of this container.
+    ///
+    /// ```c++
+    /// auto sizes = std::vector({4, 3, 6, 7});
+    /// auto T = tensor<float, 4>(sizes.begin(), sizes.end(), random_memory_allocator<float>());
+    /// ```
     template <std::forward_iterator ForwardIt, allocator_t<T> Allocator> requires(N > 0)
     tensor(ForwardIt first, ForwardIt last, Allocator alloc)
     {
@@ -151,25 +178,31 @@ public:
         _M_data = data;
     }
 
+    /// Returns the number of dimension of the tensor. This is a const expression.
+    ///
+    /// See also \ref tensor::dimensions.
     static constexpr std::size_t
     dim()
     {
         return N;
     }
 
+    /// Returns the number of dimension of the tensor.
     std::size_t
     dimensions() const
     {
         return dim();
     }
 
-    T*
+    /// Returns a pointer to the first element of the tensor.
+    pointer_type
     data_ptr() noexcept
     {
         return const_cast<tensor const&>(*this).data_ptr();
     }
 
-    T*
+    /// Returns a pointer to the first element of the tensor.
+    const pointer_type
     data_ptr() const noexcept
     {
         if (!_M_data) {
@@ -447,7 +480,7 @@ public:
     ///
     /// See also \ref tensor::operator[]
     template <convertible_to_index... IndexTypes>
-    T&
+    value_type&
     value_select(const IndexTypes&... indices) requires(sizeof...(indices) == N)
     {
         return const_cast<T&>(const_cast<tensor const&>(*this).value_select(indices...));
@@ -460,7 +493,7 @@ public:
     ///
     /// See also \ref tensor::value_select.
     template <convertible_to_index... IndexTypes>
-    const T&
+    const value_type&
     value_select(const IndexTypes&... indices) const requires(sizeof...(indices) == N)
     {
         std::size_t ptr_offset = 0;
@@ -535,7 +568,7 @@ public:
     /// std::cout << T[0, 2] << std::endl;
     /// ```
     template <convertible_to_index... IndexTypes>
-    T&
+    value_type&
     operator[](const IndexTypes&... indices) requires(sizeof...(indices) == N)
     {
         return value_select(indices...);
@@ -543,13 +576,13 @@ public:
 
     /// Returns a constant reference to the `indices`-th element of the tensor.
     template <convertible_to_index... IndexTypes>
-    const T&
+    const value_type&
     operator[](const IndexTypes&... indices) const requires(sizeof...(indices) == N)
     {
         return value_select(indices...);
     }
 
-    /// Returns a slice of the tensor.
+    /// Returns a constant slice of the tensor.
     ///
     /// \param slices the minors of the tensor to access.
     ///
@@ -558,7 +591,17 @@ public:
     /// std::cout << T[slice(1, 4), slice(2, 4), slice(0, 2)] << std::endl;
     /// ```
     template <convertible_to_slice... SliceTypes>
-    auto
+    const tensor
+    operator[](const SliceTypes&... slices) const requires(sizeof...(slices) == N)
+    {
+        return index_select(slices...);
+    }
+
+    /// Returns a slice of the tensor.
+    ///
+    /// \param slices the minors of the tensor to access.
+    template <convertible_to_slice... SliceTypes>
+    tensor
     operator[](const SliceTypes&... slices) requires(sizeof...(slices) == N)
     {
         return index_select(slices...);

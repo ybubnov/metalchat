@@ -187,8 +187,8 @@ public:
     : future_tensor(move(t, alloc))
     {}
 
-    /// Waits for (by calling `wait()`) until the shared tensor is ready, then retrieves
-    /// the value stored in the shared state.
+    /// Waits for (by calling \ref future_tensor::wait) until the shared tensor is ready, then
+    /// retrieves the value stored in the shared state.
     result_type
     get()
     {
@@ -217,6 +217,7 @@ public:
         _M_future_wait = nullptr;
     }
 
+    /// See \ref tensor::dim.
     static constexpr std::size_t
     dim()
     {
@@ -241,36 +242,49 @@ public:
         return _M_result.container_ptr();
     }
 
+    /// See \ref tensor::data_ptr.
     pointer_type
+    data_ptr()
+    {
+        return _M_result.data_ptr();
+    }
+
+    /// See \ref tensor::data_ptr.
+    const pointer_type
     data_ptr() const
     {
         return _M_result.data_ptr();
     }
 
+    /// See \ref tensor::size.
     std::size_t
     size(std::size_t dim) const
     {
         return _M_result.size(dim);
     }
 
+    /// See \ref tensor::sizes.
     const std::span<std::size_t>
     sizes() const
     {
         return _M_result.sizes();
     }
 
+    /// See \ref tensor::shape.
     const std::span<std::size_t, N>
     shape() const
     {
         return _M_result.shape();
     }
 
+    /// See \ref tensor::stride.
     std::size_t
     stride(std::size_t dim) const
     {
         return _M_result.stride(dim);
     }
 
+    /// See \ref tensor::strides.
     const std::span<std::size_t>
     strides() const
     {
@@ -348,7 +362,7 @@ public:
         );
     }
 
-    /// See `tensor::flatten`.
+    /// See \ref tensor::flatten.
     template <std::size_t M>
     future_tensor<T, M>
     flatten() const
@@ -358,7 +372,7 @@ public:
         );
     }
 
-    /// See `tensor::narrow`.
+    /// See \ref tensor::narrow.
     future_tensor
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
@@ -367,7 +381,7 @@ public:
         );
     }
 
-    /// See `tensor::transpose`.
+    /// See \ref tensor::transpose.
     future_tensor
     transpose(const std::size_t (&&dims)[N]) const
     {
@@ -376,7 +390,7 @@ public:
         );
     }
 
-    /// See `tensor::layout`.
+    /// See \ref tensor::layout.
     tensor_layout<N>
     layout() const
     {
@@ -384,7 +398,7 @@ public:
     }
 
     template <convertible_to_slice... SliceTypes>
-    auto
+    const future_tensor
     operator[](const SliceTypes&... slices) requires(sizeof...(slices) == N)
     {
         return future_tensor(
