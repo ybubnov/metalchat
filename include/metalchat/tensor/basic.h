@@ -19,6 +19,11 @@
 namespace metalchat {
 
 
+/// The abstract class interface to an unbounded set of classes encapsulating tensors.
+///
+/// The primary usage of the classes derived from \ref basic_tensor are using them in
+/// \ref basic_layer parameters. For example, you can construct a multi-layer model and
+/// access it's parameters through a unified interface.
 class basic_tensor {
 public:
     /// Returns the number of dimension of the tensor.
