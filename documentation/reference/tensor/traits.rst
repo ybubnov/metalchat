@@ -12,6 +12,10 @@ Tensor type categories
 .. doxygenconcept:: metalchat::immutable_tensor3_t
 .. doxygenconcept:: metalchat::immutable_tensor4_t
 .. doxygenconcept:: metalchat::immutable_hardware_tensor_t
+.. doxygenconcept:: metalchat::is_future_tensor_v
+.. doxygenconcept:: metalchat::is_future_tensor1_v
+.. doxygenconcept:: metalchat::is_future_tensor2_v
+.. doxygenconcept:: metalchat::is_future_tensor3_v
 
 
 Tensor transformations

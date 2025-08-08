@@ -45,16 +45,22 @@ public:
 
     using future_wait_type = std::shared_ptr<std::function<void()>>;
 
+    /// Alias of the tensor type.
     using value_type = result_type::value_type;
 
+    /// Pointer to the tensor type.
     using pointer_type = result_type::pointer_type;
 
+    /// Container type storing the data of the tensor.
     using container_type = result_type::container_type;
 
+    /// Pointer to the container type storing the data of the tensor.
     using container_pointer = result_type::container_pointer;
 
+    /// Contiguous iterator of the tensor data.
     using iterator = result_type::iterator;
 
+    /// Contiguous constant iterator of the tensor data.
     using const_iterator = result_type::const_iterator;
 
     template <asynchronously_invocable Task>
@@ -129,8 +135,6 @@ public:
     ///
     /// ```c++
     /// #include <future>
-    ///
-    /// using namespace metalchat;
     ///
     /// struct noop_async_func {
     ///     std::promise<void> promise;
@@ -228,6 +232,7 @@ public:
         return N;
     }
 
+    /// See \ref tensor::numel.
     std::size_t
     numel() const
     {

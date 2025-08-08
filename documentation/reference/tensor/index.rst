@@ -9,12 +9,6 @@ Tensor library
    traits
 
 
-Basic tensor
-------------
-
-.. doxygenclass:: metalchat::basic_tensor
-
-
 Tensor
 ------
 
@@ -26,6 +20,13 @@ Tensor iterator
 ---------------
 
 .. doxygenclass:: metalchat::tensor_iterator
+
+
+Basic tensor
+------------
+
+.. doxygenclass:: metalchat::basic_tensor
+   :members:
 
 
 Shared tensor

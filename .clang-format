@@ -17,7 +17,7 @@ BreakBeforeBinaryOperators: All
 
 BinPackParameters: false
 AllowAllArgumentsOnNextLine: false
-AlwaysBreakAfterReturnType: All
+BreakAfterReturnType: All
 BreakTemplateDeclarations: MultiLine
 BreakBeforeBraces: Custom
 BraceWrapping:

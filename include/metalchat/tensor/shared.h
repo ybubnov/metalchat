@@ -57,6 +57,7 @@ public:
         return *_M_value;
     }
 
+    /// See \ref tensor::numel.
     std::size_t
     numel() const
     {

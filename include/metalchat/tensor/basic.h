@@ -21,35 +21,50 @@ namespace metalchat {
 
 class basic_tensor {
 public:
+    /// Returns the number of dimension of the tensor.
     virtual std::size_t
     dimensions() const
         = 0;
 
+    /// Returns the size of the specified tensor dimension.
+    ///
+    /// \param dim the dimension for which to retrieve the size.
     virtual std::size_t
-    size(std::size_t) const
+    size(std::size_t dim) const
         = 0;
 
+    /// Returns the sizes of the tensor.
     virtual const std::span<std::size_t>
     sizes() const = 0;
 
+    /// Returns the stride of the specified tensor dimension.
+    ///
+    /// \param dim the dimension for which to retrieve the stride.
     virtual std::size_t
-    stride(std::size_t) const
+    stride(std::size_t dim) const
         = 0;
 
+    /// Returns strides of the tensor.
     virtual const std::span<std::size_t>
     strides() const = 0;
 
+    /// Returns the container offset of the specified tensor dimension.
+    ///
+    /// \param dim the dimension for which to retrieve the offset.
     virtual std::size_t
-    offset(std::size_t) const
+    offset(std::size_t dim) const
         = 0;
 
+    /// Returns the offsets of the tensor container.
     virtual const std::span<std::size_t>
     offsets() const = 0;
 
+    /// Returns the total number of elements in the tensor.
     virtual std::size_t
     numel() const
         = 0;
 
+    /// The tensor destructor.
     virtual ~basic_tensor() {}
 
 protected:
@@ -70,23 +85,33 @@ public:
     /// Pointer to the tensor type.
     using pointer_type = T*;
 
+    /// Container type storing the data of the tensor.
     using container_type = Container;
 
+    /// Pointer to the container type storing the data of the tensor.
     using container_pointer = std::shared_ptr<container_type>;
 
+    /// Contiguous iterator of the tensor data.
     using iterator = tensor_iterator<T, N>;
 
+    /// Contiguous constant iterator of the tensor data.
     using const_iterator = const iterator;
 
     using descriptor_type = memory_container<std::size_t>;
 
     using descriptor_pointer = std::shared_ptr<descriptor_type>;
 
+    /// Constructs an empty tensor (zero size and empty data).
+    ///
+    /// This constructor does not allocate a container, therefore direct access to data
+    /// using \ref tensor::data_ptr is invalid.
     tensor() { initialize(); }
 
-    tensor(tensor&& t) noexcept = default;
+    /// The move constructor. Constructs a tensor with the contents of `other`.
+    tensor(tensor&& other) noexcept = default;
 
-    tensor(const tensor& t) noexcept = default;
+    /// The copy constructor. Constructs a tensor with the contents of `other`.
+    tensor(const tensor& other) noexcept = default;
 
     /// Constructs a new tensor with a scalar value. By default, method is using a \ref
     /// scalar_memory_allocator, but an arbitrary typed allocator could be used.
@@ -130,10 +155,28 @@ public:
         _M_data = alloc.allocate(numel());
     }
 
+    /// Constructs a new tensor with the size defined by the contents of the range first, last.
+    ///
+    /// Each iterator in [`first`, `last`) is dereferenced exactly once. The  tensor container is
+    /// initialized with the contents pointed by `data`, therefore the underlying storage should
+    /// be a chunk of contiguously allocated memory. Depending on the specified allocator, data
+    /// could be copied, or used transparently as is.
+    ///
+    /// \param first, last the pair of iterators defining the range of dimensions of the tensor
+    ///     to copy from.
+    /// \param data the contents that will be used as data for the tensor.
+    /// \param alloc allocator to use for all memory allocations of this container.
+    ///
+    /// ```c++
+    /// auto sizes = std::vector<std::size_t>({10, 2, 5});
+    /// auto contents = std::vector<float>(100, 4.0f);
+    ///
+    /// auto T = tensor(sizes.begin(), sizes.end(), contents.data());
+    /// ```
     template <
         std::forward_iterator ForwardIt,
         allocator_t<T> Allocator = random_memory_allocator<T>>
-    tensor(ForwardIt first, ForwardIt last, T* data, Allocator alloc = Allocator())
+    tensor(ForwardIt first, ForwardIt last, value_type* data, Allocator alloc = Allocator())
     {
         initialize(first, last);
         _M_data = alloc.allocate(data, numel());
@@ -356,6 +399,13 @@ public:
         return true;
     }
 
+    /// Returns the total number of elements in the tensor.
+    ///
+    /// ```c++
+    /// auto T = rand<float>({1, 2, 3, 4, 5});
+    /// std::cout << T.numel() << std::endl;
+    /// // out: 120
+    /// ```
     std::size_t
     numel() const
     {
