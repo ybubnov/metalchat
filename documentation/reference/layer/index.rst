@@ -8,14 +8,14 @@ Layer library
    llm
 
 
-Basic Layer
+Basic layer
 -----------
 
 .. doxygenclass:: metalchat::basic_layer
    :members:
 
 
-Shared Layer
+Shared layer
 ------------
 
 .. doxygenclass:: metalchat::shared_layer_ptr

@@ -1,8 +1,8 @@
-Metal Accelerated Kernels
+Metal accelerated kernels
 =========================
 
 
-Arithmetic Kernels
+Arithmetic kernels
 ------------------
 
 .. doxygenclass:: metalchat::kernel::add
@@ -24,7 +24,7 @@ Arithmetic Kernels
    :members:
 
 
-Comparison Kernels
+Comparison kernels
 ------------------
 
 .. doxygenclass:: metalchat::kernel::gt
@@ -34,14 +34,14 @@ Comparison Kernels
    :members:
 
 
-Batched Matrix Multiplication
+Batched matrix multiplication
 -----------------------------
 
 .. doxygenclass:: metalchat::kernel::bmm
    :members:
 
 
-Copying Kernels
+Copying kernels
 ---------------
 
 .. doxygenclass:: metalchat::kernel::cpy
@@ -57,7 +57,7 @@ Copying Kernels
    :members:
 
 
-Sparse Kernels
+Sparse kernels
 --------------
 
 .. doxygenclass:: metalchat::kernel::embedding
@@ -70,7 +70,7 @@ Sparse Kernels
    :members:
 
 
-Non-linear Activation Kernels
+Non-linear activation kernels
 -----------------------------
 
 .. doxygenclass:: metalchat::kernel::rmsnorm

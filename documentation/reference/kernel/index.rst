@@ -6,38 +6,38 @@ Kernel library
 
    metal
 
-Hardware Accelerator
+Hardware accelerator
 --------------------
 
 .. doxygenclass:: metalchat::hardware_accelerator
    :members:
 
 
-Basic Kernel
+Basic kernel
 ------------
 
 .. doxygenclass:: metalchat::basic_kernel
 
 
-Binary Kernel Wrapper
+Binary kernel wrapper
 ---------------------
 
 .. doxygenclass:: metalchat::binary_kernel_wrapper
 
 
-Kernel Task
+Kernel task
 -----------
 
 .. doxygenclass:: metalchat::kernel_task
 
 
-Kernel Thread
+Kernel thread
 -------------
 
 .. doxygenclass:: metalchat::kernel_thread
 
 
-Recursive Kernel Thread
+Recursive kernel thread
 -----------------------
 
 .. doxygenclass:: metalchat::recursive_kernel_thread

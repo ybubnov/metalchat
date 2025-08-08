@@ -9,7 +9,7 @@ Concepts
 .. doxygenconcept:: metalchat::language_transformer_t
 
 
-Byte Pair Encoder
+Byte pair encoder
 -----------------
 
 .. doxygenenum:: metalchat::special_token
@@ -23,7 +23,7 @@ Byte Pair Encoder
    :members:
 
 
-Language Chat
+Language chat
 -------------
 
 .. doxygenclass:: metalchat::chat

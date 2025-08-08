@@ -301,6 +301,17 @@ public:
         return std::span<std::size_t, N>(_M_sizes->data(), N);
     }
 
+    /// Returns the container offset of the specified tensor dimension. The offset is always in
+    /// units of \ref value_type.
+    ///
+    /// \param dim the dimension for which to retrieve the offset.
+    ///
+    /// ```c++
+    /// auto T = empty<float>({3, 4, 5});
+    /// auto S = T[slice(), slice(1, 3), slice()];
+    /// std::cout << S.offset(1) << std::endl;
+    /// // out: 1
+    /// ```
     std::size_t
     offset(std::size_t dim) const
     {
@@ -318,6 +329,16 @@ public:
         _M_offsets->data()[dim] = i;
     }
 
+    /// Returns the offsets of the tensor container.
+    ///
+    /// ```c++
+    /// auto T = empty<float>({3, 4, 5});
+    /// std::cout << T.offsets() << std::endl;
+    /// // out: 0, 0, 0
+    /// auto S = T[slice(1, 2), slice(2, 3), slice(2, 4)];
+    /// std::cout << T.offsets() << std::endl;
+    /// // out: 1, 2, 2
+    /// ```
     const std::span<std::size_t>
     offsets() const noexcept
     {
@@ -936,9 +957,9 @@ full(std::size_t (&&sizes)[N], const T& fill_value, Allocator alloc)
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-full(std::size_t (&&sizes)[N], const T& fill_value, hardware_accelerator& gpu)
+full(std::size_t (&&sizes)[N], const T& fill_value, hardware_accelerator& accelerator)
 {
-    auto t = empty<T>(std::move(sizes), gpu);
+    auto t = empty<T>(std::move(sizes), accelerator);
     std::fill_n(t.data_ptr(), t.numel(), fill_value);
     return t;
 }

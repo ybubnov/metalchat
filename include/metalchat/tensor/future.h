@@ -155,6 +155,10 @@ public:
     ///         callback();
     ///         return std::shared_future(promise.get_future());
     ///     }
+    ///
+    ///     void
+    ///     make_ready_at_thread_exit()
+    ///     { }
     /// };
     ///
     ///
@@ -291,12 +295,14 @@ public:
         return _M_result.strides();
     }
 
+    /// See \ref tensor::offset.
     std::size_t
     offset(std::size_t dim) const
     {
         return _M_result.offset(dim);
     }
 
+    /// See \ref tensor::offsets.
     const std::span<std::size_t>
     offsets() const
     {

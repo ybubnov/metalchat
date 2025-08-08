@@ -1,4 +1,4 @@
-Large Language Models
+Large language models
 =====================
 
 

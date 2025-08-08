@@ -4,7 +4,7 @@
 Allocator library
 =================
 
-Allocator Concepts
+Allocator concepts
 ------------------
 
 .. doxygenconcept:: metalchat::allocator
@@ -16,56 +16,56 @@ Allocator Concepts
 .. doxygenconcept:: metalchat::hardware_allocator_t
 
 
-Hardware Memory Allocator
+Hardware memory allocator
 -------------------------
 
 .. doxygenclass:: metalchat::hardware_memory_allocator
    :members:
 
 
-Hardware Buffer Allocator
+Hardware buffer allocator
 -------------------------
 
 .. doxygenclass:: metalchat::hardware_buffer_allocator
    :members:
 
 
-Hardware Heap Allocator
+Hardware heap allocator
 -----------------------
 
 .. doxygenclass:: metalchat::hardware_heap_allocator
    :members:
 
 
-Hardware Resident Allocator
+Hardware resident allocator
 ---------------------------
 
 .. doxygenclass:: metalchat::hardware_resident_allocator
    :members:
 
 
-Hardware No-Copy Allocator
+Hardware no-copy allocator
 --------------------------
 
 .. doxygenclass:: metalchat::hardware_nocopy_allocator
    :members:
 
 
-Hardware Aliasing Allocator
+Hardware aliasing allocator
 ---------------------------
 
 .. doxygenclass:: metalchat::hardware_aliasing_allocator
    :members:
 
 
-Rebind Hardware Allocator
+Rebind hardware allocator
 ----------------------------
 
 .. doxygenclass:: metalchat::rebind_hardware_allocator
    :members:
 
 
-Polymorphic Hardware Allocator
+Polymorphic hardware allocator
 ------------------------------
 
 .. doxygenstruct:: metalchat::basic_hardware_memory_allocator
@@ -75,21 +75,21 @@ Polymorphic Hardware Allocator
    :members:
 
 
-Scalar Memory Allocator
+Scalar memory allocator
 -----------------------
 
 .. doxygenstruct:: metalchat::scalar_memory_allocator
    :members:
 
 
-Random Memory Allocator
+Random memory allocator
 -----------------------
 
 .. doxygenstruct:: metalchat::random_memory_allocator
    :members:
 
 
-Paginated Allocator Adapter
+Paginated allocator adapter
 ---------------------------
 
 .. doxygenclass:: metalchat::paginated_allocator_adapter

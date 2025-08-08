@@ -1,4 +1,4 @@
-Neural Network Layers
+Neural network layers
 =====================
 
 
@@ -16,7 +16,7 @@ Embedding
    :members:
 
 
-Rotary Positional Embedding
+Rotary positional embedding
 ---------------------------
 
 .. doxygenclass:: metalchat::nn::rope
@@ -30,8 +30,8 @@ Linear
    :members:
 
 
-RMSNorm
--------
+Root mean square normalization
+------------------------------
 
 .. doxygenclass:: metalchat::nn::rmsnorm
    :members:

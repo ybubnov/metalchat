@@ -32,6 +32,7 @@ public:
     : _M_value(std::make_shared<tensor_type>(std::move(t)))
     {}
 
+    /// See \ref tensor::dim.
     static constexpr std::size_t
     dim()
     {
@@ -74,54 +75,63 @@ public:
         return _M_value->container_ptr();
     }
 
+    /// See \ref tensor::data_ptr.
     pointer_type
     data_ptr()
     {
         return _M_value->data_ptr();
     }
 
+    /// See \ref tensor::data_ptr.
     const pointer_type
     data_ptr() const
     {
         return _M_value->data_ptr();
     }
 
+    /// See \ref tensor::size.
     std::size_t
     size(std::size_t dim) const
     {
         return _M_value->size(dim);
     }
 
+    /// See \ref tensor::sizes.
     const std::span<std::size_t>
     sizes() const
     {
         return _M_value->sizes();
     }
 
+    /// See \ref tensor::shape.
     const std::span<std::size_t, N>
     shape() const
     {
         return _M_value->shape();
     }
 
+    /// See \ref tensor::stride.
     std::size_t
     stride(std::size_t dim) const
     {
         return _M_value->stride(dim);
     }
 
+    /// See \ref tensor::strides.
     const std::span<std::size_t>
     strides() const
     {
         return _M_value->strides();
     }
 
+    /// See \ref tensor::offset.
     std::size_t
     offset(std::size_t dim) const
     {
         return _M_value->offset(dim);
     }
 
+    /// See \ref tensor::offsets.
     const std::span<std::size_t>
     offsets() const
     {
@@ -152,6 +162,7 @@ public:
         return _M_value->end();
     }
 
+    /// See \ref tensor::index_select.
     template <convertible_to_slice... SliceTypes>
     auto
     index_select(const SliceTypes&... slices) requires(sizeof...(slices) == N)

@@ -1,55 +1,55 @@
 Container library
 =================
 
-Container Concepts
+Container concepts
 ------------------
 
 .. doxygenconcept:: metalchat::contiguous_container
 
 
-Memory Container
+Memory container
 ----------------
 
 .. doxygenstruct:: metalchat::memory_container
    :members:
 
 
-Hardware Memory Container
+Hardware memory container
 -------------------------
 
 .. doxygenstruct:: metalchat::hardware_memory_container
    :members:
 
 
-Random Memory Container
+Random memory container
 -----------------------
 
 .. doxygenstruct:: metalchat::random_memory_container
    :members:
 
 
-Vector Memory Container
+Vector memory container
 -----------------------
 
 .. doxygenstruct:: metalchat::vector_memory_container
    :members:
 
 
-Scalar Memory Container
+Scalar memory container
 -----------------------
 
 .. doxygenstruct:: metalchat::scalar_memory_container
    :members:
 
 
-Reference Memory Container
+Reference memory container
 --------------------------
 
 .. doxygenstruct:: metalchat::reference_memory_container
    :members:
 
 
-File Buffer Container
+File buffer container
 ---------------------
 
 .. doxygenstruct:: metalchat::filebuf_memory_container

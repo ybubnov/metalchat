@@ -1,7 +1,7 @@
 :html_theme.sidebar_secondary.remove:
 
 
-API Reference
+API reference
 =============
 
 TBD
@@ -12,7 +12,7 @@ TBD
 
    allocator
    container
-   tensor
+   tensor/index
    kernel/index
    layer/index
    chat
