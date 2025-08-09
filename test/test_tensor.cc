@@ -188,3 +188,27 @@ TEST_CASE("Tensor flatten dimensions", "[tensor::flatten]")
     REQUIRE(t0.size(0) == 64);
     REQUIRE(t0.size(1) == 10);
 }
+
+
+TEST_CASE("Tensor initializer list", "[tensor::initializer_list]")
+{
+    auto t1 = tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f});
+    REQUIRE(t1.dim() == 1);
+    REQUIRE(t1.size(0) == 5);
+
+    for (std::size_t i = 0; i < t1.size(0); i++) {
+        REQUIRE((t1[i]) == float(i + 1.0f));
+    }
+
+    auto t2 = tensor({{1.0f, 2.0f, 3.0f}, {4.0f, 5.0f}});
+    REQUIRE(t2.dim() == 2);
+    REQUIRE(t2.size(0) == 2);
+    REQUIRE(t2.size(1) == 3);
+
+    REQUIRE((t2[0, 0]) == 1.0f);
+    REQUIRE((t2[0, 1]) == 2.0f);
+    REQUIRE((t2[0, 2]) == 3.0f);
+    REQUIRE((t2[1, 0]) == 4.0f);
+    REQUIRE((t2[1, 1]) == 5.0f);
+    REQUIRE((t2[1, 2]) == 0.0f);
+}

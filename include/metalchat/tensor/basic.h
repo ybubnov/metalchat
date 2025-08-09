@@ -81,6 +81,55 @@ protected:
 };
 
 
+template <typename T>
+std::size_t
+__largest_nested_size(std::initializer_list<std::initializer_list<T>> data)
+{
+    auto it = std::max_element(data.begin(), data.end(), [](auto a, auto b) {
+        return a.size() < b.size();
+    });
+    return it->size();
+}
+
+
+/// A multi-dimensional matrix containing elements of a single data type.
+///
+/// \tparam T data type of the tensor elements (float, int, etc.).
+/// \tparam N dimensionality of the tensor.
+/// \tparam Container a particular implementation of the storage for the tensor elements.
+///
+/// A tensor can be constructed from the `std::initializer_list` or by copying data from
+/// the various sources (see various tensor constructs below);
+///
+/// ```c++
+/// auto T = tensor({{1.0f, -1.0f}, {1.0f, -1.0f}});
+/// std::cout << T << std::endl;
+/// // out:
+/// // [[1.0 -1.0],
+/// //  [1.0 -1.0]], sizes=(2, 2)
+/// ```
+///
+/// \warning Depending on the selected tensor constructor and allocator, tensor could copy data.
+///
+/// A tensor of specific data type can be constructed by specified a concrete tensor type with
+/// a template parameter `T` and/or \ref allocator , \ref memory_container, or
+/// \ref hardware_accelerator, or tensor creation operation:
+/// ```c++
+/// auto T = zeros<int32_t>({2, 4});
+/// std::cout << T << std::endl;
+/// // out:
+/// // [[0, 0, 0, 0],
+/// //  [0, 0, 0, 0]], sizes=(2, 4)
+///
+/// auto I = full<float>({2, 4}, 1.0f, hardware_accelerator());
+/// std::cout << I << std::endl;
+/// // out:
+/// // [[1.0, 1.0, 1.0, 1.0],
+/// //  [1.0, 1.0, 1.0, 1.0]], sizes=(2, 4)
+/// ```
+///
+/// For more information about building tensors, see
+/// \verbatim embed:rst:inline :doc:`create` \endverbatim documentation.
 template <typename T, std::size_t N, contiguous_container Container = random_memory_container<T>>
 class tensor : public basic_tensor {
 public:
@@ -139,8 +188,45 @@ public:
         *data_ptr() = value;
     }
 
-    /// Constructs a new empty tensor with the size defined by the content of the range
-    /// [`first`, `last`). Each iterator in [`first`, `last`) is dereferenced exactly once.
+    /// Constructs a new 1-dimensional tensor and initializes it with the given values.
+    ///
+    /// \param data initial data of the tensor.
+    ///
+    /// ```c++
+    /// auto T = tensor({1.0f, 2.0f, 3.0f, 4.0f});
+    /// ```
+    tensor(std::initializer_list<T> data) requires(N == 1)
+    : tensor({data.size()}, random_memory_allocator<T>())
+    {
+        std::copy(data.begin(), data.end(), data_ptr());
+    }
+
+    /// Constructs a new 2-dimensional tensor and initializes it with the given values.
+    ///
+    /// \param data initial data of the tensor.
+    ///
+    /// ```c++
+    /// auto T = tensor({{1.0f, 2.0f, 3.0f}, {3.0f, 4.0f}});
+    /// ```
+    tensor(std::initializer_list<std::initializer_list<T>> data) requires(N == 2)
+    : tensor({data.size(), __largest_nested_size(data)}, random_memory_allocator<T>())
+    {
+        auto elements = std::data(data);
+
+        for (std::size_t i = 0; i < size(0); i++) {
+            auto elements_i = std::data(elements[i]);
+
+            for (std::size_t j = 0; j < size(1); j++) {
+                if (j < elements[i].size()) {
+                    value_select(i, j) = elements_i[j];
+                } else {
+                    value_select(i, j) = T();
+                }
+            }
+        }
+    }
+
+    /// Constructs a new empty tensor with the sizes specified by iterators [`first`, `last`).
     ///
     /// The distance `std::distance(first, last)` between iterators should be equal to the
     /// tensor dimensionality `N`.
@@ -162,10 +248,12 @@ public:
 
     /// Constructs a new tensor with the size defined by the contents of the range first, last.
     ///
-    /// Each iterator in [`first`, `last`) is dereferenced exactly once. The  tensor container is
-    /// initialized with the contents pointed by `data`, therefore the underlying storage should
-    /// be a chunk of contiguously allocated memory. Depending on the specified allocator, data
-    /// could be copied, or used transparently as is.
+    /// The distance `std::distance(first, last)` between iterators should be equal to the
+    /// tensor dimensionality `N`.
+    ///
+    /// The  tensor container is initialized with the contents pointed by `data`, therefore the
+    /// underlying storage should be a contiguously allocated memory. Depending on the specified
+    /// allocator, data could be copied, or used transparently as is.
     ///
     /// \param first, last the pair of iterators defining the range of dimensions of the tensor
     ///     to copy from.
@@ -187,6 +275,24 @@ public:
         _M_data = alloc.allocate(data, numel());
     }
 
+    /// Constructs a new tensor with the sizes specified by iterators [`first`, `last`), and
+    /// with contents of the specified container `data`.
+    ///
+    /// The distance `std::distance(first, last)` between iterators should be equal to the
+    /// tensor dimensionality `N`.
+    ///
+    /// \param first, last the pair of iterators defining the range of dimensions of the tensor
+    ///     to copy from.
+    /// \param data initial data of the tensor.
+    ///
+    /// ```c++
+    /// auto sizes = std::vector<std::size_t>({4, 5});
+    ///
+    /// auto alloc = random_memory_allocator<float>();
+    /// auto container_ptr = alloc.allocate(20);
+    ///
+    /// auto T = tensor<float>(sizes.begin(), sizes.end(), container_ptr);
+    /// ```
     template <std::forward_iterator ForwardIt>
     tensor(ForwardIt first, ForwardIt last, const container_pointer& data)
     {
@@ -194,18 +300,45 @@ public:
         _M_data = data;
     }
 
+    /// Constructs an empty tensor of the specified size with uninitialized container allocated
+    /// with the given allocator.
+    ///
+    /// \param sizes a sequence of unsigned integers defining the shape of the tensor.
+    /// \param alloc allocator to use for all memory allocations of this container.
+    ///
+    /// ```c++
+    /// auto sizes = std::vector<std::size_t>({4, 5});
+    /// auto alloc = std::random_memory_allocator<float>();
+    ///
+    /// auto T = tensor<float>(std::span<std::size_t, 2>(sizes.begin(), 2), alloc);
+    /// ```
     template <allocator_t<T> Allocator = random_memory_allocator<T>>
     tensor(const std::span<std::size_t, N> sizes, Allocator alloc = Allocator())
     : tensor(sizes.begin(), sizes.end(), alloc)
     {}
 
+    /// Constructs a new tensor with the specified sizes with contents of the specified container
+    /// `data`. The constructor does not validate that all elements of the tensor are within the
+    /// specified container.
+    ///
+    /// \param sizes a sequence of unsigned integers defining the shape of the tensor.
+    /// \param data initial data of the tensor.
+    ///
+    /// ```c++
+    /// auto sizes = std::vector<std::size_t>({4, 5});
+    ///
+    /// auto alloc = random_memory_allocator<float>();
+    /// auto container_ptr = alloc.allocate(20);
+    ///
+    /// auto T = tensor<float>(std::span<std::size_t, 2>(sizes.begin(), 2), container_ptr);
+    /// ```
     tensor(const std::span<std::size_t, N> sizes, const container_pointer& data)
     : tensor(sizes.begin(), sizes.end(), data)
     {}
 
     /// Constructs an empty tensor with the uninitialized contents of the specified size.
     ///
-    /// \param sizes a sequence of unsigned integers defining the shape of the output tensor.
+    /// \param sizes a sequence of unsigned integers defining the shape of the tensor.
     /// \param alloc allocator to use for all memory allocations of this container.
     ///
     /// ```c++
@@ -218,9 +351,9 @@ public:
     {}
 
     /// Constructs a new tensor with contents of the specified container `data`. The constructor
-    /// does not validates that all elements of the tensor are within the container.
+    /// does not validate that all elements of the tensor are within the container.
     ///
-    /// \param sizes a sequence of unsigned integers defining the shape of the output tensor.
+    /// \param sizes a sequence of unsigned integers defining the shape of the tensor.
     /// \param data initial data of the tensor.
     ///
     /// ```c++
@@ -920,6 +1053,13 @@ struct change_tensor_container<tensor<T, N, ContainerIn>, ContainerOut> {
 template <std::size_t N, contiguous_container Container>
 tensor(std::size_t (&&)[N], const std::shared_ptr<Container>&)
     -> tensor<typename Container::value_type, N, Container>;
+
+
+template <typename T> tensor(std::initializer_list<T>) -> tensor<T, 1, random_memory_container<T>>;
+
+
+template <typename T>
+tensor(std::initializer_list<std::initializer_list<T>>) -> tensor<T, 2, random_memory_container<T>>;
 
 
 template <std::size_t N, immutable_tensor Tensor>

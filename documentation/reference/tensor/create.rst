@@ -1,5 +1,5 @@
-Constructors
-============
+Advanced creation
+=================
 
 Scalar
 ------

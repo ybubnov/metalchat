@@ -67,7 +67,7 @@ public:
     /// library from the bundle. This constructor performs lookup of the distribution bundle
     /// and loads shader library named `metalchat.metallib`.
     ///
-    hardware_accelerator(std::size_t thread_capacity = 64);
+    explicit hardware_accelerator(std::size_t thread_capacity = 64);
 
     /// Get name of the hardware accelerator.
     std::string

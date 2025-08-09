@@ -4,8 +4,8 @@ Tensor library
 .. toctree::
    :hidden:
 
+   create
    future
-   constructor
    traits
 
 
