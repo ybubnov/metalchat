@@ -610,24 +610,42 @@ public:
         return layout;
     }
 
+    /// Returns an iterator to the first element of a tensor.
+    ///
+    /// ```c++
+    /// #include <algorithm>
+    ///
+    /// auto T = rand<float>({4, 5, 6});
+    ///
+    /// // Print tensor values.
+    /// std::for_each(T.begin(), T.end(), [](const float v) { std::cout << v << " "; });
+    /// std::cout << std::endl;
+    ///
+    /// // Sum all values.
+    /// std::cout << "Sum of T:"
+    ///           << std::accumulate(T.begin(), T.end(), 0.0f) << std::endl;
+    /// ```
     iterator
     begin()
     {
         return iterator(*this);
     }
 
+    /// Returns an constant iterator to the first element of a tensor.
     const_iterator
     begin() const
     {
         return const_iterator(*this);
     }
 
+    /// Returns an iterator past the last element of a tensor.
     iterator
     end()
     {
         return iterator(*this, numel());
     }
 
+    /// Returns a constant iterator past the last element of a tensor.
     const_iterator
     end() const
     {

@@ -252,6 +252,8 @@ public:
     }
 
     /// See \ref tensor::data_ptr.
+    ///
+    /// \warning Tensor must be awaited before accessing data with an iterator.
     pointer_type
     data_ptr()
     {
@@ -259,6 +261,8 @@ public:
     }
 
     /// See \ref tensor::data_ptr.
+    ///
+    /// \warning Tensor must be awaited before accessing data with an iterator.
     const pointer_type
     data_ptr() const
     {
@@ -314,24 +318,32 @@ public:
         return _M_result.offsets();
     }
 
+    /// See \ref tensor::begin.
+    ///
+    /// \warning Tensor must be awaited before accessing data with an iterator.
     iterator
     begin()
     {
         return _M_result.begin();
     }
 
+    /// See \ref tensor::end.
     iterator
     end()
     {
         return _M_result.end();
     }
 
+    /// See \ref tensor::begin.
+    ///
+    /// \warning Tensor must be awaited before accessing data with an iterator.
     const_iterator
     begin() const
     {
         return _M_result.begin();
     }
 
+    /// See \ref tensor::end.
     const_iterator
     end() const
     {
@@ -401,7 +413,6 @@ public:
         );
     }
 
-    /// See \ref tensor::layout.
     tensor_layout<N>
     layout() const
     {

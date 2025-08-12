@@ -139,24 +139,28 @@ public:
         return _M_value->offsets();
     }
 
+    /// See \ref tensor::begin.
     iterator
     begin()
     {
         return _M_value->begin();
     }
 
+    /// See \ref tensor::end.
     iterator
     end()
     {
         return _M_value->end();
     }
 
+    /// See \ref tensor::begin.
     const_iterator
     begin() const
     {
         return _M_value->begin();
     }
 
+    /// See \ref tensor::end.
     const_iterator
     end() const
     {
