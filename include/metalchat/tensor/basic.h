@@ -203,10 +203,17 @@ public:
 
     /// Constructs a new 2-dimensional tensor and initializes it with the given values.
     ///
+    /// Method creates a tensor with dimensions that fill all specified values, missing values
+    /// are filled with `T()`.
+    ///
     /// \param data initial data of the tensor.
     ///
     /// ```c++
     /// auto T = tensor({{1.0f, 2.0f, 3.0f}, {3.0f, 4.0f}});
+    /// std::cout << T << std::endl;
+    /// // out:
+    /// // [[1.0, 2.0, 3.0],
+    /// //  [3.0, 4.0, 0.0]], sizes=(2, 3)
     /// ```
     tensor(std::initializer_list<std::initializer_list<T>> data) requires(N == 2)
     : tensor({data.size(), __largest_nested_size(data)}, random_memory_allocator<T>())
@@ -799,6 +806,20 @@ public:
         return t;
     }
 
+    /// The copy assignment operator. The method expects that all tensor sizes match.
+    ///
+    /// \param other the tensor to copy data from.
+    ///
+    /// \note This operator copies the data elementwise using \ref tensor_iterator, without using
+    /// acceleration kernels, therefore performace of this method is suboptimal. Consider using
+    /// \ref kernel::cpy for Metal-accelerated tensor copying.
+    ///
+    /// ```c++
+    /// auto T = rand<float>({10, 10});
+    /// auto M = zeros<float>({2, 2});
+    ///
+    /// T[slice(2, 4), slice(2, 4)] = M;
+    /// ```
     tensor&
     operator=(const tensor& other)
     {
@@ -813,6 +834,7 @@ public:
         return *this;
     }
 
+    /// The move assignment operator.
     tensor&
     operator=(tensor&& other)
         = default;
@@ -840,7 +862,7 @@ public:
         return value_select(indices...);
     }
 
-    /// Returns a constant slice of the tensor.
+    /// Returns a constant slice of a tensor.
     ///
     /// \param slices the minors of the tensor to access.
     ///
@@ -855,7 +877,7 @@ public:
         return index_select(slices...);
     }
 
-    /// Returns a slice of the tensor.
+    /// Returns a slice of a tensor.
     ///
     /// \param slices the minors of the tensor to access.
     template <convertible_to_slice... SliceTypes>
@@ -865,10 +887,19 @@ public:
         return index_select(slices...);
     }
 
+    /// Returns a slice of a tensor by the dimension 0.
+    ///
+    /// \param dim position of the tensor minor.
+    ///
+    /// ```c++
+    /// auto T = rand<float>({4, 3, 4});
+    /// std::cout << T[2].sizes() << std::endl;
+    /// // out: 3, 4
+    /// ```
     auto
-    operator[](std::size_t i) requires(N > 1)
+    operator[](std::size_t dim) requires(N > 1)
     {
-        return at(i);
+        return at(dim);
     }
 
     /// Returns a tensor with dimensions transposed. The dimension values should not exceed
@@ -894,7 +925,7 @@ public:
 
     /// Returns a tensor with dimension transposed, expects 2-D tensor.
     ///
-    /// See also `tensor::transpose`.
+    /// See also \ref tensor::transpose.
     tensor
     t() const requires(N == 2)
     {
