@@ -16,6 +16,12 @@ Tensor
    :members:
 
 
+Tensor Layout
+-------------
+
+.. doxygenstruct:: metalchat::tensor_layout
+
+
 Tensor iterator
 ---------------
 

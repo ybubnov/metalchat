@@ -617,6 +617,7 @@ public:
         return off;
     }
 
+    /// Returns a tensor layout structure comprised of sizes, strides, and offsets.
     tensor_layout<N>
     layout() const
     {
@@ -811,7 +812,7 @@ public:
     /// \param other the tensor to copy data from.
     ///
     /// \note This operator copies the data elementwise using \ref tensor_iterator, without using
-    /// acceleration kernels, therefore performace of this method is suboptimal. Consider using
+    /// acceleration kernels, therefore performance of this method is suboptimal. Consider using
     /// \ref kernel::cpy for Metal-accelerated tensor copying.
     ///
     /// ```c++

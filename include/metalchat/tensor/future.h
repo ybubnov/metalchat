@@ -419,6 +419,7 @@ public:
         );
     }
 
+    /// See \ref tensor::layout.
     tensor_layout<N>
     layout() const
     {
