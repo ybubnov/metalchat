@@ -239,12 +239,14 @@ public:
         return _M_result.numel();
     }
 
+    /// See \ref tensor::container.
     container_type&
     container() const
     {
         return _M_result.container();
     }
 
+    /// See \ref tensor::container_ptr.
     container_pointer
     container_ptr() const
     {
@@ -350,6 +352,7 @@ public:
         return _M_result.end();
     }
 
+    /// See \ref tensor::expand_dims.
     future_tensor<T, N + 1>
     expand_dims(std::size_t dim) const
     {
@@ -358,6 +361,7 @@ public:
         );
     }
 
+    /// See \ref tensor::view.
     template <std::size_t M>
     future_tensor<T, M>
     view(int (&&dims)[M]) const requires(M > 0)
@@ -367,6 +371,7 @@ public:
         );
     }
 
+    /// See \ref tensor::view.
     template <std::size_t M>
     future_tensor<T, M>
     view(const std::span<int, M> dims) const
@@ -376,6 +381,7 @@ public:
         );
     }
 
+    /// See \ref tensor::view.
     template <std::size_t M>
     future_tensor<T, M>
     view(const std::span<std::size_t, M> dims) const

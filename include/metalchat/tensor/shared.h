@@ -175,6 +175,7 @@ public:
         return shared_tensor_ptr(_M_value->index_select(slices...));
     }
 
+    /// See \ref tensor::expand_dims.
     auto
     expand_dims(std::size_t dim) const
     {
@@ -182,6 +183,7 @@ public:
         return shared_tensor_ptr<tensor_t>(_M_value->expand_dims(dim));
     }
 
+    /// See \ref tensor::view.
     template <std::size_t M>
     auto
     view(int (&&dims)[M]) const requires(M > 0)
@@ -190,6 +192,7 @@ public:
         return shared_tensor_ptr<tensor_t>(_M_value->view(std::move(dims)));
     }
 
+    /// See \ref tensor::view.
     template <std::size_t M>
     auto
     view(const std::span<int, M> dims) const
@@ -198,6 +201,7 @@ public:
         return shared_tensor_ptr<tensor_t>(_M_value->view(dims));
     }
 
+    /// See \ref tensor::view.
     template <std::size_t M>
     auto
     view(const std::span<std::size_t, M> dims) const
@@ -206,7 +210,7 @@ public:
         return shared_tensor_ptr<tensor_t>(_M_value->view(dims));
     }
 
-    /// See `tensor::flatten`.
+    /// See \ref tensor::flatten.
     template <std::size_t M>
     auto
     flatten() const
@@ -215,21 +219,21 @@ public:
         return shared_tensor_ptr<tensor_t>(_M_value->template flatten<M>());
     }
 
-    /// See `tensor::transpose`.
+    /// See \ref tensor::transpose.
     shared_tensor_ptr
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
         return shared_tensor_ptr(_M_value->narrow(dim, start, length));
     }
 
-    /// See `tensor::transpose`.
+    /// See \ref tensor::transpose.
     shared_tensor_ptr
     transpose(const std::size_t (&&dims)[N]) const
     {
         return shared_tensor_ptr(_M_value->transpose(std::move(dims)));
     }
 
-    /// See `tensor::layout`.
+    /// See \ref tensor::layout.
     tensor_layout<N>
     layout() const
     {

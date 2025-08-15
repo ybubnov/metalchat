@@ -575,6 +575,7 @@ public:
         return n;
     }
 
+    /// Returns a reference to the underlying \ref contiguous_container of the tensor.
     container_type&
     container() const
     {
@@ -584,12 +585,21 @@ public:
         return *_M_data;
     }
 
+    /// Returns a pointer to the underlying \ref contiguous_container of the tensor.
     container_pointer
     container_ptr() const
     {
         return _M_data;
     }
 
+    /// Returns tensor's offset in the underlying storage in terms of number of storage elements
+    /// (not bytes).
+    ///
+    /// ```c++
+    /// auto T = zeros<int32_t>({5});
+    /// std::cout << T[slice(3), slice()].container_offset() << std::endl;
+    /// // out: 3
+    /// ```
     std::size_t
     container_offset() const
     {
@@ -891,6 +901,27 @@ public:
         return transpose({1, 0});
     }
 
+    /// Returns a new tensor with an expanded shape of a tensor.
+    ///
+    /// Insert a new dimension that will appear at the `dim` position in the expanded tensor shape.
+    ///
+    /// \param dim position in the expanded shapew where the new dimension is placed.
+    ///
+    /// ```c++
+    /// auto T = tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f});
+    /// std::cout << T.expand_dims(0) << std::endl;
+    /// // out:
+    /// // [[1.0, 2.0, 3.0, 4.0, 5.0]], sizes=(1, 5)
+    ///
+    /// std::cout << T.expand_dims(1) << std::endl;
+    /// // out:
+    /// // [[1.0],
+    /// //  [2.0],
+    /// //  [3.0],
+    /// //  [4.0]], sizes=(5, 1)
+    /// ```
+    ///
+    /// See also \ref tensor::view.
     tensor<T, N + 1, Container>
     expand_dims(std::size_t dim) const
     {
@@ -909,6 +940,32 @@ public:
         return view(std::move(sizes));
     }
 
+    /// Returns a new tensor with the same underlying data container, but of a different shape.
+    ///
+    ///
+    /// The returned tensor must have the same number of elements, but may have a different size.
+    /// This method never copies underlying data container, and in cases, when a new shape
+    /// disrups contiguity of the data container, the method raises an `std::invalid_argument`
+    /// exception.
+    ///
+    /// Method supports deduction of the dimension size, when value `-1` is specified.
+    ///
+    /// \tparam M a dimensionality of the new tensor.
+    /// \param dims the desired tensor shape.
+    ///
+    /// ```c++
+    /// auto T = rand<float>({4, 4});
+    /// std::cout << T.sizes << std::endl;
+    /// // out: 4, 4
+    ///
+    /// auto Z = T.view({-1, 8}); // the size -1 is deduced from other dimensions.
+    /// std::cout << Z.sizes() << std::endl;
+    /// // out: 2, 8
+    ///
+    /// auto Y = T.view({16});
+    /// std::cout << Y.sizes() << std::endl;
+    /// // out: 16
+    /// ```
     template <std::size_t M>
     tensor<T, M, Container>
     view(int (&&dims)[M]) const requires(M > 0)
@@ -917,6 +974,9 @@ public:
         return view(sizes);
     }
 
+    /// Returns a new tensor with the same underlying data container, but of a different shape.
+    ///
+    /// See \ref tensor::view.
     template <std::size_t M>
     tensor<T, M, Container>
     view(const std::span<int, M> dims) const requires(M > 0)
@@ -926,6 +986,9 @@ public:
         return view(std::span<std::size_t, M>(view_sizes));
     }
 
+    /// Returns a new tensor with the same underlying data container, but of a different shape.
+    ///
+    /// See \ref tensor::view.
     template <std::size_t M>
     tensor<T, M, Container>
     view(const std::span<std::size_t, M> view_sizes) const requires(M > 0)
@@ -953,6 +1016,8 @@ public:
     /// std::cout << T.flatten<2>().sizes() << std::endl;
     /// // out: 64, 10
     /// ```
+    ///
+    /// See also \ref tensor::expand_dims, \ref tensor::view.
     template <std::size_t M>
     tensor<T, M, Container>
     flatten() const requires(M <= N)
