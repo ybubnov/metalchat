@@ -88,6 +88,13 @@ public:
 /// \warning Usually there is no need to create a kernel task manually, as a kernel usually
 /// creates one for you and passes required arguments correctly. You could explore a
 /// collection of available kernels in \verbatim embed:rst:inline :doc:`metal` \endverbatim.
+///
+/// Most commonly, task are used as asynchronously invocable instances for \ref future_tensor,
+/// so that operation that produces result for a tensor could be asynchronously awaited.
+///
+/// \warning When kernel task is used with \ref future_tensor, consider moving the ownership of
+/// the task to the future tensor with the respective constructor and `std::move` to release
+/// memory from the dependent tensors (kernel task arguments) on a kernel completion.
 template <immutable_tensor... Args> class kernel_task {
 private:
     using arguments_type = std::tuple<Args...>;
@@ -217,7 +224,7 @@ public:
     /// \param front_args a sequence of arguments to bind.
     ///
     /// \note The bound arguments are shallow copies of the tensor, meaning that tensor layout
-    /// (sizes, strides, offsets) are preserved, but data might be modified throught the tensor
+    /// (sizes, strides, offsets) are preserved, but data might be modified through the tensor
     /// that shares the same underlying contiguous container.
     template <immutable_tensor... FrontArgs>
     kernel_task<FrontArgs..., Args...>
