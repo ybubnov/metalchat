@@ -11,8 +11,13 @@ namespace metalchat {
 
 
 template <uint32_t N> struct tensor_layout {
+    /// Sizes of a tensor.
     uint32_t sizes[N];
+
+    /// Strides of a tensor data.
     uint32_t strides[N];
+
+    /// Offsets of a tensor data.
     uint32_t offsets[N];
 
     friend std::ostream&

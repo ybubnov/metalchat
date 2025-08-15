@@ -18,8 +18,15 @@ struct kernel_queue;
 using kernel_callback_type = std::function<void()>;
 
 
+/// The type that is used to specify dimension of the GPU compute grid (thread group). When
+/// defining variable of type \ref dim3, any values left unspecified is initialized to 1.
 struct dim3 {
-    const std::size_t x, y, z;
+    /// X value of a 3-dimensional vector.
+    const std::size_t x;
+    /// Y value of a 3-dimensional vector.
+    const std::size_t y;
+    /// Z value of a 3-dimensional vector.
+    const std::size_t z;
 
     constexpr dim3(std::size_t x_, std::size_t y_ = 1, std::size_t z_ = 1)
     : x(x_),

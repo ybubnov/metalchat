@@ -20,6 +20,7 @@ Tensor Layout
 -------------
 
 .. doxygenstruct:: metalchat::tensor_layout
+   :members:
 
 
 Tensor iterator

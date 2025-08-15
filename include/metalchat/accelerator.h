@@ -130,10 +130,11 @@ public:
     /// auto task = kernel_task(kernel, dim3(32), dim3(16));
     ///
     /// // This kernel expects output tensor as the first argument.
-    /// auto future = task.bind_front(output, input1, input2);
+    /// auto packaged_task = task.bind_front(output, input1, input2);
+    /// auto result = future_tensor(output, std::move(packaged_task));
     ///
     /// // Block the current thread, until the result is ready.
-    /// future.get();
+    /// result.get();
     /// ```
     const basic_kernel&
     load(const std::string& name);

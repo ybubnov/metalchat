@@ -79,6 +79,15 @@ public:
 };
 
 
+/// A class that wraps a Metal kernel task, arguments for the task, and scheduler parameters.
+///
+/// Tasks are executed asynchronously on a \ref hardware_accelerator. This implies that before
+/// scheduling a task execution all specified arguments must be bound to the task using either
+/// \ref kernel_task::bind_front or \ref bind_back methods.
+///
+/// \warning Usually there is no need to create a kernel task manually, as a kernel usually
+/// creates one for you and passes required arguments correctly. You could explore a
+/// collection of available kernels in \verbatim embed:rst:inline :doc:`metal` \endverbatim.
 template <immutable_tensor... Args> class kernel_task {
 private:
     using arguments_type = std::tuple<Args...>;
@@ -95,6 +104,7 @@ private:
     dim3 _M_thread;
 
 public:
+    /// The copy constructor of the \ref kernel_task.
     kernel_task(const kernel_task& task) noexcept = default;
 
     kernel_task(basic_kernel kernel, dim3 grid, dim3 thread, std::tuple<Args...>&& args)
@@ -121,6 +131,21 @@ public:
         }
     }
 
+    /// Creates a new kernel task with the specified kernel function and hardware grid
+    /// configuration.
+    ///
+    /// \param kernel a kernel function instance.
+    /// \param grid total size of 3-dimensional GPU compute grid.
+    /// \param thread a size of 3-dimensional GPU compute thread group.
+    /// \param args optional kernel arguments.
+    ///
+    /// ```c++
+    /// auto accelerator = hardware_accelerator();
+    /// auto kernel = accelerator.load<float, 16>("hadamard");
+    ///
+    /// // Create a kernel with 4 thread groups of size 16x16x1 each.
+    /// auto task = kernel_task(kernel, dim3(64, 64), dim3(16, 16));
+    /// ```
     kernel_task(basic_kernel kernel, dim3 grid, dim3 thread, Args... args)
     : kernel_task(kernel, grid, thread, std::make_tuple(args...))
     {}
@@ -182,6 +207,18 @@ public:
         }
     }
 
+    /// Returns a new kernel task with bound arguments at positions starting from the beginning
+    /// of the task arguments sequence.
+    ///
+    /// The kernel task expects all arguments to be tensors, since the kernel should be encodable
+    /// to the hardware kernel queue.
+    ///
+    /// \tparam FrontArgs a sequence of argument types to bind.
+    /// \param front_args a sequence of arguments to bind.
+    ///
+    /// \note The bound arguments are shallow copies of the tensor, meaning that tensor layout
+    /// (sizes, strides, offsets) are preserved, but data might be modified throught the tensor
+    /// that shares the same underlying contiguous container.
     template <immutable_tensor... FrontArgs>
     kernel_task<FrontArgs..., Args...>
     bind_front(FrontArgs... front_args)
@@ -191,6 +228,14 @@ public:
         );
     }
 
+    /// Returns a new kernel task with bound arguments appended to the end of the task arguments
+    /// sequence.
+    ///
+    /// The kernel task expects all arguments to be tensors, since the kernel should be encodable
+    /// to the hardware kernel queue.
+    ///
+    /// \tparam BackArgs a sequence of argument types to bind.
+    /// \param back_args a sequence of arguments to bind.
     template <immutable_tensor... BackArgs>
     kernel_task<Args..., BackArgs...>
     bind_back(BackArgs... back_args)
