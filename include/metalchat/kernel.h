@@ -204,6 +204,14 @@ public:
         encoder.dispatch(_M_grid, _M_thread);
     }
 
+    /// Immideately schedules execution of the kernel task by a hardware accelerator.
+    ///
+    /// The accelerator keeps a queue of tasks and executes them in batches, so once a batch is
+    /// assembled, accelerator starts processing it. This behaviour could be changed by calling
+    /// this method, so that processing starts for all tasks in the buffer.
+    ///
+    /// Method raises `std::runtime_error`, when this method is executed for a task that is
+    /// not invoked (pushed to a command buffer) with one of \ref kernel_task::operator() methods.
     void
     make_ready_at_thread_exit()
     {
@@ -252,8 +260,9 @@ public:
         );
     }
 
+    /// Returns a name of the kernel.
     std::string
-    name()
+    name() const
     {
         return _M_kernel.name();
     }
