@@ -2,6 +2,7 @@ import subprocess
 import sys
 import pathlib
 
+
 # Project information
 project = "MetalChat"
 author = "Yakau Bubnou"

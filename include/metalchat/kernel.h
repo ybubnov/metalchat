@@ -157,6 +157,10 @@ public:
     : kernel_task(kernel, grid, thread, std::make_tuple(args...))
     {}
 
+    /// Schedules execution of the stored kernel. The method returns a shared future that could
+    /// be used to await for the task completion.
+    ///
+    /// \warning The function call operator can be called only once for each `kernel_task`.
     std::shared_future<void>
     operator()()
     {
@@ -169,6 +173,13 @@ public:
         return _M_this_thread_ptr->push(*this);
     }
 
+    /// Schedules execution of the stored kernel. The method returns a shared future that could
+    /// be used to await for the task completion.
+    ///
+    /// This method allows to specify an arbitrary callback function that will be executed before
+    /// releasing the returned future object.
+    ///
+    /// \warning The function call operator can be called only once for each `kernel_task`.
     std::shared_future<void>
     operator()(std::function<void()> callback)
     {
@@ -181,27 +192,18 @@ public:
         return _M_this_thread_ptr->push(*this, callback);
     }
 
+    /// Encode the kernel and all it's arguments with the specified encoder.
+    ///
+    /// The encoding process implies setup of kernel arguments (tensors), data offsets, and
+    /// kernel dependencies (outputs from other kernels).
+    ///
+    /// \note This method is called by a `kernel_thread`, when the kernel is scheduled for
+    /// executions by calling one of overloaded function call operators
+    /// \ref kernel_task::operator(), therefore there is no need to call this method manually.
     void
     encode(hardware_function_encoder encoder)
     {
         return encode(encoder, std::index_sequence_for<Args...>{});
-    }
-
-    template <std::size_t... Indices>
-    void
-    encode(hardware_function_encoder encoder, std::index_sequence<Indices...>)
-    {
-        encoder.initialize(_M_kernel.name(), _M_kernel.get_metal_kernel());
-
-        ([&] {
-            using tensor_type = std::tuple_element<Indices, arguments_type>::type;
-            using value_type = tensor_type::value_type;
-
-            const auto& arg = std::get<Indices>(_M_args);
-            encoder.encode<value_type>(arg);
-        }(), ...);
-
-        encoder.dispatch(_M_grid, _M_thread);
     }
 
     /// Immideately schedules execution of the kernel task by a hardware accelerator.
@@ -265,6 +267,24 @@ public:
     name() const
     {
         return _M_kernel.name();
+    }
+
+protected:
+    template <std::size_t... Indices>
+    void
+    encode(hardware_function_encoder encoder, std::index_sequence<Indices...>)
+    {
+        encoder.initialize(_M_kernel.name(), _M_kernel.get_metal_kernel());
+
+        ([&] {
+            using tensor_type = std::tuple_element<Indices, arguments_type>::type;
+            using value_type = tensor_type::value_type;
+
+            const auto& arg = std::get<Indices>(_M_args);
+            encoder.encode<value_type>(arg);
+        }(), ...);
+
+        encoder.dispatch(_M_grid, _M_thread);
     }
 };
 
