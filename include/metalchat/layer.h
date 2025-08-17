@@ -126,7 +126,7 @@ public:
             }
         };
 
-        visit_parameters(visitor);
+        apply(visitor);
     }
 
     /// Register an upstream layer for the current layer. The layer could be accessed using
@@ -276,12 +276,12 @@ public:
     ///
     /// This method traverses all parameters in breadth-first way, when `recurse` parameter is set
     /// to `true`. Otherwise, only parameters of the current layer are visited.
-    template <std::invocable<const std::string&, parameter_pointer> Visitor>
+    template <std::invocable<const std::string&, parameter_pointer> Function>
     void
-    visit_parameters(Visitor visitor, bool recurse = true) const
+    apply(Function fn, bool recurse = true) const
     {
         for (const auto& [full_name, param] : _M_params) {
-            visitor(full_name, param);
+            fn(full_name, param);
         }
 
         if (!recurse) {
@@ -303,7 +303,7 @@ public:
 
             for (auto [param_name, param] : layer_ptr->_M_params) {
                 auto full_name = name + "." + param_name;
-                visitor(full_name, param);
+                fn(full_name, param);
             }
         }
     }

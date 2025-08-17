@@ -71,11 +71,11 @@ basic_layer::get_parameters(bool recurse) const
 {
     parameter_container params;
 
-    auto visitor = [&](const std::string& name, parameter_pointer param) {
+    auto fn = [&](const std::string& name, parameter_pointer param) {
         params.insert_or_assign(name, param);
     };
 
-    visit_parameters(visitor, recurse);
+    apply(fn, recurse);
     return params;
 }
 
