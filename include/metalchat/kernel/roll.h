@@ -18,10 +18,18 @@ private:
     basic_kernel _M_kernel;
 
 public:
+    /// The kernel constructor.
     roll(hardware_accelerator& accelerator)
     : _M_kernel(accelerator.load<T, BlockSize>("roll"))
     {}
 
+    /// Invokes the kernel.
+    ///
+    /// \param input an input tensor.
+    /// \param shift the number of places by which the elements of the tensor are shifted.
+    /// \param dim an axis along which to roll.
+    ///
+    /// \return a tensor with elements rolled along the specified dimension.
     template <immutable_tensor_t<T> Input>
     auto
     operator()(Input input, int32_t shift, std::size_t dim)
@@ -30,6 +38,14 @@ public:
         return operator()(input, output, shift, dim);
     }
 
+    /// Invokes the kernel.
+    ///
+    /// \param input an input tensor.
+    /// \param output an output tensor.
+    /// \param shift the number of places by which the elements of the tensor are shifted.
+    /// \param dim an axis along which to roll.
+    ///
+    /// \return a tensor with elements rolled along the specified dimension.
     template <immutable_tensor_t<T> Input, immutable_tensor_t<T> Output>
     auto
     operator()(Input input, Output output, int32_t shift, std::size_t dim)

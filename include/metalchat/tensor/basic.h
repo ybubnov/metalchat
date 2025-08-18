@@ -813,7 +813,7 @@ public:
     ///
     /// \note This operator copies the data elementwise using \ref tensor_iterator, without using
     /// acceleration kernels, therefore performance of this method is suboptimal. Consider using
-    /// \ref kernel::cpy for Metal-accelerated tensor copying.
+    /// \ref kernel::clone for Metal-accelerated tensor copying.
     ///
     /// ```c++
     /// auto T = rand<float>({10, 10});

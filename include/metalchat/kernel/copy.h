@@ -58,7 +58,7 @@ public:
     : _M_kernel(accelerator.load<T, BlockSize>("copy"))
     {}
 
-    /// Copy values from input to the output.
+    /// Invokes the kernel.
     ///
     /// \param input a tensor to clone data from.
     /// \param output a tensor to clone data to.
@@ -100,6 +100,7 @@ public:
 };
 
 
+/// Gathers values along an axis specified by `dim`.
 template <typename T, std::size_t BlockSize = 16> class gather {
 private:
     basic_kernel _M_kernel;
