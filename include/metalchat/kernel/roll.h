@@ -29,7 +29,7 @@ public:
     /// \param shift the number of places by which the elements of the tensor are shifted.
     /// \param dim an axis along which to roll.
     ///
-    /// \return a tensor with elements rolled along the specified dimension.
+    /// \return a \ref future_tensor with elements rolled along the specified dimension.
     template <immutable_tensor_t<T> Input>
     auto
     operator()(Input input, int32_t shift, std::size_t dim)
@@ -45,7 +45,7 @@ public:
     /// \param shift the number of places by which the elements of the tensor are shifted.
     /// \param dim an axis along which to roll.
     ///
-    /// \return a tensor with elements rolled along the specified dimension.
+    /// \return a \ref future_tensor with elements rolled along the specified dimension.
     template <immutable_tensor_t<T> Input, immutable_tensor_t<T> Output>
     auto
     operator()(Input input, Output output, int32_t shift, std::size_t dim)

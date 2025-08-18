@@ -100,7 +100,24 @@ public:
 };
 
 
-/// Gathers values along an axis specified by `dim`.
+/// Gathers values given the index tensor.
+///
+/// ```c++
+/// auto T = tensor<float>({{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}});
+/// auto index = tensor<int32_t>({{0, 0}, {1, 0}});
+///
+/// auto accelerator = hardware_accelerator();
+/// auto gather = kernel::gather(accelerator);
+///
+/// auto output = gather(T, index);
+/// std::cout << output.get() << std::endl;
+/// // out:
+/// // [[1.0, 1.0],
+/// //  [5.0, 4.0]], sizes=(2, 2)
+/// ```
+///
+/// \note Current implementation treats all tensors as 2-dimensional with dimension 0 as a batch
+/// dimension, and gather elements only along 0 dimension.
 template <typename T, std::size_t BlockSize = 16> class gather {
 private:
     basic_kernel _M_kernel;
@@ -111,6 +128,12 @@ public:
     : _M_kernel(gpu.load<T, BlockSize>("gather"))
     {}
 
+    /// Invokes the kernel
+    ///
+    /// \param input an input tensor to gather values from.
+    /// \param index an index tensor that specifies locations of elements within input tensor.
+    ///
+    /// \return a \ref future_tensor with the elements gathered from an input tensor.
     template <immutable_tensor_t<T> Input, immutable_tensor_t<int32_t> Index>
     auto
     operator()(Input input, Index index)
