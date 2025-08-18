@@ -54,7 +54,7 @@ private:
     nn::attention_options _M_options;
     T _M_scale;
 
-    kernel::cpy<T> _M_cpy;
+    kernel::clone<T> _M_clone;
 
     template <immutable_tensor_t<T> Input>
     auto
@@ -63,7 +63,7 @@ private:
         auto output = future_tensor(empty_like<T>(input, accelerator().get_allocator()));
 
         for (std::size_t offset = 0; offset < output.size(dim); offset++) {
-            auto future = _M_cpy(input.narrow(dim, offset, 1), output.narrow(dim, offset, 1));
+            auto future = _M_clone(input.narrow(dim, offset, 1), output.narrow(dim, offset, 1));
             output = future_tensor(output, future);
         }
 
@@ -78,7 +78,7 @@ public:
       _M_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
       _M_options(options),
       _M_scale(options.scale()),
-      _M_cpy(accelerator)
+      _M_clone(accelerator)
     {
         _M_wq = register_layer("wq", nn::linear<T, Container>(accelerator));
         _M_wk = register_layer("wk", nn::linear<T, Container>(accelerator));

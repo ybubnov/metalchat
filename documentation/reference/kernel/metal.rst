@@ -44,7 +44,7 @@ Batched matrix multiplication
 Copying kernels
 ---------------
 
-.. doxygenclass:: metalchat::kernel::cpy
+.. doxygenclass:: metalchat::kernel::clone
    :members:
 
 .. doxygenclass:: metalchat::kernel::gather

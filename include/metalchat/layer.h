@@ -274,7 +274,7 @@ public:
 
     /// Apply a function to every parameters of the layer.
     ///
-    /// This method traverses all parameters in breadth-first way, when `recurse` parameter is set
+    /// This method traverses all parameters in breadth-first way when `recurse` parameter is set
     /// to `true`. Otherwise, only parameters of the current layer are visited.
     template <std::invocable<const std::string&, parameter_pointer> Function>
     void

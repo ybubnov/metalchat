@@ -7,15 +7,15 @@
 using namespace metalchat;
 
 
-TEST_CASE("Copy 2-dimensional tensors", "[kernel::copy]")
+TEST_CASE("Copy 2-dimensional tensors", "[kernel::clone]")
 {
     metalchat::hardware_accelerator gpu0;
-    kernel::cpy<float> copy(gpu0);
+    kernel::clone<float> clone(gpu0);
 
     auto input = shared_tensor(rand<float>({16, 64}));
     auto output = shared_tensor(empty<float>({16, 64}, gpu0.get_allocator()));
 
-    copy(input, output).wait();
+    clone(input, output).wait();
 
     for (std::size_t i = 0; i < input.size(0); i++) {
         for (std::size_t j = 0; j < input.size(1); j++) {
@@ -25,16 +25,16 @@ TEST_CASE("Copy 2-dimensional tensors", "[kernel::copy]")
 }
 
 
-TEST_CASE("Copy into slice", "[kernel::copy]")
+TEST_CASE("Copy into slice", "[kernel::clone]")
 {
     metalchat::hardware_accelerator gpu0;
-    kernel::cpy<float> cpy(gpu0);
+    kernel::clone<float> clone(gpu0);
 
     auto input = shared_tensor(rand<float>({1, 6, 8, 1, 64}));
     auto output = shared_tensor(full<float>({1, 6, 8, 4, 64}, 0.0, gpu0.get_allocator()));
 
     auto target = output.narrow(/*dim=*/3, /*offset=*/2, /*length=*/1);
-    cpy(input.view({-1, 64}), target.view({-1, 64})).wait();
+    clone(input.view({-1, 64}), target.view({-1, 64})).wait();
 
     for (std::size_t i0 = 0; i0 < input.size(0); i0++) {
         for (std::size_t i1 = 0; i1 < input.size(1); i1++) {

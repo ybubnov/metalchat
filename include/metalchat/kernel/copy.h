@@ -10,7 +10,19 @@ namespace metalchat {
 namespace kernel {
 
 
-template <typename T, std::size_t BlockSize = 16> class cpy {
+/// Create a copy of a tensor.
+///
+/// The metal kernel implementation supports only copying of 2-dimensional tensors,
+/// considering that all dimensions that are larger than 1 (a vector) are simply batch
+/// dimensions, we could simply collapse all of them into a single batch dimension.
+///
+/// The resulting tensor from the future operation is also 2-dimensional, therefore
+/// if caller wants to retain original dimensionality, she must keep the original
+/// output tensor or adjust the resulting tensor shape as needed.
+///
+/// \note The operation is executed asynchronously on GPU, therefore output tensor should
+/// be allocated on GPU memory beforehand.
+template <typename T, std::size_t BlockSize = 16> class clone {
 private:
     basic_kernel _M_kernel;
 
@@ -41,22 +53,15 @@ private:
     }
 
 public:
-    cpy(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("copy"))
+    /// The kernel constructor.
+    clone(hardware_accelerator& accelerator)
+    : _M_kernel(accelerator.load<T, BlockSize>("copy"))
     {}
 
     /// Copy values from input to the output.
     ///
-    /// The metal kernel implementation supports only copying of 2-dimensional tensors,
-    /// considering that all dimensions that are larger than 1 (a vector) are simply batch
-    /// dimensions, we could simply collapse all of them into a single batch dimension.
-    ///
-    /// The resulting tensor from the future operation is also 2-dimensional, therefore
-    /// if caller wants to retain original dimensionality, she must keep the original
-    /// output tensor.
-    ///
-    /// The operation is executed asynchronously on GPU, therefore output tensor should be
-    /// allocated on GPU memory.
+    /// \param input a tensor to clone data from.
+    /// \param output a tensor to clone data to.
     template <immutable_tensor_t<T> Input, immutable_hardware_tensor_t<T> Output>
     auto
     operator()(Input input, Output output)
@@ -71,6 +76,7 @@ private:
     basic_kernel _M_kernel;
 
 public:
+    /// The kernel constructor.
     scatter(hardware_accelerator& gpu)
     : _M_kernel(gpu.load<T, BlockSize>("scatter"))
     {}
@@ -99,6 +105,7 @@ private:
     basic_kernel _M_kernel;
 
 public:
+    /// The kernel constructor.
     gather(hardware_accelerator& gpu)
     : _M_kernel(gpu.load<T, BlockSize>("gather"))
     {}

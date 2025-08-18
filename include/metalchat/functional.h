@@ -233,14 +233,14 @@ concatenate(ForwardIt begin, ForwardIt end, std::size_t dim, hardware_accelerato
     auto output = future_tensor(empty<T>(std::move(size0), gpu.get_allocator()));
     std::size_t offset = 0;
 
-    auto copy_kernel = kernel::cpy<T>(gpu);
+    auto clone = kernel::clone<T>(gpu);
 
     for (auto first = begin; first != end; ++first) {
         const auto& input = (*first);
         auto n = input.size(dim);
         auto target = output.narrow(dim, offset, n);
 
-        output = future_tensor(output, copy_kernel(input, target));
+        output = future_tensor(output, clone(input, target));
         offset += n;
     }
 

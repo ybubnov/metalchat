@@ -71,7 +71,7 @@ public:
 
     sink_cache(std::size_t pre_len, const cache_options& options, hardware_accelerator accelerator)
     : _M_accelerator(accelerator),
-      _M_copy(accelerator),
+      _M_clone(accelerator),
       _M_options(options),
       _M_keys(alloc(options)),
       _M_vals(alloc(options)),
@@ -168,7 +168,7 @@ private:
             auto cache_pre = cache.narrow(1, 0, _M_pre_len);
 
             // Copy the prefix of the cache to a newly allocated memory.
-            cache_new = future_tensor(cache_new, _M_copy(cache_pre, cache_new_pre));
+            cache_new = future_tensor(cache_new, _M_clone(cache_pre, cache_new_pre));
 
             auto cache_new_post = cache_new.narrow(1, _M_pre_len, post_len);
             auto cache_post = cache.narrow(1, _M_pre_len, post_len);
@@ -187,14 +187,14 @@ private:
         auto end_pos = start_pos + len;
         auto target = cache[slice(0, bs), slice(start_pos, end_pos), slice(), slice()];
 
-        cache = future_tensor(cache, _M_copy(input, target));
+        cache = future_tensor(cache, _M_clone(input, target));
         auto cached_data = cache[slice(0, bs), slice(0, end_pos), slice(), slice()];
 
         return std::make_tuple(cache, cached_data);
     }
 
     hardware_accelerator _M_accelerator;
-    kernel::cpy<value_type> _M_copy;
+    kernel::clone<value_type> _M_clone;
     cache_options _M_options;
 
     input_tensor _M_keys;
