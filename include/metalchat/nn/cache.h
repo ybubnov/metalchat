@@ -5,6 +5,7 @@
 
 #include <metalchat/functional.h>
 #include <metalchat/kernel/copy.h>
+#include <metalchat/layer.h>
 #include <metalchat/tensor/concept.h>
 
 
@@ -12,12 +13,15 @@ namespace metalchat {
 namespace nn {
 
 
-template <typename Cache>
-using __cache_update_r = std::
-    tuple<typename Cache::input_tensor, typename Cache::input_tensor, typename Cache::mask_tensor>;
+template <typename T>
+struct caching_result {
+    future_tensor<T, 4> keys;
+    future_tensor<T, 4> values;
+    std::optional<future_tensor<T, 2>> mask;
+};
 
 
-struct cache_options {
+struct caching_options {
     std::size_t head_dim;
     std::size_t n_heads;
     std::size_t n_kv_heads;
@@ -35,18 +39,12 @@ concept cache = requires(Cache cache) {
     typename Cache::input_tensor;
     requires immutable_tensor_t<typename Cache::input_tensor, typename Cache::value_type>;
 
-    /// The third element of the `update` return value should be a causal
-    /// additive mask. When the size of the input query is different from 1,
-    /// then causal mask will be non-empty.
-    typename Cache::mask_tensor;
-    requires optional_tensor_t<typename Cache::mask_tensor, typename Cache::value_type>;
-
     {
         cache.update(
             std::declval<typename Cache::input_tensor>(),
             std::declval<typename Cache::input_tensor>(), std::size_t()
         )
-    } -> std::same_as<__cache_update_r<Cache>>;
+    } -> std::same_as<caching_result<typename Cache::value_type>>;
 };
 
 
@@ -54,7 +52,7 @@ template <typename CacheConstructible>
 concept cache_constructible = requires {
     requires cache<CacheConstructible>;
 
-    requires std::constructible_from<CacheConstructible, cache_options, hardware_accelerator>;
+    requires std::constructible_from<CacheConstructible, caching_options, hardware_accelerator>;
 };
 
 
@@ -62,15 +60,14 @@ template <typename Cache, typename T>
 concept cache_t = cache<Cache> && std::same_as<typename Cache::value_type, T>;
 
 
-template <typename T> class sink_cache {
+template <typename T> class sink_cache : public basic_layer {
 public:
     using value_type = T;
     using input_tensor = future_tensor<T, 4>;
     using mask_tensor = std::optional<future_tensor<T, 2>>;
-    using return_type = std::tuple<input_tensor, input_tensor, mask_tensor>;
 
-    sink_cache(std::size_t pre_len, const cache_options& options, hardware_accelerator accelerator)
-    : _M_accelerator(accelerator),
+    sink_cache(std::size_t pre_len, const caching_options& options, hardware_accelerator accelerator)
+    : basic_layer(accelerator),
       _M_clone(accelerator),
       _M_options(options),
       _M_keys(alloc(options)),
@@ -78,11 +75,11 @@ public:
       _M_pre_len(pre_len)
     {}
 
-    sink_cache(const cache_options& options, hardware_accelerator accelerator)
+    sink_cache(const caching_options& options, hardware_accelerator accelerator)
     : sink_cache(std::bit_width(options.max_seq_len) - 1, options, accelerator)
     {}
 
-    return_type
+    caching_result<value_type>
     update(input_tensor keys, input_tensor vals, std::size_t start_pos)
     {
         if (keys.size(1) != vals.size(1)) {
@@ -102,7 +99,7 @@ public:
         auto mask_len = k.size(1);
         auto mask = create_additive_causal_mask(len, mask_len);
 
-        return std::make_tuple(k, v, mask);
+        return caching_result{k, v, mask};
     }
 
 private:
@@ -114,7 +111,7 @@ private:
         if (len > 1) {
             const T infinity = T(std::numeric_limits<float>::infinity());
 
-            auto alloc = _M_accelerator.get_allocator();
+            auto alloc = accelerator().get_allocator();
             auto m = full<T>({len, mask_len}, -infinity, alloc);
 
             triu(m.narrow(1, mask_len - len, len));
@@ -125,11 +122,11 @@ private:
     }
 
     auto
-    alloc(const cache_options& options)
+    alloc(const caching_options& options)
     {
         return future_tensor(empty<T>(
             {options.max_batch_size, options.max_seq_len, options.n_kv_heads, options.head_dim},
-            _M_accelerator.get_allocator()
+            accelerator().get_allocator()
         ));
     }
 
@@ -174,7 +171,7 @@ private:
             auto cache_post = cache.narrow(1, _M_pre_len, post_len);
 
             // Roll the remaining cache by the size of a new input length.
-            auto cache_rolled = roll(cache_post, cache_new_post, int32_t(len), 1, _M_accelerator);
+            auto cache_rolled = roll(cache_post, cache_new_post, int32_t(len), 1, accelerator());
 
             cache = future_tensor(cache_new, cache_rolled);
 
@@ -193,9 +190,8 @@ private:
         return std::make_tuple(cache, cached_data);
     }
 
-    hardware_accelerator _M_accelerator;
     kernel::clone<value_type> _M_clone;
-    cache_options _M_options;
+    caching_options _M_options;
 
     input_tensor _M_keys;
     input_tensor _M_vals;

@@ -51,7 +51,7 @@ public:
 
         using layer_type = nn::transformer<T, Container>;
 
-        const auto cache_opts = cache_options{
+        const auto caching_opts = caching_options{
             .head_dim = options.head_dim,
             .n_heads = options.n_heads,
             .n_kv_heads = options.n_kv_heads,
@@ -65,7 +65,7 @@ public:
             auto layer_ptr = register_layer(layer_name, std::move(layer_value));
 
             _M_transforms.push_back(layer_ptr);
-            _M_cache.emplace_back(cache_opts, gpu);
+            _M_cache.emplace_back(caching_opts, gpu);
         }
     }
 
