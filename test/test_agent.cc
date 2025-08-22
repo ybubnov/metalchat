@@ -1,14 +1,14 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <metalchat/agent.h>
 #include <metalchat/allocator.h>
-#include <metalchat/chat.h>
 #include <metalchat/nn.h>
 
 
 using namespace metalchat;
 
 
-TEST_CASE("Test chat2", "[llama]")
+TEST_CASE("Test agent", "[llama]")
 {
     std::filesystem::path weights_path("../llama32.safetensors");
     std::filesystem::path tokens_path("../Llama-3.2-1B-Instruct/original/tokenizer.model");

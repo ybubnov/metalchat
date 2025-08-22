@@ -24,18 +24,12 @@ TEST_CASE("Test make model", "[llama]")
     auto alloc2 = hardware_resident_allocator(alloc1, gpu0.get_metal_device());
 
     gpu0.set_allocator(std::move(alloc2));
-    auto options = nn::attention_options{
-        .head_dim = 64,
-        .n_heads = 32,
-        .n_kv_heads = 8,
-        .max_seq_len = 16,
-        .rope_theta = 500000.0
-    };
 
     auto alloc = make_rebind_allocator<bf16>(gpu0.get_allocator());
     auto tensors = safetensor_document::load("../llama32.safetensors", alloc);
 
-    nn::llama<bf16> m(16, options, gpu0);
+    auto options = nn::default_llama3_1b_options().max_seq_len(16);
+    nn::llama3<bf16> m(options, gpu0);
     m.initialize(tensors);
 
     auto heap_size = std::size_t(512) * 1024 * 1024;

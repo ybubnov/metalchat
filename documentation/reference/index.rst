@@ -15,7 +15,7 @@ TBD
    tensor/index
    kernel/index
    layer/index
-   chat
+   agent/index
 
 
 Allocator library

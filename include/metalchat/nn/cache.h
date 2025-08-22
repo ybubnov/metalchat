@@ -13,8 +13,7 @@ namespace metalchat {
 namespace nn {
 
 
-template <typename T>
-struct caching_result {
+template <typename T> struct caching_result {
     future_tensor<T, 4> keys;
     future_tensor<T, 4> values;
     std::optional<future_tensor<T, 2>> mask;
@@ -66,7 +65,9 @@ public:
     using input_tensor = future_tensor<T, 4>;
     using mask_tensor = std::optional<future_tensor<T, 2>>;
 
-    sink_cache(std::size_t pre_len, const caching_options& options, hardware_accelerator accelerator)
+    sink_cache(
+        std::size_t pre_len, const caching_options& options, hardware_accelerator accelerator
+    )
     : basic_layer(accelerator),
       _M_clone(accelerator),
       _M_options(options),

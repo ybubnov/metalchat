@@ -1,13 +1,5 @@
-Chat library
-============
-
-Concepts
---------
-
-.. doxygenconcept:: metalchat::language_estimator_t
-
-.. doxygenconcept:: metalchat::language_transformer_t
-
+String tokenization
+===================
 
 Byte pair encoder
 -----------------
@@ -20,14 +12,4 @@ Byte pair encoder
    <https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_1/#prompt-template)>`_.
 
 .. doxygenclass:: metalchat::byte_pair_encoder
-   :members:
-
-
-Language chat
--------------
-
-.. doxygenclass:: metalchat::chat
-   :members:
-
-.. doxygenclass:: metalchat::language_transformer
    :members:
