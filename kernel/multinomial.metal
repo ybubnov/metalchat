@@ -6,6 +6,10 @@
 #include "tensor.h"
 
 
+/// This is an adapted c++ implementation of the PCG32 random number based on code by
+/// (c) 2014 Melissa E. O'Neill / available at http://www.pcg-random.org.
+///
+/// Licensed under Apache License 2.0.
 class pcg32 {
 private:
     uint64_t _m_state;
@@ -15,8 +19,10 @@ private:
     _m_uniform()
     {
         uint64_t pre_state = _m_state;
+        // Advance internal state
         _m_state = pre_state * 6364136223846793005ULL + _m_inc;
 
+        // Calculate output function (XSH RR), uses old state for max ILP.
         uint32_t xorshifted = uint32_t(((pre_state >> 18u) ^ pre_state) >> 27u);
         uint32_t rot = uint32_t(pre_state >> 59u);
 
