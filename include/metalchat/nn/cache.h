@@ -13,9 +13,18 @@ namespace metalchat {
 namespace nn {
 
 
+/// The result of a cache update query.
+///
+/// \tparam T data type of the cache elements (float, int, etc.).
 template <typename T> struct caching_result {
+    /// A future tensor that will contain a result of keys caching query.
     future_tensor<T, 4> keys;
+
+    /// A future tensor that will contain a result of values caching query.
     future_tensor<T, 4> values;
+
+    /// An optional future tensor that will contain a result of additive causal mask creation.
+    /// This mask is created only when the length of keys (or values) is larger than `1`.
     std::optional<future_tensor<T, 2>> mask;
 };
 
@@ -59,12 +68,34 @@ template <typename Cache, typename T>
 concept cache_t = cache<Cache> && std::same_as<typename Cache::value_type, T>;
 
 
+/// Implementation of the KV cache introduced in attention sinks paper. It allows the model to
+/// generate text beyond the length of its context window, without losing fluency in the
+/// conversation.
+///
+/// This is done by always keeping the first few tokens ("sink tokens") in the KV cache, as
+/// models often pay a large amount of attention to them during the training. As it discards
+/// past non-sink tokens, the model will lose the ability to generate tokens that depend on
+/// the context that was discarded. It's also a solution to contain the memory footprint of
+/// the KV cache.
+///
+/// \warning The implementation does not track if the specified start position corresponds
+/// to the latest used start position. So if a user calls an attention layer with
+/// `start_pos = 15` and cache size set to `16`, and then makes subsequent call with
+/// `start_pos = 44`, the implementation won't complain, but the result might be not what a
+/// user expects.
+///
+/// \tparam T data type of the cache elements (float, int, etc.).
 template <typename T> class sink_cache : public basic_layer {
 public:
     using value_type = T;
     using input_tensor = future_tensor<T, 4>;
     using mask_tensor = std::optional<future_tensor<T, 2>>;
 
+    /// Constructs a new instance of the sink cache.
+    ///
+    /// \param pre_len a number of sink tokens that will be permanently kept in cache.
+    /// \param options caching options for the KV cache.
+    /// \param accelerator a hardware accelerator instance.
     sink_cache(
         std::size_t pre_len, const caching_options& options, hardware_accelerator accelerator
     )
@@ -76,11 +107,21 @@ public:
       _M_pre_len(pre_len)
     {}
 
+    /// Constructs a new instance of the sink cache with the number of sink tokens set to the
+    /// logarithm of base 2 from the maximum length of the context window.
+    ///
+    /// \param options caching options for the KV cache.
+    /// \param accelerator a hardware accelerator instance.
     sink_cache(const caching_options& options, hardware_accelerator accelerator)
     : sink_cache(std::bit_width(options.max_seq_len) - 1, options, accelerator)
     {}
 
-    caching_result<value_type>
+    /// Updates the cache tensor with new keys and values.
+    ///
+    /// \param keys new keys to cache.
+    /// \param vals new values to cache.
+    /// \param start_pos position of the next token in an output sequence.
+    caching_result<T>
     update(input_tensor keys, input_tensor vals, std::size_t start_pos)
     {
         if (keys.size(1) != vals.size(1)) {
@@ -135,11 +176,6 @@ private:
     ///
     /// The implementation allows to store the inference results for the position larger than
     /// the cache size: it simply drops the least recent results. It works like a sliding window.
-    ///
-    /// The implementation does not track if the specified start position corresponds to the
-    /// latest used start position. So if user called an attention layer with `start_pos = 15`
-    /// with cache size = 16, and then makes the next call with `start_pos = 44`, model won't
-    /// complain, but the result is not won't be correct.
     template <immutable_hardware_tensor4_t<T> Cache, immutable_tensor4_t<T> Input>
     auto
     copy(Cache cache, Input input, std::size_t start_pos)
