@@ -14,11 +14,8 @@ namespace nn {
 
 
 /// The result of a cache update query. The dimensions of the \ref caching_result::keys and
-/// \ref caching_result::values tensors are like following:
-/// - `1` - a batch dimension.
-/// - `2` - a length of the token sequence.
-/// - `3` - a number of key-value heads.
-/// - `4` - a number of heads.
+/// \ref caching_result::values tensors are like following: [`bs`, `max_seq_len`, `n_kv_heads`,
+/// `n_heads`].
 ///
 /// \tparam T data type of the cache elements (float, int, etc.).
 template <typename T> struct caching_result {
