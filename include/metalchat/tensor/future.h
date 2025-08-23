@@ -204,6 +204,16 @@ public:
         return _M_result;
     }
 
+    /// Return the result tensor without waiting of the associated operation completion.
+    ///
+    /// \warning Since the operation is not awaited, the data container of the returned tensor
+    /// could (and will) be populated asynchronously to the main application thread.
+    result_type
+    get_nowait() const
+    {
+        return _M_result;
+    }
+
     /// Blocks until the result becomes available.
     void
     wait()

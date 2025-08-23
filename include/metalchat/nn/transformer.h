@@ -64,7 +64,7 @@ private:
     nn::shared_rmsnorm<T, Container> _M_ff_norm;
 
 public:
-    transformer(attention_options& options, hardware_accelerator gpu)
+    transformer(const attention_options& options, hardware_accelerator gpu)
     : basic_layer(gpu)
     {
         _M_attention = register_layer("attention", nn::attention<T, Container>(options, gpu));

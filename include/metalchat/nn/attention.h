@@ -72,7 +72,9 @@ private:
 
 public:
     attention(
-        attention_options& options, hardware_accelerator accelerator, std::size_t max_batch_size = 1
+        const attention_options& options,
+        hardware_accelerator accelerator,
+        std::size_t max_batch_size = 1
     )
     : basic_layer(accelerator),
       _M_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),

@@ -149,7 +149,7 @@ public:
             .max_batch_size = 1
         };
 
-        auto attention_opts = attention_options{
+        const auto attention_opts = attention_options{
             .head_dim = options.head_dim(),
             .n_heads = options.n_heads(),
             .n_kv_heads = options.n_kv_heads(),

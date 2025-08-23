@@ -110,7 +110,9 @@ public:
       _M_keys(alloc(options)),
       _M_vals(alloc(options)),
       _M_pre_len(pre_len)
-    {}
+    {
+        update_parameters();
+    }
 
     /// Constructs a new instance of the sink cache with the number of sink tokens set to the
     /// logarithm of base 2 from the maximum length of the context window.
@@ -141,6 +143,7 @@ public:
 
         _M_keys = cache_keys;
         _M_vals = cache_vals;
+        update_parameters();
 
         auto len = keys.size(1);
         auto mask_len = k.size(1);
@@ -230,6 +233,13 @@ private:
         auto cached_data = cache[slice(0, bs), slice(0, end_pos), slice(), slice()];
 
         return std::make_tuple(cache, cached_data);
+    }
+
+    void
+    update_parameters()
+    {
+        register_parameter("keys", _M_keys.get_nowait());
+        register_parameter("values", _M_vals.get_nowait());
     }
 
     kernel::clone<value_type> _M_clone;
