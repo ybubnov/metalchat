@@ -71,6 +71,9 @@ public:
 };
 
 
+/// Writes values into the tensor at the specified indices.
+///
+/// \warning When indices are not unique, the behaviour is non-deterministic.
 template <typename T, std::size_t BlockSize = 16> class scatter {
 private:
     basic_kernel _M_kernel;
@@ -81,21 +84,41 @@ public:
     : _M_kernel(gpu.load<T, BlockSize>("scatter"))
     {}
 
-    template <immutable_tensor_t<T> Input, immutable_tensor_t<bool> Mask>
+    /// Invokes the kernel, and writes a single value to the output tensor according to
+    /// the specified boolean mask.
+    ///
+    /// \param output a tensor to write data to.
+    /// \param mask a boolean mask tensor (should be the same size as an output tensor).
+    /// \param value a value to write.
+    ///
+    /// ```c++
+    /// auto T = tensor<float>({{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}});
+    /// auto M = tensor<bool>({{true, false, false}, {false, true, true}});
+    ///
+    /// auto accelerator = hardware_accelerator();
+    /// auto scatter = kernel::scatter(accelerator);
+    ///
+    /// auto output = scatter(T, M, 9.0);
+    /// std::cout << output.get() << std::endl;
+    /// // out:
+    /// // [[9.0, 2.0, 3.0],
+    /// //  [4.0, 9.0, 9.0]], sizes=(2, 3)
+    /// ```
+    template <immutable_tensor_t<T> Output, immutable_tensor_t<bool> Mask>
     auto
-    operator()(Input input, Mask mask, T value)
+    operator()(Output output, Mask mask, T value)
     {
         // TODO: ensure that input is the same shape as mask.
         auto [grid, thread] = make_kernel_grid_2d(input, BlockSize);
 
-        auto input_view = flatten<2>(input);
+        auto output_view = flatten<2>(output);
         auto mask_view = flatten<2>(mask);
 
         auto task = kernel_task(_M_kernel, grid, thread);
-        auto task_future = task.bind_front(input_view, mask_view, scalar(value));
+        auto task_future = task.bind_front(output_view, mask_view, scalar(value));
 
-        auto output = future_tensor(input, std::move(task_future));
-        return output.view(input.shape());
+        auto result = future_tensor(output, std::move(task_future));
+        return result.view(input.shape());
     }
 };
 
@@ -128,7 +151,7 @@ public:
     : _M_kernel(gpu.load<T, BlockSize>("gather"))
     {}
 
-    /// Invokes the kernel
+    /// Invokes the kernel.
     ///
     /// \param input an input tensor to gather values from.
     /// \param index an index tensor that specifies locations of elements within input tensor.
