@@ -105,6 +105,9 @@ llama3_options
 default_llama3_1b_options();
 
 
+/// Llama 3 is an auto-regressive language model that uses an optimized transformer architecture.
+/// The tuned versions use supervised fine-tuning (SFT) and reinforcement learning with human
+/// feedback (RLHF) to align with human preferences for helpfulness and safety.
 template <
     typename T,
     contiguous_container Container = hardware_memory_container<T>,
@@ -126,6 +129,7 @@ public:
     using cache_type = Cache;
     using tensor_type = future_tensor<index_type, 2>;
 
+    /// Constructs a new Llama3 model with uninitialized weights with the given options.
     llama3(llama3_options options, hardware_accelerator accelerator)
         requires cache_constructible<Cache>
     : basic_layer(accelerator),
