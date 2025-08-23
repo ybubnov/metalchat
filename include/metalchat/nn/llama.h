@@ -119,7 +119,7 @@ private:
     nn::shared_linear<T, Container> _M_output;
 
     std::vector<shared_transformer<T, Container>> _M_transforms;
-    std::vector<Cache> _M_cache;
+    std::vector<shared_layer_ptr<Cache>> _M_cache;
 
     std::shared_ptr<basic_sampler<T>> _M_sampler;
 
@@ -139,8 +139,6 @@ public:
         _M_norm = register_layer("norm", nn::rmsnorm<T, Container>(accelerator));
         _M_output = register_layer("output", nn::linear<T, Container>(accelerator));
 
-        using layer_type = nn::transformer<T, Container>;
-
         const auto caching_opts = caching_options{
             .head_dim = options.head_dim(),
             .n_heads = options.n_heads(),
@@ -157,13 +155,18 @@ public:
             .rope_theta = options.rope_theta()
         };
 
+        using layer_type = nn::transformer<T, Container>;
+
         for (std::size_t i = 0; i < options.n_layers(); i++) {
             auto layer_name = std::format("layers.{}", i);
             auto layer_value = layer_type(attention_opts, accelerator);
             auto layer_ptr = register_layer(layer_name, std::move(layer_value));
-
             _M_transforms.push_back(layer_ptr);
-            _M_cache.emplace_back(caching_opts, accelerator);
+
+            auto cache_name = std::format("cache.{}", i);
+            auto cache_value = Cache(caching_opts, accelerator);
+            auto cache_ptr = register_layer(cache_name, std::move(cache_value));
+            _M_cache.push_back(cache_ptr);
         }
     }
 
@@ -177,7 +180,7 @@ public:
             auto& transform = _M_transforms[i];
             auto& cache = _M_cache[i];
 
-            x = transform(x, cache, start_pos);
+            x = transform(x, *cache, start_pos);
         }
 
         auto output = _M_norm(x);

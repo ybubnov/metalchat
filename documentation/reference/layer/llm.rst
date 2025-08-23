@@ -18,6 +18,22 @@ prediction requires attention calculations across all previous tokens in the seq
 optimization, this creates a costly cycle of redundant work. Every time the model predicts the
 next token, it recalculates the same key-value tensors for tokens it has already processed.
 
+The cache is a layer and is registered as a layer as well within a language model, therefore it
+is possible to access cache tensors through regular :cpp:class:`metalchat::basic_layer` api.
+For example, to access cache for the 2-nd layer use the following approach:
+
+.. code-block:: c++
+
+   hardware_accelerator accelerator;
+   nn::llama3 llm(default_llama3_1b_options(), accelerator);
+
+   std::cout << llm.get_parameter("cache.2.keys")->sizes() << std::endl;:
+   std::cout << llm.get_parameter("cache.2.values")->sizes() << std::endl;
+   // out:
+   // 1, 1024, 8, 64
+   // 1, 1024, 8, 64
+
+
 .. doxygenstruct:: metalchat::nn::caching_options
    :members:
 
