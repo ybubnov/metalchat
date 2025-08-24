@@ -108,8 +108,8 @@ public:
     auto
     operator()(Output output, Mask mask, T value)
     {
-        // TODO: ensure that input is the same shape as mask.
-        auto [grid, thread] = make_kernel_grid_2d(input, BlockSize);
+        // TODO: ensure that output is the same shape as mask.
+        auto [grid, thread] = make_kernel_grid_2d(output, BlockSize);
 
         auto output_view = flatten<2>(output);
         auto mask_view = flatten<2>(mask);
@@ -118,7 +118,7 @@ public:
         auto task_future = task.bind_front(output_view, mask_view, scalar(value));
 
         auto result = future_tensor(output, std::move(task_future));
-        return result.view(input.shape());
+        return result.view(output.shape());
     }
 };
 

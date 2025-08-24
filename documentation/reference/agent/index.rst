@@ -10,6 +10,9 @@ Agent library
 Agent
 -----
 
+.. doxygenclass:: metalchat::basic_message
+   :members:
+
 .. doxygenclass:: metalchat::basic_transformer
    :members:
 

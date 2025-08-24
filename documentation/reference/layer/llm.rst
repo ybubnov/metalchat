@@ -30,8 +30,8 @@ For example, to access cache for the 2-nd layer use the following approach:
    hardware_accelerator accelerator;
    nn::llama3<bf16> llm(default_llama3_1b_options(), accelerator);
 
-   std::cout << llm.get_parameter("cache.2.keys")->sizes() << std::endl;:
-   std::cout << llm.get_parameter("cache.2.values")->sizes() << std::endl;
+   std::cout << llm.get_parameter("caches.2.keys")->sizes() << std::endl;:
+   std::cout << llm.get_parameter("caches.2.values")->sizes() << std::endl;
    // out:
    // 1, 1024, 8, 64
    // 1, 1024, 8, 64

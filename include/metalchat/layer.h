@@ -71,6 +71,12 @@ public:
         return (*_M_value);
     }
 
+    const Layer&
+    operator*() const noexcept
+    {
+        return (*_M_value);
+    }
+
 private:
     std::shared_ptr<Layer> _M_value;
 };
@@ -326,6 +332,56 @@ private:
         }
         *tensor_ptr = std::move(tensor);
     }
+};
+
+
+template <typename Layer> class layer_array : public basic_layer {
+public:
+    using size_type = std::size_t;
+    using pointer = shared_layer_ptr<Layer>;
+    using reference = Layer&;
+    using const_reference = const Layer&;
+
+    layer_array(const hardware_accelerator& accelerator)
+    : basic_layer(accelerator),
+      _M_pointers()
+    {}
+
+    reference
+    operator[](size_type pos)
+    {
+        return *_M_pointers[pos];
+    }
+
+    const_reference
+    operator[](size_type pos) const
+    {
+        return *_M_pointers[pos];
+    }
+
+    void
+    push_back(Layer&& layer)
+    {
+        auto name = std::format("{}", _M_pointers.size());
+        auto ptr = register_layer(name, std::move(layer));
+        _M_pointers.push_back(ptr);
+    }
+
+    template <typename... Args>
+    void
+    emplace_back(Args&&... args)
+    {
+        push_back(Layer(std::forward<Args>(args)...));
+    }
+
+    size_type
+    size() const
+    {
+        return _M_pointers.size();
+    }
+
+private:
+    std::vector<pointer> _M_pointers;
 };
 
 

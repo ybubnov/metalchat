@@ -1,6 +1,5 @@
 #pragma once
 
-#include <format>
 #include <list>
 #include <optional>
 #include <vector>
@@ -114,12 +113,14 @@ template <
     cache_t<T> Cache = sink_cache<T>>
 class llama3 : public basic_layer {
 private:
-    nn::shared_embedding<T, Container> _M_embedding;
-    nn::shared_rmsnorm<T, Container> _M_norm;
-    nn::shared_linear<T, Container> _M_output;
+    using transformer_type = nn::transformer<T, Container>;
 
-    std::vector<shared_transformer<T, Container>> _M_transforms;
-    std::vector<shared_layer_ptr<Cache>> _M_cache;
+    shared_embedding<T, Container> _M_embedding;
+    shared_rmsnorm<T, Container> _M_norm;
+    shared_linear<T, Container> _M_output;
+
+    layer_array<transformer<T, Container>>& _M_transforms;
+    layer_array<Cache>& _M_caches;
 
     std::shared_ptr<basic_sampler<T>> _M_sampler;
 
@@ -133,6 +134,8 @@ public:
     llama3(llama3_options options, hardware_accelerator accelerator)
         requires cache_constructible<Cache>
     : basic_layer(accelerator),
+      _M_transforms(*register_layer("layers", layer_array<transformer_type>(accelerator))),
+      _M_caches(*register_layer("caches", layer_array<cache_type>(accelerator))),
       _M_sampler(std::make_shared<nucleus_sampler<value_type>>())
     {
         _M_embedding = register_layer("tok_embeddings", nn::embedding<T, Container>(accelerator));
@@ -155,18 +158,9 @@ public:
             .rope_theta = options.rope_theta()
         };
 
-        using layer_type = nn::transformer<T, Container>;
-
         for (std::size_t i = 0; i < options.n_layers(); i++) {
-            auto layer_name = std::format("layers.{}", i);
-            auto layer_value = layer_type(attention_opts, accelerator);
-            auto layer_ptr = register_layer(layer_name, std::move(layer_value));
-            _M_transforms.push_back(layer_ptr);
-
-            auto cache_name = std::format("cache.{}", i);
-            auto cache_value = Cache(caching_opts, accelerator);
-            auto cache_ptr = register_layer(cache_name, std::move(cache_value));
-            _M_cache.push_back(cache_ptr);
+            _M_transforms.emplace_back(attention_opts, accelerator);
+            _M_caches.emplace_back(caching_opts, accelerator);
         }
     }
 
@@ -178,9 +172,9 @@ public:
 
         for (std::size_t i = 0; i < _M_transforms.size(); i++) {
             auto& transform = _M_transforms[i];
-            auto& cache = _M_cache[i];
+            auto& cache = _M_caches[i];
 
-            x = transform(x, *cache, start_pos);
+            x = transform(x, cache, start_pos);
         }
 
         auto output = _M_norm(x);
