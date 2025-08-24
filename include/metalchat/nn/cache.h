@@ -31,11 +31,17 @@ template <typename T> struct caching_result {
 };
 
 
+/// Caching options to configure the key-value cache of the large language model.
 struct caching_options {
+    /// Per-attention head embedding dimension.
     std::size_t head_dim;
+    /// Number of query heads.
     std::size_t n_heads;
+    /// Number of key and value heads.
     std::size_t n_kv_heads;
+    /// Maximum sequence length model will be run with.
     std::size_t max_seq_len;
+    /// Batch size the model will be run with.
     std::size_t max_batch_size;
 };
 

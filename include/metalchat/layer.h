@@ -418,6 +418,7 @@ public:
     /// Appends a new layer to the end of the container. The arguments `args...` are forwarded
     /// to the layer constructor as `std::forward<Args>(args)...`.
     ///
+    /// \tparam Args argument types to forward to the constructor of the layer.
     /// \param args arguments to forward to the constructor of the layer.
     template <typename... Args>
     void

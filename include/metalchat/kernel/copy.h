@@ -62,6 +62,8 @@ public:
     ///
     /// \param input a tensor to clone data from.
     /// \param output a tensor to clone data to.
+    ///
+    /// \return a \ref future_tensor with the data copied from an input tensor.
     template <immutable_tensor_t<T> Input, immutable_hardware_tensor_t<T> Output>
     auto
     operator()(Input input, Output output)
@@ -90,6 +92,8 @@ public:
     /// \param output a tensor to write data to.
     /// \param mask a boolean mask tensor (should be the same size as an output tensor).
     /// \param value a value to write.
+    ///
+    /// \return a \ref future_tensor with the kernel operation result.
     ///
     /// ```c++
     /// auto T = tensor<float>({{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}});
