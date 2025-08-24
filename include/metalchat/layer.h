@@ -335,6 +335,44 @@ private:
 };
 
 
+/// Sequential container of layers.
+///
+/// \ref layer_array can be indexed like a random access container, but layers it contains are
+/// properly registered, and will be visible by all \ref basic_layer methods.
+///
+/// \tparam Layer a type of the layers this module stores.
+///
+/// ```c++
+/// struct my_layer : public basic_layer {
+///     // Step 1. Create a layer array as a type member.
+///     layer_array<nn::linear<float>> linears;
+///
+///     // Step 2. Register a layer array as a sub-layer.
+///     my_layer(const hardware_accelerator& accelerator)
+///     : basic_layer(accelerator),
+///       linears(*register_layer("linears", layer_array<nn::linear<float>>(accelerator)))
+///     {
+///         for (std::size_t i = 0; i < 10; i++) {
+///             // Step 3. Initialize layers within an array.
+///             linears.emplace_back(10, 10, accelerator);
+///         }
+///     }
+///
+///     template<immutable_tensor2_t<float> Input>
+///     auto
+///     operator()(Input input)
+///     {
+///         for (std::size_t i = 0; i < 10; i++) {
+///             // Step 4. Use layers as a regular random-access array.
+///             input = linears[i / 2](input) + linears[i](input);
+///         }
+///         return input;
+///     }
+/// };
+/// ```
+///
+/// \note You can access elements of the layer array through \ref basic_layer::get_parameter
+/// method by using the following syntax: `array.0`.
 template <typename Layer> class layer_array : public basic_layer {
 public:
     using size_type = std::size_t;
@@ -342,23 +380,33 @@ public:
     using reference = Layer&;
     using const_reference = const Layer&;
 
+    /// The layer array constructor.
     layer_array(const hardware_accelerator& accelerator)
     : basic_layer(accelerator),
       _M_pointers()
     {}
 
+    /// Returns a reference to the `pos`-element of the layer array.
+    ///
+    /// \param pos the position of a layer in the array.
     reference
     operator[](size_type pos)
     {
         return *_M_pointers[pos];
     }
 
+    /// Returns a constant reference to the `pos`-element of the layer array.
+    ///
+    /// \param pos the position of a layer in the array.
     const_reference
     operator[](size_type pos) const
     {
         return *_M_pointers[pos];
     }
 
+    /// Appends an existing layer to the end of the container.
+    ///
+    /// \param layer the layer to append.
     void
     push_back(Layer&& layer)
     {
@@ -367,6 +415,10 @@ public:
         _M_pointers.push_back(ptr);
     }
 
+    /// Appends a new layer to the end of the container. The arguments `args...` are forwarded
+    /// to the layer constructor as `std::forward<Args>(args)...`.
+    ///
+    /// \param args arguments to forward to the constructor of the layer.
     template <typename... Args>
     void
     emplace_back(Args&&... args)
@@ -374,6 +426,7 @@ public:
         push_back(Layer(std::forward<Args>(args)...));
     }
 
+    /// Returns the number of elements in the container.
     size_type
     size() const
     {

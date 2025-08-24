@@ -15,6 +15,13 @@ Basic layer
    :members:
 
 
+Layer array
+-----------
+
+.. doxygenclass:: metalchat::layer_array
+   :members:
+
+
 Shared layer
 ------------
 

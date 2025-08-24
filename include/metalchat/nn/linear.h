@@ -20,15 +20,19 @@ private:
     shared_tensor<T, 2, WeightContainer> _M_weight;
 
 public:
-    linear(shared_tensor<T, 2, WeightContainer> weight, hardware_accelerator accelerator)
+    linear(shared_tensor<T, 2, WeightContainer> weight, hardware_accelerator& accelerator)
     : basic_layer(accelerator),
       _M_weight(weight)
     {
         register_parameter("weight", _M_weight);
     }
 
-    linear(tensor<T, 2, WeightContainer>&& weight, hardware_accelerator accelerator)
+    linear(tensor<T, 2, WeightContainer>&& weight, hardware_accelerator& accelerator)
     : linear(shared_tensor(std::move(weight)), accelerator)
+    {}
+
+    linear(std::size_t in_features, std::size_t out_features, hardware_accelerator& accelerator)
+    : linear(empty<T>({in_features, out_features}, accelerator))
     {}
 
     linear(hardware_accelerator accelerator)
