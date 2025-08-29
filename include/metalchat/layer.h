@@ -112,6 +112,10 @@ public:
     /// This method uses a parameter `N` to define the maximum number of dimensions of tensors
     /// to allocate. From the efficiency perspective it is limited by 8, but could be extended
     /// up to arbitrary number of dimensions.
+    ///
+    /// \tparam Container a storage implementation for the tensor elements.
+    /// \tparam ForwardIt a type of the iterator that returns \ref safetensor.
+    /// \param first, last the pair of iterators defining the seqeuence of \ref safetensor.
     template <contiguous_container Container, std::forward_iterator ForwardIt, std::size_t N = 8>
     void
     initialize(const ForwardIt first, const ForwardIt last)

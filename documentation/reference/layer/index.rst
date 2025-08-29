@@ -6,6 +6,7 @@ Layer library
 
    nn
    llm
+   safetensor
 
 
 Basic layer
