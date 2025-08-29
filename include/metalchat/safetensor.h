@@ -1,12 +1,10 @@
 #pragma once
 
 #include <algorithm>
-#include <cstdio>
 #include <filesystem>
 #include <format>
 #include <iostream>
 #include <numeric>
-#include <unordered_map>
 #include <vector>
 
 #include <metalchat/accelerator.h>
