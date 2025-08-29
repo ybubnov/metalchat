@@ -115,7 +115,7 @@ public:
     ///
     /// \tparam Container a storage implementation for the tensor elements.
     /// \tparam ForwardIt a type of the iterator that returns \ref safetensor.
-    /// \param first, last the pair of iterators defining the seqeuence of \ref safetensor.
+    /// \param first, last the pair of iterators defining the sequence of \ref safetensor.
     template <contiguous_container Container, std::forward_iterator ForwardIt, std::size_t N = 8>
     void
     initialize(const ForwardIt first, const ForwardIt last)
