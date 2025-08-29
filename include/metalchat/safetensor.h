@@ -12,6 +12,7 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/allocator.h>
 #include <metalchat/container.h>
+#include <metalchat/layer.h>
 #include <metalchat/tensor/basic.h>
 
 
@@ -87,20 +88,137 @@ private:
 };
 
 
-template <typename UnaryOp, typename Allocator>
-concept invocable_with_safetensor = requires {
-    requires allocator<Allocator>;
-    requires std::invocable<UnaryOp, safetensor<typename Allocator::container_type>>;
+class safetensor_document;
+
+
+template <allocator Allocator> class safetensor_iterator {
+private:
+    using metadata_type = std::vector<safetensor_metadata>;
+    using metadata_iterator = std::vector<safetensor_metadata>::const_iterator;
+
+    safetensor_iterator(
+        std::shared_ptr<basic_memfile> file, metadata_iterator input, Allocator alloc
+    )
+    : _M_file(file),
+      _M_input(input),
+      _M_alloc(alloc)
+    {}
+
+    std::shared_ptr<basic_memfile> _M_file;
+    metadata_iterator _M_input;
+    Allocator _M_alloc;
+
+    friend class safetensor_document;
+
+public:
+    using allocator_type = Allocator;
+    using container_type = Allocator::container_type;
+
+    using value_type = safetensor<container_type>;
+
+    using iterator_category = std::forward_iterator_tag;
+
+    using iterator = safetensor_iterator<Allocator>;
+
+    using reference = value_type&;
+
+    using pointer = value_type*;
+
+    using difference_type = std::ptrdiff_t;
+
+    safetensor_iterator()
+    : _M_file(nullptr),
+      _M_input(),
+      _M_alloc()
+    {}
+
+    safetensor_iterator(const iterator& it) = default;
+
+    iterator&
+    operator++()
+    {
+        _M_input++;
+        return *this;
+    }
+
+    iterator
+    operator++(int)
+    {
+        auto result = *this;
+        ++*_M_input;
+        return result;
+    }
+
+    value_type
+    operator*() const
+    {
+        using const_pointer = Allocator::const_pointer;
+        using container_value_type = Allocator::value_type;
+        using container_pointer = Allocator::container_pointer;
+
+        auto& metadata = *_M_input;
+        auto data_offset = metadata.data_offsets[0];
+
+        if (data_offset >= _M_file->size()) {
+            throw std::runtime_error(std::format(
+                "safetensor_iterator: start data position {} for a tensor {} is out of bounds",
+                data_offset, metadata.name
+            ));
+        }
+
+        auto numel = std::accumulate(
+            metadata.shape.begin(), metadata.shape.end(), 1, std::multiplies<std::size_t>()
+        );
+
+        container_pointer container_ptr(nullptr);
+        auto alloc = const_cast<std::remove_const_t<Allocator>&>(_M_alloc);
+
+        if (_M_file->is_mapped()) {
+            const basic_memfile::char_type* container = _M_file->data() + data_offset;
+            container_ptr = alloc.allocate((const_pointer)(container), numel);
+        } else {
+            auto container = std::make_shared<container_value_type[]>(numel);
+            _M_file->read(container.get(), sizeof(container_value_type) * numel);
+
+            container_ptr = alloc.allocate((const_pointer)(container.get()), numel);
+        }
+
+        return value_type(metadata.name, metadata.shape, container_ptr);
+    }
+
+    bool
+    operator==(const iterator& rhs) const
+    {
+        return _M_input == rhs._M_input;
+    }
+
+    bool
+    operator!=(const iterator& rhs) const
+    {
+        return !operator==(rhs);
+    }
 };
+
+
+/// Specifies available file open flags for a safetensor document.
+enum safetensor_openmode { in, out };
 
 
 class safetensor_document {
 private:
     std::shared_ptr<basic_memfile> _M_file;
     std::vector<safetensor_metadata> _M_metadata;
+    safetensor_openmode _M_mode;
+
+protected:
+    static std::vector<safetensor_metadata>
+    parse_metadata(basic_memfile& file);
+
+    static std::vector<safetensor_metadata>
+    parse_metadata(std::shared_ptr<basic_memfile> file_ptr);
 
 public:
-    safetensor_document(std::shared_ptr<basic_memfile> file);
+    safetensor_document(std::shared_ptr<basic_memfile> file, safetensor_openmode mode);
 
     void*
     data() noexcept;
@@ -108,87 +226,58 @@ public:
     std::vector<std::size_t>
     sizes() const;
 
-    static std::vector<safetensor_metadata>
-    load_header(basic_memfile& file);
-
-    static std::vector<safetensor_metadata>
-    load_header(std::shared_ptr<basic_memfile> file_ptr);
+    template <allocator Allocator>
+    safetensor_iterator<Allocator>
+    begin(Allocator alloc) const
+    {
+        return safetensor_iterator<Allocator>(_M_file, _M_metadata.begin(), alloc);
+    }
 
     template <allocator Allocator>
-    static auto
-    load(const std::filesystem::path& p, Allocator alloc)
+    safetensor_iterator<Allocator>
+    end(Allocator alloc) const
+    {
+        return safetensor_iterator<Allocator>(_M_file, _M_metadata.end(), alloc);
+    }
+
+    template <allocator Allocator>
+    void
+    load(basic_layer& layer, Allocator alloc)
+    {
+        using container_type = Allocator::container_type;
+        layer.initialize<container_type>(begin<Allocator>(alloc), end<Allocator>(alloc));
+    }
+
+    template <allocator Allocator>
+    static void
+    load(const std::filesystem::path& p, basic_layer& layer, Allocator alloc)
     {
         auto file = std::make_shared<basic_memfile>(p);
         file->declare_mapped();
+        auto document = safetensor_document(file, safetensor_openmode::in);
 
         auto alloc0 = aliasing_allocator(alloc, file);
-        return load(alloc0);
+        return document.load(layer, alloc0);
     }
 
     template <hardware_allocator Allocator>
-    static auto
-    load(const std::filesystem::path& p, Allocator alloc)
+    static void
+    load(const std::filesystem::path& p, basic_layer& layer, Allocator alloc)
     {
         auto file = std::make_shared<basic_memfile>(p);
         file->declare_mapped();
-        auto document = safetensor_document(file);
+        auto document = safetensor_document(file, safetensor_openmode::in);
 
         auto alloc0 = hardware_aliasing_allocator(alloc, file);
-        return document.load(alloc0);
+        return document.load(layer, alloc0);
     }
 
-    template <allocator Allocator>
-    auto
-    load(Allocator alloc)
+    template <typename T>
+    static void
+    load(const std::filesystem::path& p, basic_layer& layer)
     {
-        using container_type = typename Allocator::container_type;
-        using safetensor_type = safetensor<container_type>;
-
-        std::unordered_map<std::string, safetensor_type> tensors;
-        load(alloc, [&](safetensor_type s) { tensors.insert_or_assign(s.name(), s); });
-        return tensors;
-    }
-
-    template <allocator Allocator, invocable_with_safetensor<Allocator> UnaryOp>
-    void
-    load(Allocator alloc, UnaryOp unary_op)
-    {
-        using value_type = typename Allocator::value_type;
-        using const_pointer = typename Allocator::const_pointer;
-        using container_type = typename Allocator::container_type;
-        using container_pointer = typename Allocator::container_pointer;
-        using tensor_type = safetensor<container_type>;
-
-        for (const auto& tensor_metadata : _M_metadata) {
-            auto tensor_pos = tensor_metadata.data_offsets[0];
-
-            if (tensor_pos >= _M_file->size()) {
-                throw std::runtime_error(std::format(
-                    "safetensor: start data position {} for a tensor {} is out of bounds",
-                    tensor_pos, tensor_metadata.name
-                ));
-            }
-
-            auto tensor_shape = tensor_metadata.shape;
-            auto tensor_numel = std::accumulate(
-                tensor_shape.begin(), tensor_shape.end(), 1, std::multiplies<std::size_t>()
-            );
-
-            container_pointer container_ptr(nullptr);
-
-            if (_M_file->is_mapped()) {
-                const basic_memfile::char_type* container = _M_file->data() + tensor_pos;
-                container_ptr = alloc.allocate((const_pointer)(container), tensor_numel);
-            } else {
-                auto container = std::make_shared<value_type[]>(tensor_numel);
-                _M_file->read(container.get(), sizeof(value_type) * tensor_numel);
-
-                container_ptr = alloc.allocate((const_pointer)(container.get()), tensor_numel);
-            }
-
-            auto tensor = tensor_type(tensor_metadata.name, tensor_metadata.shape, container_ptr);
-            unary_op(tensor);
-        }
+        auto alloc = layer.accelerator().get_allocator();
+        return load(p, layer, make_rebind_allocator<T>(alloc));
     }
 };
 

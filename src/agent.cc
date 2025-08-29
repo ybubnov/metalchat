@@ -18,7 +18,7 @@ make_llama3(
 
     auto weights_file = std::make_shared<basic_memfile>(weights_path);
     weights_file->declare_mapped();
-    metalchat::safetensor_document weights(weights_file);
+    metalchat::safetensor_document weights(weights_file, safetensor_openmode::in);
 
     // Move memory file to a resident set, do not copy the underlying memory.
     //
@@ -49,8 +49,7 @@ make_llama3(
     auto transformer = transformer_type(options, gpu0);
 
     auto alloc = make_rebind_allocator<value_type>(gpu0.get_allocator());
-    auto tensors = weights.load(alloc);
-    transformer.initialize(tensors);
+    weights.load(transformer, alloc);
 
     auto alloc7 = hardware_heap_allocator<void>(gpu0.get_metal_device(), options.heap_size());
     auto alloc8 = hardware_nocopy_allocator(alloc7, gpu0.get_metal_device());
@@ -85,10 +84,8 @@ make_llama3_compact(
     auto transformer = transformer_type(options, gpu0);
 
     auto alloc = filebuf_memory_allocator<value_type>();
-    auto weights = safetensor_document(weights_file);
-    auto tensors = weights.load(alloc);
-
-    transformer.initialize(tensors);
+    auto weights = safetensor_document(weights_file, safetensor_openmode::in);
+    weights.load(transformer, alloc);
 
     auto alloc3 = hardware_heap_allocator<void>(gpu0.get_metal_device(), options.heap_size());
     auto alloc4 = hardware_nocopy_allocator(alloc3, gpu0.get_metal_device());

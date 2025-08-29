@@ -4,8 +4,9 @@
 #include <functional>
 #include <optional>
 
-#include <metalchat/safetensor.h>
-#include <metalchat/tensor/concept.h>
+#include <metalchat/accelerator.h>
+#include <metalchat/kernel.h>
+#include <metalchat/tensor.h>
 
 
 namespace metalchat {
@@ -111,28 +112,24 @@ public:
     /// This method uses a parameter `N` to define the maximum number of dimensions of tensors
     /// to allocate. From the efficiency perspective it is limited by 8, but could be extended
     /// up to arbitrary number of dimensions.
-    template <contiguous_container Container, std::size_t N = 8>
+    template <contiguous_container Container, std::forward_iterator ForwardIt, std::size_t N = 8>
     void
-    initialize(const std::unordered_map<std::string, safetensor<Container>>& weights)
+    initialize(const ForwardIt first, const ForwardIt last)
     {
-        auto visitor = [&](const std::string& param_name, parameter_pointer param) {
-            if (auto it = weights.find(param_name); it != weights.end()) {
-                auto& [_, weight] = *it;
-                std::size_t dim = weight.dim();
+        for (auto it = first; it != last; ++it) {
+            auto weight = *it;
+            auto parameter = get_parameter(weight.name());
 
-                constexpr_switch(dim, std::make_index_sequence<N>{}, [&](auto i) {
-                    auto sizes = weight.sizes();
+            constexpr_switch(weight.dim(), std::make_index_sequence<N>{}, [&](auto i) {
+                auto sizes = weight.sizes();
 
-                    using value_type = typename Container::value_type;
-                    using tensor_type = tensor<value_type, i, Container>;
+                using value_type = typename Container::value_type;
+                using tensor_type = tensor<value_type, i, Container>;
 
-                    auto tensor = tensor_type(sizes.begin(), sizes.end(), weight.container());
-                    move_tensor_to_pointer(param, std::move(tensor));
-                });
-            }
-        };
-
-        apply(visitor);
+                auto tensor = tensor_type(sizes.begin(), sizes.end(), weight.container());
+                move_tensor_to_pointer(parameter, std::move(tensor));
+            });
+        }
     }
 
     /// Register an upstream layer for the current layer. The layer could be accessed using
@@ -333,6 +330,14 @@ private:
         *tensor_ptr = std::move(tensor);
     }
 };
+
+
+void
+save_tensors(const basic_layer& layer, const std::filesystem::path& p);
+
+
+void
+load_tensors(basic_layer& layer, const std::filesystem::path& p);
 
 
 /// Sequential container of layers.

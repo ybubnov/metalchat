@@ -60,10 +60,17 @@ simdjson::ondemand::value::get() noexcept
 namespace metalchat {
 
 
-safetensor_document::safetensor_document(std::shared_ptr<basic_memfile> file)
+safetensor_document::safetensor_document(
+    std::shared_ptr<basic_memfile> file, safetensor_openmode mode
+)
 : _M_file(file),
-  _M_metadata(load_header(file))
-{}
+  _M_metadata(),
+  _M_mode(mode)
+{
+    if (_M_mode == safetensor_openmode::in) {
+        _M_metadata = parse_metadata(file);
+    }
+}
 
 
 void*
@@ -86,7 +93,7 @@ safetensor_document::sizes() const
 
 
 std::vector<safetensor_metadata>
-safetensor_document::load_header(basic_memfile& file)
+safetensor_document::parse_metadata(basic_memfile& file)
 {
     // Read the length of the header and then the header itself, ensure that the
     // the file contains enough data to avoid reading from inaccessible regions.
@@ -136,9 +143,9 @@ safetensor_document::load_header(basic_memfile& file)
 
 
 std::vector<safetensor_metadata>
-safetensor_document::load_header(std::shared_ptr<basic_memfile> file_ptr)
+safetensor_document::parse_metadata(std::shared_ptr<basic_memfile> file_ptr)
 {
-    return load_header(*file_ptr);
+    return parse_metadata(*file_ptr);
 }
 
 

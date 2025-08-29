@@ -25,12 +25,11 @@ TEST_CASE("Test make model", "[llama]")
 
     gpu0.set_allocator(std::move(alloc2));
 
-    auto alloc = make_rebind_allocator<bf16>(gpu0.get_allocator());
-    auto tensors = safetensor_document::load("../llama32.safetensors", alloc);
-
     auto options = nn::default_llama3_1b_options().max_seq_len(16);
     nn::llama3<bf16> m(options, gpu0);
-    m.initialize(tensors);
+
+    auto alloc = make_rebind_allocator<bf16>(gpu0.get_allocator());
+    safetensor_document::load("../llama32.safetensors", m, alloc);
 
     auto heap_size = std::size_t(512) * 1024 * 1024;
     auto alloc3 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);

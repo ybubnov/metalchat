@@ -90,7 +90,7 @@ public:
     }
 
     bool
-    operator==(const iterator& rhs)
+    operator==(const iterator& rhs) const
     {
         return (
             (_M_data == nullptr && rhs._M_data == nullptr)
@@ -100,7 +100,7 @@ public:
     }
 
     bool
-    operator!=(const iterator& rhs)
+    operator!=(const iterator& rhs) const
     {
         return !operator==(rhs);
     }

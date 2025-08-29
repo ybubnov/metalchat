@@ -18,10 +18,8 @@ TEST_CASE("Test model load", "[safetensor]")
     auto alloc0 = gpu0.get_allocator();
     auto alloc1 = make_rebind_allocator<bf16>(alloc0);
 
-    auto tensors = safetensor_document::load("../llama32.safetensors", alloc1);
-
     nn::llama3<bf16> m(nn::default_llama3_1b_options(), gpu0);
-    m.initialize(tensors);
+    safetensor_document::load("../llama32.safetensors", m, alloc1);
 
     auto params = m.get_parameters();
 
