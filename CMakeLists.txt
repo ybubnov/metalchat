@@ -17,7 +17,7 @@ add_subdirectory(test)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 find_package(cppcodec CONFIG REQUIRED)
-find_package(simdjson CONFIG REQUIRED)
+find_package(glaze CONFIG REQUIRED)
 find_package(metal-cpp CONFIG REQUIRED)
 find_package(PCRE2 CONFIG REQUIRED)
 find_package(rapidhash CONFIG REQUIRED)
@@ -82,7 +82,7 @@ add_custom_target(copy_headers ALL
 )
 
 target_link_libraries(${metalchat_FRAMEWORK}
-    simdjson::simdjson
+    glaze::glaze
     cppcodec::cppcodec
     metal-cpp::metal-cpp
     PCRE2::8BIT

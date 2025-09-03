@@ -6,6 +6,7 @@
 #include <format>
 #include <random>
 #include <span>
+#include <typeinfo>
 #include <utility>
 
 #include <metalchat/accelerator.h>
@@ -26,6 +27,16 @@ namespace metalchat {
 /// access it's parameters through a unified interface.
 class basic_tensor {
 public:
+    /// Returns type information about tensor elements data type.
+    virtual const std::type_info&
+    dtype() const
+        = 0;
+
+    /// Returns a byte-aligned pointer to the underlying data.
+    virtual const void*
+    data() const
+        = 0;
+
     /// Returns the number of dimension of the tensor.
     virtual std::size_t
     dimensions() const
@@ -387,6 +398,13 @@ public:
         _M_data = data;
     }
 
+    /// Returns type information about tensor elements data type.
+    const std::type_info&
+    dtype() const
+    {
+        return typeid(value_type);
+    }
+
     /// Returns the number of dimension of the tensor. This is a const expression.
     ///
     /// See also \ref tensor::dimensions.
@@ -401,6 +419,13 @@ public:
     dimensions() const
     {
         return dim();
+    }
+
+    /// Returns a byte-aligned pointer to the first element of the tensor.
+    const void*
+    data() const
+    {
+        return data_ptr();
     }
 
     /// Returns a pointer to the first element of the tensor.

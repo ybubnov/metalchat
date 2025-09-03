@@ -8,9 +8,9 @@
 namespace metalchat {
 
 
-basic_memfile::basic_memfile(const std::filesystem::path& p)
+basic_memfile::basic_memfile(const std::filesystem::path& p, const std::string& mode)
 {
-    _M_file = std::fopen(p.c_str(), "r");
+    _M_file = std::fopen(p.c_str(), mode.c_str());
     if (_M_file == nullptr) {
         throw std::invalid_argument(
             std::format("basic_memfile: unable to open file '{}'", p.string())
@@ -20,6 +20,11 @@ basic_memfile::basic_memfile(const std::filesystem::path& p)
     _M_file_size = static_cast<std::size_t>(std::filesystem::file_size(p));
     _M_file_p = _M_file_size;
 }
+
+
+basic_memfile::basic_memfile(const std::filesystem::path& p)
+: basic_memfile(p, "r")
+{}
 
 
 basic_memfile::basic_memfile()
@@ -164,7 +169,8 @@ basic_memfile::write(const void* s, std::size_t size)
 }
 
 
-basic_memfile::~basic_memfile()
+void
+basic_memfile::close()
 {
     undeclare_mapped();
 
@@ -173,6 +179,9 @@ basic_memfile::~basic_memfile()
         _M_file = nullptr;
     }
 }
+
+
+basic_memfile::~basic_memfile() { close(); }
 
 
 } // namespace metalchat

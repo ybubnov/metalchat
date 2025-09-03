@@ -10,6 +10,7 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/allocator.h>
 #include <metalchat/container.h>
+#include <metalchat/dtype.h>
 #include <metalchat/layer.h>
 #include <metalchat/tensor/basic.h>
 
@@ -87,6 +88,48 @@ private:
 
 
 class safetensor_document;
+
+
+class safetensor_typeinfo {
+public:
+    using key_type = std::reference_wrapper<const std::type_info>;
+    using value_type = std::pair<std::string, std::size_t>;
+
+    safetensor_typeinfo()
+    : _M_type_info()
+    {
+        _M_type_info[typeid(std::int32_t)] = {"I32", 32};
+        _M_type_info[typeid(float)] = {"F32", 32};
+        _M_type_info[typeid(dtype::bf16)] = {"BF16", 16};
+    }
+
+    safetensor_typeinfo(const safetensor_typeinfo&) = default;
+
+    const value_type&
+    operator[](const std::type_info& info)
+    {
+        return _M_type_info[key_type(info)];
+    }
+
+private:
+    struct type_hash {
+        std::size_t
+        operator()(key_type t) const
+        {
+            return t.get().hash_code();
+        }
+    };
+
+    struct type_eq {
+        bool
+        operator()(key_type lhs, key_type rhs) const
+        {
+            return lhs.get() == rhs.get();
+        }
+    };
+
+    std::unordered_map<key_type, value_type, type_hash, type_eq> _M_type_info;
+};
 
 
 template <allocator Allocator> class safetensor_iterator {
@@ -207,8 +250,8 @@ private:
     std::shared_ptr<basic_memfile> _M_file;
     std::vector<safetensor_metadata> _M_metadata;
     safetensor_openmode _M_mode;
+    safetensor_typeinfo _M_typeinfo;
 
-protected:
     static std::vector<safetensor_metadata>
     parse_metadata(basic_memfile& file);
 
@@ -252,7 +295,7 @@ public:
     {
         auto file = std::make_shared<basic_memfile>(p);
         file->declare_mapped();
-        auto document = safetensor_document(file, safetensor_openmode::in);
+        safetensor_document document(file, safetensor_openmode::in);
 
         auto alloc0 = aliasing_allocator(alloc, file);
         return document.load(layer, alloc0);
@@ -264,7 +307,7 @@ public:
     {
         auto file = std::make_shared<basic_memfile>(p);
         file->declare_mapped();
-        auto document = safetensor_document(file, safetensor_openmode::in);
+        safetensor_document document(file, safetensor_openmode::in);
 
         auto alloc0 = hardware_aliasing_allocator(alloc, file);
         return document.load(layer, alloc0);
@@ -276,6 +319,17 @@ public:
     {
         auto alloc = layer.accelerator().get_allocator();
         return load(p, layer, make_rebind_allocator<T>(alloc));
+    }
+
+    void
+    save(basic_layer& layer);
+
+    static void
+    save(const std::filesystem::path& p, basic_layer& layer)
+    {
+        auto file = std::make_shared<basic_memfile>(p, "w");
+        safetensor_document document(file, safetensor_openmode::out);
+        document.save(layer);
     }
 };
 

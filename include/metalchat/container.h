@@ -17,6 +17,7 @@ public:
     using pos_type = std::size_t;
 
     basic_memfile(const std::filesystem::path& p);
+    basic_memfile(const std::filesystem::path& p, const std::string& mode);
     basic_memfile();
 
     bool
@@ -58,6 +59,9 @@ public:
 
     basic_memfile&
     write(const void* s, std::size_t size);
+
+    void
+    close();
 
     ~basic_memfile();
 
