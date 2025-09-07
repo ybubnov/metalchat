@@ -26,9 +26,9 @@ struct safetensor_metadata {
 };
 
 
-template <contiguous_container Container> class safetensor {
+class safetensor {
 public:
-    using container_type = Container;
+    using container_type = basic_container;
     using container_pointer = std::shared_ptr<container_type>;
     using shape_type = std::vector<std::size_t>;
 
@@ -68,7 +68,7 @@ public:
     }
 
     container_pointer
-    container() const
+    container_ptr() const
     {
         return _M_container;
     }
@@ -138,7 +138,7 @@ private:
     using metadata_type = std::vector<safetensor_metadata>;
     using metadata_iterator = std::vector<safetensor_metadata>::const_iterator;
 
-    using safetensor_container = std::shared_ptr<memory_container<void>>;
+    using safetensor_container = std::shared_ptr<basic_container>;
     using container_iterator = std::vector<safetensor_container>::const_iterator;
 
     safetensor_iterator(metadata_iterator input, container_iterator container)
@@ -152,9 +152,9 @@ private:
     friend class safetensor_document;
 
 public:
-    using container_type = memory_container<void>;
+    using container_type = basic_container;
 
-    using value_type = safetensor<container_type>;
+    using value_type = safetensor;
 
     using iterator_category = std::forward_iterator_tag;
 
@@ -213,7 +213,7 @@ public:
 
 class safetensor_document {
 private:
-    using safetensor_container = std::shared_ptr<memory_container<void>>;
+    using safetensor_container = std::shared_ptr<basic_container>;
 
     std::vector<safetensor_metadata> _M_metadata;
     std::vector<safetensor_container> _M_containers;
@@ -231,9 +231,8 @@ private:
     static std::vector<safetensor_metadata>
     parse_metadata(std::shared_ptr<basic_memfile> file_ptr);
 
-    template <contiguous_container Container>
     void
-    push_back(const safetensor_metadata& metadata, const std::shared_ptr<Container>& container)
+    push_back(const safetensor_metadata& metadata, const std::shared_ptr<basic_container>& container)
     {
         _M_metadata.push_back(metadata);
         _M_containers.push_back(container);

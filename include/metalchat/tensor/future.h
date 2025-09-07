@@ -257,7 +257,7 @@ public:
     }
 
     /// See \ref tensor::container_ptr.
-    container_pointer
+    std::shared_ptr<basic_container>
     container_ptr() const
     {
         return _M_result.container_ptr();

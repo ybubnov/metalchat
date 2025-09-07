@@ -123,8 +123,7 @@ safetensor_document::push_back(const std::string& name, basic_tensor& tensor)
         .data_offsets = {begin, begin + size}
     };
 
-    auto container_ptr = std::make_shared<reference_memory_container<void>>(tensor.data());
-    push_back(metadata, container_ptr);
+    push_back(metadata, tensor.container_ptr());
 }
 
 
@@ -165,7 +164,7 @@ safetensor_document::save(const std::filesystem::path& p)
     for (std::size_t i = 0; i < _M_metadata.size(); i++) {
         // TODO: validate data sizes.
         auto size = _M_metadata[i].data_offsets[1] - _M_metadata[i].data_offsets[0];
-        file.write(_M_containers[i]->data(), size);
+        file.write(_M_containers[i]->data_ptr(), size);
     }
 }
 

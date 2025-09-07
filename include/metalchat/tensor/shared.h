@@ -70,7 +70,7 @@ public:
         return _M_value->container();
     }
 
-    container_pointer
+    std::shared_ptr<basic_container>
     container_ptr() const
     {
         return _M_value->container_ptr();

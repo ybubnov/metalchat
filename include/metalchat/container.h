@@ -74,7 +74,19 @@ private:
 };
 
 
-template <typename T> struct memory_container {
+struct basic_container {
+
+    virtual void*
+    data_ptr() = 0;
+
+    virtual const void*
+    data_ptr() const = 0;
+
+    virtual ~basic_container() {}
+};
+
+
+template <typename T> struct memory_container : public basic_container {
     using value_type = T;
     using pointer = value_type*;
     using const_pointer = const value_type*;
@@ -88,6 +100,18 @@ template <typename T> struct memory_container {
     virtual const_pointer
     data() const
         = 0;
+
+    void*
+    data_ptr()
+    {
+        return data();
+    }
+
+    const void*
+    data_ptr() const
+    {
+        return data();
+    }
 
     pointer
     operator*()

@@ -130,7 +130,7 @@ public:
                 using value_type = typename Container::value_type;
                 using tensor_type = tensor<value_type, i, Container>;
 
-                auto tensor = tensor_type(sizes.begin(), sizes.end(), weight.container());
+                auto tensor = tensor_type(sizes.begin(), sizes.end(), weight.container_ptr());
                 move_tensor_to_pointer(parameter, std::move(tensor));
             });
         }

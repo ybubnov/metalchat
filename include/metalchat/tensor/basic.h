@@ -42,6 +42,10 @@ public:
     data()
         = 0;
 
+    /// Returns a pointer to the underlying data container of the tensor.
+    virtual std::shared_ptr<basic_container>
+    container_ptr() const = 0;
+
     /// Returns the number of dimension of the tensor.
     virtual std::size_t
     dimensions() const
@@ -630,7 +634,7 @@ public:
     }
 
     /// Returns a pointer to the underlying \ref contiguous_container of the tensor.
-    container_pointer
+    std::shared_ptr<basic_container>
     container_ptr() const
     {
         return _M_data;

@@ -33,7 +33,7 @@ public:
 
     using difference_type = std::ptrdiff_t;
 
-    using container_pointer = std::shared_ptr<memory_container<value_type>>;
+    using container_pointer = std::shared_ptr<basic_container>;
 
     template <immutable_tensor Tensor>
     tensor_iterator(const Tensor& tensor, std::optional<std::size_t> start = std::nullopt)
@@ -95,7 +95,7 @@ public:
         return (
             (_M_data == nullptr && rhs._M_data == nullptr)
             || ((_M_data != nullptr) && (rhs._M_data != nullptr)
-                && (_M_data->data() == rhs._M_data->data()) && (_M_num == rhs._M_num))
+                && (_M_data->data_ptr() == rhs._M_data->data_ptr()) && (_M_num == rhs._M_num))
         );
     }
 
@@ -119,7 +119,7 @@ private:
     inline reference
     data(std::size_t index)
     {
-        return _M_data->data()[index];
+        return static_cast<value_type*>(_M_data->data_ptr())[index];
     }
 
     std::size_t
