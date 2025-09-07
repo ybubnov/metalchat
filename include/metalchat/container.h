@@ -185,27 +185,27 @@ make_reference_container(T* data)
 
 template <typename T> struct random_memory_container : public memory_container<T> {
 private:
-    std::shared_ptr<T[]> _M_data = nullptr;
+    std::shared_ptr<void> _M_data = nullptr;
 
 public:
     using value_type = T;
     using pointer = value_type*;
     using const_pointer = const pointer;
 
-    random_memory_container(T* data)
+    random_memory_container(std::shared_ptr<void> data)
     : _M_data(data)
     {}
 
     pointer
     data()
     {
-        return _M_data.get();
+        return static_cast<pointer>(_M_data.get());
     }
 
     const_pointer
     data() const
     {
-        return _M_data.get();
+        return static_cast<const_pointer>(_M_data.get());
     }
 
     template <typename U> requires std::convertible_to<U, T>

@@ -700,15 +700,43 @@ template <typename T> struct random_memory_allocator {
     container_pointer
     allocate(size_type size)
     {
-        return std::make_shared<container_type>(new T[size]);
+        std::shared_ptr<T> memory_ptr(new T[size]());
+        return std::make_shared<container_type>(memory_ptr);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto memory_ptr = new T[size]();
-        std::memcpy(memory_ptr, ptr, size * sizeof(T));
+        auto container_ptr = allocate(size);
+        std::memcpy(container_ptr->data(), ptr, size * sizeof(T));
+        return container_ptr;
+    }
+};
+
+
+template <> struct random_memory_allocator<void> {
+    using value_type = void;
+    using pointer = void*;
+    using const_pointer = const pointer;
+    using size_type = std::size_t;
+    using container_type = random_memory_container<void>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    random_memory_allocator() {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        std::shared_ptr<std::uint8_t[]> memory_ptr(new std::uint8_t[size]());
         return std::make_shared<container_type>(memory_ptr);
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        auto container_ptr = allocate(size);
+        std::memcpy(container_ptr->data(), ptr, size);
+        return container_ptr;
     }
 };
 
