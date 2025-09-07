@@ -18,25 +18,19 @@ namespace metalchat {
 static_assert(glz::reflect<safetensor_metadata>::size == 3);
 
 
-safetensor_document::safetensor_document(
-    std::shared_ptr<basic_memfile> file, safetensor_openmode mode
-)
-: _M_file(file),
-  _M_metadata(),
-  _M_mode(mode),
+safetensor_document::safetensor_document()
+: _M_metadata(),
+  _M_containers(),
   _M_typeinfo()
-{
-    if (_M_mode == safetensor_openmode::in) {
-        _M_metadata = parse_metadata(file);
-    }
-}
+{}
 
 
 void*
 safetensor_document::data() noexcept
 {
-    std::size_t offset = _M_metadata.empty() ? 0 : _M_metadata.front().data_offsets[0];
-    return _M_file->data() + offset;
+    // std::size_t offset = _M_metadata.empty() ? 0 : _M_metadata.front().data_offsets[0];
+    // return _M_file->data() + offset;
+    return nullptr;
 }
 
 
@@ -107,53 +101,72 @@ safetensor_document::parse_metadata(std::shared_ptr<basic_memfile> file_ptr)
 
 
 void
-safetensor_document::save(basic_layer& layer)
+safetensor_document::push_back(const std::string& name, basic_tensor& tensor)
 {
+    auto sizes = tensor.sizes();
+    auto numel = tensor.numel();
+    auto& [dtype_name, dtype_size] = _M_typeinfo[tensor.dtype()];
+
     std::size_t begin = 0;
-    std::unordered_map<std::string, safetensor_metadata> tensor_metadata;
-    std::vector<const void*> tensor_data;
+    if (_M_metadata.size() > 0) {
+        const auto& last = _M_metadata.back();
+        begin = last.data_offsets[1];
+    }
 
-    auto emplace_metadata = [&](const std::string& name, std::shared_ptr<basic_tensor> tensor) {
-        auto sizes = tensor->sizes();
-        auto numel = tensor->numel();
+    // TODO: Does it make sense to assert that `end` is byte-aligned?
+    std::size_t size = numel * dtype_size / 8;
 
-        auto& [dtype_name, dtype_size] = _M_typeinfo[tensor->dtype()];
-        auto end = begin + numel * dtype_size;
-
-        // TODO: assert that end is byte-aligned.
-
-        _M_metadata.push_back(safetensor_metadata{
-            .name = name,
-            .dtype = dtype_name,
-            .shape = {sizes.begin(), sizes.end()},
-            .data_offsets = {begin / 8, end / 8}
-        });
-
-        begin = end;
-
-        tensor_data.push_back(tensor->data());
-        tensor_metadata.insert_or_assign(name, _M_metadata.back());
+    safetensor_metadata metadata{
+        .name = name,
+        .dtype = dtype_name,
+        .shape = {sizes.begin(), sizes.end()},
+        .data_offsets = {begin, begin + size}
     };
 
-    layer.apply(emplace_metadata, /*recurse=*/true);
+    auto container_ptr = std::make_shared<reference_memory_container<void>>(tensor.data());
+    push_back(metadata, container_ptr);
+}
+
+
+void
+safetensor_document::save(const std::filesystem::path& p, basic_layer& layer)
+{
+    safetensor_document document;
+
+    auto push_metadata = [&](const std::string& name, std::shared_ptr<basic_tensor> tensor) {
+        document.push_back(name, *tensor);
+    };
+
+    layer.apply(push_metadata, /*recurse=*/true);
+
+    document.save(p);
+}
+
+void
+safetensor_document::save(const std::filesystem::path& p)
+{
+    std::unordered_map<std::string, safetensor_metadata> metadata;
+    for (const auto& m : _M_metadata) {
+        metadata.insert_or_assign(m.name, m);
+    }
 
     std::string header;
-    auto err = glz::write_json(tensor_metadata, header);
+    auto err = glz::write_json(metadata, header);
     if (err) {
         throw std::runtime_error(glz::format_error(err, header));
     }
 
     auto header_size = header.size();
 
-    _M_file->write(&header_size, sizeof(header_size));
-    _M_file->write(header.c_str(), header_size);
+    basic_memfile file(p, "w");
+    file.write(&header_size, sizeof(header_size));
+    file.write(header.c_str(), header_size);
 
     for (std::size_t i = 0; i < _M_metadata.size(); i++) {
-        auto tensor_size = _M_metadata[i].data_offsets[1] - _M_metadata[i].data_offsets[0];
-        _M_file->write(tensor_data[i], tensor_size);
+        // TODO: validate data sizes.
+        auto size = _M_metadata[i].data_offsets[1] - _M_metadata[i].data_offsets[0];
+        file.write(_M_containers[i]->data(), size);
     }
-
-    _M_file->close();
 }
 
 

@@ -114,6 +114,34 @@ concept forward_container_iterator_t = std::forward_iterator<It> && requires(It 
 };
 
 
+template <typename T> class rebind_memory_container : memory_container<T> {
+private:
+    std::shared_ptr<memory_container<void>> _M_container;
+
+public:
+    using value_type = T;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
+
+    template <contiguous_container Container>
+    requires std::same_as<typename Container::value_type, void>
+    rebind_memory_container(const std::shared_ptr<Container>& container)
+    {}
+
+    pointer
+    data()
+    {
+        return static_cast<T>(_M_container->data());
+    }
+
+    const_pointer
+    data() const
+    {
+        return static_cast<T>(_M_container->data());
+    }
+};
+
+
 template <typename T> struct reference_memory_container : public memory_container<T> {
 private:
     T* _M_data = nullptr;

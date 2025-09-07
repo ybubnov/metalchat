@@ -100,6 +100,7 @@ public:
     {
         _M_type_info[typeid(std::int32_t)] = {"I32", 32};
         _M_type_info[typeid(float)] = {"F32", 32};
+        _M_type_info[typeid(double)] = {"F64", 64};
         _M_type_info[typeid(dtype::bf16)] = {"BF16", 16};
     }
 
@@ -132,34 +133,32 @@ private:
 };
 
 
-template <allocator Allocator> class safetensor_iterator {
+class safetensor_iterator {
 private:
     using metadata_type = std::vector<safetensor_metadata>;
     using metadata_iterator = std::vector<safetensor_metadata>::const_iterator;
 
-    safetensor_iterator(
-        std::shared_ptr<basic_memfile> file, metadata_iterator input, Allocator alloc
-    )
-    : _M_file(file),
-      _M_input(input),
-      _M_alloc(alloc)
+    using safetensor_container = std::shared_ptr<memory_container<void>>;
+    using container_iterator = std::vector<safetensor_container>::const_iterator;
+
+    safetensor_iterator(metadata_iterator input, container_iterator container)
+    : _M_input(input),
+      _M_container(container)
     {}
 
-    std::shared_ptr<basic_memfile> _M_file;
     metadata_iterator _M_input;
-    Allocator _M_alloc;
+    container_iterator _M_container;
 
     friend class safetensor_document;
 
 public:
-    using allocator_type = Allocator;
-    using container_type = Allocator::container_type;
+    using container_type = memory_container<void>;
 
     using value_type = safetensor<container_type>;
 
     using iterator_category = std::forward_iterator_tag;
 
-    using iterator = safetensor_iterator<Allocator>;
+    using iterator = safetensor_iterator;
 
     using reference = value_type&;
 
@@ -168,9 +167,8 @@ public:
     using difference_type = std::ptrdiff_t;
 
     safetensor_iterator()
-    : _M_file(nullptr),
-      _M_input(),
-      _M_alloc()
+    : _M_input(),
+      _M_container()
     {}
 
     safetensor_iterator(const iterator& it) = default;
@@ -179,6 +177,7 @@ public:
     operator++()
     {
         _M_input++;
+        _M_container++;
         return *this;
     }
 
@@ -186,44 +185,15 @@ public:
     operator++(int)
     {
         auto result = *this;
-        ++*_M_input;
+        ++*this;
         return result;
     }
 
     value_type
     operator*() const
     {
-        using const_pointer = Allocator::const_pointer;
-        using container_value_type = Allocator::value_type;
-        using container_pointer = Allocator::container_pointer;
-
-        auto& metadata = *_M_input;
-        auto data_offset = metadata.data_offsets[0];
-
-        if (data_offset >= _M_file->size()) {
-            throw std::runtime_error(std::format(
-                "safetensor_iterator: start data position {} for a tensor {} is out of bounds",
-                data_offset, metadata.name
-            ));
-        }
-
-        auto numel = std::accumulate(
-            metadata.shape.begin(), metadata.shape.end(), 1, std::multiplies<std::size_t>()
-        );
-
-        container_pointer container_ptr(nullptr);
-        auto alloc = const_cast<std::remove_const_t<Allocator>&>(_M_alloc);
-
-        if (_M_file->is_mapped()) {
-            const basic_memfile::char_type* container = _M_file->data() + data_offset;
-            container_ptr = alloc.allocate((const_pointer)(container), numel);
-        } else {
-            auto container = std::make_shared<container_value_type[]>(numel);
-            _M_file->read(container.get(), sizeof(container_value_type) * numel);
-
-            container_ptr = alloc.allocate((const_pointer)(container.get()), numel);
-        }
-
+        auto metadata = *_M_input;
+        auto container_ptr = *_M_container;
         return value_type(metadata.name, metadata.shape, container_ptr);
     }
 
@@ -241,55 +211,101 @@ public:
 };
 
 
-/// Specifies available file open flags for a safetensor document.
-enum safetensor_openmode { in, out };
-
-
 class safetensor_document {
 private:
-    std::shared_ptr<basic_memfile> _M_file;
+    using safetensor_container = std::shared_ptr<memory_container<void>>;
+
     std::vector<safetensor_metadata> _M_metadata;
-    safetensor_openmode _M_mode;
+    std::vector<safetensor_container> _M_containers;
+
     safetensor_typeinfo _M_typeinfo;
 
+    /// Parse safetensor metadata from the given file.
+    ///
+    /// Read header length and JSON-serialized tensor definitions into the metadata
+    /// structure. Elements of the resulting vector are sorted by data offset in
+    /// increasing order.
     static std::vector<safetensor_metadata>
     parse_metadata(basic_memfile& file);
 
     static std::vector<safetensor_metadata>
     parse_metadata(std::shared_ptr<basic_memfile> file_ptr);
 
+    template <contiguous_container Container>
+    void
+    push_back(const safetensor_metadata& metadata, const std::shared_ptr<Container>& container)
+    {
+        _M_metadata.push_back(metadata);
+        _M_containers.push_back(container);
+    }
+
 public:
-    safetensor_document(std::shared_ptr<basic_memfile> file, safetensor_openmode mode);
+    safetensor_document();
+    safetensor_document(const safetensor_document&) = default;
+
+    void
+    push_back(const std::string& name, basic_tensor& tensor);
 
     void*
     data() noexcept;
 
+    // std::vector<std::size_t>
+    // offsets() const;
+
     std::vector<std::size_t>
     sizes() const;
 
-    template <allocator Allocator>
-    safetensor_iterator<Allocator>
-    begin(Allocator alloc) const
+    safetensor_iterator
+    begin() const
     {
-        return safetensor_iterator<Allocator>(_M_file, _M_metadata.begin(), alloc);
+        return safetensor_iterator(_M_metadata.begin(), _M_containers.begin());
     }
 
-    template <allocator Allocator>
-    safetensor_iterator<Allocator>
-    end(Allocator alloc) const
+    safetensor_iterator
+    end() const
     {
-        return safetensor_iterator<Allocator>(_M_file, _M_metadata.end(), alloc);
+        return safetensor_iterator(_M_metadata.end(), _M_containers.end());
     }
 
-    template <allocator Allocator>
+    template <allocator_t<void> Allocator>
+    static safetensor_document
+    load(const std::filesystem::path& p, Allocator alloc)
+    {
+        safetensor_document document;
+
+        auto file = std::make_shared<basic_memfile>(p);
+        auto metadata = parse_metadata(file->declare_mapped());
+
+        auto a_alloc = aliasing_allocator(alloc, file);
+
+        for (const auto& m : metadata) {
+            auto data = file->data() + m.data_offsets[0];
+            auto size = m.data_offsets[1] - m.data_offsets[0];
+
+            auto container_ptr = a_alloc.allocate(data, size);
+            document.push_back(m, container_ptr);
+        }
+
+        return document;
+    }
+
+    /*
+    template <template Readable, allocator_t<void> Allocator>
+    static void
+    load(const Readable& r, Allocator alloc)
+    {}
+    */
+
+    /*
+    template <allocator_t<void> Allocator>
     void
     load(basic_layer& layer, Allocator alloc)
     {
         using container_type = Allocator::container_type;
-        layer.initialize<container_type>(begin<Allocator>(alloc), end<Allocator>(alloc));
+        layer.initialize(begin(), end(), alloc);
     }
 
-    template <allocator Allocator>
+    template <allocator_t<void> Allocator>
     static void
     load(const std::filesystem::path& p, basic_layer& layer, Allocator alloc)
     {
@@ -301,18 +317,6 @@ public:
         return document.load(layer, alloc0);
     }
 
-    template <hardware_allocator Allocator>
-    static void
-    load(const std::filesystem::path& p, basic_layer& layer, Allocator alloc)
-    {
-        auto file = std::make_shared<basic_memfile>(p);
-        file->declare_mapped();
-        safetensor_document document(file, safetensor_openmode::in);
-
-        auto alloc0 = hardware_aliasing_allocator(alloc, file);
-        return document.load(layer, alloc0);
-    }
-
     template <typename T>
     static void
     load(const std::filesystem::path& p, basic_layer& layer)
@@ -320,17 +324,13 @@ public:
         auto alloc = layer.accelerator().get_allocator();
         return load(p, layer, make_rebind_allocator<T>(alloc));
     }
-
-    void
-    save(basic_layer& layer);
+    */
 
     static void
-    save(const std::filesystem::path& p, basic_layer& layer)
-    {
-        auto file = std::make_shared<basic_memfile>(p, "w");
-        safetensor_document document(file, safetensor_openmode::out);
-        document.save(layer);
-    }
+    save(const std::filesystem::path& p, basic_layer& layer);
+
+    void
+    save(const std::filesystem::path& p);
 };
 
 

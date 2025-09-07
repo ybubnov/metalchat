@@ -32,9 +32,14 @@ public:
     dtype() const
         = 0;
 
-    /// Returns a byte-aligned pointer to the underlying data.
+    /// Returns a constant byte-aligned pointer to the underlying data.
     virtual const void*
     data() const
+        = 0;
+
+    /// Returns a byte-aligned pointer to the underlying data.
+    virtual void*
+    data()
         = 0;
 
     /// Returns the number of dimension of the tensor.
@@ -421,9 +426,16 @@ public:
         return dim();
     }
 
-    /// Returns a byte-aligned pointer to the first element of the tensor.
+    /// Returns a constant byte-aligned pointer to the first element of the tensor.
     const void*
     data() const
+    {
+        return data_ptr();
+    }
+
+    /// Returns a byte-aligned pointer to the underlying data.
+    void*
+    data()
     {
         return data_ptr();
     }

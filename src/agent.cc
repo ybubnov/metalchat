@@ -6,6 +6,7 @@
 namespace metalchat {
 
 
+/*
 agent
 make_llama3(
     const std::filesystem::path& weights_path,
@@ -122,6 +123,7 @@ make_llama3_compact(
 
     return make_llama3_compact(weights_fs_path, tokens_fs_path, options);
 }
+*/
 
 
 } // namespace metalchat
