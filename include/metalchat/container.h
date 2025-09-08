@@ -77,10 +77,12 @@ private:
 struct basic_container {
 
     virtual void*
-    data_ptr() = 0;
+    data_ptr()
+        = 0;
 
     virtual const void*
-    data_ptr() const = 0;
+    data_ptr() const
+        = 0;
 
     virtual ~basic_container() {}
 };
@@ -138,32 +140,7 @@ concept forward_container_iterator_t = std::forward_iterator<It> && requires(It 
 };
 
 
-template <typename T> class rebind_memory_container : memory_container<T> {
-private:
-    std::shared_ptr<memory_container<void>> _M_container;
-
-public:
-    using value_type = T;
-    using pointer = value_type*;
-    using const_pointer = const value_type*;
-
-    template <contiguous_container Container>
-    requires std::same_as<typename Container::value_type, void>
-    rebind_memory_container(const std::shared_ptr<Container>& container)
-    {}
-
-    pointer
-    data()
-    {
-        return static_cast<T>(_M_container->data());
-    }
-
-    const_pointer
-    data() const
-    {
-        return static_cast<T>(_M_container->data());
-    }
-};
+template <typename T, contiguous_container Container> struct container_cast;
 
 
 template <typename T> struct reference_memory_container : public memory_container<T> {
@@ -231,11 +208,17 @@ public:
     {
         return static_cast<const_pointer>(_M_data.get());
     }
+};
 
-    template <typename U> requires std::convertible_to<U, T>
-    operator random_memory_container<U>() const
+
+template <typename T> struct container_cast<T, random_memory_container<void>> {
+    using type = random_memory_container<T>;
+    using pointer = std::shared_ptr<type>;
+
+    static pointer
+    static_pointer_cast(std::shared_ptr<random_memory_container<void>> ptr)
     {
-        return random_memory_container<U>(_M_data);
+        return std::reinterpret_pointer_cast<type>(ptr);
     }
 };
 
@@ -297,12 +280,6 @@ template <typename T> struct hardware_memory_container : public memory_container
         return static_cast<const_pointer>(storage_ptr());
     }
 
-    template <typename U> requires std::convertible_to<U, T>
-    operator hardware_memory_container<U>() const
-    {
-        return hardware_memory_container<U>(_M_mem);
-    }
-
     bool
     contains(const void* ptr) const
     {
@@ -337,6 +314,18 @@ template <typename T> struct hardware_memory_container : public memory_container
     storage_ptr() const
     {
         return static_cast<std::uint8_t*>(metal::data(_M_mem)) + storage_offset();
+    }
+};
+
+
+template <typename T> struct container_cast<T, hardware_memory_container<void>> {
+    using type = hardware_memory_container<T>;
+    using pointer = std::shared_ptr<type>;
+
+    static pointer
+    static_pointer_cast(std::shared_ptr<hardware_memory_container<void>> ptr)
+    {
+        return std::reinterpret_pointer_cast<type>(ptr);
     }
 };
 

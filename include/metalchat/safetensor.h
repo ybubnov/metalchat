@@ -90,6 +90,41 @@ private:
 class safetensor_document;
 
 
+template <allocator_t<void> Allocator> class safetensor_allocator {
+public:
+    using container_ptr = std::shared_ptr<basic_container>;
+    using container_allocator = std::function<container_ptr(void*, std::size_t, Allocator&)>;
+
+    safetensor_allocator()
+    : _M_type_alloc()
+    {
+        register_type<std::int32_t>("I32");
+        register_type<float>("F32");
+        register_type<double>("F64");
+        register_type<dtype::bf16>("BF16");
+    }
+
+    safetensor_allocator(const safetensor_allocator&) = default;
+
+    container_ptr
+    allocate(const std::string& type_name, void* data, std::size_t size, Allocator& alloc)
+    {
+        auto allocator = _M_type_alloc[type_name];
+        return allocator(data, size, alloc);
+    }
+
+private:
+    template <typename T>
+    void
+    register_type(const std::string& type_name)
+    {
+        _M_type_alloc[type_name] = allocator_rebinder<T, Allocator>::allocate;
+    }
+
+    std::unordered_map<std::string, container_allocator, _StringHash> _M_type_alloc;
+};
+
+
 class safetensor_typeinfo {
 public:
     using key_type = std::reference_wrapper<const std::type_info>;
@@ -98,10 +133,10 @@ public:
     safetensor_typeinfo()
     : _M_type_info()
     {
-        _M_type_info[typeid(std::int32_t)] = {"I32", 32};
-        _M_type_info[typeid(float)] = {"F32", 32};
-        _M_type_info[typeid(double)] = {"F64", 64};
-        _M_type_info[typeid(dtype::bf16)] = {"BF16", 16};
+        register_type<std::int32_t>("I32", 32);
+        register_type<float>("F32", 32);
+        register_type<double>("F64", 64);
+        register_type<dtype::bf16>("BF16", 16);
     }
 
     safetensor_typeinfo(const safetensor_typeinfo&) = default;
@@ -113,6 +148,13 @@ public:
     }
 
 private:
+    template <typename T>
+    void
+    register_type(const std::string& type_name, std::size_t type_size)
+    {
+        _M_type_info[typeid(T)] = {type_name, type_size};
+    }
+
     struct type_hash {
         std::size_t
         operator()(key_type t) const
@@ -232,7 +274,9 @@ private:
     parse_metadata(std::shared_ptr<basic_memfile> file_ptr);
 
     void
-    push_back(const safetensor_metadata& metadata, const std::shared_ptr<basic_container>& container)
+    push_back(
+        const safetensor_metadata& metadata, const std::shared_ptr<basic_container>& container
+    )
     {
         _M_metadata.push_back(metadata);
         _M_containers.push_back(container);
@@ -268,25 +312,37 @@ public:
 
     template <allocator_t<void> Allocator>
     static safetensor_document
-    load(const std::filesystem::path& p, Allocator alloc)
+    open(const std::filesystem::path& p, Allocator alloc)
     {
+        using allocator_type = aliasing_allocator<Allocator>;
+
         safetensor_document document;
+        safetensor_allocator<allocator_type> allocator;
 
         auto file = std::make_shared<basic_memfile>(p);
         auto metadata = parse_metadata(file->declare_mapped());
-
-        auto a_alloc = aliasing_allocator(alloc, file);
+        auto container_alloc = allocator_type(alloc, file);
 
         for (const auto& m : metadata) {
             auto data = file->data() + m.data_offsets[0];
             auto size = m.data_offsets[1] - m.data_offsets[0];
 
-            auto container_ptr = a_alloc.allocate(data, size);
+            auto container_ptr = allocator.allocate(m.dtype, data, size, container_alloc);
             document.push_back(m, container_ptr);
         }
 
         return document;
     }
+
+    /*
+    template <allocator_t<void> Allocator>
+    static void
+    load(const std::filesystem::path& p, basic_layer& layer, Allocator alloc)
+    {
+        auto document = load(p, alloc);
+        return document.load(layer, alloc0);
+    }
+    */
 
     /*
     template <template Readable, allocator_t<void> Allocator>
@@ -302,18 +358,6 @@ public:
     {
         using container_type = Allocator::container_type;
         layer.initialize(begin(), end(), alloc);
-    }
-
-    template <allocator_t<void> Allocator>
-    static void
-    load(const std::filesystem::path& p, basic_layer& layer, Allocator alloc)
-    {
-        auto file = std::make_shared<basic_memfile>(p);
-        file->declare_mapped();
-        safetensor_document document(file, safetensor_openmode::in);
-
-        auto alloc0 = aliasing_allocator(alloc, file);
-        return document.load(layer, alloc0);
     }
 
     template <typename T>

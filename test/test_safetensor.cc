@@ -14,7 +14,7 @@ using namespace metalchat::dtype;
 TEST_CASE("Test model load", "[safetensor]")
 {
     metalchat::hardware_accelerator gpu0;
-    auto doc = safetensor_document::load("../llama32.safetensors", gpu0.get_allocator());
+    auto doc = safetensor_document::open("../llama32.safetensors", gpu0.get_allocator());
 
     doc.save("../llama32-copy.safetensors");
 
@@ -30,11 +30,8 @@ TEST_CASE("Test model load", "[safetensor]")
 {
     metalchat::hardware_accelerator gpu0(16);
 
-    auto alloc0 = gpu0.get_allocator();
-    auto alloc1 = make_rebind_allocator<bf16>(alloc0);
-
     nn::llama3<bf16> m(nn::default_llama3_1b_options(), gpu0);
-    safetensor_document::load("../llama32.safetensors", m, alloc1);
+    safetensor_document::open("../llama32.safetensors", m, gpu0.get_allocator());
 
     auto params = m.get_parameters();
 

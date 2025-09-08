@@ -1400,7 +1400,7 @@ move(const Tensor& t, Allocator alloc)
     using T = typename Tensor::value_type;
     constexpr auto N = Tensor::dim();
 
-    using allocator_type = rebind_hardware_allocator<T, Allocator>;
+    using allocator_type = rebind_allocator<T, Allocator>;
     using container_type = allocator_type::container_type;
     using tensor_type = tensor<T, N, container_type>;
 

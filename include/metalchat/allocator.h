@@ -114,6 +114,9 @@ concept hardware_allocator_t
 ///     }
 /// };
 /// ```
+///
+/// Alternatively, you could simply use \ref hardware_allocator_wrapper in order to avoid
+/// creating a custom type.
 template <typename T> struct basic_hardware_memory_allocator {
     using value_type = T;
     using pointer = value_type*;
@@ -130,6 +133,37 @@ template <typename T> struct basic_hardware_memory_allocator {
     virtual container_pointer allocate(const_pointer, size_type) = 0;
 
     virtual ~basic_hardware_memory_allocator() {};
+};
+
+
+template <typename T, hardware_allocator_t<T> Allocator>
+class hardware_allocator_wrapper : public basic_hardware_memory_allocator<T> {
+public:
+    using value_type = T;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+    using size_type = Allocator::size_type;
+    using container_type = Allocator::container_type;
+    using container_pointer = Allocator::container_pointer;
+
+    hardware_allocator_wrapper(Allocator alloc)
+    : _M_alloc(alloc)
+    {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        return _M_alloc.allocate(size);
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        return _M_alloc.allocate(ptr, size);
+    }
+
+private:
+    Allocator _M_alloc;
 };
 
 
@@ -203,68 +237,6 @@ public:
 private:
     std::shared_ptr<outer_allocator_type> _M_alloc;
 };
-
-
-/// This allocator is used to cast type of elements allocated in the contiguous hardware memory,
-/// that are allocated with incomplete allocator type. Allocator is incomplete, when
-/// `Allocator::value_type` is equal to `void`.
-///
-/// The implementation only allows cast from incomplete allocator type, since the parent
-/// allocator might exploit different memory alignment depending from the underlying type.
-///
-/// Example:
-/// ```cpp
-/// auto gpu = hardware_accelerator("metalchat.metallib");
-/// auto alloc = rebind_hardware_allocator<float>(gpu.get_allocator());
-/// auto floats_container_ptr = alloc.allocate(10);
-/// ```
-template <typename T, hardware_allocator_t<void> Allocator>
-class rebind_hardware_allocator : public basic_hardware_memory_allocator<T> {
-public:
-    using value_type = T;
-    using pointer = value_type*;
-    using const_pointer = const pointer;
-    using size_type = std::size_t;
-    using container_type = hardware_memory_container<value_type>;
-    using container_pointer = std::shared_ptr<container_type>;
-
-    rebind_hardware_allocator(Allocator alloc)
-    : _M_alloc(alloc)
-    {}
-
-    /// Allocates `size * sizeof(T)` bytes of uninitialized memory by calling an underlying
-    /// hardware allocator.
-    ///
-    /// Use of this function is ill-formed if `T` is incomplete type.
-    container_pointer
-    allocate(size_type size)
-    {
-        // It is totally fine to use reinterpret pointer case here, since the template
-        // value type of a hardware memory container does not influence on a memory layout
-        // of the container and only used to cast buffer contents to the necessary type.
-        return std::reinterpret_pointer_cast<container_type>(_M_alloc.allocate(sizeof(T) * size));
-    }
-
-    /// Allocates `size * sizeof(T)` bytes and initializes them with the data stored at `ptr`.
-    container_pointer
-    allocate(const_pointer ptr, size_type size)
-    {
-        return std::reinterpret_pointer_cast<container_type>(
-            _M_alloc.allocate(ptr, sizeof(T) * size)
-        );
-    }
-
-private:
-    Allocator _M_alloc;
-};
-
-
-template <typename T, hardware_allocator_t<void> Allocator>
-rebind_hardware_allocator<T, Allocator>
-make_rebind_allocator(Allocator allocator)
-{
-    return rebind_hardware_allocator<T, Allocator>(allocator);
-}
 
 
 class _HardwareNocopyAllocator {
@@ -772,6 +744,75 @@ template <typename T> struct scalar_memory_allocator {
 };
 
 
+/// This allocator is used to cast type of elements allocated in the contiguous memory,
+/// that are allocated with incomplete allocator type. Allocator is incomplete, when
+/// `Allocator::value_type` is equal to `void`.
+///
+/// The implementation only allows cast from incomplete allocator type, since the parent
+/// allocator might exploit different memory alignment depending from the underlying type.
+///
+/// Example:
+/// ```cpp
+/// auto gpu = hardware_accelerator("metalchat.metallib");
+/// auto alloc = rebind_allocator<float>(gpu.get_allocator());
+/// auto floats_container_ptr = alloc.allocate(10);
+/// ```
+template <typename T, allocator_t<void> Allocator> struct rebind_allocator {
+private:
+    Allocator _M_alloc;
+
+    using cast_type = container_cast<T, typename Allocator::container_type>;
+
+public:
+    using value_type = T;
+    using pointer = value_type*;
+    using const_pointer = const pointer;
+    using size_type = std::size_t;
+    using container_type = cast_type::type;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    rebind_allocator(Allocator alloc)
+    : _M_alloc(alloc)
+    {}
+
+    /// Allocates `size * sizeof(T)` bytes of uninitialized memory by calling an underlying
+    /// allocator.
+    ///
+    /// Use of this function is ill-formed if `T` is incomplete type.
+    container_pointer
+    allocate(size_type size)
+    {
+        return cast_type::static_pointer_cast(_M_alloc.allocate(sizeof(T) * size));
+    }
+
+    /// Allocates `size * sizeof(T)` bytes and initializes them with the data stored at `ptr`.
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        return cast_type::static_pointer_cast(_M_alloc.allocate(ptr, sizeof(T) * size));
+    }
+};
+
+
+template <typename T, allocator_t<void> Allocator> struct allocator_rebinder {
+
+    static std::shared_ptr<basic_container>
+    allocate(void* data, std::size_t size, Allocator& alloc)
+    {
+        auto typed_allocator = rebind_allocator<T, Allocator>(alloc);
+        return typed_allocator.allocate((T*)(data), size / sizeof(T));
+    }
+};
+
+
+template <typename T, hardware_allocator_t<void> Allocator>
+rebind_allocator<T, Allocator>
+make_rebind_allocator(Allocator allocator)
+{
+    return rebind_allocator<T, Allocator>(allocator);
+}
+
+
 template <allocator Allocator> class aliasing_allocator {
 public:
     using value_type = typename Allocator::value_type;
@@ -812,40 +853,6 @@ private:
         return container_pointer(ptr, container_ptr.get());
     }
 
-    Allocator _M_alloc;
-    std::shared_ptr<void> _M_ptr;
-};
-
-
-template <hardware_allocator Allocator>
-class hardware_aliasing_allocator
-: public basic_hardware_memory_allocator<typename Allocator::value_type> {
-public:
-    using value_type = typename Allocator::value_type;
-    using pointer = value_type*;
-    using const_pointer = const pointer;
-    using size_type = typename Allocator::size_type;
-    using container_type = typename Allocator::container_type;
-    using container_pointer = typename Allocator::container_pointer;
-
-    hardware_aliasing_allocator(Allocator alloc, std::shared_ptr<void> ptr)
-    : _M_alloc(alloc),
-      _M_ptr(ptr)
-    {}
-
-    container_pointer
-    allocate(size_type size)
-    {
-        return aliasing_allocator<Allocator>(_M_alloc, _M_ptr).allocate(size);
-    }
-
-    container_pointer
-    allocate(const_pointer ptr, size_type size)
-    {
-        return aliasing_allocator<Allocator>(_M_alloc, _M_ptr).allocate(ptr, size);
-    }
-
-private:
     Allocator _M_alloc;
     std::shared_ptr<void> _M_ptr;
 };
