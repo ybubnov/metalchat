@@ -100,8 +100,27 @@ safetensor_document::parse_metadata(std::shared_ptr<basic_memfile> file_ptr)
 }
 
 
+safetensor_document
+safetensor_document::open(const std::filesystem::path& p)
+{
+    random_memory_allocator<void> alloc;
+    return open(p, alloc);
+}
+
+
 void
-safetensor_document::push_back(const std::string& name, basic_tensor& tensor)
+safetensor_document::insert(
+    const safetensor_metadata& metadata, const safetensor_container& container
+)
+{
+    _M_names.insert_or_assign(metadata.name, _M_metadata.size());
+    _M_metadata.push_back(metadata);
+    _M_containers.push_back(container);
+}
+
+
+void
+safetensor_document::insert(const std::string& name, basic_tensor& tensor)
 {
     auto sizes = tensor.sizes();
     auto numel = tensor.numel();
@@ -123,7 +142,33 @@ safetensor_document::push_back(const std::string& name, basic_tensor& tensor)
         .data_offsets = {begin, begin + size}
     };
 
-    push_back(metadata, tensor.container_ptr());
+    insert(metadata, tensor.container_ptr());
+}
+
+
+void
+safetensor_document::load(basic_layer& layer)
+{
+    for (auto it = begin(); it != end(); ++it) {
+        auto safetensor = *it;
+        auto parameter = layer.get_parameter(safetensor.name());
+
+        if (safetensor.dimensions() != parameter->dimensions()) {
+            throw std::runtime_error(std::format(
+                "safetensor_document::load: target tensor '{}' dimensions are different {}!={}",
+                safetensor.name(), safetensor.dimensions(), parameter->dimensions()
+            ));
+        }
+
+        auto sizes = safetensor.sizes();
+
+        for (std::size_t i = 0; i < parameter->dimensions(); i++) {
+            parameter->set_size(i, sizes[i]);
+        }
+
+        auto ptr = safetensor.container_ptr();
+        parameter->set_container(ptr);
+    }
 }
 
 
@@ -132,12 +177,11 @@ safetensor_document::save(const std::filesystem::path& p, basic_layer& layer)
 {
     safetensor_document document;
 
-    auto push_metadata = [&](const std::string& name, std::shared_ptr<basic_tensor> tensor) {
-        document.push_back(name, *tensor);
+    auto insert = [&](const std::string& name, std::shared_ptr<basic_tensor> tensor) {
+        document.insert(name, *tensor);
     };
 
-    layer.apply(push_metadata, /*recurse=*/true);
-
+    layer.apply(insert, /*recurse=*/true);
     document.save(p);
 }
 

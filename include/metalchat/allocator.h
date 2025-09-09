@@ -769,7 +769,7 @@ public:
     using const_pointer = const pointer;
     using size_type = std::size_t;
     using container_type = cast_type::type;
-    using container_pointer = std::shared_ptr<container_type>;
+    using container_pointer = cast_type::pointer;
 
     rebind_allocator(Allocator alloc)
     : _M_alloc(alloc)
@@ -805,7 +805,7 @@ template <typename T, allocator_t<void> Allocator> struct allocator_rebinder {
 };
 
 
-template <typename T, hardware_allocator_t<void> Allocator>
+template <typename T, allocator_t<void> Allocator>
 rebind_allocator<T, Allocator>
 make_rebind_allocator(Allocator allocator)
 {
@@ -830,29 +830,18 @@ public:
     container_pointer
     allocate(size_type size)
     {
-        return make_alias(_M_alloc.allocate(size));
+        auto container_ptr = _M_alloc.allocate(size);
+        return make_pointer_alias(container_ptr, _M_ptr);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        return make_alias(_M_alloc.allocate(ptr, size));
+        auto container_ptr = _M_alloc.allocate(ptr, size);
+        return make_pointer_alias(container_ptr, _M_ptr);
     }
 
 private:
-    container_pointer
-    make_alias(container_pointer container_ptr)
-    {
-        // Create an artificial pair type, so that is stores both pointers, and then
-        // leave an access only to the newly created container pointer.
-        using value_pointer = std::shared_ptr<void>;
-        using shared_pointer = std::pair<value_pointer, container_pointer>;
-
-        // Once container is destroyed, memory file is attempted to be destroyed as well.
-        auto ptr = std::make_shared<shared_pointer>(_M_ptr, container_ptr);
-        return container_pointer(ptr, container_ptr.get());
-    }
-
     Allocator _M_alloc;
     std::shared_ptr<void> _M_ptr;
 };

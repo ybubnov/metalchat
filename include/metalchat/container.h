@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <functional>
+#include <iostream>
 #include <vector>
 
 #include <metalchat/metal.h>
@@ -84,7 +85,7 @@ struct basic_container {
     data_ptr() const
         = 0;
 
-    virtual ~basic_container() {}
+    virtual ~basic_container() = default;
 };
 
 
@@ -104,13 +105,13 @@ template <typename T> struct memory_container : public basic_container {
         = 0;
 
     void*
-    data_ptr()
+    data_ptr() override
     {
         return data();
     }
 
     const void*
-    data_ptr() const
+    data_ptr() const override
     {
         return data();
     }
@@ -121,7 +122,7 @@ template <typename T> struct memory_container : public basic_container {
         return data();
     }
 
-    virtual ~memory_container() {}
+    virtual ~memory_container() = default;
 };
 
 
@@ -141,6 +142,19 @@ concept forward_container_iterator_t = std::forward_iterator<It> && requires(It 
 
 
 template <typename T, contiguous_container Container> struct container_cast;
+
+
+template <typename T, typename U>
+std::shared_ptr<T>
+make_pointer_alias(const std::shared_ptr<T>& ptr1, const std::shared_ptr<U>& ptr2)
+{
+    using t_pointer = std::shared_ptr<T>;
+    using u_pointer = std::shared_ptr<U>;
+    using union_pointer = std::pair<t_pointer, u_pointer>;
+
+    auto ptr = std::make_shared<union_pointer>(ptr1, ptr2);
+    return t_pointer(ptr, ptr1.get());
+}
 
 
 template <typename T> struct reference_memory_container : public memory_container<T> {
@@ -188,6 +202,8 @@ template <typename T> struct random_memory_container : public memory_container<T
 private:
     std::shared_ptr<void> _M_data = nullptr;
 
+    template <typename U> friend struct random_memory_container;
+
 public:
     using value_type = T;
     using pointer = value_type*;
@@ -195,6 +211,10 @@ public:
 
     random_memory_container(std::shared_ptr<void> data)
     : _M_data(data)
+    {}
+
+    random_memory_container(const random_memory_container<void>& container)
+    : _M_data(container._M_data)
     {}
 
     pointer
@@ -218,7 +238,15 @@ template <typename T> struct container_cast<T, random_memory_container<void>> {
     static pointer
     static_pointer_cast(std::shared_ptr<random_memory_container<void>> ptr)
     {
-        return std::reinterpret_pointer_cast<type>(ptr);
+        // Create a new typed pointer from the original void pointer (simply calls
+        // the constructor of the random_memory_container.
+        //
+        // Since original pointer might carry the reference to container-backing object
+        // (like memory-mapped file), we cannot just throw away the origin pointer, but
+        // also keep it attached to the new typed pointer to the container.
+        auto container_ptr = std::make_shared<type>(*ptr);
+
+        return make_pointer_alias(container_ptr, ptr);
     }
 };
 
@@ -325,7 +353,8 @@ template <typename T> struct container_cast<T, hardware_memory_container<void>> 
     static pointer
     static_pointer_cast(std::shared_ptr<hardware_memory_container<void>> ptr)
     {
-        return std::reinterpret_pointer_cast<type>(ptr);
+        auto container_ptr = std::make_shared<type>(ptr->storage(), ptr->storage_offset());
+        return make_pointer_alias(container_ptr, ptr);
     }
 };
 

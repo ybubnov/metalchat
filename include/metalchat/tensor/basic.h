@@ -46,6 +46,10 @@ public:
     virtual std::shared_ptr<basic_container>
     container_ptr() const = 0;
 
+    virtual void
+    set_container(const std::shared_ptr<basic_container>&)
+        = 0;
+
     /// Returns the number of dimension of the tensor.
     virtual std::size_t
     dimensions() const
@@ -56,6 +60,10 @@ public:
     /// \param dim the dimension for which to retrieve the size.
     virtual std::size_t
     size(std::size_t dim) const
+        = 0;
+
+    virtual void
+    set_size(std::size_t dim, std::size_t size)
         = 0;
 
     /// Returns the sizes of the tensor.
@@ -526,6 +534,12 @@ public:
         return _M_sizes->data()[dim];
     }
 
+    void
+    set_size(std::size_t dim, std::size_t i)
+    {
+        _M_sizes->data()[dim] = i;
+    }
+
     /// Returns the sizes of the tensor.
     ///
     /// ```c++
@@ -638,6 +652,18 @@ public:
     container_ptr() const
     {
         return _M_data;
+    }
+
+    void
+    set_container(const std::shared_ptr<basic_container>& ptr)
+    {
+        container_pointer data = std::dynamic_pointer_cast<container_type>(ptr);
+        if (!data) {
+            throw std::runtime_error(
+                "tensor::set_container: failed to cast container implementation"
+            );
+        }
+        _M_data = data;
     }
 
     /// Returns tensor's offset in the underlying storage in terms of number of storage elements
@@ -1114,12 +1140,6 @@ protected:
     friend class tensor;
 
     void
-    set_size(std::size_t dim, std::size_t i)
-    {
-        _M_sizes->data()[dim] = i;
-    }
-
-    void
     initialize()
     {
         auto allocator = random_memory_allocator<std::size_t>();
@@ -1246,7 +1266,7 @@ template <typename T, std::size_t N, hardware_allocator_t<void> Allocator>
 auto
 empty(std::size_t (&&sizes)[N], Allocator alloc)
 {
-    auto rebind_alloc = rebind_hardware_allocator<T, Allocator>(alloc);
+    auto rebind_alloc = rebind_allocator<T, Allocator>(alloc);
     return empty<T>(std::move(sizes), rebind_alloc);
 }
 
@@ -1291,7 +1311,7 @@ template <typename T, immutable_tensor Tensor, hardware_allocator_t<void> Alloca
 auto
 empty_like(const Tensor& like, Allocator alloc)
 {
-    auto rebind_alloc = rebind_hardware_allocator<T, Allocator>(alloc);
+    auto rebind_alloc = rebind_allocator<T, Allocator>(alloc);
     return empty_like<T>(like, rebind_alloc);
 }
 

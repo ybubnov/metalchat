@@ -13,35 +13,26 @@ using namespace metalchat::dtype;
 
 TEST_CASE("Test model load", "[safetensor]")
 {
-    metalchat::hardware_accelerator gpu0;
-    auto doc = safetensor_document::open("../llama32.safetensors", gpu0.get_allocator());
-
-    doc.save("../llama32-copy.safetensors");
-
-    for (auto it = doc.begin(); it != doc.end(); ++it) {
-        auto tensor = *it;
-        std::cout << tensor.name() << "->" << tensor.sizes() << std::endl;
-    }
-}
-
-
-/*
-TEST_CASE("Test model load", "[safetensor]")
-{
     metalchat::hardware_accelerator gpu0(16);
 
+    auto alloc = gpu0.get_allocator();
+
     nn::llama3<bf16> m(nn::default_llama3_1b_options(), gpu0);
-    safetensor_document::open("../llama32.safetensors", m, gpu0.get_allocator());
+    auto doc = safetensor_document::open("../llama32.safetensors", alloc);
+
+    doc.load(m);
 
     auto params = m.get_parameters();
 
     REQUIRE(params.size() == 179);
     for (auto [name, param] : params) {
         REQUIRE(param->numel() > 0);
+        REQUIRE(param->container_ptr() != nullptr);
     }
 }
 
 
+/*
 TEST_CASE("Test read/write/read", "[safetensor]")
 {
     metalchat::hardware_accelerator gpu0(16);

@@ -5,6 +5,7 @@
 #include <format>
 #include <iostream>
 #include <numeric>
+#include <unordered_map>
 #include <vector>
 
 #include <metalchat/accelerator.h>
@@ -48,7 +49,7 @@ public:
 
     /// Return the number of dimensions in the tensor.
     std::size_t
-    dim() const
+    dimensions() const
     {
         return _M_shape.size();
     }
@@ -259,6 +260,7 @@ private:
 
     std::vector<safetensor_metadata> _M_metadata;
     std::vector<safetensor_container> _M_containers;
+    std::unordered_map<std::string, std::size_t, _StringHash> _M_names;
 
     safetensor_typeinfo _M_typeinfo;
 
@@ -274,20 +276,14 @@ private:
     parse_metadata(std::shared_ptr<basic_memfile> file_ptr);
 
     void
-    push_back(
-        const safetensor_metadata& metadata, const std::shared_ptr<basic_container>& container
-    )
-    {
-        _M_metadata.push_back(metadata);
-        _M_containers.push_back(container);
-    }
+    insert(const safetensor_metadata& metadata, const safetensor_container& container);
 
 public:
+    using iterator = safetensor_iterator;
+    using const_iterator = const iterator;
+
     safetensor_document();
     safetensor_document(const safetensor_document&) = default;
-
-    void
-    push_back(const std::string& name, basic_tensor& tensor);
 
     void*
     data() noexcept;
@@ -298,16 +294,28 @@ public:
     std::vector<std::size_t>
     sizes() const;
 
-    safetensor_iterator
-    begin() const
+    iterator
+    begin()
     {
-        return safetensor_iterator(_M_metadata.begin(), _M_containers.begin());
+        return iterator(_M_metadata.begin(), _M_containers.begin());
     }
 
-    safetensor_iterator
+    iterator
+    end()
+    {
+        return iterator(_M_metadata.end(), _M_containers.end());
+    }
+
+    const_iterator
+    begin() const
+    {
+        return iterator(_M_metadata.begin(), _M_containers.begin());
+    }
+
+    const_iterator
     end() const
     {
-        return safetensor_iterator(_M_metadata.end(), _M_containers.end());
+        return iterator(_M_metadata.end(), _M_containers.end());
     }
 
     template <allocator_t<void> Allocator>
@@ -328,28 +336,23 @@ public:
             auto size = m.data_offsets[1] - m.data_offsets[0];
 
             auto container_ptr = allocator.allocate(m.dtype, data, size, container_alloc);
-            document.push_back(m, container_ptr);
+            document.insert(m, container_ptr);
         }
 
         return document;
     }
 
-    /*
-    template <allocator_t<void> Allocator>
-    static void
-    load(const std::filesystem::path& p, basic_layer& layer, Allocator alloc)
-    {
-        auto document = load(p, alloc);
-        return document.load(layer, alloc0);
-    }
-    */
+    static safetensor_document
+    open(const std::filesystem::path& p);
 
-    /*
-    template <template Readable, allocator_t<void> Allocator>
-    static void
-    load(const Readable& r, Allocator alloc)
-    {}
-    */
+    void
+    insert(const std::string& name, basic_tensor& tensor);
+
+    // void
+    // insert(basic_layer& layer);
+
+    void
+    load(basic_layer& layer);
 
     /*
     template <allocator_t<void> Allocator>
@@ -374,6 +377,18 @@ public:
 
     void
     save(const std::filesystem::path& p);
+
+    // friend std::ostream&
+    // operator<<(std::ostream& os, const safetensor_document& document)
+    // {
+    //     return os;
+    // }
+    //
+    // friend std::istream&
+    // operator>>(std::istream& is, safetensor_document& document)
+    // {
+    //     return is;
+    // }
 };
 
 
