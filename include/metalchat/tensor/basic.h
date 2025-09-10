@@ -1201,7 +1201,9 @@ protected:
 
     tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
     : tensor(
-          make_reference_container(data, N),
+          make_reference_container(
+              data, std::accumulate(shape, shape + N, 1, std::multiplies<std::size_t>())
+          ),
           make_reference_container(shape, N),
           make_reference_container(strides, N),
           make_reference_container(offsets, N)
