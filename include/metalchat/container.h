@@ -75,6 +75,19 @@ private:
 };
 
 
+template <typename T, typename U>
+std::shared_ptr<T>
+make_pointer_alias(const std::shared_ptr<T>& ptr1, const std::shared_ptr<U>& ptr2)
+{
+    using t_pointer = std::shared_ptr<T>;
+    using u_pointer = std::shared_ptr<U>;
+    using union_pointer = std::pair<t_pointer, u_pointer>;
+
+    auto ptr = std::make_shared<union_pointer>(ptr1, ptr2);
+    return t_pointer(ptr, ptr1.get());
+}
+
+
 struct basic_container {
 
     virtual void*
@@ -104,6 +117,10 @@ template <typename T> struct memory_container : public basic_container {
     data() const
         = 0;
 
+    virtual std::size_t
+    size() const
+        = 0;
+
     void*
     data_ptr() override
     {
@@ -129,50 +146,122 @@ template <typename T> struct memory_container : public basic_container {
 template <typename Container>
 concept contiguous_container = requires {
     typename Container::value_type;
-} && std::derived_from<Container, memory_container<typename Container::value_type>>;
 
-
-template <typename It>
-concept forward_container_iterator_t = std::forward_iterator<It> && requires(It it) {
-    typename std::iterator_traits<It>::value_type;
-    typename std::iterator_traits<It>::value_type::element_type;
-
-    requires contiguous_container<typename std::iterator_traits<It>::value_type::element_type>;
+    requires std::derived_from<Container, memory_container<typename Container::value_type>>;
 };
 
 
-template <typename T, contiguous_container Container> struct container_cast;
+template <typename T, contiguous_container Container> struct container_rebind {
+    using type = Container;
+    using pointer = std::shared_ptr<Container>;
+};
 
 
-template <typename T, typename U>
-std::shared_ptr<T>
-make_pointer_alias(const std::shared_ptr<T>& ptr1, const std::shared_ptr<U>& ptr2)
-{
-    using t_pointer = std::shared_ptr<T>;
-    using u_pointer = std::shared_ptr<U>;
-    using union_pointer = std::pair<t_pointer, u_pointer>;
+/// This template class provides the standardized way to access various properties of
+/// \ref Container. The library allocators and other components access containers through
+/// this template.
+///
+/// \tparam Container a contiguous memory container type.
+template <contiguous_container Container> struct container_traits {
+    using container_type = Container;
+    using container_pointer = std::shared_ptr<container_type>;
 
-    auto ptr = std::make_shared<union_pointer>(ptr1, ptr2);
-    return t_pointer(ptr, ptr1.get());
-}
+    using value_type = container_type::value_type;
+
+    using pointer = container_type::pointer;
+    using const_pointer = const container_type::pointer;
+    using void_pointer = void*;
+    using const_void_pointer = const void*;
+
+    /// Container type after type rebinding.
+    template <typename T> using rebind_container = container_rebind<T, Container>::type;
+
+    /// Container traits of the rebind container type.
+    template <typename T> using rebind_traits = container_traits<rebind_container<T>>;
+
+    /// A template method to rebind container type, when logic is present.
+    template <typename T> static constexpr auto rebind = container_rebind<T, Container>::rebind;
+
+    /// Returns a pointer to the beginning of the container underlying storage.
+    ///
+    /// \param container a contiguous memory container.
+    static const_void_pointer
+    begin(const container_type& container)
+    {
+        return static_cast<const std::uint8_t*>(container.data_ptr());
+    }
+
+    static const_void_pointer
+    begin(const container_pointer& container_ptr)
+    {
+        return begin(*container_ptr);
+    }
+
+    /// Returns a pointer to the end (i.e. the element after the last element) of
+    /// the container underlying storage.
+    ///
+    /// \param container a contiguous memory container.
+    static const_void_pointer
+    end(const container_type& container)
+    {
+        return static_cast<const std::uint8_t*>(begin(container)) + container.size();
+    }
+
+    static const_void_pointer
+    end(const container_pointer& container_ptr)
+    {
+        return end(*container_ptr);
+    }
+
+    /// Checks whether or not a given container contains the specified pointer.
+    ///
+    /// \param container a contiguous memory container.
+    static bool
+    contains(const container_type& container, const_void_pointer ptr)
+    {
+        return (ptr >= begin(container)) && (ptr <= end(container));
+    }
+
+    static bool
+    contains(const container_type& container, const_void_pointer first, std::size_t size)
+    {
+        const_void_pointer last = static_cast<const std::uint8_t*>(first) + size;
+        return contains(container, first) && contains(container, last);
+    }
+
+
+    static bool
+    contains(const container_pointer& container_ptr, const_void_pointer first, std::size_t size)
+    {
+        return contains(*container_ptr, first, size);
+    }
+};
 
 
 template <typename T> struct reference_memory_container : public memory_container<T> {
 private:
     T* _M_data = nullptr;
+    std::size_t _M_size;
 
 public:
     using value_type = T;
     using pointer = value_type*;
     using const_pointer = const pointer;
 
-    reference_memory_container(pointer data)
-    : _M_data(data)
+    reference_memory_container(pointer data, std::size_t size)
+    : _M_data(data),
+      _M_size(size)
     {}
 
     reference_memory_container(const reference_memory_container& ref)
-    : reference_memory_container(ref._M_data)
+    : reference_memory_container(ref._M_data, ref._M_size)
     {}
+
+    std::size_t
+    size() const
+    {
+        return _M_size;
+    }
 
     pointer
     data()
@@ -192,15 +281,16 @@ public:
 
 template <typename T>
 auto
-make_reference_container(T* data)
+make_reference_container(T* data, std::size_t size)
 {
-    return std::make_shared<reference_memory_container<T>>(data);
+    return std::make_shared<reference_memory_container<T>>(data, size);
 }
 
 
 template <typename T> struct random_memory_container : public memory_container<T> {
 private:
     std::shared_ptr<void> _M_data = nullptr;
+    std::size_t _M_size;
 
     template <typename U> friend struct random_memory_container;
 
@@ -209,13 +299,21 @@ public:
     using pointer = value_type*;
     using const_pointer = const pointer;
 
-    random_memory_container(std::shared_ptr<void> data)
-    : _M_data(data)
+    random_memory_container(std::shared_ptr<void> data, std::size_t size)
+    : _M_data(data),
+      _M_size(size)
     {}
 
     random_memory_container(const random_memory_container<void>& container)
-    : _M_data(container._M_data)
+    : _M_data(container._M_data),
+      _M_size(container._M_size)
     {}
+
+    std::size_t
+    size() const
+    {
+        return _M_size;
+    }
 
     pointer
     data()
@@ -231,21 +329,14 @@ public:
 };
 
 
-template <typename T> struct container_cast<T, random_memory_container<void>> {
+template <typename T> struct container_rebind<T, random_memory_container<void>> {
     using type = random_memory_container<T>;
     using pointer = std::shared_ptr<type>;
 
     static pointer
-    static_pointer_cast(std::shared_ptr<random_memory_container<void>> ptr)
+    rebind(std::shared_ptr<random_memory_container<void>> ptr)
     {
-        // Create a new typed pointer from the original void pointer (simply calls
-        // the constructor of the random_memory_container.
-        //
-        // Since original pointer might carry the reference to container-backing object
-        // (like memory-mapped file), we cannot just throw away the origin pointer, but
-        // also keep it attached to the new typed pointer to the container.
         auto container_ptr = std::make_shared<type>(*ptr);
-
         return make_pointer_alias(container_ptr, ptr);
     }
 };
@@ -267,6 +358,12 @@ public:
     vector_memory_container()
     : _M_data()
     {}
+
+    std::size_t
+    size() const
+    {
+        return _M_data.size() * sizeof(value_type);
+    }
 
     pointer
     data()
@@ -296,6 +393,12 @@ template <typename T> struct hardware_memory_container : public memory_container
       _M_off(off)
     {}
 
+    std::size_t
+    size() const
+    {
+        return metal::size(_M_mem);
+    }
+
     pointer
     data()
     {
@@ -306,24 +409,6 @@ template <typename T> struct hardware_memory_container : public memory_container
     data() const
     {
         return static_cast<const_pointer>(storage_ptr());
-    }
-
-    bool
-    contains(const void* ptr) const
-    {
-        return (ptr >= begin()) && (ptr <= end());
-    }
-
-    const void*
-    begin() const
-    {
-        return storage_ptr();
-    }
-
-    const void*
-    end() const
-    {
-        return static_cast<const std::uint8_t*>(begin()) + metal::size(_M_mem);
     }
 
     metal::shared_buffer
@@ -346,12 +431,12 @@ template <typename T> struct hardware_memory_container : public memory_container
 };
 
 
-template <typename T> struct container_cast<T, hardware_memory_container<void>> {
+template <typename T> struct container_rebind<T, hardware_memory_container<void>> {
     using type = hardware_memory_container<T>;
     using pointer = std::shared_ptr<type>;
 
     static pointer
-    static_pointer_cast(std::shared_ptr<hardware_memory_container<void>> ptr)
+    rebind(std::shared_ptr<hardware_memory_container<void>> ptr)
     {
         auto container_ptr = std::make_shared<type>(ptr->storage(), ptr->storage_offset());
         return make_pointer_alias(container_ptr, ptr);
@@ -371,6 +456,12 @@ public:
     scalar_memory_container(T data)
     : _M_data(data)
     {}
+
+    std::size_t
+    size() const
+    {
+        return sizeof(T);
+    }
 
     pointer
     data()
@@ -401,6 +492,7 @@ make_scalar_container(T data)
 template <typename T> struct filebuf_memory_container : public memory_container<T> {
 private:
     std::shared_ptr<basic_memfile> _M_filebuf;
+    std::size_t _M_size;
 
 public:
     using value_type = T;
@@ -410,7 +502,8 @@ public:
     /// Constructs a new instance of a file-buffered container and initializes it with
     /// the provided data. After construction file is not mapped into the memory.
     filebuf_memory_container(const_pointer data, std::size_t size)
-    : _M_filebuf(std::make_shared<basic_memfile>())
+    : _M_filebuf(std::make_shared<basic_memfile>()),
+      _M_size(size * sizeof(value_type))
     {
         _M_filebuf->write(data, sizeof(value_type) * size);
     }
@@ -421,6 +514,12 @@ public:
     park() const
     {
         _M_filebuf->undeclare_mapped();
+    }
+
+    std::size_t
+    size() const
+    {
+        return _M_size;
     }
 
     pointer

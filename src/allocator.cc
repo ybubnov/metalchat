@@ -176,9 +176,7 @@ _HardwareBufferAllocator::_HardwareBufferAllocator(container_pointer container_p
 _HardwareBufferAllocator::_HardwareBufferAllocator(std::vector<container_pointer> containers)
 : _M_containers(containers)
 {
-    auto comp = [](container_pointer a, container_pointer b) {
-        return a->storage_ptr() < b->storage_ptr();
-    };
+    auto comp = [](container_pointer a, container_pointer b) { return a->data() < b->data(); };
     std::sort(_M_containers.begin(), _M_containers.end(), comp);
 }
 
@@ -186,23 +184,27 @@ _HardwareBufferAllocator::_HardwareBufferAllocator(std::vector<container_pointer
 _HardwareBufferAllocator::container_pointer
 _HardwareBufferAllocator::allocate(const void* ptr, std::size_t size)
 {
-    const std::uint8_t* alloc_ptr = static_cast<const std::uint8_t*>(ptr);
+    using traits = container_traits<container_type>;
+    using const_byte_pointer = const std::uint8_t*;
 
-    auto comp = [](container_pointer container, const void* p) { return container->end() < p; };
+    auto alloc_ptr = static_cast<const_byte_pointer>(ptr);
+
+    auto comp
+        = [](container_pointer container, const void* p) { return traits::end(container) < p; };
 
     auto container_it = std::lower_bound(_M_containers.begin(), _M_containers.end(), ptr, comp);
 
     for (; container_it != _M_containers.end(); ++container_it) {
         auto container_ptr = *container_it;
-        const std::uint8_t* begin_ptr = static_cast<const std::uint8_t*>(container_ptr->begin());
+        auto begin_ptr = static_cast<const_byte_pointer>(traits::begin(container_ptr));
 
-        if (container_ptr->contains(alloc_ptr) && container_ptr->contains(alloc_ptr + size)) {
+        if (traits::contains(container_ptr, ptr, size)) {
             std::size_t off = alloc_ptr - begin_ptr;
             return std::make_shared<container_type>(container_ptr->storage(), /*off=*/off);
         }
     }
 
-    throw alloc_error("hardware_buffer_allocator: no container found");
+    throw alloc_error("hardware_buffer_allocator: container not found");
 }
 
 

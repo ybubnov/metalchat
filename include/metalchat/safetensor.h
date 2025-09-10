@@ -278,6 +278,9 @@ private:
     void
     insert(const safetensor_metadata& metadata, const safetensor_container& container);
 
+    void
+    load(const safetensor& st, basic_tensor& tensor) const;
+
 public:
     using iterator = safetensor_iterator;
     using const_iterator = const iterator;
@@ -285,11 +288,8 @@ public:
     safetensor_document();
     safetensor_document(const safetensor_document&) = default;
 
-    void*
-    data() noexcept;
-
-    // std::vector<std::size_t>
-    // offsets() const;
+    std::vector<std::size_t>
+    offsets() const;
 
     std::vector<std::size_t>
     sizes() const;
@@ -320,15 +320,25 @@ public:
 
     template <allocator_t<void> Allocator>
     static safetensor_document
-    open(const std::filesystem::path& p, Allocator alloc)
+    open(const std::filesystem::path& p, Allocator alloc, std::size_t max_size = -1)
     {
+        auto file = std::make_shared<basic_memfile>(p);
+        auto metadata = parse_metadata(file->declare_mapped());
+
+        std::vector<std::size_t> sizes;
+        for (const auto& m : metadata) {
+            sizes.push_back(m.data_offsets[1] - m.data_offsets[0]);
+        }
+
+        auto data_ptr = file->data() + file->tellg();
+        // auto page_alloc = paginated_allocator_adapter(alloc);
+        // auto containers = page_alloc.allocate(data_ptr, sizes());
+
         using allocator_type = aliasing_allocator<Allocator>;
 
         safetensor_document document;
         safetensor_allocator<allocator_type> allocator;
 
-        auto file = std::make_shared<basic_memfile>(p);
-        auto metadata = parse_metadata(file->declare_mapped());
         auto container_alloc = allocator_type(alloc, file);
 
         for (const auto& m : metadata) {
@@ -346,31 +356,16 @@ public:
     open(const std::filesystem::path& p);
 
     void
-    insert(const std::string& name, basic_tensor& tensor);
-
-    // void
-    // insert(basic_layer& layer);
+    insert(const std::string& name, const basic_tensor& tensor);
 
     void
-    load(basic_layer& layer);
+    insert(const basic_layer& layer);
 
-    /*
-    template <allocator_t<void> Allocator>
     void
-    load(basic_layer& layer, Allocator alloc)
-    {
-        using container_type = Allocator::container_type;
-        layer.initialize(begin(), end(), alloc);
-    }
+    load(basic_layer& layer) const;
 
-    template <typename T>
-    static void
-    load(const std::filesystem::path& p, basic_layer& layer)
-    {
-        auto alloc = layer.accelerator().get_allocator();
-        return load(p, layer, make_rebind_allocator<T>(alloc));
-    }
-    */
+    void
+    load(const std::string& name, basic_tensor& tensor) const;
 
     static void
     save(const std::filesystem::path& p, basic_layer& layer);
@@ -378,12 +373,12 @@ public:
     void
     save(const std::filesystem::path& p);
 
-    // friend std::ostream&
-    // operator<<(std::ostream& os, const safetensor_document& document)
-    // {
-    //     return os;
-    // }
-    //
+    friend std::ostream&
+    operator<<(std::ostream& os, const safetensor_document& document)
+    {
+        return os;
+    }
+
     // friend std::istream&
     // operator>>(std::istream& is, safetensor_document& document)
     // {

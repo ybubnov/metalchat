@@ -25,12 +25,14 @@ safetensor_document::safetensor_document()
 {}
 
 
-void*
-safetensor_document::data() noexcept
+std::vector<std::size_t>
+safetensor_document::offsets() const
 {
-    // std::size_t offset = _M_metadata.empty() ? 0 : _M_metadata.front().data_offsets[0];
-    // return _M_file->data() + offset;
-    return nullptr;
+    std::vector<std::size_t> offsets;
+    for (const auto& m : _M_metadata) {
+        offsets.push_back(m.data_offsets[0]);
+    }
+    return offsets;
 }
 
 
@@ -75,10 +77,6 @@ safetensor_document::parse_metadata(basic_memfile& file)
             continue;
         }
 
-        for (auto& offset : meta.data_offsets) {
-            offset += start_pos;
-        }
-
         meta.name = name;
         metadata.push_back(meta);
     }
@@ -120,7 +118,7 @@ safetensor_document::insert(
 
 
 void
-safetensor_document::insert(const std::string& name, basic_tensor& tensor)
+safetensor_document::insert(const std::string& name, const basic_tensor& tensor)
 {
     auto sizes = tensor.sizes();
     auto numel = tensor.numel();
@@ -147,27 +145,55 @@ safetensor_document::insert(const std::string& name, basic_tensor& tensor)
 
 
 void
-safetensor_document::load(basic_layer& layer)
+safetensor_document::insert(const basic_layer& layer)
+{
+    auto insert_fn = [&](const std::string& name, std::shared_ptr<basic_tensor> tensor) {
+        insert(name, *tensor);
+    };
+    layer.apply(insert_fn, /*recurse=*/true);
+}
+
+
+void
+safetensor_document::load(const safetensor& st, basic_tensor& tensor) const
+{
+    if (st.dimensions() != tensor.dimensions()) {
+        throw std::runtime_error(std::format(
+            "safetensor_document::load: target tensor '{}' dimensions are different {}!={}",
+            st.name(), st.dimensions(), tensor.dimensions()
+        ));
+    }
+
+    auto sizes = st.sizes();
+
+    for (std::size_t i = 0; i < tensor.dimensions(); i++) {
+        tensor.set_size(i, sizes[i]);
+    }
+
+    auto ptr = st.container_ptr();
+    tensor.set_container(ptr);
+}
+
+
+void
+safetensor_document::load(const std::string& name, basic_tensor& tensor) const
+{
+    auto pos = _M_names.at(name);
+    auto first = begin();
+    std::advance(first, pos);
+
+    auto st = *first;
+    load(st, tensor);
+}
+
+
+void
+safetensor_document::load(basic_layer& layer) const
 {
     for (auto it = begin(); it != end(); ++it) {
         auto safetensor = *it;
         auto parameter = layer.get_parameter(safetensor.name());
-
-        if (safetensor.dimensions() != parameter->dimensions()) {
-            throw std::runtime_error(std::format(
-                "safetensor_document::load: target tensor '{}' dimensions are different {}!={}",
-                safetensor.name(), safetensor.dimensions(), parameter->dimensions()
-            ));
-        }
-
-        auto sizes = safetensor.sizes();
-
-        for (std::size_t i = 0; i < parameter->dimensions(); i++) {
-            parameter->set_size(i, sizes[i]);
-        }
-
-        auto ptr = safetensor.container_ptr();
-        parameter->set_container(ptr);
+        load(safetensor, *parameter);
     }
 }
 
@@ -176,12 +202,7 @@ void
 safetensor_document::save(const std::filesystem::path& p, basic_layer& layer)
 {
     safetensor_document document;
-
-    auto insert = [&](const std::string& name, std::shared_ptr<basic_tensor> tensor) {
-        document.insert(name, *tensor);
-    };
-
-    layer.apply(insert, /*recurse=*/true);
+    document.insert(layer);
     document.save(p);
 }
 
@@ -189,7 +210,9 @@ void
 safetensor_document::save(const std::filesystem::path& p)
 {
     std::unordered_map<std::string, safetensor_metadata> metadata;
-    for (const auto& m : _M_metadata) {
+    for (auto m : _M_metadata) {
+        for (auto& offset : m.data_offsets) {
+        }
         metadata.insert_or_assign(m.name, m);
     }
 

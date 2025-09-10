@@ -1201,10 +1201,10 @@ protected:
 
     tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
     : tensor(
-          make_reference_container(data),
-          make_reference_container(shape),
-          make_reference_container(strides),
-          make_reference_container(offsets)
+          make_reference_container(data, N),
+          make_reference_container(shape, N),
+          make_reference_container(strides, N),
+          make_reference_container(offsets, N)
       )
     {}
 };
