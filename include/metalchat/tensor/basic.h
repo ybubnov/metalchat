@@ -12,6 +12,7 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/allocator.h>
 #include <metalchat/container.h>
+#include <metalchat/tensor/accessor.h>
 #include <metalchat/tensor/concept.h>
 #include <metalchat/tensor/indexing.h>
 #include <metalchat/tensor/iterator.h>
@@ -161,6 +162,8 @@ __largest_nested_size(std::initializer_list<std::initializer_list<T>> data)
 template <typename T, std::size_t N, contiguous_container Container = random_memory_container<T>>
 class tensor : public basic_tensor {
 public:
+    using tensor_type = tensor<T, N, Container>;
+
     /// Alias of the tensor type.
     using value_type = T;
 
@@ -173,21 +176,25 @@ public:
     /// Pointer to the container type storing the data of the tensor.
     using container_pointer = std::shared_ptr<container_type>;
 
+    using container_traits = container_traits<container_type>;
+
     /// Contiguous iterator of the tensor data.
     using iterator = tensor_iterator<T, N>;
 
     /// Contiguous constant iterator of the tensor data.
     using const_iterator = const iterator;
 
-    using descriptor_type = memory_container<std::size_t>;
-
-    using descriptor_pointer = std::shared_ptr<descriptor_type>;
+    /// A tensor accessor type.
+    using accessor_type = tensor_accessor;
 
     /// Constructs an empty tensor (zero size and empty data).
     ///
     /// This constructor does not allocate a container, therefore direct access to data
     /// using \ref tensor::data_ptr is invalid.
-    tensor() { initialize(); }
+    tensor()
+    : _M_data(nullptr),
+      _M_access(N, random_memory_allocator<std::size_t>())
+    {}
 
     /// The move constructor. Constructs a tensor with the contents of `other`.
     tensor(tensor&& other) noexcept = default;
@@ -209,9 +216,7 @@ public:
     template <allocator_t<T> Allocator = scalar_memory_allocator<T>>
     tensor(const T& value, Allocator alloc = Allocator())
     : _M_data(alloc.allocate(1)),
-      _M_sizes(make_scalar_container<std::size_t>(0)),
-      _M_strides(make_scalar_container<std::size_t>(0)),
-      _M_offsets(make_scalar_container<std::size_t>(0))
+      _M_access(1, scalar_memory_allocator<std::size_t>())
     {
         *data_ptr() = value;
     }
@@ -276,8 +281,8 @@ public:
     /// ```
     template <std::forward_iterator ForwardIt, allocator_t<T> Allocator> requires(N > 0)
     tensor(ForwardIt first, ForwardIt last, Allocator alloc)
+    : _M_access(first, last, random_memory_allocator<std::size_t>())
     {
-        initialize(first, last);
         _M_data = alloc.allocate(numel());
     }
 
@@ -305,8 +310,8 @@ public:
         std::forward_iterator ForwardIt,
         allocator_t<T> Allocator = random_memory_allocator<T>>
     tensor(ForwardIt first, ForwardIt last, value_type* data, Allocator alloc = Allocator())
+    : _M_access(first, last, random_memory_allocator<std::size_t>())
     {
-        initialize(first, last);
         _M_data = alloc.allocate(data, numel());
     }
 
@@ -330,8 +335,8 @@ public:
     /// ```
     template <std::forward_iterator ForwardIt>
     tensor(ForwardIt first, ForwardIt last, const container_pointer& data)
+    : _M_access(first, last, random_memory_allocator<std::size_t>())
     {
-        initialize(first, last);
         _M_data = data;
     }
 
@@ -401,19 +406,11 @@ public:
     : tensor(std::span<std::size_t, N>(sizes, N), data)
     {}
 
-    tensor(
-        const std::span<std::size_t>& sizes,
-        const std::span<std::size_t>& strides,
-        const std::span<std::size_t>& offsets,
-        const container_pointer& data
-    )
-    {
-        initialize();
-        std::copy(sizes.begin(), sizes.end(), _M_sizes->data());
-        std::copy(strides.begin(), strides.end(), _M_strides->data());
-        std::copy(offsets.begin(), offsets.end(), _M_offsets->data());
-        _M_data = data;
-    }
+
+    tensor(const accessor_type& access, const container_pointer& data)
+    : _M_access(access),
+      _M_data(data)
+    {}
 
     /// Returns type information about tensor elements data type.
     const std::type_info&
@@ -485,18 +482,13 @@ public:
     std::size_t
     stride(std::size_t dim) const
     {
-        if (dim >= N) {
-            throw std::out_of_range(
-                std::format("tensor::stride: dim {} exceeds tensor dimensionality {}", dim, N)
-            );
-        }
-        return _M_strides->data()[dim];
+        return _M_access.stride(dim);
     }
 
     void
-    set_stride(std::size_t dim, std::size_t i)
+    set_stride(std::size_t dim, std::size_t stride)
     {
-        _M_strides->data()[dim] = i;
+        _M_access.set_stride(dim, stride);
     }
 
     /// Returns strides of the tensor.
@@ -511,7 +503,7 @@ public:
     const std::span<std::size_t>
     strides() const noexcept
     {
-        return std::span<std::size_t, N>(_M_strides->data(), N);
+        return std::span<std::size_t, N>(_M_access.strides()->data(), N);
     }
 
     /// Returns the size of the specified tensor dimension.
@@ -526,18 +518,13 @@ public:
     std::size_t
     size(std::size_t dim) const
     {
-        if (dim >= N) {
-            throw std::out_of_range(
-                std::format("tensor::size: dim {} exceeds tensor dimensionality {}", dim, N)
-            );
-        }
-        return _M_sizes->data()[dim];
+        return _M_access.size(dim);
     }
 
     void
-    set_size(std::size_t dim, std::size_t i)
+    set_size(std::size_t dim, std::size_t size)
     {
-        _M_sizes->data()[dim] = i;
+        _M_access.set_size(dim, size);
     }
 
     /// Returns the sizes of the tensor.
@@ -552,7 +539,7 @@ public:
     const std::span<std::size_t>
     sizes() const noexcept
     {
-        return std::span<std::size_t, N>(_M_sizes->data(), N);
+        return std::span<std::size_t, N>(_M_access.sizes()->data(), N);
     }
 
     /// Returns the sizes of the tensor. Unlike \ref tensor::sizes method, this method returns
@@ -562,7 +549,7 @@ public:
     const std::span<std::size_t, N>
     shape() const noexcept
     {
-        return std::span<std::size_t, N>(_M_sizes->data(), N);
+        return std::span<std::size_t, N>(_M_access.sizes()->data(), N);
     }
 
     /// Returns the container offset of the specified tensor dimension. The offset is always in
@@ -579,18 +566,13 @@ public:
     std::size_t
     offset(std::size_t dim) const
     {
-        if (dim >= N) {
-            throw std::out_of_range(
-                std::format("tensor::offset: dim {} exceed tensor dimensionality {}", dim, N)
-            );
-        }
-        return _M_offsets->data()[dim];
+        return _M_access.offset(dim);
     }
 
     void
-    set_offset(std::size_t dim, std::size_t i)
+    set_offset(std::size_t dim, std::size_t offset)
     {
-        _M_offsets->data()[dim] = i;
+        _M_access.set_offset(dim, offset);
     }
 
     /// Returns the offsets of the tensor container.
@@ -606,14 +588,14 @@ public:
     const std::span<std::size_t>
     offsets() const noexcept
     {
-        return std::span<std::size_t, N>(_M_offsets->data(), N);
+        return std::span<std::size_t, N>(_M_access.offsets()->data(), N);
     }
 
     bool
     is_contiguous() const
     {
         for (size_t i = 0; i < N; i++) {
-            if (_M_offsets->data()[i] != 0) {
+            if (offset(i) != 0) {
                 return false;
             }
         }
@@ -689,9 +671,9 @@ public:
     layout() const
     {
         tensor_layout<N> layout;
-        std::copy_n(_M_sizes->data(), N, layout.sizes);
-        std::copy_n(_M_strides->data(), N, layout.strides);
-        std::copy_n(_M_offsets->data(), N, layout.offsets);
+        std::copy_n(_M_access.sizes()->data(), N, layout.sizes);
+        std::copy_n(_M_access.strides()->data(), N, layout.strides);
+        std::copy_n(_M_access.offsets()->data(), N, layout.offsets);
         return layout;
     }
 
@@ -741,15 +723,17 @@ public:
     at(std::size_t i) const
     {
         if (auto size0 = size(0); i >= size0) {
-            std::out_of_range(std::format("tensor::at: index {} is out of tensor size {}", i, size0)
-            );
+            std::out_of_range(std::format(
+                "tensor::at: index {} at dimension 0 is out of tensor size {}", i, size0
+            ));
         }
 
-        auto data = data_ptr() + stride(0) * i + offset(0);
-        auto sizes = _M_sizes->data() + 1;
-        auto strides = _M_strides->data() + 1;
-        auto offsets = _M_offsets->data() + 1;
-        return tensor<T, N - 1, reference_memory_container<T>>(data, sizes, strides, offsets);
+        auto offset_bytes = (stride(0) * i + offset(0)) * sizeof(T);
+        auto container_ptr = container_traits::offset(_M_data, offset_bytes);
+        auto accessor = _M_access.squeeze();
+
+        using tensor_t = change_tensor_dimensions_t<tensor_type, N - 1>;
+        return tensor_t(accessor, container_ptr);
     }
 
     auto
@@ -1131,83 +1115,19 @@ public:
 
 protected:
     container_pointer _M_data = nullptr;
-    descriptor_pointer _M_sizes = nullptr;
-    descriptor_pointer _M_strides = nullptr;
-    descriptor_pointer _M_offsets = nullptr;
+    accessor_type _M_access;
 
-    // Make all specialization of the tensor friends to the current specialization.
+    /// Make all specialization of the tensor friends to the current specialization.
     template <typename FriendT, std::size_t FriendN, contiguous_container FriendContainer>
     friend class tensor;
 
-    void
-    initialize()
-    {
-        auto allocator = random_memory_allocator<std::size_t>();
-        _M_sizes = allocator.allocate(N);
-        _M_strides = allocator.allocate(N);
-        _M_offsets = allocator.allocate(N);
-    }
-
-    void
-    initialize_strides()
-    {
-        _M_strides->data()[N - 1] = 1;
-        for (std::size_t i = N - 2; i < N; --i) {
-            _M_strides->data()[i] = _M_strides->data()[i + 1] * _M_sizes->data()[i + 1];
-        }
-    }
-
-    void
-    initialize(const std::span<std::size_t, N> sizes)
-    {
-        initialize(sizes.begin(), sizes.end());
-        initialize_strides();
-    }
-
-    void
-    initialize(std::size_t (&&sizes)[N])
-    {
-        initialize(std::span<std::size_t, N>(sizes, N));
-    }
-
-    template <std::forward_iterator ForwardIt>
-    void
-    initialize(ForwardIt first, ForwardIt last)
-    {
-        assert(std::distance(first, last) == N);
-
-        initialize();
-        std::copy(first, last, _M_sizes->data());
-        initialize_strides();
-    }
-
+    /// Constructs a new tensor with the specified data container and empty accessor.
+    ///
+    /// After using this constructor, a user SHOULD initialize accessor with appropriate values
+    /// denoting sizes, strides, and offsets of the underlying data container.
     tensor(const container_pointer& data)
-    : _M_data(data)
-    {
-        initialize();
-    }
-
-    tensor(
-        const container_pointer& data,
-        descriptor_pointer&& shape,
-        descriptor_pointer&& strides,
-        descriptor_pointer&& offsets
-    )
     : _M_data(data),
-      _M_sizes(std::move(shape)),
-      _M_strides(std::move(strides)),
-      _M_offsets(std::move(offsets))
-    {}
-
-    tensor(T* data, std::size_t* shape, std::size_t* strides, std::size_t* offsets)
-    : tensor(
-          make_reference_container(
-              data, std::accumulate(shape, shape + N, 1, std::multiplies<std::size_t>())
-          ),
-          make_reference_container(shape, N),
-          make_reference_container(strides, N),
-          make_reference_container(offsets, N)
-      )
+      _M_access(N, random_memory_allocator<std::size_t>())
     {}
 };
 
@@ -1429,7 +1349,14 @@ move(const Tensor& t, Allocator alloc)
     auto allocator = allocator_type(alloc);
     auto container = allocator.allocate(t.data_ptr(), t.numel());
 
-    return tensor_type(t.sizes(), t.strides(), t.offsets(), container);
+    auto accessor = tensor_accessor(N);
+    for (std::size_t dim = 0; dim < N; dim++) {
+        accessor.set_size(dim, t.size(dim));
+        accessor.set_stride(dim, t.stride(dim));
+        accessor.set_offset(dim, t.offset(dim));
+    }
+
+    return tensor_type(accessor, container);
 }
 
 

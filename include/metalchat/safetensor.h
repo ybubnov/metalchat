@@ -94,7 +94,7 @@ class safetensor_document;
 template <allocator_t<void> Allocator> class safetensor_allocator {
 public:
     using container_ptr = std::shared_ptr<basic_container>;
-    using container_allocator = std::function<container_ptr(void*, std::size_t, Allocator&)>;
+    using container_allocator = std::function<container_ptr(const void*, std::size_t, Allocator&)>;
 
     safetensor_allocator()
     : _M_type_alloc()
@@ -119,7 +119,8 @@ private:
     void
     register_type(const std::string& type_name)
     {
-        _M_type_alloc[type_name] = allocator_rebinder<T, Allocator>::allocate;
+        using value_type = std::remove_cvref_t<T>;
+        _M_type_alloc[type_name] = rebind_allocator<value_type, Allocator>::static_allocate;
     }
 
     std::unordered_map<std::string, container_allocator, _StringHash> _M_type_alloc;

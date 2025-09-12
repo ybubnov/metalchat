@@ -43,28 +43,89 @@ TEST_CASE("Tensor empty", "[tensor::tensor]")
 }
 
 
+TEST_CASE("Tensor full", "[tensor::tensor]")
+{
+    auto t = full<float>({2, 3, 4}, 4.0);
+    REQUIRE(t.dim() == 3);
+    REQUIRE(t.size(0) == 2);
+    REQUIRE(t.size(1) == 3);
+    REQUIRE(t.size(2) == 4);
+    REQUIRE(t.stride(0) == 12);
+    REQUIRE(t.stride(1) == 4);
+    REQUIRE(t.stride(2) == 1);
+    REQUIRE(t.offset(0) == 0);
+    REQUIRE(t.offset(1) == 0);
+    REQUIRE(t.offset(2) == 0);
+    REQUIRE(t.numel() == 24);
+
+    auto container = t.container();
+    for (std::size_t i = 0; i < t.numel(); i++) {
+        REQUIRE(container.data()[i] == 4.0);
+        container.data()[i] = i;
+    }
+
+    std::cout << t << std::endl;
+}
+
+
+TEST_CASE("Tensor at", "[tensor::at]")
+{
+    auto t = full<float>({2, 3, 4}, 5.0);
+    auto u = t.at(1);
+
+    REQUIRE(u.dim() == 2);
+    REQUIRE(u.size(0) == 3);
+    REQUIRE(u.size(1) == 4);
+    REQUIRE(u.stride(0) == 4);
+    REQUIRE(u.stride(1) == 1);
+    REQUIRE(u.offset(0) == 0);
+    REQUIRE(u.offset(1) == 0);
+
+    for (std::size_t i = 0; i < 3; i++) {
+        for (std::size_t j = 0; j < 4; j++) {
+            REQUIRE((u[i, j]) == 5.0);
+            u[i, j] = 2.0;
+            REQUIRE((u[i, j]) == 2.0);
+        }
+    }
+}
+
+
 TEST_CASE("Tensor move assignment", "[tensor::operator=(tensor&&)]")
 {
     auto t = rand<float>({3, 2});
+    REQUIRE(t.numel() == 6);
+
     t = rand<float>({4, 2});
 
     REQUIRE(t.dim() == 2);
     REQUIRE(t.size(0) == 4);
     REQUIRE(t.size(1) == 2);
+    REQUIRE(t.numel() == 8);
 }
 
 
 TEST_CASE("Tensor transpose", "[tensor::transpose]")
 {
     auto x = rand<float>({2, 3, 4});
+    REQUIRE(x.size(0) == 2);
+    REQUIRE(x.size(1) == 3);
+    REQUIRE(x.size(2) == 4);
+
     auto x_t = x.transpose({0, 2, 1});
 
+    REQUIRE(x.dim() == 3);
     REQUIRE(x_t.size(0) == 2);
     REQUIRE(x_t.size(1) == 4);
     REQUIRE(x_t.size(2) == 3);
 
-    x[1][2][3] = 10.0;
-    REQUIRE(x_t[1][3][2] == 10.0);
+    for (std::size_t i = 0; i < x.size(0); i++) {
+        for (std::size_t j = 0; j < x.size(1); j++) {
+            for (std::size_t k = 0; k < x.size(2); k++) {
+                REQUIRE((x[i, j, k]) == (x_t[i, k, j]));
+            }
+        }
+    }
 }
 
 

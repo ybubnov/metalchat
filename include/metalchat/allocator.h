@@ -96,7 +96,7 @@ concept hardware_allocator_t
 ///
 ///     using value_type = T;
 ///     using pointer = value_type*;
-///     using const_pointer = const pointer;
+///     using const_pointer = const value_type*;
 ///     using size_type = std::size_t;
 ///     using container_type = hardware_memory_container<value_type>;
 ///     using container_pointer = std::shared_ptr<container_type>;
@@ -120,7 +120,7 @@ concept hardware_allocator_t
 template <typename T> struct basic_hardware_memory_allocator {
     using value_type = T;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using container_type = hardware_memory_container<value_type>;
     using container_pointer = std::shared_ptr<container_type>;
@@ -141,7 +141,7 @@ class hardware_allocator_wrapper : public basic_hardware_memory_allocator<T> {
 public:
     using value_type = T;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
     using size_type = Allocator::size_type;
     using container_type = Allocator::container_type;
     using container_pointer = Allocator::container_pointer;
@@ -202,7 +202,7 @@ template <typename T> class polymorphic_hardware_memory_allocator {
 public:
     using value_type = T;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using container_type = hardware_memory_container<value_type>;
     using container_pointer = std::shared_ptr<container_type>;
@@ -265,7 +265,7 @@ class hardware_nocopy_allocator
 public:
     using value_type = Allocator::value_type;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using container_type = hardware_memory_container<value_type>;
     using container_pointer = std::shared_ptr<container_type>;
@@ -437,7 +437,7 @@ class hardware_resident_allocator
 public:
     using value_type = Allocator::value_type;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using container_type = hardware_memory_container<value_type>;
     using container_pointer = std::shared_ptr<container_type>;
@@ -506,7 +506,7 @@ template <typename T> class hardware_memory_allocator : public basic_hardware_me
 public:
     using value_type = T;
     using pointer = T*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using container_type = hardware_memory_container<T>;
     using container_pointer = std::shared_ptr<container_type>;
@@ -564,7 +564,7 @@ public:
 template <typename T> class hardware_heap_allocator {
     using value_type = T;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using container_type = hardware_memory_container<T>;
     using container_pointer = std::shared_ptr<container_type>;
@@ -598,7 +598,7 @@ template <> class hardware_heap_allocator<void> : public basic_hardware_memory_a
 public:
     using value_type = void;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
@@ -631,7 +631,7 @@ template <> class hardware_memory_allocator<void> : public basic_hardware_memory
 public:
     using value_type = void;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
@@ -659,8 +659,8 @@ private:
 
 template <typename T> struct random_memory_allocator {
     using value_type = T;
-    using pointer = T*;
-    using const_pointer = const pointer;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using container_type = random_memory_container<T>;
     using container_pointer = std::shared_ptr<container_type>;
@@ -670,7 +670,7 @@ template <typename T> struct random_memory_allocator {
     container_pointer
     allocate(size_type size)
     {
-        std::shared_ptr<T> memory_ptr(new T[size]());
+        std::shared_ptr<T[]> memory_ptr(new T[size]());
         return std::make_shared<container_type>(memory_ptr, size * sizeof(T));
     }
 
@@ -678,7 +678,7 @@ template <typename T> struct random_memory_allocator {
     allocate(const_pointer ptr, size_type size)
     {
         auto container_ptr = allocate(size);
-        std::memcpy(container_ptr->data(), ptr, size * sizeof(T));
+        std::memcpy(container_ptr->data(), ptr, size);
         return container_ptr;
     }
 };
@@ -686,8 +686,8 @@ template <typename T> struct random_memory_allocator {
 
 template <> struct random_memory_allocator<void> {
     using value_type = void;
-    using pointer = void*;
-    using const_pointer = const pointer;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using container_type = random_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
@@ -713,8 +713,8 @@ template <> struct random_memory_allocator<void> {
 
 template <typename T> struct scalar_memory_allocator {
     using value_type = T;
-    using pointer = T*;
-    using const_pointer = const pointer;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using container_type = scalar_memory_container<T>;
     using container_pointer = std::shared_ptr<container_type>;
@@ -765,7 +765,7 @@ private:
 public:
     using value_type = T;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using container_type = _Container_traits::container_type;
     using container_pointer = _Container_traits::container_pointer;
@@ -773,6 +773,18 @@ public:
     rebind_allocator(Allocator alloc)
     : _M_alloc(alloc)
     {}
+
+    static std::shared_ptr<basic_container>
+    static_allocate(const void* data, std::size_t size, Allocator& alloc)
+    {
+        using allocator_type = rebind_allocator<T, Allocator>;
+        static_assert(std::same_as<allocator_type::const_pointer, const T*>);
+
+        auto allocator = allocator_type(alloc);
+        auto ptr = reinterpret_cast<allocator_type::const_pointer>(data);
+
+        return allocator.allocate(ptr, size / sizeof(T));
+    }
 
     /// Allocates `size * sizeof(T)` bytes of uninitialized memory by calling an underlying
     /// allocator.
@@ -793,17 +805,6 @@ public:
 };
 
 
-template <typename T, allocator_t<void> Allocator> struct allocator_rebinder {
-
-    static std::shared_ptr<basic_container>
-    allocate(void* data, std::size_t size, Allocator& alloc)
-    {
-        auto typed_allocator = rebind_allocator<T, Allocator>(alloc);
-        return typed_allocator.allocate((T*)(data), size / sizeof(T));
-    }
-};
-
-
 template <typename T, allocator_t<void> Allocator>
 rebind_allocator<T, Allocator>
 make_rebind_allocator(Allocator allocator)
@@ -816,7 +817,7 @@ template <allocator Allocator> class aliasing_allocator {
 public:
     using value_type = Allocator::value_type;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
     using size_type = Allocator::size_type;
     using container_type = Allocator::container_type;
     using container_pointer = Allocator::container_pointer;
@@ -848,8 +849,8 @@ private:
 
 template <typename T> struct filebuf_memory_allocator {
     using value_type = T;
-    using pointer = T*;
-    using const_pointer = const pointer;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
     using size_type = std::size_t;
     using container_type = filebuf_memory_container<T>;
     using container_pointer = std::shared_ptr<container_type>;

@@ -59,6 +59,25 @@ private:
     std::size_t _M_buffer;
     std::string _M_name;
 
+    /// Encode the specified raw block of memory as bytes.
+    ///
+    /// This method effectively is used to encoder kernel parameters that are passed by value
+    /// as opposed to buffers, which are passed by a pointer.
+    ///
+    /// Consider the following kernel example, where the first parameter is passed by a value
+    /// and the second by a pointer to the device data:
+    /// ```c++
+    /// kernel void greater_than_value(
+    ///     device float* input, constant float& value, device float* output
+    /// );
+    /// ```
+    ///
+    /// To encoder parameters of this kernel, use `encode(const void*, std::size_t)` in order
+    /// to pass the `value` parameter and `encode(metal::shared_buffer, std::size_t offset)` to
+    /// encode `input` and `output` parameters.
+    ///
+    /// \param data a pointer to the raw data to copy.
+    /// \param size a size of the data to copy in bytes.
     void
     encode(const void* data, std::size_t size);
 

@@ -146,15 +146,17 @@ template <typename T> struct memory_container : public basic_container {
 template <typename Container>
 concept contiguous_container = requires {
     typename Container::value_type;
+    typename Container::pointer;
+    typename Container::const_pointer;
 
     requires std::derived_from<Container, memory_container<typename Container::value_type>>;
 };
 
 
-template <typename T, contiguous_container Container> struct container_rebind {
-    using type = Container;
-    using pointer = std::shared_ptr<Container>;
-};
+template <typename T, contiguous_container Container> struct container_rebind;
+
+
+template <contiguous_container Container> struct container_offset;
 
 
 /// This template class provides the standardized way to access various properties of
@@ -182,6 +184,15 @@ template <contiguous_container Container> struct container_traits {
     /// A template method to rebind container type, when logic is present.
     template <typename T> static constexpr auto rebind = container_rebind<T, Container>::rebind;
 
+    /// Container type after storage offset.
+    using offset_container = container_offset<container_type>::type;
+
+    /// Container traifs of the offset container type.
+    using offset_traits = container_traits<offset_container>;
+
+    /// A method to shift container type, when logic is present.
+    static constexpr auto offset = container_offset<Container>::offset;
+
     /// Returns a pointer to the beginning of the container underlying storage.
     ///
     /// \param container a contiguous memory container.
@@ -191,6 +202,7 @@ template <contiguous_container Container> struct container_traits {
         return static_cast<const std::uint8_t*>(container.data_ptr());
     }
 
+    /// Returns a pointer to the beginning of the container underlying storage.
     static const_void_pointer
     begin(const container_pointer& container_ptr)
     {
@@ -207,6 +219,7 @@ template <contiguous_container Container> struct container_traits {
         return static_cast<const std::uint8_t*>(begin(container)) + container.size();
     }
 
+    /// Returns a pointer to the end of the container underlying storage.
     static const_void_pointer
     end(const container_pointer& container_ptr)
     {
@@ -216,12 +229,18 @@ template <contiguous_container Container> struct container_traits {
     /// Checks whether or not a given container contains the specified pointer.
     ///
     /// \param container a contiguous memory container.
+    /// \param ptr a pointer that is checked.
     static bool
     contains(const container_type& container, const_void_pointer ptr)
     {
         return (ptr >= begin(container)) && (ptr <= end(container));
     }
 
+    /// Checks whether or not a given container contains the specified range contiguous memory.
+    ///
+    /// \param container a contiguous memory container.
+    /// \param first a start position of the contiguous memory.
+    /// \param size a size of the contiguous memory.
     static bool
     contains(const container_type& container, const_void_pointer first, std::size_t size)
     {
@@ -229,7 +248,11 @@ template <contiguous_container Container> struct container_traits {
         return contains(container, first) && contains(container, last);
     }
 
-
+    /// Checks whether or not a given container contains the specified range contiguous memory.
+    ///
+    /// \param container a contiguous memory container.
+    /// \param first a start position of the contiguous memory.
+    /// \param size a size of the contiguous memory.
     static bool
     contains(const container_pointer& container_ptr, const_void_pointer first, std::size_t size)
     {
@@ -238,59 +261,11 @@ template <contiguous_container Container> struct container_traits {
 };
 
 
-template <typename T> struct reference_memory_container : public memory_container<T> {
-private:
-    T* _M_data = nullptr;
-    std::size_t _M_size;
-
-public:
-    using value_type = T;
-    using pointer = value_type*;
-    using const_pointer = const pointer;
-
-    reference_memory_container(pointer data, std::size_t size)
-    : _M_data(data),
-      _M_size(size)
-    {}
-
-    reference_memory_container(const reference_memory_container& ref)
-    : reference_memory_container(ref._M_data, ref._M_size)
-    {}
-
-    std::size_t
-    size() const
-    {
-        return _M_size;
-    }
-
-    pointer
-    data()
-    {
-        return _M_data;
-    }
-
-    const_pointer
-    data() const
-    {
-        return _M_data;
-    }
-
-    ~reference_memory_container() { _M_data = nullptr; }
-};
-
-
-template <typename T>
-auto
-make_reference_container(T* data, std::size_t size)
-{
-    return std::make_shared<reference_memory_container<T>>(data, size);
-}
-
-
 template <typename T> struct random_memory_container : public memory_container<T> {
 private:
     std::shared_ptr<void> _M_data = nullptr;
     std::size_t _M_size;
+    std::size_t _M_offset;
 
     template <typename U> friend struct random_memory_container;
 
@@ -299,14 +274,10 @@ public:
     using pointer = value_type*;
     using const_pointer = const pointer;
 
-    random_memory_container(std::shared_ptr<void> data, std::size_t size)
+    random_memory_container(std::shared_ptr<void> data, std::size_t size, std::size_t offset = 0)
     : _M_data(data),
-      _M_size(size)
-    {}
-
-    random_memory_container(const random_memory_container<void>& container)
-    : _M_data(container._M_data),
-      _M_size(container._M_size)
+      _M_size(size),
+      _M_offset(offset)
     {}
 
     std::size_t
@@ -318,13 +289,31 @@ public:
     pointer
     data()
     {
-        return static_cast<pointer>(_M_data.get());
+        return static_cast<pointer>(storage_ptr());
     }
 
     const_pointer
     data() const
     {
-        return static_cast<const_pointer>(_M_data.get());
+        return static_cast<const_pointer>(storage_ptr());
+    }
+
+    std::shared_ptr<void>
+    storage() const
+    {
+        return _M_data;
+    }
+
+    std::size_t
+    storage_offset() const
+    {
+        return _M_offset;
+    }
+
+    void*
+    storage_ptr() const
+    {
+        return static_cast<std::uint8_t*>(_M_data.get()) + storage_offset();
     }
 };
 
@@ -336,7 +325,23 @@ template <typename T> struct container_rebind<T, random_memory_container<void>> 
     static pointer
     rebind(std::shared_ptr<random_memory_container<void>> ptr)
     {
-        auto container_ptr = std::make_shared<type>(*ptr);
+        auto container_ptr
+            = std::make_shared<type>(ptr->storage(), ptr->size(), ptr->storage_offset());
+        return make_pointer_alias(container_ptr, ptr);
+    }
+};
+
+
+template <typename T> struct container_offset<random_memory_container<T>> {
+    using type = random_memory_container<T>;
+    using pointer = std::shared_ptr<type>;
+
+    static pointer
+    offset(pointer ptr, std::size_t offset)
+    {
+        auto container_ptr = std::make_shared<type>(
+            ptr->storage(), ptr->size() - offset, ptr->storage_offset() + offset
+        );
         return make_pointer_alias(container_ptr, ptr);
     }
 };
@@ -386,23 +391,25 @@ template <typename T> struct hardware_memory_container : public memory_container
     using const_pointer = const pointer;
 
     metal::shared_buffer _M_mem;
-    std::size_t _M_off;
+    std::size_t _M_size;
+    std::size_t _M_offset;
 
-    hardware_memory_container(metal::shared_buffer mem, std::size_t off = 0)
+    hardware_memory_container(metal::shared_buffer mem, std::size_t offset = 0)
     : _M_mem(mem),
-      _M_off(off)
+      _M_size(metal::size(_M_mem) - offset),
+      _M_offset(offset)
     {}
 
     std::size_t
     size() const
     {
-        return metal::size(_M_mem);
+        return _M_size;
     }
 
     pointer
     data()
     {
-        return static_cast<T*>(storage_ptr());
+        return static_cast<pointer>(storage_ptr());
     }
 
     const_pointer
@@ -420,7 +427,7 @@ template <typename T> struct hardware_memory_container : public memory_container
     std::size_t
     storage_offset() const
     {
-        return _M_off;
+        return _M_offset;
     }
 
     void*
@@ -439,6 +446,19 @@ template <typename T> struct container_rebind<T, hardware_memory_container<void>
     rebind(std::shared_ptr<hardware_memory_container<void>> ptr)
     {
         auto container_ptr = std::make_shared<type>(ptr->storage(), ptr->storage_offset());
+        return make_pointer_alias(container_ptr, ptr);
+    }
+};
+
+
+template <typename T> struct container_offset<hardware_memory_container<T>> {
+    using type = hardware_memory_container<T>;
+    using pointer = std::shared_ptr<type>;
+
+    static pointer
+    offset(pointer ptr, std::size_t offset)
+    {
+        auto container_ptr = std::make_shared<type>(ptr->storage(), ptr->storage_offset() + offset);
         return make_pointer_alias(container_ptr, ptr);
     }
 };
@@ -535,6 +555,46 @@ public:
         _M_filebuf->declare_mapped();
         return reinterpret_cast<const_pointer>(_M_filebuf->data());
     }
+};
+
+
+template <typename T> class offsetted_container_adapter : public memory_container<T> {
+public:
+    using value_type = T;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
+
+    using container_type = memory_container<T>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    offsetted_container_adapter(const container_pointer& container_ptr, std::size_t offset)
+    : _M_container(container_ptr),
+      _M_offset(offset)
+    {}
+
+    pointer
+    data()
+    {
+        void* ptr = static_cast<std::uint8_t*>(_M_container->data_ptr()) + _M_offset;
+        return static_cast<pointer>(ptr);
+    }
+
+    const_pointer
+    data() const
+    {
+        const void* ptr = static_cast<const std::uint8_t*>(_M_container->data_ptr()) + _M_offset;
+        return static_cast<const_pointer>(ptr);
+    }
+
+    std::size_t
+    size() const
+    {
+        return _M_container->size() - _M_offset;
+    }
+
+private:
+    std::shared_ptr<memory_container<T>> _M_container;
+    std::size_t _M_offset;
 };
 
 

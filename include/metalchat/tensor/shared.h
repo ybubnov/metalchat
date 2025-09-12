@@ -264,13 +264,8 @@ public:
     auto
     operator[](std::size_t i) requires(N > 1)
     {
-        using container_type = reference_memory_container<value_type>;
-
-        using tensor0_t = tensor_type;
-        using tensor1_t = change_tensor_dimensions_t<tensor0_t, N - 1>;
-        using tensor2_t = change_tensor_container_t<tensor1_t, container_type>;
-
-        return shared_tensor_ptr<tensor2_t>(_M_value->at(i));
+        using tensor_t = change_tensor_dimensions_t<tensor_type, N - 1>;
+        return shared_tensor_ptr<tensor_t>(_M_value->at(i));
     }
 
 private:
