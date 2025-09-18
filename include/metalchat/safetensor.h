@@ -24,6 +24,12 @@ struct safetensor_metadata {
     std::string dtype;
     std::vector<std::size_t> shape;
     std::vector<std::size_t> data_offsets;
+
+    std::size_t
+    size() const
+    {
+        return data_offsets[1] - data_offsets[0];
+    }
 };
 
 
@@ -282,6 +288,50 @@ private:
     void
     load(const safetensor& st, basic_tensor& tensor) const;
 
+    template <allocator_t<void> Allocator>
+    static safetensor_document
+    open(const std::filesystem::path& p, Allocator alloc, std::size_t max_size = -1)
+    {
+        auto file = std::make_shared<basic_memfile>(p);
+        auto metadata = parse_metadata(file->declare_mapped());
+
+        std::vector<std::size_t> sizes;
+        for (const auto& m : metadata) {
+            sizes.push_back(m.size());
+        }
+
+        auto data_ptr = file->data() + file->tellg();
+
+        // Use an aliasing allocator to bind file pointer to container pointer,
+        // so that file is closed (and evicted from mapped memory), only when
+        // all sub-allocated containers are also destroyed.
+        auto aliasing_alloc = aliasing_allocator(alloc, file);
+
+        // Some Apple devices limit the memory that is possible to allocated within
+        // a single buffer, here we define a paginated allocator to split memory-mapped
+        // file into the non-overlapping contiguous containers.
+        auto page_alloc = paginated_allocator_adapter(aliasing_alloc, max_size);
+        auto containers = page_alloc.allocate(data_ptr, sizes);
+
+        // All containers allocated by paginated allocator contain an alias to the
+        // memory-mapped file, so there only thing that is left is to allocate memory
+        // from those containers.
+        using allocator_type = pooling_allocator_adapter<Allocator>;
+        auto container_alloc = allocator_type(alloc, containers);
+
+        safetensor_document document;
+        safetensor_allocator<allocator_type> allocator;
+
+        for (const auto& m : metadata) {
+            auto data = data_ptr + m.data_offsets[0];
+
+            auto container_ptr = allocator.allocate(m.dtype, data, m.size(), container_alloc);
+            document.insert(m, container_ptr);
+        }
+
+        return document;
+    }
+
 public:
     using iterator = safetensor_iterator;
     using const_iterator = const iterator;
@@ -319,42 +369,11 @@ public:
         return iterator(_M_metadata.end(), _M_containers.end());
     }
 
-    template <allocator_t<void> Allocator>
-    static safetensor_document
-    open(const std::filesystem::path& p, Allocator alloc, std::size_t max_size = -1)
-    {
-        auto file = std::make_shared<basic_memfile>(p);
-        auto metadata = parse_metadata(file->declare_mapped());
-
-        std::vector<std::size_t> sizes;
-        for (const auto& m : metadata) {
-            sizes.push_back(m.data_offsets[1] - m.data_offsets[0]);
-        }
-
-        auto data_ptr = file->data() + file->tellg();
-        // auto page_alloc = paginated_allocator_adapter(alloc);
-        // auto containers = page_alloc.allocate(data_ptr, sizes());
-
-        using allocator_type = aliasing_allocator<Allocator>;
-
-        safetensor_document document;
-        safetensor_allocator<allocator_type> allocator;
-
-        auto container_alloc = allocator_type(alloc, file);
-
-        for (const auto& m : metadata) {
-            auto data = file->data() + m.data_offsets[0];
-            auto size = m.data_offsets[1] - m.data_offsets[0];
-
-            auto container_ptr = allocator.allocate(m.dtype, data, size, container_alloc);
-            document.insert(m, container_ptr);
-        }
-
-        return document;
-    }
-
     static safetensor_document
     open(const std::filesystem::path& p);
+
+    static safetensor_document
+    open(const std::filesystem::path& p, hardware_accelerator& accelerator);
 
     void
     insert(const std::string& name, const basic_tensor& tensor);

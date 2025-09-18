@@ -51,7 +51,7 @@ struct dim3 {
 
 class hardware_function_encoder {
 public:
-    using allocator_type = polymorphic_hardware_memory_allocator<void>;
+    using allocator_type = polymorphic_hardware_allocator<void>;
 
 private:
     allocator_type _M_allocator;
@@ -162,7 +162,7 @@ concept hardware_encodable_function
 
 class kernel_thread {
 public:
-    using allocator_type = polymorphic_hardware_memory_allocator<void>;
+    using allocator_type = polymorphic_hardware_allocator<void>;
 
 private:
     using promise_type = std::promise<void>;
@@ -235,7 +235,7 @@ public:
 
 class recursive_kernel_thread {
 public:
-    using allocator_type = polymorphic_hardware_memory_allocator<void>;
+    using allocator_type = polymorphic_hardware_allocator<void>;
 
 private:
     allocator_type _M_allocator;
@@ -267,11 +267,11 @@ public:
         _M_allocator = alloc;
     }
 
-    template <basic_hardware_allocator_t<void> Allocator>
+    template <hardware_allocator_t<void> Allocator>
     void
     set_allocator(Allocator&& alloc)
     {
-        set_allocator(std::make_shared<Allocator>(std::move(alloc)));
+        set_allocator(std::make_shared(hardware_allocator_wrapper(std::move(alloc))));
     }
 
     std::shared_ptr<kernel_thread>

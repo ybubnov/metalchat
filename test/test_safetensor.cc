@@ -18,7 +18,7 @@ TEST_CASE("Test model load", "[safetensor]")
     auto alloc = gpu0.get_allocator();
 
     nn::llama3<bf16> m(nn::default_llama3_1b_options(), gpu0);
-    auto doc = safetensor_document::open("../llama32.safetensors", alloc);
+    auto doc = safetensor_document::open("../llama32.safetensors", gpu0);
 
     doc.load(m);
 

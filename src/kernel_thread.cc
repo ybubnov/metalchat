@@ -197,7 +197,7 @@ kernel_thread::make_ready_at_thread_exit()
 recursive_kernel_thread::recursive_kernel_thread(
     metal::shared_device device, std::size_t thread_capacity
 )
-: _M_allocator(std::make_shared<hardware_memory_allocator<void>>(device)),
+: _M_allocator(hardware_memory_allocator(device)),
   _M_queue(std::make_shared<kernel_queue>(device)),
   _M_thread(std::make_shared<kernel_thread>(*_M_queue, thread_capacity, _M_allocator)),
   _M_thread_capacity(thread_capacity)

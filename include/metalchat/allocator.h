@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <concepts>
 #include <mutex>
 #include <new>
@@ -92,7 +93,7 @@ concept hardware_allocator_t
 /// using namespace metalchat;
 ///
 /// template <typename T> struct custom_hardware_allocator :
-/// public basic_hardware_memory_allocator<T> {
+/// public basic_hardware_allocator<T> {
 ///
 ///     using value_type = T;
 ///     using pointer = value_type*;
@@ -117,7 +118,7 @@ concept hardware_allocator_t
 ///
 /// Alternatively, you could simply use \ref hardware_allocator_wrapper in order to avoid
 /// creating a custom type.
-template <typename T> struct basic_hardware_memory_allocator {
+template <typename T> struct basic_hardware_allocator {
     using value_type = T;
     using pointer = value_type*;
     using const_pointer = const value_type*;
@@ -132,22 +133,22 @@ template <typename T> struct basic_hardware_memory_allocator {
     /// Allocates `size * sizeof(T)` bytes and initializes them with the data stored at `ptr`.
     virtual container_pointer allocate(const_pointer, size_type) = 0;
 
-    virtual ~basic_hardware_memory_allocator() {};
+    virtual ~basic_hardware_allocator() {};
 };
 
 
-template <typename T, hardware_allocator_t<T> Allocator>
-class hardware_allocator_wrapper : public basic_hardware_memory_allocator<T> {
+template <hardware_allocator Allocator>
+class hardware_allocator_wrapper : public basic_hardware_allocator<typename Allocator::value_type> {
 public:
-    using value_type = T;
+    using value_type = Allocator::value_type;
     using pointer = value_type*;
     using const_pointer = const value_type*;
     using size_type = Allocator::size_type;
     using container_type = Allocator::container_type;
     using container_pointer = Allocator::container_pointer;
 
-    hardware_allocator_wrapper(Allocator alloc)
-    : _M_alloc(alloc)
+    hardware_allocator_wrapper(Allocator&& alloc)
+    : _M_alloc(std::move(alloc))
     {}
 
     container_pointer
@@ -167,14 +168,12 @@ private:
 };
 
 
-template <typename Allocator, typename T>
-concept basic_hardware_allocator_t
-    = hardware_allocator_t<Allocator, T>
-      && std::derived_from<Allocator, basic_hardware_memory_allocator<T>>;
+template <hardware_allocator Allocator>
+hardware_allocator_wrapper(Allocator&& alloc) -> hardware_allocator_wrapper<Allocator>;
 
 
 /// The class template is an `metalchat::allocator` which exhibits different allocation behaviour
-/// depending on a particular implementation of the `metalchat::basic_hardware_memory_allocator`.
+/// depending on a particular implementation of the `metalchat::basic_hardware_allocator`.
 ///
 /// This allocator is used in order to avoid creating separate instances of device and
 /// thread, when kernel of different types (bf16, float, double) are expected to be scheduled
@@ -188,9 +187,9 @@ concept basic_hardware_allocator_t
 /// // with no-copy allocator (keep all CPU allocations shared with GPU), and resident
 /// // allocator (which moves all allocations to a resident set on request).
 /// auto gpu = hardware_accelerator("metalchat.metallib");
-/// auto alloc1 = hardware_nocopy_allocator(alloc0, gpu.get_metal_device());
+/// auto alloc1 = nocopy_allocator(alloc0, gpu.get_metal_device());
 /// auto alloc2 = hardware_resident_allocator(alloc1, gpu.get_metal_device());
-/// auto alloc3 = polymorphic_hardware_memory_allocator(alloc2);
+/// auto alloc3 = polymorphic_hardware_allocator(alloc2);
 ///
 /// // Update device allocator with a new implementation of the allocator.
 /// auto alloc_ptr = std::make_shared(std::move(alloc3));
@@ -198,7 +197,7 @@ concept basic_hardware_allocator_t
 /// ```
 ///
 /// \tparam T Scalar type of the container data.
-template <typename T> class polymorphic_hardware_memory_allocator {
+template <typename T> class polymorphic_hardware_allocator {
 public:
     using value_type = T;
     using pointer = value_type*;
@@ -206,17 +205,17 @@ public:
     using size_type = std::size_t;
     using container_type = hardware_memory_container<value_type>;
     using container_pointer = std::shared_ptr<container_type>;
-    using outer_allocator_type = basic_hardware_memory_allocator<T>;
+    using outer_allocator_type = basic_hardware_allocator<T>;
 
     /// Construct a new allocator instance given an implementation of the
-    /// `basic_hardware_memory_allocator`.
-    polymorphic_hardware_memory_allocator(std::shared_ptr<outer_allocator_type> alloc)
+    /// `basic_hardware_allocator`.
+    polymorphic_hardware_allocator(std::shared_ptr<outer_allocator_type> alloc)
     : _M_alloc(alloc)
     {}
 
-    template <basic_hardware_allocator_t<T> Allocator>
-    polymorphic_hardware_memory_allocator(Allocator&& alloc)
-    : _M_alloc(std::make_shared<Allocator>(std::move(alloc)))
+    template <hardware_allocator_t<T> Allocator>
+    polymorphic_hardware_allocator(Allocator&& alloc)
+    : _M_alloc(std::make_shared<hardware_allocator_wrapper<Allocator>>(std::move(alloc)))
     {}
 
     /// Allocates `size * sizeof(T)` bytes of uninitialized memory by calling an outer
@@ -256,21 +255,23 @@ public:
 };
 
 
-/// The hardware allocator that creates a shallow buffer resource for allocations with memory-move
-/// semantic. All buffers created with that method do not manage the underlying memory (specified
-/// by a `const_pointer`). And caller is responsible for a proper memory management.
-template <hardware_allocator_t<void> Allocator>
-class hardware_nocopy_allocator
-: public basic_hardware_memory_allocator<typename Allocator::value_type> {
+/// The allocator that creates a shallow container resource for allocations with memory-copy
+/// semantic. All containers created with that method do not manage the underlying memory
+/// (specified by a `const_pointer`). And caller is responsible for a proper memory management
+/// of the original memory deallocation.
+template <typename T, allocator Allocator> class nocopy_allocator;
+
+
+template <hardware_allocator_t<void> Allocator> class nocopy_allocator<void, Allocator> {
 public:
     using value_type = Allocator::value_type;
     using pointer = value_type*;
     using const_pointer = const value_type*;
-    using size_type = std::size_t;
-    using container_type = hardware_memory_container<value_type>;
-    using container_pointer = std::shared_ptr<container_type>;
+    using size_type = Allocator::size_type;
+    using container_type = Allocator::container_type;
+    using container_pointer = Allocator::container_pointer;
 
-    hardware_nocopy_allocator(Allocator alloc, metal::shared_device device)
+    nocopy_allocator(Allocator alloc, metal::shared_device device)
     : _M_alloc(alloc),
       _M_nocopy_alloc(device)
     {}
@@ -293,21 +294,8 @@ private:
 };
 
 
-class _HardwareBufferAllocator {
-public:
-    using container_type = hardware_memory_container<void>;
-    using container_pointer = std::shared_ptr<container_type>;
-
-    _HardwareBufferAllocator(metal::shared_buffer buffer);
-    _HardwareBufferAllocator(container_pointer container_ptr);
-    _HardwareBufferAllocator(std::vector<container_pointer> containers);
-
-    container_pointer
-    allocate(const void* ptr, std::size_t size);
-
-private:
-    std::vector<container_pointer> _M_containers;
-};
+template <hardware_allocator_t<void> Allocator>
+nocopy_allocator(Allocator alloc, metal::shared_device device) -> nocopy_allocator<void, Allocator>;
 
 
 /// This class creates buffer resources with an offset from the specified buffer.
@@ -321,31 +309,28 @@ private:
 template <allocator_t<void> Allocator> class pooling_allocator_adapter {
 public:
     using value_type = Allocator::value_type;
-    using pointer = Allocator::pointer;
-    using const_pointer = Allocator::const_pointer;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
     using size_type = Allocator::size_type;
     using container_type = Allocator::container_type;
     using container_pointer = Allocator::container_pointer;
 
-    /// Construct a new buffer allocator with the specified buffer. All allocations with
+    /// Construct a new pooling allocator with the specified container. All allocations with
     /// "new" semantic will be proxied to the specified allocator.
     ///
     /// \param alloc Proxy allocator for allocations without backing memory.
-    /// \param buffer Underlying buffer from which allocations are created.
-    pooling_allocator_adapter(Allocator alloc, metal::shared_buffer buffer)
-    : _M_alloc(alloc),
-      _M_buffer_alloc(buffer)
-    {}
-
+    /// \param buffer Underlying container from which allocations are created.
     pooling_allocator_adapter(Allocator alloc, container_pointer container_ptr)
     : _M_alloc(alloc),
-      _M_buffer_alloc(container_ptr)
+      _M_containers({container_ptr})
     {}
 
     pooling_allocator_adapter(Allocator alloc, std::vector<container_pointer> containers)
     : _M_alloc(alloc),
-      _M_buffer_alloc(containers)
-    {}
+      _M_containers(containers)
+    {
+        std::sort(_M_containers.begin(), _M_containers.end(), container_less);
+    }
 
     container_pointer
     allocate(size_type size)
@@ -356,12 +341,45 @@ public:
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        return _M_buffer_alloc.allocate(ptr, size);
+        using const_byte_pointer = const std::uint8_t*;
+
+        auto alloc_ptr = static_cast<const_byte_pointer>(ptr);
+        auto container_it
+            = std::lower_bound(_M_containers.begin(), _M_containers.end(), ptr, container_less_ptr);
+
+        for (; container_it != _M_containers.end(); ++container_it) {
+            auto& container_ptr = *container_it;
+            auto container_begin = _Container_traits::begin(container_ptr);
+            auto begin_ptr = static_cast<const_byte_pointer>(container_begin);
+
+            if (_Container_traits::contains(container_ptr, ptr, size)) {
+                std::size_t offset = alloc_ptr - begin_ptr;
+                return _Container_traits::offset(container_ptr, offset);
+            }
+        }
+
+        throw alloc_error(std::format(
+            "pooling_allocator_adapter: container not found for pointer {} and size {}", ptr, size
+        ));
     }
 
 private:
+    using _Container_traits = container_traits<typename Allocator::container_type>;
+
+    static bool
+    container_less(const container_pointer& a, const container_pointer b)
+    {
+        return a->data() < b->data();
+    }
+
+    static bool
+    container_less_ptr(const container_pointer& a, const void* p)
+    {
+        return _Container_traits::end(a) < p;
+    }
+
     Allocator _M_alloc;
-    _HardwareBufferAllocator _M_buffer_alloc;
+    std::vector<container_pointer> _M_containers;
 };
 
 
@@ -431,9 +449,7 @@ public:
 ///
 /// // Containers are deleted, end of the residency happens here.
 /// ```
-template <hardware_allocator Allocator>
-class hardware_resident_allocator
-: public basic_hardware_memory_allocator<typename Allocator::value_type> {
+template <hardware_allocator Allocator> class hardware_resident_allocator {
 public:
     using value_type = Allocator::value_type;
     using pointer = value_type*;
@@ -502,13 +518,13 @@ public:
 /// This is the default implementation of the hardware memory allocator, all resources are
 /// tracked and shared with CPU. In some workloads this implementation might provide
 /// suboptimal results due to frequent allocation/deallocation/wiring of the memory.
-template <typename T> class hardware_memory_allocator : public basic_hardware_memory_allocator<T> {
+class hardware_memory_allocator {
 public:
-    using value_type = T;
-    using pointer = T*;
+    using value_type = void;
+    using pointer = value_type*;
     using const_pointer = const value_type*;
     using size_type = std::size_t;
-    using container_type = hardware_memory_container<T>;
+    using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
     hardware_memory_allocator(metal::shared_device device)
@@ -518,15 +534,13 @@ public:
     container_pointer
     allocate(size_type size)
     {
-        auto container = _M_alloc.allocate(size * sizeof(value_type));
-        return std::reinterpret_pointer_cast<container_type>(container);
+        return _M_alloc.allocate(size);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto container = _M_alloc.allocate(ptr, size * sizeof(value_type));
-        return std::reinterpret_pointer_cast<container_type>(container);
+        return _M_alloc.allocate(ptr, size);
     }
 
 private:
@@ -594,7 +608,7 @@ private:
 
 
 /// Specialization of `metalchat::hardware_heap_allocator` type for the void type.
-template <> class hardware_heap_allocator<void> : public basic_hardware_memory_allocator<void> {
+template <> class hardware_heap_allocator<void> {
 public:
     using value_type = void;
     using pointer = value_type*;
@@ -624,36 +638,6 @@ public:
 
 private:
     _HardwareHeapAllocator _M_alloc;
-};
-
-
-template <> class hardware_memory_allocator<void> : public basic_hardware_memory_allocator<void> {
-public:
-    using value_type = void;
-    using pointer = value_type*;
-    using const_pointer = const value_type*;
-    using size_type = std::size_t;
-    using container_type = hardware_memory_container<void>;
-    using container_pointer = std::shared_ptr<container_type>;
-
-    hardware_memory_allocator(metal::shared_device device)
-    : _M_alloc(device)
-    {}
-
-    container_pointer
-    allocate(size_type size)
-    {
-        return _M_alloc.allocate(size);
-    }
-
-    container_pointer
-    allocate(const_pointer ptr, size_type size)
-    {
-        return _M_alloc.allocate(ptr, size);
-    }
-
-private:
-    _HardwareMemoryAllocator _M_alloc;
 };
 
 
@@ -711,6 +695,53 @@ template <> struct random_memory_allocator<void> {
 };
 
 
+template <typename T> class nocopy_allocator<T, random_memory_allocator<T>> {
+private:
+    using allocator_type = random_memory_allocator<T>;
+
+    allocator_type _M_alloc;
+
+    struct null_deleter {
+        using result_type = void;
+
+        template <typename U>
+        void
+        operator()(U*) const noexcept
+        {}
+    };
+
+public:
+    using value_type = allocator_type::value_type;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
+    using size_type = allocator_type::size_type;
+    using container_type = allocator_type::container_type;
+    using container_pointer = allocator_type::container_pointer;
+
+    nocopy_allocator(allocator_type alloc)
+    : _M_alloc(alloc)
+    {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        return _M_alloc.allocate(size);
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        auto data_ptr = std::shared_ptr<value_type>(const_cast<pointer>(ptr), null_deleter{});
+        return std::make_shared<container_type>(data_ptr, size);
+    }
+};
+
+
+template <typename T>
+nocopy_allocator(random_memory_allocator<T> alloc)
+    -> nocopy_allocator<T, random_memory_allocator<T>>;
+
+
 template <typename T> struct scalar_memory_allocator {
     using value_type = T;
     using pointer = value_type*;
@@ -766,7 +797,7 @@ public:
     using value_type = T;
     using pointer = value_type*;
     using const_pointer = const value_type*;
-    using size_type = std::size_t;
+    using size_type = Allocator::size_type;
     using container_type = _Container_traits::container_type;
     using container_pointer = _Container_traits::container_pointer;
 
@@ -781,7 +812,7 @@ public:
         static_assert(std::same_as<allocator_type::const_pointer, const T*>);
 
         auto allocator = allocator_type(alloc);
-        auto ptr = reinterpret_cast<allocator_type::const_pointer>(data);
+        const auto ptr = reinterpret_cast<allocator_type::const_pointer>(data);
 
         return allocator.allocate(ptr, size / sizeof(T));
     }
@@ -800,7 +831,8 @@ public:
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        return _Traits::template rebind<T>(_M_alloc.allocate(ptr, sizeof(T) * size));
+        const void* alloc_ptr = static_cast<const void*>(ptr);
+        return _Traits::template rebind<T>(_M_alloc.allocate(alloc_ptr, sizeof(T) * size));
     }
 };
 
@@ -875,8 +907,8 @@ template <typename T> struct filebuf_memory_allocator {
 template <allocator_t<void> Allocator> class paginated_allocator_adapter {
 public:
     using value_type = Allocator::value_type;
-    using pointer = Allocator::pointer;
-    using const_pointer = Allocator::const_pointer;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
     using size_type = Allocator::size_type;
     using container_type = Allocator::container_type;
     using container_pointer = Allocator::container_pointer;

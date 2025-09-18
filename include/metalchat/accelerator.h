@@ -34,7 +34,7 @@ class hardware_accelerator {
 public:
     /// A type of the hardware memory allocator used to either allocate or transfer memory
     /// of tensors within a running kernel thread.
-    using allocator_type = polymorphic_hardware_memory_allocator<void>;
+    using allocator_type = polymorphic_hardware_allocator<void>;
 
 private:
     metal::shared_device _M_device;
@@ -102,7 +102,7 @@ public:
     set_allocator(allocator_type alloc);
 
     /// Set allocator to the current thread.
-    template <basic_hardware_allocator_t<void> Allocator>
+    template <hardware_allocator_t<void> Allocator>
     void
     set_allocator(Allocator&& alloc)
     {

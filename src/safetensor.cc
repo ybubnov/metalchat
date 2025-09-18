@@ -101,8 +101,20 @@ safetensor_document::parse_metadata(std::shared_ptr<basic_memfile> file_ptr)
 safetensor_document
 safetensor_document::open(const std::filesystem::path& p)
 {
-    random_memory_allocator<void> alloc;
-    return open(p, alloc);
+    auto alloc = random_memory_allocator<void>();
+    auto nocopy_alloc = nocopy_allocator(alloc);
+    return open(p, nocopy_alloc);
+}
+
+
+safetensor_document
+safetensor_document::open(const std::filesystem::path& p, hardware_accelerator& accelerator)
+{
+    auto alloc = accelerator.get_allocator();
+    auto nocopy_alloc = nocopy_allocator(alloc, accelerator.get_metal_device());
+    auto resident_alloc = nocopy_allocator(nocopy_alloc, accelerator.get_metal_device());
+
+    return open(p, resident_alloc, accelerator.max_buffer_size());
 }
 
 

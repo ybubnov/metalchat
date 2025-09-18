@@ -163,51 +163,6 @@ _HardwareMemoryAllocator::allocate(const void* ptr, std::size_t size)
 }
 
 
-_HardwareBufferAllocator::_HardwareBufferAllocator(metal::shared_buffer buffer)
-: _M_containers({std::make_shared<container_type>(buffer)})
-{}
-
-
-_HardwareBufferAllocator::_HardwareBufferAllocator(container_pointer container_ptr)
-: _M_containers({container_ptr})
-{}
-
-
-_HardwareBufferAllocator::_HardwareBufferAllocator(std::vector<container_pointer> containers)
-: _M_containers(containers)
-{
-    auto comp = [](container_pointer a, container_pointer b) { return a->data() < b->data(); };
-    std::sort(_M_containers.begin(), _M_containers.end(), comp);
-}
-
-
-_HardwareBufferAllocator::container_pointer
-_HardwareBufferAllocator::allocate(const void* ptr, std::size_t size)
-{
-    using traits = container_traits<container_type>;
-    using const_byte_pointer = const std::uint8_t*;
-
-    auto alloc_ptr = static_cast<const_byte_pointer>(ptr);
-
-    auto comp
-        = [](container_pointer container, const void* p) { return traits::end(container) < p; };
-
-    auto container_it = std::lower_bound(_M_containers.begin(), _M_containers.end(), ptr, comp);
-
-    for (; container_it != _M_containers.end(); ++container_it) {
-        auto container_ptr = *container_it;
-        auto begin_ptr = static_cast<const_byte_pointer>(traits::begin(container_ptr));
-
-        if (traits::contains(container_ptr, ptr, size)) {
-            std::size_t off = alloc_ptr - begin_ptr;
-            return std::make_shared<container_type>(container_ptr->storage(), /*off=*/off);
-        }
-    }
-
-    throw alloc_error("hardware_buffer_allocator: container not found");
-}
-
-
 struct _HardwareNocopyAllocator::_HardwareNocopyAllocator_data {
     NS::SharedPtr<MTL::Device> device;
 
