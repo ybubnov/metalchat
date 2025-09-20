@@ -3,8 +3,9 @@
 #include <algorithm>
 #include <filesystem>
 #include <format>
-#include <iostream>
+#include <istream>
 #include <numeric>
+#include <streambuf>
 #include <unordered_map>
 #include <vector>
 
@@ -17,6 +18,83 @@
 
 
 namespace metalchat {
+
+
+class spanbuf : public std::streambuf {
+    using streambuf_type = std::streambuf;
+
+    std::span<char_type> _M_buf;
+
+public:
+    using char_type = streambuf_type::char_type;
+    using int_type = streambuf_type::int_type;
+    using pos_type = streambuf_type::pos_type;
+    using off_type = streambuf_type::off_type;
+    using traits_type = streambuf_type::traits_type;
+
+    spanbuf(char_type* data, pos_type size) noexcept
+    : streambuf_type()
+    {
+        span(std::span(data, size));
+    }
+
+    spanbuf(const spanbuf&) = delete;
+
+    void
+    span(std::span<char_type> s) noexcept
+    {
+        _M_buf = s;
+        setg(_M_buf.data(), _M_buf.data(), _M_buf.data() + _M_buf.size());
+    }
+
+protected:
+    std::streambuf*
+    setbuf(char_type* s, std::streamsize n) override
+    {
+        span(std::span(s, n));
+        return this;
+    }
+
+    pos_type
+    seekoff(
+        off_type off, std::ios_base::seekdir way, std::ios_base::openmode which = std::ios_base::in
+    ) override
+    {
+        pos_type pos = pos_type(off_type(-1));
+        which &= std::ios_base::in;
+
+        if (!which) {
+            return pos;
+        }
+
+        switch (way) {
+        case std::ios_base::beg:
+            pos = 0;
+            break;
+        case std::ios_base::cur:
+            pos = gptr() - eback();
+            break;
+        case std::ios_base::end:
+            pos = egptr() - eback();
+            break;
+        default:
+            return pos;
+        }
+
+        if (pos < 0 || pos > _M_buf.size()) {
+            return pos_type(off_type(-1));
+        }
+
+        setg(eback(), eback() + pos, egptr());
+        return pos;
+    }
+
+    pos_type
+    seekpos(pos_type sp, std::ios_base::openmode which = std::ios_base::in) override
+    {
+        return seekoff(off_type(sp), std::ios_base::beg, which);
+    }
+};
 
 
 struct safetensor_metadata {
@@ -97,11 +175,19 @@ private:
 class safetensor_document;
 
 
+/// A safetensor allocator is used to dynamically (in run-time) dispatch allocator type
+/// binding according to the type of a tensor specified in the safetensor document.
+///
+/// This type is used internally within a \ref safetensor_document and does not expose
+/// public API for registering new, unsupported types.
 template <allocator_t<void> Allocator> class safetensor_allocator {
 public:
+    /// Type of the allocated container type. All containers are inherited from the
+    /// basic containers, therefore allocator returns a polymorphic reference to the
+    /// actual container implementation.
     using container_ptr = std::shared_ptr<basic_container>;
-    using container_allocator = std::function<container_ptr(const void*, std::size_t, Allocator&)>;
 
+    /// A \ref safetensor_allocator default constructor.
     safetensor_allocator()
     : _M_type_alloc()
     {
@@ -113,23 +199,58 @@ public:
 
     safetensor_allocator(const safetensor_allocator&) = default;
 
+    /// Allocate an a block of contiguous memory of the specified type and initialize it with
+    /// the data specified by the argument `data`.
+    ///
+    /// \param type_name a type name of container elements (e.g. 'I32', 'F32', 'F64', etc.).
+    /// \param data a contiguous block of data to initialize new memory with.
+    /// \param size a size of a new container in bytes.
+    /// \param alloc a basic void allocator to use for typed allocation.
     container_ptr
     allocate(const std::string& type_name, void* data, std::size_t size, Allocator& alloc)
     {
-        auto allocator = _M_type_alloc[type_name];
+        auto& [_, allocator] = _M_type_alloc[type_name];
         return allocator(data, size, alloc);
     }
 
+    /// Allocate an uninitialized a block of contiguous memory of the specified type.
+    ///
+    /// \param type_name a type name of container elements (e.g. 'I32', 'F32', 'F64', etc.).
+    /// \param size a size of a new container in bytes.
+    /// \param alloc a basic void allocator to use for typed allocation.
+    container_ptr
+    allocate(const std::string& type_name, std::size_t size, Allocator& alloc)
+    {
+        auto& [allocator, _] = _M_type_alloc[type_name];
+        return allocator(size, alloc);
+    }
+
 private:
+    /// A function pointer type to the allocator that creates uninitialized contiguous
+    /// block of memory.
+    using make_alloc = container_ptr (*)(std::size_t, Allocator&);
+
+    /// A function pointer type to the allocator that creates contiguous block of memory
+    /// and initialized it with the data specified by the `const void*` data pointer.
+    using copy_alloc = container_ptr (*)(const void*, std::size_t, Allocator&);
+
+    /// Store both function pointers within the same container for the ease of access.
+    using container_alloc = std::pair<make_alloc, copy_alloc>;
+
+    std::unordered_map<std::string, container_alloc, _StringHash> _M_type_alloc;
+
     template <typename T>
     void
     register_type(const std::string& type_name)
     {
         using value_type = std::remove_cvref_t<T>;
-        _M_type_alloc[type_name] = rebind_allocator<value_type, Allocator>::static_allocate;
-    }
+        using allocator_type = rebind_allocator<value_type, Allocator>;
 
-    std::unordered_map<std::string, container_allocator, _StringHash> _M_type_alloc;
+        auto malloc = static_cast<make_alloc>(&allocator_type::static_allocate);
+        auto calloc = static_cast<copy_alloc>(&allocator_type::static_allocate);
+
+        _M_type_alloc[type_name] = container_alloc(malloc, calloc);
+    }
 };
 
 
@@ -277,60 +398,13 @@ private:
     /// structure. Elements of the resulting vector are sorted by data offset in
     /// increasing order.
     static std::vector<safetensor_metadata>
-    parse_metadata(basic_memfile& file);
-
-    static std::vector<safetensor_metadata>
-    parse_metadata(std::shared_ptr<basic_memfile> file_ptr);
+    parse_metadata(std::istream& is);
 
     void
     insert(const safetensor_metadata& metadata, const safetensor_container& container);
 
     void
     load(const safetensor& st, basic_tensor& tensor) const;
-
-    template <allocator_t<void> Allocator>
-    static safetensor_document
-    open(const std::filesystem::path& p, Allocator alloc, std::size_t max_size = -1)
-    {
-        auto file = std::make_shared<basic_memfile>(p);
-        auto metadata = parse_metadata(file->declare_mapped());
-
-        std::vector<std::size_t> sizes;
-        for (const auto& m : metadata) {
-            sizes.push_back(m.size());
-        }
-
-        auto data_ptr = file->data() + file->tellg();
-
-        // Use an aliasing allocator to bind file pointer to container pointer,
-        // so that file is closed (and evicted from mapped memory), only when
-        // all sub-allocated containers are also destroyed.
-        auto aliasing_alloc = aliasing_allocator(alloc, file);
-
-        // Some Apple devices limit the memory that is possible to allocated within
-        // a single buffer, here we define a paginated allocator to split memory-mapped
-        // file into the non-overlapping contiguous containers.
-        auto page_alloc = paginated_allocator_adapter(aliasing_alloc, max_size);
-        auto containers = page_alloc.allocate(data_ptr, sizes);
-
-        // All containers allocated by paginated allocator contain an alias to the
-        // memory-mapped file, so there only thing that is left is to allocate memory
-        // from those containers.
-        using allocator_type = pooling_allocator_adapter<Allocator>;
-        auto container_alloc = allocator_type(alloc, containers);
-
-        safetensor_document document;
-        safetensor_allocator<allocator_type> allocator;
-
-        for (const auto& m : metadata) {
-            auto data = data_ptr + m.data_offsets[0];
-
-            auto container_ptr = allocator.allocate(m.dtype, data, m.size(), container_alloc);
-            document.insert(m, container_ptr);
-        }
-
-        return document;
-    }
 
 public:
     using iterator = safetensor_iterator;
@@ -346,28 +420,16 @@ public:
     sizes() const;
 
     iterator
-    begin()
-    {
-        return iterator(_M_metadata.begin(), _M_containers.begin());
-    }
+    begin();
 
     iterator
-    end()
-    {
-        return iterator(_M_metadata.end(), _M_containers.end());
-    }
+    end();
 
     const_iterator
-    begin() const
-    {
-        return iterator(_M_metadata.begin(), _M_containers.begin());
-    }
+    begin() const;
 
     const_iterator
-    end() const
-    {
-        return iterator(_M_metadata.end(), _M_containers.end());
-    }
+    end() const;
 
     static safetensor_document
     open(const std::filesystem::path& p);
@@ -375,11 +437,96 @@ public:
     static safetensor_document
     open(const std::filesystem::path& p, hardware_accelerator& accelerator);
 
+    template <allocator_t<void> Allocator>
+    static safetensor_document
+    open(std::istream& is, Allocator alloc)
+    {
+        auto metadata = parse_metadata(is);
+
+        safetensor_document document;
+        safetensor_allocator<Allocator> allocator;
+
+        for (const auto& m : metadata) {
+            auto container_ptr = allocator.allocate(m.size(), alloc);
+
+            is.read(container_ptr->data_ptr(), m.size());
+            if (is.gcount() != m.size()) {
+                throw std::runtime_error(std::format(
+                    "safetensor_document::open: unable to read tensor of size {}", m.size()
+                ));
+            }
+
+            document.insert(m, container_ptr);
+        }
+
+        return document;
+    }
+
+    template <allocator_t<void> Allocator>
+    static safetensor_document
+    open(const std::filesystem::path& p, Allocator alloc, std::size_t max_size = -1)
+    {
+        auto file = std::make_shared<basic_memfile>(p);
+        file->declare_mapped();
+
+        spanbuf streambuf(file->data(), file->size());
+        std::istream safetensor_stream(&streambuf);
+
+        auto metadata = parse_metadata(safetensor_stream);
+
+        std::vector<std::size_t> sizes;
+        for (const auto& m : metadata) {
+            sizes.push_back(m.size());
+        }
+
+        auto data_ptr = file->data() + safetensor_stream.tellg();
+
+        // Use an aliasing allocator to bind file pointer to container pointer,
+        // so that file is closed (and evicted from mapped memory), only when
+        // all sub-allocated containers are also destroyed.
+        auto aliasing_alloc = aliasing_allocator(alloc, file);
+
+        // Some Apple devices limit the memory that is possible to allocated within
+        // a single buffer, here we define a paginated allocator to split memory-mapped
+        // file into the non-overlapping contiguous containers.
+        auto page_alloc = paginated_allocator_adapter(aliasing_alloc, max_size);
+        auto containers = page_alloc.allocate(data_ptr, sizes);
+
+        /// Independently of the specified base allocator, construct a final document,
+        /// for this purpose, build containers relative to the paginated containers
+        /// (instead of relative to the mapped file).
+        char* container_data_ptr = nullptr;
+        if (!containers.empty()) {
+            container_data_ptr = static_cast<char*>(containers.front()->data());
+        }
+
+        // All containers allocated by paginated allocator contain an alias to the
+        // memory-mapped file, so there only thing that is left is to allocate memory
+        // from those containers.
+        using allocator_type = pooling_allocator_adapter<Allocator>;
+        auto container_alloc = allocator_type(alloc, containers);
+
+        safetensor_document document;
+        safetensor_allocator<allocator_type> allocator;
+
+        for (const auto& m : metadata) {
+            auto data = container_data_ptr + m.data_offsets[0];
+            auto container_ptr = allocator.allocate(m.dtype, data, m.size(), container_alloc);
+
+            document.insert(m, container_ptr);
+        }
+
+        return document;
+    }
+
     void
     insert(const std::string& name, const basic_tensor& tensor);
 
     void
     insert(const basic_layer& layer);
+
+    static void
+    load(const std::filesystem::path& p, basic_layer& layer);
 
     void
     load(basic_layer& layer) const;
@@ -392,18 +539,6 @@ public:
 
     void
     save(const std::filesystem::path& p);
-
-    friend std::ostream&
-    operator<<(std::ostream& os, const safetensor_document& document)
-    {
-        return os;
-    }
-
-    // friend std::istream&
-    // operator>>(std::istream& is, safetensor_document& document)
-    // {
-    //     return is;
-    // }
 };
 
 

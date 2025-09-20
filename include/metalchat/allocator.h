@@ -806,15 +806,23 @@ public:
     {}
 
     static std::shared_ptr<basic_container>
-    static_allocate(const void* data, std::size_t size, Allocator& alloc)
+    static_allocate(const void* data, size_type size, Allocator& alloc)
     {
         using allocator_type = rebind_allocator<T, Allocator>;
-        static_assert(std::same_as<allocator_type::const_pointer, const T*>);
 
         auto allocator = allocator_type(alloc);
         const auto ptr = reinterpret_cast<allocator_type::const_pointer>(data);
 
         return allocator.allocate(ptr, size / sizeof(T));
+    }
+
+    static std::shared_ptr<basic_container>
+    static_allocate(size_type size, Allocator& alloc)
+    {
+        using allocator_type = rebind_allocator<T, Allocator>;
+
+        auto allocator = allocator_type(alloc);
+        return allocator.allocate(size / sizeof(T));
     }
 
     /// Allocates `size * sizeof(T)` bytes of uninitialized memory by calling an underlying

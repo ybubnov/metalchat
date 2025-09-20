@@ -107,35 +107,6 @@ public:
     hardware_accelerator&
     accelerator();
 
-    /// Initialize a layer and all upstream layers with a given safetensor file.
-    ///
-    /// This method uses a parameter `N` to define the maximum number of dimensions of tensors
-    /// to allocate. From the efficiency perspective it is limited by 8, but could be extended
-    /// up to arbitrary number of dimensions.
-    ///
-    /// \tparam Container a storage implementation for the tensor elements.
-    /// \tparam ForwardIt a type of the iterator that returns \ref safetensor.
-    /// \param first, last the pair of iterators defining the sequence of \ref safetensor.
-    template <contiguous_container Container, std::forward_iterator ForwardIt, std::size_t N = 8>
-    void
-    initialize(const ForwardIt first, const ForwardIt last)
-    {
-        for (auto it = first; it != last; ++it) {
-            auto weight = *it;
-            auto parameter = get_parameter(weight.name());
-
-            constexpr_switch(weight.dim(), std::make_index_sequence<N>{}, [&](auto i) {
-                auto sizes = weight.sizes();
-
-                using value_type = typename Container::value_type;
-                using tensor_type = tensor<value_type, i, Container>;
-
-                auto tensor = tensor_type(sizes.begin(), sizes.end(), weight.container_ptr());
-                move_tensor_to_pointer(parameter, std::move(tensor));
-            });
-        }
-    }
-
     /// Register an upstream layer for the current layer. The layer could be accessed using
     /// the given name using `basic_layer::get_layer` method.
     ///

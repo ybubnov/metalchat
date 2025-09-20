@@ -47,16 +47,57 @@ safetensor_document::sizes() const
 }
 
 
+safetensor_document::iterator
+safetensor_document::begin()
+{
+    return iterator(_M_metadata.begin(), _M_containers.begin());
+}
+
+
+safetensor_document::iterator
+safetensor_document::end()
+{
+    return iterator(_M_metadata.end(), _M_containers.end());
+}
+
+
+safetensor_document::const_iterator
+safetensor_document::begin() const
+{
+    return iterator(_M_metadata.begin(), _M_containers.begin());
+}
+
+
+safetensor_document::const_iterator
+safetensor_document::end() const
+{
+    return iterator(_M_metadata.end(), _M_containers.end());
+}
+
+
 std::vector<safetensor_metadata>
-safetensor_document::parse_metadata(basic_memfile& file)
+safetensor_document::parse_metadata(std::istream& is)
 {
     // Read the length of the header and then the header itself, ensure that the
     // the file contains enough data to avoid reading from inaccessible regions.
     uint64_t header_size = 0;
-    file.read(&header_size, sizeof(header_size));
+    is.read((char*)&header_size, sizeof(header_size));
+    if (is.gcount() != sizeof(header_size)) {
+        throw std::runtime_error(std::format(
+            "safetensor_document: header size is corrupted, read {} != {}", is.gcount(),
+            sizeof(header_size)
+        ));
+    }
 
     char header_bytes[header_size];
-    file.read(&header_bytes, sizeof(header_bytes));
+    is.read((char*)&header_bytes, sizeof(header_bytes));
+    if (is.gcount() != sizeof(header_bytes)) {
+        throw std::runtime_error(std::format(
+            "safetensor_document: header is corrupted, read {} != {}", is.gcount(),
+            sizeof(header_bytes)
+        ));
+    }
+
     std::string_view header(header_bytes, sizeof(header_bytes));
 
     std::map<std::string, safetensor_metadata> tensor_metadata;
@@ -69,7 +110,6 @@ safetensor_document::parse_metadata(basic_memfile& file)
         throw std::runtime_error(glz::format_error(err, header));
     }
 
-    auto start_pos = file.tellg();
     for (auto [name, meta] : tensor_metadata) {
         // Shame on designers of safetensor specification, garbage like this should
         // not be presented on the same level as tensor structures.
@@ -91,13 +131,6 @@ safetensor_document::parse_metadata(basic_memfile& file)
 }
 
 
-std::vector<safetensor_metadata>
-safetensor_document::parse_metadata(std::shared_ptr<basic_memfile> file_ptr)
-{
-    return parse_metadata(*file_ptr);
-}
-
-
 safetensor_document
 safetensor_document::open(const std::filesystem::path& p)
 {
@@ -112,7 +145,7 @@ safetensor_document::open(const std::filesystem::path& p, hardware_accelerator& 
 {
     auto alloc = accelerator.get_allocator();
     auto nocopy_alloc = nocopy_allocator(alloc, accelerator.get_metal_device());
-    auto resident_alloc = nocopy_allocator(nocopy_alloc, accelerator.get_metal_device());
+    auto resident_alloc = hardware_resident_allocator(nocopy_alloc, accelerator.get_metal_device());
 
     return open(p, resident_alloc, accelerator.max_buffer_size());
 }
@@ -188,6 +221,14 @@ safetensor_document::load(const safetensor& st, basic_tensor& tensor) const
 
 
 void
+safetensor_document::load(const std::filesystem::path& p, basic_layer& layer)
+{
+    auto document = safetensor_document::open(p, layer.accelerator());
+    document.load(layer);
+}
+
+
+void
 safetensor_document::load(const std::string& name, basic_tensor& tensor) const
 {
     auto pos = _M_names.at(name);
@@ -218,13 +259,12 @@ safetensor_document::save(const std::filesystem::path& p, basic_layer& layer)
     document.save(p);
 }
 
+
 void
 safetensor_document::save(const std::filesystem::path& p)
 {
     std::unordered_map<std::string, safetensor_metadata> metadata;
     for (auto m : _M_metadata) {
-        for (auto& offset : m.data_offsets) {
-        }
         metadata.insert_or_assign(m.name, m);
     }
 
@@ -241,9 +281,7 @@ safetensor_document::save(const std::filesystem::path& p)
     file.write(header.c_str(), header_size);
 
     for (std::size_t i = 0; i < _M_metadata.size(); i++) {
-        // TODO: validate data sizes.
-        auto size = _M_metadata[i].data_offsets[1] - _M_metadata[i].data_offsets[0];
-        file.write(_M_containers[i]->data_ptr(), size);
+        file.write(_M_containers[i]->data_ptr(), _M_metadata[i].size());
     }
 }
 

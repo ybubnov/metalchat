@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <functional>
 #include <iostream>
+#include <streambuf>
 #include <vector>
 
 #include <metalchat/metal.h>
@@ -14,7 +15,7 @@ namespace metalchat {
 
 class basic_memfile {
 public:
-    using char_type = std::uint8_t;
+    using char_type = char;
     using pos_type = std::size_t;
 
     basic_memfile(const std::filesystem::path& p);

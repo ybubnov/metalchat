@@ -141,7 +141,7 @@ private:
     void
     requires_dimension(value_type dim) const
     {
-        if (dim >= _M_dim) {
+        if ((_M_dim > 0 && dim >= _M_dim) || (_M_dim == 0 && dim > _M_dim)) {
             throw std::out_of_range(std::format(
                 "tensor::requires_dimension: dim {} exceeds tensor dimensionality {}", dim, _M_dim
             ));

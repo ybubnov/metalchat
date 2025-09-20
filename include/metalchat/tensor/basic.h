@@ -1197,8 +1197,7 @@ template <typename T, std::size_t N>
 auto
 empty(std::size_t (&&sizes)[N], hardware_accelerator& accelerator)
 {
-    using container_type = hardware_memory_container<T>;
-    return empty<T, N, container_type>(std::move(sizes), accelerator.get_allocator());
+    return empty<T>(std::move(sizes), accelerator.get_allocator());
 }
 
 
@@ -1291,18 +1290,28 @@ zeros(std::size_t (&&sizes)[N])
 /// interval [0, 1).
 ///
 /// The shape of the tensor is defined by the variable argument `sizes`.
-template <typename T, std::size_t N> requires(N > 0)
+template <typename T, std::size_t N, allocator_t<void> Allocator = random_memory_allocator<void>>
+requires(N > 0)
 auto
-rand(std::size_t (&&sizes)[N])
+rand(std::size_t (&&sizes)[N], Allocator alloc = Allocator())
 {
     std::random_device rd;
     std::mt19937 generator(rd());
     std::uniform_real_distribution<T> distribution(0.0, 1.0);
 
-    auto t = empty<T>(std::move(sizes));
+    auto t = empty<T>(std::move(sizes), alloc);
     std::generate_n(t.data_ptr(), t.numel(), [&]() { return distribution(generator); });
 
     return t;
+}
+
+
+template <typename T, std::size_t N> requires(N > 0)
+auto
+rand(std::size_t (&&sizes)[N], hardware_accelerator& accelerator)
+{
+    auto alloc = accelerator.get_allocator();
+    return rand<T, N, polymorphic_hardware_allocator<void>>(std::move(sizes), alloc);
 }
 
 
