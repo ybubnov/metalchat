@@ -238,6 +238,29 @@ private:
 };
 
 
+template <allocator Allocator> struct null_allocator {
+public:
+    using value_type = Allocator::value_type;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
+    using size_type = Allocator::size_type;
+    using container_type = Allocator::container_type;
+    using container_pointer = Allocator::container_pointer;
+
+    container_pointer
+    allocate(size_type size)
+    {
+        return nullptr;
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        return nullptr;
+    }
+};
+
+
 class _HardwareNocopyAllocator {
 private:
     struct _HardwareNocopyAllocator_data;
@@ -271,8 +294,13 @@ public:
     using container_type = Allocator::container_type;
     using container_pointer = Allocator::container_pointer;
 
-    nocopy_allocator(Allocator alloc, metal::shared_device device)
+    nocopy_allocator(const Allocator& alloc, metal::shared_device device)
     : _M_alloc(alloc),
+      _M_nocopy_alloc(device)
+    {}
+
+    nocopy_allocator(Allocator&& alloc, metal::shared_device device)
+    : _M_alloc(std::move(alloc)),
       _M_nocopy_alloc(device)
     {}
 
@@ -320,13 +348,25 @@ public:
     ///
     /// \param alloc Proxy allocator for allocations without backing memory.
     /// \param buffer Underlying container from which allocations are created.
-    pooling_allocator_adapter(Allocator alloc, container_pointer container_ptr)
+    pooling_allocator_adapter(const Allocator& alloc, container_pointer container_ptr)
     : _M_alloc(alloc),
       _M_containers({container_ptr})
     {}
 
-    pooling_allocator_adapter(Allocator alloc, std::vector<container_pointer> containers)
+    pooling_allocator_adapter(Allocator&& alloc, container_pointer container_ptr)
+    : _M_alloc(std::move(alloc)),
+      _M_containers({container_ptr})
+    {}
+
+    pooling_allocator_adapter(const Allocator& alloc, std::vector<container_pointer> containers)
     : _M_alloc(alloc),
+      _M_containers(containers)
+    {
+        std::sort(_M_containers.begin(), _M_containers.end(), container_less);
+    }
+
+    pooling_allocator_adapter(Allocator&& alloc, std::vector<container_pointer> containers)
+    : _M_alloc(std::move(alloc)),
       _M_containers(containers)
     {
         std::sort(_M_containers.begin(), _M_containers.end(), container_less);
@@ -396,6 +436,8 @@ public:
     using container_pointer = std::shared_ptr<container_type>;
 
     _HardwareResidentAllocator(metal::shared_device device, std::size_t capacity);
+    _HardwareResidentAllocator(_HardwareResidentAllocator&&) = default;
+
     ~_HardwareResidentAllocator();
 
     void
@@ -459,11 +501,21 @@ public:
     using container_pointer = std::shared_ptr<container_type>;
 
     hardware_resident_allocator(
-        Allocator alloc, metal::shared_device device, std::size_t capacity = 256
+        const Allocator& alloc, metal::shared_device device, std::size_t capacity = 256
     )
     : _M_alloc(alloc),
       _M_resident_alloc(device, capacity)
     {}
+
+    hardware_resident_allocator(
+        Allocator&& alloc, metal::shared_device device, std::size_t capacity = 256
+    )
+    : _M_alloc(std::move(alloc)),
+      _M_resident_alloc(device, capacity)
+    {}
+
+    hardware_resident_allocator(hardware_resident_allocator&& other) = default;
+    hardware_resident_allocator(const hardware_resident_allocator& other) = delete;
 
     /// Permit allocations to be moved to resident memory and be used idependently
     /// from the given allocator.
@@ -477,6 +529,7 @@ public:
     allocate(size_type size)
     {
         auto container = _M_resident_alloc.allocate(_M_alloc.allocate(size));
+        // TODO: replace with container rebind.
         return std::reinterpret_pointer_cast<container_type>(container);
     }
 
@@ -484,6 +537,7 @@ public:
     allocate(const_pointer ptr, size_type size)
     {
         auto container = _M_resident_alloc.allocate(_M_alloc.allocate(ptr, size));
+        // TODO: replace with container rebind.
         return std::reinterpret_pointer_cast<container_type>(container);
     }
 
@@ -591,6 +645,7 @@ template <typename T> class hardware_heap_allocator {
     allocate(size_type size)
     {
         auto container = _M_alloc.allocate(sizeof(T) * size);
+        // TODO: replace with container rebind
         return std::reinterpret_pointer_cast<container_type>(container);
     }
 
@@ -599,6 +654,7 @@ template <typename T> class hardware_heap_allocator {
     {
         auto container = _M_alloc.allocate(size);
         std::memcpy(container->data(), ptr, sizeof(T) * size);
+        // TODO: replace with container rebind
         return std::reinterpret_pointer_cast<container_type>(container);
     }
 
@@ -801,12 +857,16 @@ public:
     using container_type = _Container_traits::container_type;
     using container_pointer = _Container_traits::container_pointer;
 
-    rebind_allocator(Allocator alloc)
+    rebind_allocator(const Allocator& alloc)
     : _M_alloc(alloc)
     {}
 
+    rebind_allocator(Allocator&& alloc)
+    : _M_alloc(std::move(alloc))
+    {}
+
     static std::shared_ptr<basic_container>
-    static_allocate(const void* data, size_type size, Allocator& alloc)
+    static_allocate(const void* data, size_type size, const Allocator& alloc)
     {
         using allocator_type = rebind_allocator<T, Allocator>;
 
@@ -817,7 +877,7 @@ public:
     }
 
     static std::shared_ptr<basic_container>
-    static_allocate(size_type size, Allocator& alloc)
+    static_allocate(size_type size, const Allocator& alloc)
     {
         using allocator_type = rebind_allocator<T, Allocator>;
 
@@ -862,8 +922,13 @@ public:
     using container_type = Allocator::container_type;
     using container_pointer = Allocator::container_pointer;
 
-    aliasing_allocator(Allocator alloc, std::shared_ptr<void> ptr)
+    aliasing_allocator(const Allocator& alloc, std::shared_ptr<void> ptr)
     : _M_alloc(alloc),
+      _M_ptr(ptr)
+    {}
+
+    aliasing_allocator(Allocator&& alloc, std::shared_ptr<void> ptr)
+    : _M_alloc(std::move(alloc)),
       _M_ptr(ptr)
     {}
 
@@ -921,25 +986,25 @@ public:
     using container_type = Allocator::container_type;
     using container_pointer = Allocator::container_pointer;
 
-    paginated_allocator_adapter(Allocator alloc, size_type max_size, size_type page_size)
+    paginated_allocator_adapter(const Allocator& alloc, size_type max_size, size_type page_size)
     : _M_alloc(alloc),
       _M_max_size(max_size),
       _M_page_size(page_size)
     {}
 
-    paginated_allocator_adapter(Allocator alloc, size_type max_size)
-    : _M_alloc(alloc),
+    paginated_allocator_adapter(Allocator&& alloc, size_type max_size, size_type page_size)
+    : _M_alloc(std::move(alloc)),
       _M_max_size(max_size),
-      _M_page_size(0)
-    {
-        auto page_size = sysconf(_SC_PAGESIZE);
-        if (page_size == -1) {
-            throw std::runtime_error("paginated_allocator_adapter: failed to query system page size"
-            );
-        }
+      _M_page_size(page_size)
+    {}
 
-        _M_page_size = page_size;
-    }
+    paginated_allocator_adapter(const Allocator& alloc, size_type max_size)
+    : paginated_allocator_adapter(alloc, max_size, page_size())
+    {}
+
+    paginated_allocator_adapter(Allocator&& alloc, size_type max_size)
+    : paginated_allocator_adapter(std::move(alloc), max_size, page_size())
+    {}
 
     auto
     allocate(std::vector<size_type> sizes)
@@ -1006,6 +1071,17 @@ private:
     Allocator _M_alloc;
     size_type _M_page_size;
     size_type _M_max_size;
+
+    size_type
+    page_size() const
+    {
+        auto page_size = sysconf(_SC_PAGESIZE);
+        if (page_size == -1) {
+            throw std::runtime_error("paginated_allocator_adapter: failed to query system page size"
+            );
+        }
+        return size_type(page_size);
+    }
 };
 
 

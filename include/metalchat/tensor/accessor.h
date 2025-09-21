@@ -10,6 +10,20 @@
 namespace metalchat {
 
 
+template <typename Accessor>
+concept stride_accessor = requires(Accessor acc) {
+    { acc.stride(std::size_t()) } -> std::same_as<std::size_t>;
+    { acc.set_stride(std::size_t(), std::size_t()) } -> std::same_as<void>;
+};
+
+
+template <typename Accessor>
+concept size_accessor = requires(Accessor acc) {
+    { acc.size(std::size_t()) } -> std::same_as<std::size_t>;
+    { acc.set_size(std::size_t(), std::size_t()) } -> std::same_as<void>;
+};
+
+
 class tensor_accessor {
 public:
     using value_type = std::size_t;
@@ -36,22 +50,46 @@ public:
     : tensor_accessor(dim, random_memory_allocator<value_type>())
     {}
 
-    template <std::forward_iterator ForwardIt, allocator_t<value_type> Allocator>
-    tensor_accessor(ForwardIt first, ForwardIt last, Allocator& alloc)
+    template <std::bidirectional_iterator BidirIt, allocator_t<value_type> Allocator>
+    tensor_accessor(BidirIt first, BidirIt last, Allocator& alloc)
     : tensor_accessor(std::distance(first, last), alloc)
     {
         std::copy(first, last, _M_sizes->data());
-        set_stride(_M_dim - 1, 1);
+        resize(first, last, *this);
+    }
 
-        for (std::size_t i = _M_dim - 2; i < _M_dim; --i) {
-            set_stride(i, stride(i + 1) * size(i + 1));
+    template <std::bidirectional_iterator BidirIt, allocator_t<value_type> Allocator>
+    tensor_accessor(BidirIt first, BidirIt last, Allocator&& alloc)
+    : tensor_accessor(first, last, alloc)
+    {}
+
+    template <std::bidirectional_iterator BidirIt, typename Accessor>
+    requires stride_accessor<Accessor> && size_accessor<Accessor>
+    static void
+    resize(BidirIt first, BidirIt last, Accessor& accessor)
+    {
+        auto dim = std::distance(first, last);
+        if (dim == 0) {
+            return;
+        }
+
+        --last;
+        accessor.set_stride(dim - 1, 1);
+        accessor.set_size(dim - 1, *last);
+
+        for (std::size_t i = dim - 2; i < dim; --i) {
+            --last;
+            accessor.set_size(i, *last);
+            accessor.set_stride(i, accessor.stride(i + 1) * accessor.size(i + 1));
         }
     }
 
-    template <std::forward_iterator ForwardIt, allocator_t<value_type> Allocator>
-    tensor_accessor(ForwardIt first, ForwardIt last, Allocator&& alloc)
-    : tensor_accessor(first, last, alloc)
-    {}
+    template <typename Accessor> requires stride_accessor<Accessor> && size_accessor<Accessor>
+    static void
+    resize(const std::span<std::size_t> sizes, Accessor& accessor)
+    {
+        resize(sizes.begin(), sizes.end(), accessor);
+    }
 
     value_type
     size(value_type dim) const

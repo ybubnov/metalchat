@@ -230,11 +230,13 @@ _HardwareResidentAllocator::~_HardwareResidentAllocator() { detach(); }
 void
 _HardwareResidentAllocator::detach()
 {
-    const std::scoped_lock __lock(*_M_mutex);
+    if (_M_mutex != nullptr) {
+        const std::scoped_lock __lock(*_M_mutex);
 
-    if ((*_M_size) != 0) {
-        _M_data->rset->commit();
-        _M_data->rset->requestResidency();
+        if ((*_M_size) != 0) {
+            _M_data->rset->commit();
+            _M_data->rset->requestResidency();
+        }
     }
 }
 

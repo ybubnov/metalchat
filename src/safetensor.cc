@@ -25,6 +25,13 @@ safetensor_document::safetensor_document()
 {}
 
 
+safetensor_document::safetensor_document(const safetensor_typeinfo& typeinfo)
+: _M_metadata(),
+  _M_containers(),
+  _M_typeinfo(typeinfo)
+{}
+
+
 std::vector<std::size_t>
 safetensor_document::offsets() const
 {
@@ -147,18 +154,18 @@ safetensor_document::open(const std::filesystem::path& p, hardware_accelerator& 
     auto nocopy_alloc = nocopy_allocator(alloc, accelerator.get_metal_device());
     auto resident_alloc = hardware_resident_allocator(nocopy_alloc, accelerator.get_metal_device());
 
-    return open(p, resident_alloc, accelerator.max_buffer_size());
+    using allocator_type = decltype(resident_alloc);
+
+    return open(p, std::forward<allocator_type>(resident_alloc), accelerator.max_buffer_size());
 }
 
 
 void
-safetensor_document::insert(
-    const safetensor_metadata& metadata, const safetensor_container& container
-)
+safetensor_document::insert(const safetensor_metadata& metadata, safetensor_container&& container)
 {
     _M_names.insert_or_assign(metadata.name, _M_metadata.size());
     _M_metadata.push_back(metadata);
-    _M_containers.push_back(container);
+    _M_containers.push_back(std::move(container));
 }
 
 
@@ -209,11 +216,9 @@ safetensor_document::load(const safetensor& st, basic_tensor& tensor) const
         ));
     }
 
-    auto sizes = st.sizes();
-
-    for (std::size_t i = 0; i < tensor.dimensions(); i++) {
-        tensor.set_size(i, sizes[i]);
-    }
+    // Apart from setting a size for the tensor, adjust strides to correctly
+    // access multi-dimensional data.
+    tensor_accessor::resize(st.sizes(), tensor);
 
     auto ptr = st.container_ptr();
     tensor.set_container(ptr);

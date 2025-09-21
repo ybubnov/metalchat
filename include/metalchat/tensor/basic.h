@@ -78,6 +78,10 @@ public:
     stride(std::size_t dim) const
         = 0;
 
+    virtual void
+    set_stride(std::size_t dim, std::size_t stride)
+        = 0;
+
     /// Returns strides of the tensor.
     virtual const std::span<std::size_t>
     strides() const = 0;
@@ -1290,7 +1294,7 @@ zeros(std::size_t (&&sizes)[N])
 /// interval [0, 1).
 ///
 /// The shape of the tensor is defined by the variable argument `sizes`.
-template <typename T, std::size_t N, allocator_t<void> Allocator = random_memory_allocator<void>>
+template <typename T, std::size_t N, allocator_t<T> Allocator = random_memory_allocator<T>>
 requires(N > 0)
 auto
 rand(std::size_t (&&sizes)[N], Allocator alloc = Allocator())
@@ -1300,6 +1304,7 @@ rand(std::size_t (&&sizes)[N], Allocator alloc = Allocator())
     std::uniform_real_distribution<T> distribution(0.0, 1.0);
 
     auto t = empty<T>(std::move(sizes), alloc);
+
     std::generate_n(t.data_ptr(), t.numel(), [&]() { return distribution(generator); });
 
     return t;
@@ -1310,8 +1315,10 @@ template <typename T, std::size_t N> requires(N > 0)
 auto
 rand(std::size_t (&&sizes)[N], hardware_accelerator& accelerator)
 {
-    auto alloc = accelerator.get_allocator();
-    return rand<T, N, polymorphic_hardware_allocator<void>>(std::move(sizes), alloc);
+    using allocator_type = polymorphic_hardware_allocator<void>;
+    auto alloc = rebind_allocator<T, allocator_type>(accelerator.get_allocator());
+
+    return rand<T>(std::move(sizes), alloc);
 }
 
 

@@ -123,7 +123,7 @@ public:
     void
     encode(const Tensor& tensor)
     {
-        auto alloc = rebind_hardware_allocator<T, allocator_type>(_M_allocator);
+        auto alloc = rebind_allocator<T, allocator_type>(_M_allocator);
         auto container = alloc.allocate(tensor.data_ptr(), tensor.numel());
 
         auto layout = tensor.layout();
@@ -140,7 +140,7 @@ public:
 
         on_completed([container = container]() { container.park(); });
 
-        auto alloc = rebind_hardware_allocator<T, allocator_type>(_M_allocator);
+        auto alloc = rebind_allocator<T, allocator_type>(_M_allocator);
         auto container_ptr = alloc.allocate(tensor.data_ptr(), tensor.numel());
 
         auto layout = tensor.layout();
@@ -271,7 +271,8 @@ public:
     void
     set_allocator(Allocator&& alloc)
     {
-        set_allocator(std::make_shared(hardware_allocator_wrapper(std::move(alloc))));
+        using allocator_type = hardware_allocator_wrapper<Allocator>;
+        set_allocator(std::make_shared<allocator_type>(std::move(alloc)));
     }
 
     std::shared_ptr<kernel_thread>

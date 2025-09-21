@@ -191,10 +191,18 @@ public:
     safetensor_allocator()
     : _M_type_alloc()
     {
+        register_type<bool>("BOOL");
+        register_type<std::int8_t>("I8");
+        register_type<std::uint8_t>("U8");
+        register_type<std::int16_t>("I16");
+        register_type<std::uint16_t>("U16");
+        register_type<dtype::bf16>("BF16");
         register_type<std::int32_t>("I32");
+        register_type<std::uint32_t>("U32");
         register_type<float>("F32");
         register_type<double>("F64");
-        register_type<dtype::bf16>("BF16");
+        register_type<std::int64_t>("I64");
+        register_type<std::uint64_t>("U64");
     }
 
     safetensor_allocator(const safetensor_allocator&) = default;
@@ -228,11 +236,11 @@ public:
 private:
     /// A function pointer type to the allocator that creates uninitialized contiguous
     /// block of memory.
-    using make_alloc = container_ptr (*)(std::size_t, Allocator&);
+    using make_alloc = container_ptr (*)(std::size_t, const Allocator&);
 
     /// A function pointer type to the allocator that creates contiguous block of memory
     /// and initialized it with the data specified by the `const void*` data pointer.
-    using copy_alloc = container_ptr (*)(const void*, std::size_t, Allocator&);
+    using copy_alloc = container_ptr (*)(const void*, std::size_t, const Allocator&);
 
     /// Store both function pointers within the same container for the ease of access.
     using container_alloc = std::pair<make_alloc, copy_alloc>;
@@ -262,10 +270,18 @@ public:
     safetensor_typeinfo()
     : _M_type_info()
     {
+        register_type<bool>("BOOL", 8);
+        register_type<std::int8_t>("I8", 8);
+        register_type<std::uint8_t>("U8", 8);
+        register_type<std::int16_t>("I16", 16);
+        register_type<std::uint16_t>("U16", 16);
+        register_type<dtype::bf16>("BF16", 16);
         register_type<std::int32_t>("I32", 32);
+        register_type<std::uint32_t>("U32", 32);
         register_type<float>("F32", 32);
         register_type<double>("F64", 64);
-        register_type<dtype::bf16>("BF16", 16);
+        register_type<std::int64_t>("I64", 64);
+        register_type<std::uint64_t>("U64", 64);
     }
 
     safetensor_typeinfo(const safetensor_typeinfo&) = default;
@@ -276,7 +292,6 @@ public:
         return _M_type_info[key_type(info)];
     }
 
-private:
     template <typename T>
     void
     register_type(const std::string& type_name, std::size_t type_size)
@@ -284,6 +299,7 @@ private:
         _M_type_info[typeid(T)] = {type_name, type_size};
     }
 
+private:
     struct type_hash {
         std::size_t
         operator()(key_type t) const
@@ -401,7 +417,7 @@ private:
     parse_metadata(std::istream& is);
 
     void
-    insert(const safetensor_metadata& metadata, const safetensor_container& container);
+    insert(const safetensor_metadata& metadata, safetensor_container&& container);
 
     void
     load(const safetensor& st, basic_tensor& tensor) const;
@@ -411,6 +427,7 @@ public:
     using const_iterator = const iterator;
 
     safetensor_document();
+    safetensor_document(const safetensor_typeinfo& typeinfo);
     safetensor_document(const safetensor_document&) = default;
 
     std::vector<std::size_t>
@@ -464,7 +481,7 @@ public:
 
     template <allocator_t<void> Allocator>
     static safetensor_document
-    open(const std::filesystem::path& p, Allocator alloc, std::size_t max_size = -1)
+    open(const std::filesystem::path& p, Allocator& alloc, std::size_t max_size = -1)
     {
         auto file = std::make_shared<basic_memfile>(p);
         file->declare_mapped();
@@ -484,12 +501,12 @@ public:
         // Use an aliasing allocator to bind file pointer to container pointer,
         // so that file is closed (and evicted from mapped memory), only when
         // all sub-allocated containers are also destroyed.
-        auto aliasing_alloc = aliasing_allocator(alloc, file);
+        auto aliasing_alloc = aliasing_allocator(std::forward<Allocator>(alloc), file);
 
         // Some Apple devices limit the memory that is possible to allocated within
         // a single buffer, here we define a paginated allocator to split memory-mapped
         // file into the non-overlapping contiguous containers.
-        auto page_alloc = paginated_allocator_adapter(aliasing_alloc, max_size);
+        auto page_alloc = paginated_allocator_adapter(std::move(aliasing_alloc), max_size);
         auto containers = page_alloc.allocate(data_ptr, sizes);
 
         /// Independently of the specified base allocator, construct a final document,
@@ -503,20 +520,27 @@ public:
         // All containers allocated by paginated allocator contain an alias to the
         // memory-mapped file, so there only thing that is left is to allocate memory
         // from those containers.
-        using allocator_type = pooling_allocator_adapter<Allocator>;
-        auto container_alloc = allocator_type(alloc, containers);
+        using allocator_type = pooling_allocator_adapter<null_allocator<Allocator>>;
+        auto container_alloc = allocator_type(null_allocator<Allocator>{}, containers);
 
         safetensor_document document;
         safetensor_allocator<allocator_type> allocator;
 
         for (const auto& m : metadata) {
             auto data = container_data_ptr + m.data_offsets[0];
-            auto container_ptr = allocator.allocate(m.dtype, data, m.size(), container_alloc);
 
-            document.insert(m, container_ptr);
+            auto container_ptr = allocator.allocate(m.dtype, data, m.size(), container_alloc);
+            document.insert(m, std::move(container_ptr));
         }
 
         return document;
+    }
+
+    template <allocator_t<void> Allocator>
+    static safetensor_document
+    open(const std::filesystem::path& p, Allocator&& alloc, std::size_t max_size = -1)
+    {
+        return open(p, alloc, max_size);
     }
 
     void
