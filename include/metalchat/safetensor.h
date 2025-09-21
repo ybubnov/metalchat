@@ -175,6 +175,94 @@ private:
 class safetensor_document;
 
 
+class safetensor_typeinfo {
+public:
+    template <typename T> struct safetensor_type {
+        using value_type = T;
+
+        std::string_view name;
+        std::size_t bytes;
+    };
+
+    static constexpr auto default_types = std::make_tuple(
+        safetensor_type<bool>{"BOOL", 8},
+        safetensor_type<std::int8_t>{"I8", 8},
+        safetensor_type<std::uint8_t>{"U8", 8},
+        safetensor_type<std::int16_t>{"I16", 16},
+        safetensor_type<std::uint16_t>{"U16", 16},
+        safetensor_type<dtype::bf16>{"BF16", 16},
+        safetensor_type<std::int32_t>{"I32", 32},
+        safetensor_type<std::uint32_t>{"U32", 32},
+        safetensor_type<float>{"F32", 32},
+        safetensor_type<double>{"F64", 64},
+        safetensor_type<std::int64_t>{"I64", 64},
+        safetensor_type<std::uint64_t>{"U64", 64}
+    );
+
+    using key_type = std::reference_wrapper<const std::type_info>;
+    using value_type = std::pair<std::string, std::size_t>;
+
+    safetensor_typeinfo()
+    : _M_type_info()
+    {
+        constexpr auto default_types_size = std::tuple_size_v<decltype(default_types)>;
+        register_default_types(std::make_index_sequence<default_types_size>{});
+    }
+
+    safetensor_typeinfo(const safetensor_typeinfo&) = default;
+
+    const value_type&
+    operator[](const std::type_info& info)
+    {
+        return _M_type_info[key_type(info)];
+    }
+
+    template <typename T>
+    void
+    register_type(const std::string type_name, std::size_t type_size)
+    {
+        _M_type_info.insert_or_assign(typeid(T), value_type(type_name, type_size));
+    }
+
+private:
+    struct type_hash {
+        std::size_t
+        operator()(key_type t) const
+        {
+            return t.get().hash_code();
+        }
+    };
+
+    struct type_eq {
+        bool
+        operator()(key_type lhs, key_type rhs) const
+        {
+            return lhs.get() == rhs.get();
+        }
+    };
+
+    std::unordered_map<key_type, value_type, type_hash, type_eq> _M_type_info;
+
+    template <std::size_t... TypeIndices>
+    void
+    register_default_types(std::index_sequence<TypeIndices...>)
+    {
+        (register_default_type<TypeIndices>(), ...);
+    }
+
+    template <std::size_t TypeIndex>
+    void
+    register_default_type()
+    {
+        using safetensor_type = std::tuple_element_t<TypeIndex, decltype(default_types)>;
+        using value_type = safetensor_type::value_type;
+
+        auto default_type = std::get<TypeIndex>(default_types);
+        register_type<value_type>(std::string(default_type.name), default_type.bytes);
+    }
+};
+
+
 /// A safetensor allocator is used to dynamically (in run-time) dispatch allocator type
 /// binding according to the type of a tensor specified in the safetensor document.
 ///
@@ -259,64 +347,6 @@ private:
 
         _M_type_alloc[type_name] = container_alloc(malloc, calloc);
     }
-};
-
-
-class safetensor_typeinfo {
-public:
-    using key_type = std::reference_wrapper<const std::type_info>;
-    using value_type = std::pair<std::string, std::size_t>;
-
-    safetensor_typeinfo()
-    : _M_type_info()
-    {
-        register_type<bool>("BOOL", 8);
-        register_type<std::int8_t>("I8", 8);
-        register_type<std::uint8_t>("U8", 8);
-        register_type<std::int16_t>("I16", 16);
-        register_type<std::uint16_t>("U16", 16);
-        register_type<dtype::bf16>("BF16", 16);
-        register_type<std::int32_t>("I32", 32);
-        register_type<std::uint32_t>("U32", 32);
-        register_type<float>("F32", 32);
-        register_type<double>("F64", 64);
-        register_type<std::int64_t>("I64", 64);
-        register_type<std::uint64_t>("U64", 64);
-    }
-
-    safetensor_typeinfo(const safetensor_typeinfo&) = default;
-
-    const value_type&
-    operator[](const std::type_info& info)
-    {
-        return _M_type_info[key_type(info)];
-    }
-
-    template <typename T>
-    void
-    register_type(const std::string& type_name, std::size_t type_size)
-    {
-        _M_type_info[typeid(T)] = {type_name, type_size};
-    }
-
-private:
-    struct type_hash {
-        std::size_t
-        operator()(key_type t) const
-        {
-            return t.get().hash_code();
-        }
-    };
-
-    struct type_eq {
-        bool
-        operator()(key_type lhs, key_type rhs) const
-        {
-            return lhs.get() == rhs.get();
-        }
-    };
-
-    std::unordered_map<key_type, value_type, type_hash, type_eq> _M_type_info;
 };
 
 
@@ -417,7 +447,7 @@ private:
     parse_metadata(std::istream& is);
 
     void
-    insert(const safetensor_metadata& metadata, safetensor_container&& container);
+    insert(const safetensor_metadata& metadata, const safetensor_container& container);
 
     void
     load(const safetensor& st, basic_tensor& tensor) const;
@@ -427,7 +457,6 @@ public:
     using const_iterator = const iterator;
 
     safetensor_document();
-    safetensor_document(const safetensor_typeinfo& typeinfo);
     safetensor_document(const safetensor_document&) = default;
 
     std::vector<std::size_t>

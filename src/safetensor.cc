@@ -25,13 +25,6 @@ safetensor_document::safetensor_document()
 {}
 
 
-safetensor_document::safetensor_document(const safetensor_typeinfo& typeinfo)
-: _M_metadata(),
-  _M_containers(),
-  _M_typeinfo(typeinfo)
-{}
-
-
 std::vector<std::size_t>
 safetensor_document::offsets() const
 {
@@ -161,11 +154,13 @@ safetensor_document::open(const std::filesystem::path& p, hardware_accelerator& 
 
 
 void
-safetensor_document::insert(const safetensor_metadata& metadata, safetensor_container&& container)
+safetensor_document::insert(
+    const safetensor_metadata& metadata, const safetensor_container& container
+)
 {
     _M_names.insert_or_assign(metadata.name, _M_metadata.size());
     _M_metadata.push_back(metadata);
-    _M_containers.push_back(std::move(container));
+    _M_containers.push_back(container);
 }
 
 
@@ -174,7 +169,7 @@ safetensor_document::insert(const std::string& name, const basic_tensor& tensor)
 {
     auto sizes = tensor.sizes();
     auto numel = tensor.numel();
-    auto& [dtype_name, dtype_size] = _M_typeinfo[tensor.dtype()];
+    const auto& [dtype_name, dtype_size] = _M_typeinfo[tensor.dtype()];
 
     std::size_t begin = 0;
     if (_M_metadata.size() > 0) {
