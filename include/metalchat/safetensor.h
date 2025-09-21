@@ -219,7 +219,7 @@ public:
 
     template <typename T>
     void
-    register_type(const std::string type_name, std::size_t type_size)
+    register_type(const std::string& type_name, std::size_t type_size)
     {
         _M_type_info.insert_or_assign(typeid(T), value_type(type_name, type_size));
     }
@@ -279,18 +279,10 @@ public:
     safetensor_allocator()
     : _M_type_alloc()
     {
-        register_type<bool>("BOOL");
-        register_type<std::int8_t>("I8");
-        register_type<std::uint8_t>("U8");
-        register_type<std::int16_t>("I16");
-        register_type<std::uint16_t>("U16");
-        register_type<dtype::bf16>("BF16");
-        register_type<std::int32_t>("I32");
-        register_type<std::uint32_t>("U32");
-        register_type<float>("F32");
-        register_type<double>("F64");
-        register_type<std::int64_t>("I64");
-        register_type<std::uint64_t>("U64");
+        using safetensor_types = decltype(safetensor_typeinfo::default_types);
+        constexpr auto default_types_size = std::tuple_size_v<safetensor_types>;
+
+        register_default_types(std::make_index_sequence<default_types_size>{});
     }
 
     safetensor_allocator(const safetensor_allocator&) = default;
@@ -346,6 +338,25 @@ private:
         auto calloc = static_cast<copy_alloc>(&allocator_type::static_allocate);
 
         _M_type_alloc[type_name] = container_alloc(malloc, calloc);
+    }
+
+    template <std::size_t... TypeIndices>
+    void
+    register_default_types(std::index_sequence<TypeIndices...>)
+    {
+        (register_default_type<TypeIndices>(), ...);
+    }
+
+    template <std::size_t TypeIndex>
+    void
+    register_default_type()
+    {
+        using safetensor_types = decltype(safetensor_typeinfo::default_types);
+        using safetensor_type = std::tuple_element_t<TypeIndex, safetensor_types>;
+        using value_type = safetensor_type::value_type;
+
+        auto default_type = std::get<TypeIndex>(safetensor_typeinfo::default_types);
+        register_type<value_type>(std::string(default_type.name));
     }
 };
 
