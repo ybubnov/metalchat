@@ -439,6 +439,7 @@ public:
 };
 
 
+/// A document for writing and reading tensors in a `safetensor` format.
 class safetensor_document {
 private:
     using safetensor_container = std::shared_ptr<basic_container>;
@@ -467,33 +468,84 @@ public:
     using iterator = safetensor_iterator;
     using const_iterator = const iterator;
 
+    /// A default \ref safetensor_document constructor.
     safetensor_document();
+
+    /// A \ref safetensor_document copt constructor.
     safetensor_document(const safetensor_document&) = default;
 
+    /// Returns tensor offsets (relative to a safetensor metadata header) in bytes.
     std::vector<std::size_t>
     offsets() const;
 
+    /// Returns a list of tensor sizes in bytes.
     std::vector<std::size_t>
     sizes() const;
 
+    /// Returns an iterator to the first safe tensor in a document.
+    ///
+    /// \note It's guaranteed that tensors are returned in an order defined by their offset
+    /// in a document.
+    ///
+    /// ```c++
+    /// auto document = safetensor_document::open("model.safetensors");
+    /// for (auto it = document.begin(); it != document.end(); ++it) {
+    ///     std::cout << (*it) << std::endl;
+    /// }
+    /// ```
     iterator
     begin();
 
+    /// Returns an iterator past the last safe tensor in a document.
     iterator
     end();
 
+    /// Returns a constant iterator to the first safe tensor in a document.
     const_iterator
     begin() const;
 
+    /// Returns an iterator past the last safe tensor in a document.
     const_iterator
     end() const;
 
+    /// Open a safetensor document.
+    ///
+    /// This implementation uses a memory-mapped file and allocates all tensors into
+    /// \ref random_memory_container without copying actual memory. It is safe to destroy
+    /// this instance after accessing tensors, since tensor pointers will carry over a
+    /// pointer to the backing file. This means, until a pointer to the container exists,
+    /// a memory-mapped file won't be closed.
+    ///
+    /// \param p A path in the filesystem to a file in a safetensor format.
     static safetensor_document
     open(const std::filesystem::path& p);
 
+    /// Open a safetensor document.
+    ///
+    /// This implementation, like \ref safetensor_document::open(const std::filesystem::path&) uses
+    /// a memory-mapped files. But all tensors are allocated using \ref hardware_memory_container.
+    ///
+    /// Similarly, pointer to a memory-mapped file is carried over by the tensors.
+    ///
+    /// This is the most efficient implementation, since it tries to allocate buffers of
+    /// maximally allowed size by a hardware accelerator, and then uses
+    /// \ref pooling_allocator_adapter and \ref nocopy_allocator to avoid copying memory from
+    /// the memory-mapped file.
+    ///
+    /// \param p A path in the filesystem to a file in a safetensor format.
+    /// \param accelerator A hardware accelerator.
     static safetensor_document
     open(const std::filesystem::path& p, hardware_accelerator& accelerator);
 
+    /// Open a safetensor document.
+    ///
+    /// This implementation reads safetensor data from the specified basic stream. So all reads
+    /// from the stream will result in copying data from stream to tensor containers. The
+    /// containers do not hold a reference to the specified stream.
+    ///
+    /// \tparam Allocator A type of the allocator used to allocate tensor containers.
+    /// \param is An input string stream, that will be used to retrieve tensors from.
+    /// \param alloc An instance of a void container allocator to allocate tensor containers.
     template <allocator_t<void> Allocator>
     static safetensor_document
     open(std::istream& is, Allocator alloc)

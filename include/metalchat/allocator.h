@@ -116,7 +116,7 @@ concept hardware_allocator_t
 /// };
 /// ```
 ///
-/// Alternatively, you could simply use \ref hardware_allocator_wrapper in order to avoid
+/// \note Alternatively, you could simply use \ref hardware_allocator_wrapper in order to avoid
 /// creating a custom type.
 template <typename T> struct basic_hardware_allocator {
     using value_type = T;
@@ -353,11 +353,19 @@ public:
       _M_containers({container_ptr})
     {}
 
+    /// Constructs a new pooling allocator with the specified container.
+    ///
+    /// \param alloc Proxy allocator for allocations without backing memory.
+    /// \param container_ptr Underlying container from which allocations are created.
     pooling_allocator_adapter(Allocator&& alloc, container_pointer container_ptr)
     : _M_alloc(std::move(alloc)),
       _M_containers({container_ptr})
     {}
 
+    /// Constructs a new pooling allocator with the specified sequence of containers.
+    ///
+    /// \param alloc Proxy allocator for allocations without backing memory.
+    /// \param containers Underlying containers from which allocations are created.
     pooling_allocator_adapter(const Allocator& alloc, std::vector<container_pointer> containers)
     : _M_alloc(alloc),
       _M_containers(containers)
@@ -365,6 +373,10 @@ public:
         std::sort(_M_containers.begin(), _M_containers.end(), container_less);
     }
 
+    /// Constructs a new pooling allocator with the specified sequence of containers.
+    ///
+    /// \param alloc Proxy allocator for allocations without backing memory.
+    /// \param containers Underlying containers from which allocations are created.
     pooling_allocator_adapter(Allocator&& alloc, std::vector<container_pointer> containers)
     : _M_alloc(std::move(alloc)),
       _M_containers(containers)

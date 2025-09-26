@@ -37,27 +37,6 @@ Hardware resident allocator
    :members:
 
 
-No-copy allocator
------------------
-
-.. doxygenclass:: metalchat::nocopy_allocator
-   :members:
-
-
-Aliasing allocator
-------------------
-
-.. doxygenclass:: metalchat::aliasing_allocator
-   :members:
-
-
-Rebind allocator
-----------------
-
-.. doxygenstruct:: metalchat::rebind_allocator
-   :members:
-
-
 Polymorphic hardware allocator
 ------------------------------
 
@@ -82,10 +61,31 @@ Random memory allocator
    :members:
 
 
+Aliasing allocator
+------------------
+
+.. doxygenclass:: metalchat::aliasing_allocator
+   :members:
+
+
+Rebind allocator
+----------------
+
+.. doxygenstruct:: metalchat::rebind_allocator
+   :members:
+
+
 Pooling allocator adapter
 -------------------------
 
 .. doxygenclass:: metalchat::pooling_allocator_adapter
+   :members:
+
+
+No-copy allocator
+-----------------
+
+.. doxygenclass:: metalchat::nocopy_allocator
    :members:
 
 
