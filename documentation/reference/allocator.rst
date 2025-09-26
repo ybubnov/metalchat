@@ -23,13 +23,6 @@ Hardware memory allocator
    :members:
 
 
-Hardware buffer allocator
--------------------------
-
-.. doxygenclass:: metalchat::hardware_buffer_allocator
-   :members:
-
-
 Hardware heap allocator
 -----------------------
 
@@ -44,34 +37,34 @@ Hardware resident allocator
    :members:
 
 
-Hardware no-copy allocator
---------------------------
+No-copy allocator
+-----------------
 
-.. doxygenclass:: metalchat::hardware_nocopy_allocator
+.. doxygenclass:: metalchat::nocopy_allocator
    :members:
 
 
-Hardware aliasing allocator
----------------------------
+Aliasing allocator
+------------------
 
-.. doxygenclass:: metalchat::hardware_aliasing_allocator
+.. doxygenclass:: metalchat::aliasing_allocator
    :members:
 
 
-Rebind hardware allocator
-----------------------------
+Rebind allocator
+----------------
 
-.. doxygenclass:: metalchat::rebind_hardware_allocator
+.. doxygenstruct:: metalchat::rebind_allocator
    :members:
 
 
 Polymorphic hardware allocator
 ------------------------------
 
-.. doxygenstruct:: metalchat::basic_hardware_memory_allocator
+.. doxygenstruct:: metalchat::basic_hardware_allocator
    :members:
 
-.. doxygenclass:: metalchat::polymorphic_hardware_memory_allocator
+.. doxygenclass:: metalchat::polymorphic_hardware_allocator
    :members:
 
 
@@ -86,6 +79,13 @@ Random memory allocator
 -----------------------
 
 .. doxygenstruct:: metalchat::random_memory_allocator
+   :members:
+
+
+Pooling allocator adapter
+-------------------------
+
+.. doxygenclass:: metalchat::pooling_allocator_adapter
    :members:
 
 

@@ -347,7 +347,7 @@ public:
     /// "new" semantic will be proxied to the specified allocator.
     ///
     /// \param alloc Proxy allocator for allocations without backing memory.
-    /// \param buffer Underlying container from which allocations are created.
+    /// \param container_ptr Underlying container from which allocations are created.
     pooling_allocator_adapter(const Allocator& alloc, container_pointer container_ptr)
     : _M_alloc(alloc),
       _M_containers({container_ptr})

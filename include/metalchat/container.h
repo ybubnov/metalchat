@@ -161,8 +161,8 @@ template <contiguous_container Container> struct container_offset;
 
 
 /// This template class provides the standardized way to access various properties of
-/// \ref Container. The library allocators and other components access containers through
-/// this template.
+/// \ref contiguous_container. The library allocators and other components access containers
+/// through this template.
 ///
 /// \tparam Container a contiguous memory container type.
 template <contiguous_container Container> struct container_traits {
@@ -251,7 +251,7 @@ template <contiguous_container Container> struct container_traits {
 
     /// Checks whether or not a given container contains the specified range contiguous memory.
     ///
-    /// \param container a contiguous memory container.
+    /// \param container_ptr a pointer to a contiguous memory container.
     /// \param first a start position of the contiguous memory.
     /// \param size a size of the contiguous memory.
     static bool

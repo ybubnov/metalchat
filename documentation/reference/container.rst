@@ -42,13 +42,6 @@ Scalar memory container
    :members:
 
 
-Reference memory container
---------------------------
-
-.. doxygenstruct:: metalchat::reference_memory_container
-   :members:
-
-
 File buffer container
 ---------------------
 

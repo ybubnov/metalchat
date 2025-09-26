@@ -28,36 +28,35 @@ Allocator library
    * - :cpp:class:`metalchat::hardware_memory_allocator`
      - Metal hazard-tracking shared memory allocator.
 
-   * - :cpp:class:`metalchat::hardware_buffer_allocator`
-     - An allocator that returns the same hardware container (buffer).
-
    * - :cpp:class:`metalchat::hardware_heap_allocator`
      - Metal heap allocator of shared memory without hazard tracking.
-
-   * - :cpp:class:`metalchat::hardware_nocopy_allocator`
-     - Allocates hardware containers without actually copying underlying memory.
 
    * - :cpp:class:`metalchat::hardware_resident_allocator`
      - Moves all hardware allocations to the residency set.
 
-   * - :cpp:class:`metalchat::hardware_aliasing_allocator`
+   * - :cpp:class:`metalchat::aliasing_allocator`
      - Provides a way to assign ownership of an existing resource to the allocated
        container.
-
-   * - :cpp:class:`metalchat::rebind_hardware_allocator`
-     - Provides a way to obtain a hardware allocator of a different type.
-
    * - :cpp:class:`metalchat::random_memory_allocator`
      - Allocates containers from random access memory.
 
    * - :cpp:class:`metalchat::scalar_memory_allocator`
      - Allocates containers that holds a single scalar value (int, float, double, etc.).
 
+   * - :cpp:class:`metalchat::nocopy_allocator`
+     - Allocates containers without actually copying underlying memory.
+
+   * - :cpp:class:`metalchat::pooling_allocator_adapter`
+     - An allocator that returns the same backing container.
+
+   * - :cpp:class:`metalchat::rebind_allocator`
+     - Provides a way to obtain an allocator of a different type.
+
    * - :cpp:class:`metalchat::paginated_allocator_adapter`
      - Provides a way to allocate multiple small-sized containers backing large
        allocation request.
 
-   * - :cpp:class:`metalchat::polymorphic_hardware_memory_allocator`
+   * - :cpp:class:`metalchat::polymorphic_hardware_allocator`
      - An allocator that exhibits different allocation behaviour depending on particular
        implementation.
 
@@ -79,9 +78,6 @@ Container library
      - TBD.
 
    * - :cpp:class:`metalchat::scalar_memory_container`
-     - TBD.
-
-   * - :cpp:class:`metalchat::reference_memory_container`
      - TBD.
 
 
@@ -158,7 +154,7 @@ Layer library
    * - :cpp:class:`metalchat::shared_layer_ptr`
      - A convenience class for a :cpp:class:`metalchat::layer` type to share layer ownership.
 
-   * - :cpp:class:`metalchat::nn::llama`
+   * - :cpp:class:`metalchat::nn::llama3`
      - TBD
 
 
@@ -172,11 +168,8 @@ Chat library
    * - :cpp:class:`metalchat::byte_pair_encoder`
      - Byte-pair encoder.
 
-   * - :cpp:class:`metalchat::chat`
+   * - :cpp:class:`metalchat::agent`
      - A language model adapter to receive and send messages.
 
-   * - :cpp:class:`metalchat::polymorphic_chat`
-     - TBD
-
-   * - :cpp:class:`metalchat::language_transformer`
+   * - :cpp:class:`metalchat::transformer`
      - A language estimator adapter to predict the next token.

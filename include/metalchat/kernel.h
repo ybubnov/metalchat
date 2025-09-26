@@ -199,7 +199,8 @@ public:
     ///
     /// \note This method is called by a `kernel_thread`, when the kernel is scheduled for
     /// executions by calling one of overloaded function call operators
-    /// \ref kernel_task::operator(), therefore there is no need to call this method manually.
+    /// \ref kernel_task::operator()(std::function<void()>), or \ref kernel_task::operator()()
+    /// therefore there is no need to call this method manually.
     void
     encode(hardware_function_encoder encoder)
     {
@@ -213,7 +214,8 @@ public:
     /// this method, so that processing starts for all tasks in the buffer.
     ///
     /// Method raises `std::runtime_error`, when this method is executed for a task that is
-    /// not invoked (pushed to a command buffer) with one of \ref kernel_task::operator() methods.
+    /// not invoked (pushed to a command buffer) with one of \ref kernel_task::operator()(), or
+    /// \ref kernel_task::operator()(std::function<void()>) methods.
     void
     make_ready_at_thread_exit()
     {
