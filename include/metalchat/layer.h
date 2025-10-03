@@ -114,8 +114,8 @@ public:
     ///
     /// struct custom_layer : public basic_layer {
     ///     // Declare upstream layers here.
-    ///     nn::shared_linear<float> linear1;
-    ///     nn::shared_linear<float> linear2;
+    ///     nn::linear<float>::layer_pointer linear1;
+    ///     nn::linear<float>::layer_pointer linear2;
     ///
     ///    custom_layer(hardware_accelerator accelerator)
     ///    : basic_layer(accelerator)
