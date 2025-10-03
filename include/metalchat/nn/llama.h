@@ -113,34 +113,43 @@ template <
     cache_t<T> Cache = sink_cache<T>>
 class llama3 : public basic_layer {
 private:
-    using transformer_type = nn::transformer<T, Container>;
+    using _Transformer = nn::transformer<T, Container>;
+    using _TransformerArray = layer_array<_Transformer>;
+    using _CacheArray = layer_array<Cache>;
+    using _Embedding = nn::embedding<T, Container>;
+    using _RMSNorm = nn::rmsnorm<T, Container>;
+    using _Linear = nn::linear<T, Container>;
 
-    shared_embedding<T, Container> _M_embedding;
-    shared_rmsnorm<T, Container> _M_norm;
-    shared_linear<T, Container> _M_output;
+    _Embedding::layer_pointer _M_embedding;
+    _RMSNorm::layer_pointer _M_norm;
+    _Linear::layer_pointer _M_output;
 
-    layer_array<transformer<T, Container>>& _M_transforms;
-    layer_array<Cache>& _M_caches;
+    _TransformerArray::layer_pointer _M_transforms;
+    _CacheArray::layer_pointer _M_caches;
 
     std::shared_ptr<basic_sampler<T>> _M_sampler;
 
 public:
     using index_type = int32_t;
     using value_type = T;
+    using container_type = Container;
     using cache_type = Cache;
     using tensor_type = future_tensor<index_type, 2>;
 
+    using layer_type = llama3<T, Container, Cache>;
+    using layer_pointer = shared_layer_ptr<layer_type>;
+
     /// Constructs a new Llama3 model with uninitialized weights with the given options.
-    llama3(llama3_options options, hardware_accelerator accelerator)
+    llama3(llama3_options options, const hardware_accelerator& accelerator)
         requires cache_constructible<Cache>
     : basic_layer(accelerator),
-      _M_transforms(*register_layer("layers", layer_array<transformer_type>(accelerator))),
-      _M_caches(*register_layer("caches", layer_array<cache_type>(accelerator))),
       _M_sampler(std::make_shared<nucleus_sampler<value_type>>())
     {
-        _M_embedding = register_layer("tok_embeddings", nn::embedding<T, Container>(accelerator));
-        _M_norm = register_layer("norm", nn::rmsnorm<T, Container>(accelerator));
-        _M_output = register_layer("output", nn::linear<T, Container>(accelerator));
+        _M_embedding = register_layer("tok_embeddings", _Embedding(accelerator));
+        _M_norm = register_layer("norm", _RMSNorm(accelerator));
+        _M_output = register_layer("output", _Linear(accelerator));
+        _M_transforms = register_layer("layers", _TransformerArray(accelerator));
+        _M_caches = register_layer("caches", _CacheArray(accelerator));
 
         const auto caching_opts = caching_options{
             .head_dim = options.head_dim(),
@@ -159,8 +168,8 @@ public:
         };
 
         for (std::size_t i = 0; i < options.n_layers(); i++) {
-            _M_transforms.emplace_back(attention_opts, accelerator);
-            _M_caches.emplace_back(caching_opts, accelerator);
+            _M_transforms->emplace_back(attention_opts, accelerator);
+            _M_caches->emplace_back(caching_opts, accelerator);
         }
     }
 
@@ -170,9 +179,9 @@ public:
     {
         auto x = _M_embedding(input);
 
-        for (std::size_t i = 0; i < _M_transforms.size(); i++) {
-            auto& transform = _M_transforms[i];
-            auto& cache = _M_caches[i];
+        for (std::size_t i = 0; i < _M_transforms->size(); i++) {
+            auto& transform = _M_transforms->at(i);
+            auto& cache = _M_caches->at(i);
 
             x = transform(x, cache, start_pos);
         }

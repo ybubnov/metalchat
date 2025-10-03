@@ -10,35 +10,40 @@ namespace metalchat {
 namespace nn {
 
 
-/// Applies an affine linear transformation to the incoming data.
+/// Applies an affine linear transformation to the input data.
 ///
 /// This module does not support bias adjustment to the input tensor, and only multiplies
 /// it (input) by the specified weight tensor. Meaning it effectively works as matrix
 /// multiplication operation.
-template <typename T, contiguous_container WeightContainer = hardware_memory_container<T>>
+template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class linear : public basic_layer {
-private:
-    shared_tensor<T, 2, WeightContainer> _M_weight;
-
 public:
-    linear(shared_tensor<T, 2, WeightContainer> weight, hardware_accelerator& accelerator)
+    using value_type = T;
+    using container_type = Container;
+    using weight_type = tensor<T, 2, Container>;
+    using weight_pointer = shared_tensor_ptr<weight_type>;
+
+    using layer_type = linear<T, Container>;
+    using layer_pointer = shared_layer_ptr<layer_type>;
+
+    linear(weight_pointer weight_ptr, hardware_accelerator& accelerator)
     : basic_layer(accelerator),
-      _M_weight(weight)
+      _M_weight(weight_ptr)
     {
         register_parameter("weight", _M_weight);
     }
 
-    linear(tensor<T, 2, WeightContainer>&& weight, hardware_accelerator& accelerator)
+    linear(weight_type&& weight, hardware_accelerator& accelerator)
     : linear(shared_tensor(std::move(weight)), accelerator)
     {}
 
     linear(std::size_t in_features, std::size_t out_features, hardware_accelerator& accelerator)
-        requires std::same_as<WeightContainer, hardware_memory_container<T>>
+        requires std::same_as<Container, hardware_memory_container<T>>
     : linear(empty<T>({in_features, out_features}, accelerator), accelerator)
     {}
 
     linear(hardware_accelerator accelerator)
-    : linear(shared_tensor(tensor<T, 2, WeightContainer>()), accelerator)
+    : linear(shared_tensor(weight_type()), accelerator)
     {}
 
     template <immutable_tensor_t<T> Input>
@@ -55,11 +60,10 @@ public:
         os << "(" << l._M_weight.sizes() << ")";
         return os;
     }
+
+private:
+    weight_pointer _M_weight;
 };
-
-
-template <typename T, contiguous_container WeightContainer = hardware_memory_container<T>>
-using shared_linear = shared_layer_ptr<linear<T, WeightContainer>>;
 
 
 } // namespace nn

@@ -17,19 +17,28 @@ namespace metalchat {
 namespace nn {
 
 
-template <typename T, contiguous_container Container> class feed_forward : public basic_layer {
+template <typename T, contiguous_container Container = hardware_memory_container<T>>
+class feed_forward : public basic_layer {
 private:
-    nn::shared_linear<T, Container> _M_w1;
-    nn::shared_linear<T, Container> _M_w2;
-    nn::shared_linear<T, Container> _M_w3;
+    using _Linear = nn::linear<T, Container>;
+
+    _Linear::layer_pointer _M_w1;
+    _Linear::layer_pointer _M_w2;
+    _Linear::layer_pointer _M_w3;
 
 public:
-    feed_forward(hardware_accelerator gpu)
-    : basic_layer(gpu)
+    using value_type = T;
+    using container_type = Container;
+
+    using layer_type = feed_forward<T, Container>;
+    using layer_pointer = shared_layer_ptr<layer_type>;
+
+    feed_forward(hardware_accelerator accelerator)
+    : basic_layer(accelerator)
     {
-        _M_w1 = register_layer("w1", nn::linear<T, Container>(gpu));
-        _M_w2 = register_layer("w2", nn::linear<T, Container>(gpu));
-        _M_w3 = register_layer("w3", nn::linear<T, Container>(gpu));
+        _M_w1 = register_layer("w1", _Linear(accelerator));
+        _M_w2 = register_layer("w2", _Linear(accelerator));
+        _M_w3 = register_layer("w3", _Linear(accelerator));
     }
 
     template <immutable_tensor3_t<T> Input>
@@ -51,26 +60,33 @@ public:
 };
 
 
-template <typename T, contiguous_container Container>
-using shared_feed_forward = shared_layer_ptr<feed_forward<T, Container>>;
-
-
-template <typename T, contiguous_container Container> class transformer : public basic_layer {
+template <typename T, contiguous_container Container = hardware_memory_container<T>>
+class transformer : public basic_layer {
 private:
-    nn::shared_attention<T, Container> _M_attention;
-    nn::shared_rmsnorm<T, Container> _M_attention_norm;
+    using _RMSNorm = nn::rmsnorm<T, Container>;
+    using _Attention = nn::attention<T, Container>;
+    using _FeedForward = nn::feed_forward<T, Container>;
 
-    nn::shared_feed_forward<T, Container> _M_ff;
-    nn::shared_rmsnorm<T, Container> _M_ff_norm;
+    _Attention::layer_pointer _M_attention;
+    _RMSNorm::layer_pointer _M_attention_norm;
+
+    _FeedForward::layer_pointer _M_ff;
+    _RMSNorm::layer_pointer _M_ff_norm;
 
 public:
-    transformer(const attention_options& options, hardware_accelerator gpu)
-    : basic_layer(gpu)
+    using value_type = T;
+    using container_type = Container;
+
+    using layer_type = transformer<T, Container>;
+    using layer_pointer = shared_layer_ptr<layer_type>;
+
+    transformer(const attention_options& options, hardware_accelerator accelerator)
+    : basic_layer(accelerator)
     {
-        _M_attention = register_layer("attention", nn::attention<T, Container>(options, gpu));
-        _M_attention_norm = register_layer("attention_norm", nn::rmsnorm<T, Container>(gpu));
-        _M_ff = register_layer("feed_forward", nn::feed_forward<T, Container>(gpu));
-        _M_ff_norm = register_layer("ffn_norm", nn::rmsnorm<T, Container>(gpu));
+        _M_attention = register_layer("attention", _Attention(options, accelerator));
+        _M_attention_norm = register_layer("attention_norm", _RMSNorm(accelerator));
+        _M_ff = register_layer("feed_forward", _FeedForward(accelerator));
+        _M_ff_norm = register_layer("ffn_norm", _RMSNorm(accelerator));
     }
 
     template <immutable_tensor3_t<T> Input, cache_t<T> Cache>
@@ -91,10 +107,6 @@ public:
         return os;
     }
 };
-
-
-template <typename T, contiguous_container Container>
-using shared_transformer = shared_layer_ptr<transformer<T, Container>>;
 
 
 } // namespace nn

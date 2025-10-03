@@ -12,16 +12,6 @@
 namespace metalchat {
 
 
-template <class T, T... Indices, class Function>
-void
-constexpr_switch(T index, std::integer_sequence<T, Indices...>, Function function)
-{
-    std::initializer_list<int>(
-        {(index == Indices ? function(std::integral_constant<T, Indices>{}), 0 : 0)...}
-    );
-}
-
-
 /// A Wrapper around a shared pointer for arbitrary layer implementation provides invocable
 /// functionality for `Layer` implementations.
 template <typename Layer> class shared_layer_ptr {
@@ -62,7 +52,7 @@ public:
     Layer*
     operator->() noexcept
     {
-        return _M_value;
+        return _M_value.get();
     }
 
     /// Dereference the stored pointer to the Layer.
@@ -143,6 +133,14 @@ public:
         auto layer_ptr = std::make_shared<Layer>(std::move(l));
         _M_layers.emplace(name, layer_ptr);
         return shared_layer_ptr(layer_ptr);
+    }
+
+    template <typename Layer>
+    shared_layer_ptr<Layer>
+    register_layer(const std::string& name, const shared_layer_ptr<Layer>& layer_ptr)
+    {
+        _M_layers.emplace(name, layer_ptr.get());
+        return layer_ptr;
     }
 
     /// Get upstream layer by name. This method does not perform recursive lookup and only
@@ -307,14 +305,6 @@ private:
 };
 
 
-void
-save_tensors(const basic_layer& layer, const std::filesystem::path& p);
-
-
-void
-load_tensors(basic_layer& layer, const std::filesystem::path& p);
-
-
 /// Sequential container of layers.
 ///
 /// \ref layer_array can be indexed like a random access container, but layers it contains are
@@ -360,6 +350,9 @@ public:
     using reference = Layer&;
     using const_reference = const Layer&;
 
+    using layer_type = layer_array<Layer>;
+    using layer_pointer = shared_layer_ptr<layer_type>;
+
     /// The layer array constructor.
     layer_array(const hardware_accelerator& accelerator)
     : basic_layer(accelerator),
@@ -375,11 +368,29 @@ public:
         return *_M_pointers[pos];
     }
 
+    /// Returns a reference to the `pos`-element of the layer array.
+    ///
+    /// \param pos the position of a layer in the array.
+    reference
+    at(size_type pos)
+    {
+        return *_M_pointers[pos];
+    }
+
     /// Returns a constant reference to the `pos`-element of the layer array.
     ///
     /// \param pos the position of a layer in the array.
     const_reference
     operator[](size_type pos) const
+    {
+        return *_M_pointers[pos];
+    }
+
+    /// Returns a constant reference to the `pos`-element of the layer array.
+    ///
+    /// \param pos the position of a layer in the array.
+    const_reference
+    at(size_type pos) const
     {
         return *_M_pointers[pos];
     }

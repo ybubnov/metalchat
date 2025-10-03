@@ -10,13 +10,18 @@ namespace metalchat {
 namespace nn {
 
 /// Applies Root Mean Square Layer Normalization over a mini-batch of inputs.
-template <typename T, contiguous_container Container> class rmsnorm : public basic_layer {
-private:
-    shared_tensor<T, 1, Container> _M_weight;
-    kernel::rmsnorm<T> _M_norm;
-
+template <typename T, contiguous_container Container = hardware_memory_container<T>>
+class rmsnorm : public basic_layer {
 public:
-    rmsnorm(tensor<T, 1, Container>&& weight, hardware_accelerator accelerator)
+    using value_type = T;
+    using container_type = Container;
+    using weight_type = tensor<T, 1, Container>;
+    using weight_pointer = shared_tensor_ptr<weight_type>;
+
+    using layer_type = rmsnorm<T, Container>;
+    using layer_pointer = shared_layer_ptr<layer_type>;
+
+    rmsnorm(weight_type&& weight, hardware_accelerator accelerator)
     : basic_layer(accelerator),
       _M_weight(std::move(weight)),
       _M_norm(accelerator)
@@ -24,8 +29,12 @@ public:
         register_parameter("weight", _M_weight);
     }
 
+    rmsnorm(std::size_t normalized_size, hardware_accelerator accelerator)
+    : rmsnorm(empty<T>({normalized_size}, accelerator), accelerator)
+    {}
+
     rmsnorm(hardware_accelerator accelerator)
-    : rmsnorm(tensor<T, 1, Container>(), accelerator)
+    : rmsnorm(weight_type(), accelerator)
     {}
 
     template <immutable_tensor_t<T> Input>
@@ -42,11 +51,11 @@ public:
         os << "(" << n._M_weight.size(0) << ")";
         return os;
     }
+
+private:
+    weight_pointer _M_weight;
+    kernel::rmsnorm<T> _M_norm;
 };
-
-
-template <typename T, contiguous_container Container = hardware_memory_container<T>>
-using shared_rmsnorm = shared_layer_ptr<rmsnorm<T, Container>>;
 
 
 } // namespace nn

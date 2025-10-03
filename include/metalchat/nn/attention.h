@@ -44,13 +44,14 @@ template <typename T, contiguous_container Container> class attention : public b
 private:
     static constexpr std::size_t input_size = 4;
 
-    nn::linear<T, Container>& _M_wq;
-    nn::linear<T, Container>& _M_wk;
-    nn::linear<T, Container>& _M_wv;
-    nn::linear<T, Container>& _M_wo;
+    using _Linear = nn::linear<T, Container>;
+
+    _Linear::layer_pointer _M_wq;
+    _Linear::layer_pointer _M_wk;
+    _Linear::layer_pointer _M_wv;
+    _Linear::layer_pointer _M_wo;
 
     nn::rope<T> _M_rope;
-
     nn::attention_options _M_options;
     T _M_scale;
 
@@ -71,21 +72,28 @@ private:
     }
 
 public:
+    using value_type = T;
+    using container_type = Container;
+
+    using layer_type = attention<T, Container>;
+    using layer_pointer = shared_layer_ptr<layer_type>;
+
     attention(
         const attention_options& options,
         hardware_accelerator accelerator,
         std::size_t max_batch_size = 1
     )
     : basic_layer(accelerator),
-      _M_wq(*register_layer("wq", nn::linear<T, Container>(accelerator))),
-      _M_wk(*register_layer("wk", nn::linear<T, Container>(accelerator))),
-      _M_wv(*register_layer("wv", nn::linear<T, Container>(accelerator))),
-      _M_wo(*register_layer("wo", nn::linear<T, Container>(accelerator))),
       _M_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
       _M_options(options),
       _M_scale(options.scale()),
       _M_clone(accelerator)
-    {}
+    {
+        _M_wq = register_layer("wq", _Linear(accelerator));
+        _M_wk = register_layer("wk", _Linear(accelerator));
+        _M_wv = register_layer("wv", _Linear(accelerator));
+        _M_wo = register_layer("wo", _Linear(accelerator));
+    }
 
     template <immutable_tensor3_t<T> Input, cache_t<T> Cache>
     auto
@@ -140,10 +148,6 @@ public:
         return os;
     }
 };
-
-
-template <typename T, contiguous_container Container = hardware_memory_container<T>>
-using shared_attention = shared_layer_ptr<attention<T, Container>>;
 
 
 } // namespace nn

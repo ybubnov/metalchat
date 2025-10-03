@@ -13,22 +13,33 @@ namespace metalchat {
 namespace nn {
 
 
-template <typename T, contiguous_container Container> class embedding : public basic_layer {
-private:
-    shared_tensor<T, 2, Container> _M_weight;
-    kernel::embedding<T> _M_embedding;
-
+template <typename T, contiguous_container Container = hardware_memory_container<T>>
+class embedding : public basic_layer {
 public:
-    embedding(shared_tensor<T, 2, Container> weight, hardware_accelerator accelerator)
+    using value_type = T;
+    using container_type = T;
+    using weight_type = tensor<T, 2, Container>;
+    using weight_pointer = shared_tensor_ptr<weight_type>;
+
+    using layer_type = embedding<T, Container>;
+    using layer_pointer = shared_layer_ptr<layer_type>;
+
+    embedding(weight_pointer weight_ptr, hardware_accelerator accelerator)
     : basic_layer(accelerator),
-      _M_weight(weight),
+      _M_weight(weight_ptr),
       _M_embedding(accelerator)
     {
         register_parameter("weight", _M_weight);
     }
 
-    embedding(tensor<T, 2, Container>&& weight, hardware_accelerator accelerator)
+    embedding(weight_type&& weight, hardware_accelerator accelerator)
     : embedding(shared_tensor(std::move(weight)), accelerator)
+    {}
+
+    embedding(
+        std::size_t num_embeddings, std::size_t embedding_dim, hardware_accelerator accelerator
+    )
+    : embedding(empty<T>({num_embeddings, embedding_dim}, accelerator), accelerator)
     {}
 
     embedding(hardware_accelerator accelerator)
@@ -49,11 +60,11 @@ public:
         os << "(" << e._M_weight.sizes() << ")";
         return os;
     }
+
+private:
+    weight_pointer _M_weight;
+    kernel::embedding<T> _M_embedding;
 };
-
-
-template <typename T, contiguous_container Container = hardware_memory_container<T>>
-using shared_embedding = shared_layer_ptr<embedding<T, Container>>;
 
 
 /// This class implements Rotary Positional Embeddings (RoPE).
@@ -64,7 +75,11 @@ using shared_embedding = shared_layer_ptr<embedding<T, Container>>;
 template <typename T> class rope : public basic_layer {
 public:
     using value_type = T;
-    using freqs_tensor = future_tensor<float, 2>;
+    using container_type = hardware_memory_container<T>;
+    using freqs_type = future_tensor<float, 2>;
+
+    using layer_type = rope<T>;
+    using layer_pointer = shared_layer_ptr<layer_type>;
 
 private:
     std::size_t _M_start_pos;
@@ -73,8 +88,8 @@ private:
     std::size_t _M_seq_len;
     float _M_theta;
 
-    freqs_tensor _M_freqs_cos;
-    freqs_tensor _M_freqs_sin;
+    freqs_type _M_freqs_cos;
+    freqs_type _M_freqs_sin;
 
     kernel::rope<T> _M_rope;
     kernel::rope_freqs<float> _M_rope_freqs;
