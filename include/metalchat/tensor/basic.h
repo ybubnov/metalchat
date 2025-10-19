@@ -93,6 +93,10 @@ public:
     offset(std::size_t dim) const
         = 0;
 
+    virtual void
+    set_offset(std::size_t dim, std::size_t offset)
+        = 0;
+
     /// Returns the offsets of the tensor container.
     virtual const std::span<std::size_t>
     offsets() const = 0;

@@ -74,13 +74,13 @@ public:
         }
 
         --last;
-        accessor.set_offset(0);
+        accessor.set_offset(dim - 1, 0);
         accessor.set_stride(dim - 1, 1);
         accessor.set_size(dim - 1, *last);
 
         for (std::size_t i = dim - 2; i < dim; --i) {
             --last;
-            accessor.set_offset(0);
+            accessor.set_offset(i, 0);
             accessor.set_size(i, *last);
             accessor.set_stride(i, accessor.stride(i + 1) * accessor.size(i + 1));
         }
