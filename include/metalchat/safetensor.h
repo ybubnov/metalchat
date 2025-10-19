@@ -571,6 +571,16 @@ public:
         return document;
     }
 
+    /// Open a safetensor document
+    ///
+    /// This implementation reads safetensor data from the specified memory-mapped file and then
+    /// uses a paginated allocator to create large metal buffers to allocate tensors from. All
+    /// containers hold a pointer to the opened file.
+    ///
+    /// \tparam Allocator A type of the allocator used to allocate tensor containers.
+    /// \param p A path in the filesystem to a file in a safetensor format.
+    /// \param alloc An instance of the Allocator type.
+    /// \param max_size A maximum size of the buffer to allocate.
     template <allocator_t<void> Allocator>
     static safetensor_document
     open(const std::filesystem::path& p, Allocator& alloc, std::size_t max_size = -1)
@@ -628,6 +638,11 @@ public:
         return document;
     }
 
+    /// Open a safetensor document.
+    ///
+    /// This implementation is similar to
+    /// \ref safetensor_document::open(const std::filesystem::path&, Allocator&, std::size_t),
+    /// except that allocator must be an r-value.
     template <allocator_t<void> Allocator>
     static safetensor_document
     open(const std::filesystem::path& p, Allocator&& alloc, std::size_t max_size = -1)
@@ -635,24 +650,117 @@ public:
         return open(p, alloc, max_size);
     }
 
+    /// Insert a tensor into the safetensor document.
+    ///
+    /// The implementation saves a pointer to the underlying container, so the tensor referring
+    /// to that container could be destroyed by a caller.
+    ///
+    /// Example:
+    /// ```c++
+    /// auto weight = zeros<float>({3, 4});
+    ///
+    /// safetensor_document doc;
+    /// doc.insert("weight", weight);
+    /// doc.save("weights.safetensors");
+    /// ```
+    ///
+    /// \param name A name of the tensor to insert.
+    /// \param tensor A tensor data to insert into the safetensor document.
     void
     insert(const std::string& name, const basic_tensor& tensor);
 
+    /// Insert all registered parameters of the specified layer.
+    ///
+    /// This method recursively traverses layer and inserts parameters into the safetensor
+    /// document.
+    ///
+    /// Example:
+    /// ```c++
+    /// auto linear = nn::linear<float>({10, 64});
+    ///
+    /// safetensor_document doc;
+    /// doc.insert(linear);
+    /// doc.save("linear.safetensors");
+    /// ```
+    ///
+    /// \param layer A layer to use.
     void
     insert(const basic_layer& layer);
 
+    /// Load memory containers from a safetensor document into a layer.
+    ///
+    /// The implementation is identical to the \ref safetensor_document::load(basic_layer&), the
+    /// difference is that safetensor file is not returned to the caller.
+    ///
+    /// \warning Layer parameters should be using the same container type as the safetensor
+    /// document.
+    ///
+    /// \param p A path to load tensors from.
+    /// \param layer A layer instance to load tensors into.
     static void
     load(const std::filesystem::path& p, basic_layer& layer);
 
+    /// Load memory containers from a safetensor document into a layer.
+    ///
+    /// The traverses through all tensors in the \ref safetensor_document and assigns them to
+    /// the registered parameters of the specified layer. Method raises an exception, when
+    /// the parameter is not registered in the layer, but is presented in the document.
+    ///
+    /// \note Consider using \ref safetensor_document::begin() and \ref safetensor_document::end()
+    /// iterators to implement a custom logic of weights assignment.
+    ///
+    /// \warning Layer parameters should be using the same container type as the safetensor
+    /// document.
+    ///
+    /// Example:
+    /// ```c++
+    /// hardware_accelerator accelerator;
+    /// nn::linear<float> linear(accelerator);
+    ///
+    /// auto doc = safetensor_document::open("linear.safetensors", accelerator);
+    /// doc.load(linear);
+    /// ```
     void
     load(basic_layer& layer) const;
 
+    /// Load memory container from a safetensor document into a tensor.
+    ///
+    /// The implementation assigns a new container to the specified tensor (which means that
+    /// target tensor might be empty or any arbitrary size), and resets the size of the tensor
+    /// to correctly address elements of the new container. The method resets offsets if they
+    /// were set in the target tensor, see \ref tensor_accessor::resize for more details.
+    ///
+    /// Depending on the allocator type and the way safetensor document was opened, new container
+    /// might alias a pointer to the resources that were used to create a container (like memory-
+    /// mapped files).
+    ///
+    /// \warning Tensor should be using the same container type as the safetensor document.
+    ///
+    /// Example:
+    /// ```c++
+    /// tensor<float> target;
+    /// auto doc = safetensor_document::open("linear.safetensors");
+    /// doc.load("weight", target);
+    /// ```
+    ///
+    /// \param name A name of the tensor to load.
+    /// \param tensor A target tensor that will be updated.
     void
     load(const std::string& name, basic_tensor& tensor) const;
 
+    /// Save all registered parameters of the layer into the file at the specified location.
+    ///
+    /// \warning Layer parameters should be using the same container type as the safetensor
+    /// document.
+    ///
+    /// \param p A path to the file to save tensors.
+    /// \param layer A layer containing parameters to save into the safetensors document.
     static void
     save(const std::filesystem::path& p, basic_layer& layer);
 
+    /// Save all registered tensors into the file at the specified location.
+    ///
+    /// \param p A path to the file to save tensors.
     void
     save(const std::filesystem::path& p);
 };
