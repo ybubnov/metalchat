@@ -14,7 +14,7 @@ Empty
 
 .. doxygenfunction:: metalchat::empty(std::size_t (&&sizes)[N], Allocator alloc)
 
-.. doxygenfunction:: metalchat::empty(std::size_t (&&sizes)[N], hardware_accelerator& accelerator);
+.. doxygenfunction:: metalchat::empty(std::size_t (&&sizes)[N], const hardware_accelerator& accelerator);
 
 .. doxygenfunction:: metalchat::empty(InputIt begin, InputIt end)
 
@@ -30,6 +30,6 @@ Full
 
 .. doxygenfunction:: metalchat::full(std::size_t (&&sizes)[N], const T& fill_value, Allocator alloc)
 
-.. doxygenfunction:: metalchat::full(std::size_t (&&sizes)[N], const T& fill_value, hardware_accelerator& accelerator)
+.. doxygenfunction:: metalchat::full(std::size_t (&&sizes)[N], const T& fill_value, const hardware_accelerator& accelerator)
 
 .. doxygenfunction:: metalchat::zeros(std::size_t (&&sizes)[N])
