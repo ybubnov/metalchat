@@ -41,7 +41,7 @@ Here is an example Python script showing how it code be done:
    from safetensors.torch import save_file
 
    tensors = torch.load(sys.argv[1], "cpu", weights_only=True)
-   tensors["output.weight"] = tensors["output.weight"].clone()
+   del tensors["output.weight"]
    save_file(tensors, "instruct.safetensors")
 
 
@@ -50,10 +50,11 @@ Here is an example Python script showing how it code be done:
    python convert.py consolidated.00.pth
 
 
-Please, note the highlighted line that instructs that output weight should be copied. This tensor
+Please, note the highlighted line that instructs that output weight should be deleted. This tensor
 for performance reasons is a reference to the embedding tensor of the same model. Safetensors do
-not support references due to memory safety reasons, so in order to make this model work with
-`metalchat`, we need to create a materialized copy of that tensor.
+not support references due to memory safety concerns, so in order to make this model work with
+`metalchat`, we need to explicitly delete it from the output tensors (it's just a reference,
+original tensor shared between embedding layer and output layer remains untouched).
 
 Writing an Application
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -77,7 +78,7 @@ section.
        std::filesystem::path weights_path("instruct.safetensors");
        std::filesystem::path tokens_path("tokenizer.model");
 
-       auto chat = metalchat::construct_llama3_1b(weights_path, tokens_path);
+       auto chat = metalchat::make_llama3_1b(weights_path, tokens_path);
 
        chat.send(metalchat::basic_message("system", "You are a helpful assistant"));
        chat.send(metalchat::basic_message("user", "What is the capital of France?"));
