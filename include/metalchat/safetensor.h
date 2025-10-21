@@ -689,8 +689,8 @@ public:
 
     /// Load memory containers from a safetensor document into a layer.
     ///
-    /// The implementation is identical to the \ref safetensor_document::load(basic_layer&), the
-    /// difference is that safetensor file is not returned to the caller.
+    /// The implementation is identical to the \ref safetensor_document::load(basic_layer&) const,
+    /// the difference is that safetensor file is not returned to the caller.
     ///
     /// \warning Layer parameters should be using the same container type as the safetensor
     /// document.
@@ -728,7 +728,8 @@ public:
     /// The implementation assigns a new container to the specified tensor (which means that
     /// target tensor might be empty or any arbitrary size), and resets the size of the tensor
     /// to correctly address elements of the new container. The method resets offsets if they
-    /// were set in the target tensor, see \ref tensor_accessor::resize for more details.
+    /// were set in the target tensor, see
+    /// \ref tensor_accessor::resize(BidirIt, BidirIt, Accessor&) for more details.
     ///
     /// Depending on the allocator type and the way safetensor document was opened, new container
     /// might alias a pointer to the resources that were used to create a container (like memory-

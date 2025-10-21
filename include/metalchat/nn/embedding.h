@@ -24,7 +24,7 @@ public:
     using layer_type = embedding<T, Container>;
     using layer_pointer = shared_layer_ptr<layer_type>;
 
-    embedding(weight_pointer weight_ptr, hardware_accelerator accelerator)
+    embedding(weight_pointer weight_ptr, hardware_accelerator& accelerator)
     : basic_layer(accelerator),
       _M_weight(weight_ptr),
       _M_embedding(accelerator)
@@ -32,17 +32,17 @@ public:
         register_parameter("weight", _M_weight);
     }
 
-    embedding(weight_type&& weight, hardware_accelerator accelerator)
+    embedding(weight_type&& weight, hardware_accelerator& accelerator)
     : embedding(shared_tensor(std::move(weight)), accelerator)
     {}
 
     embedding(
-        std::size_t num_embeddings, std::size_t embedding_dim, hardware_accelerator accelerator
+        std::size_t num_embeddings, std::size_t embedding_dim, hardware_accelerator& accelerator
     )
     : embedding(empty<T>({num_embeddings, embedding_dim}, accelerator), accelerator)
     {}
 
-    embedding(hardware_accelerator accelerator)
+    embedding(const hardware_accelerator& accelerator)
     : embedding(shared_tensor(tensor<T, 2, Container>()), accelerator)
     {}
 

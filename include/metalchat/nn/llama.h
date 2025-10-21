@@ -140,14 +140,18 @@ public:
     using layer_pointer = shared_layer_ptr<layer_type>;
 
     /// Constructs a new Llama3 model with uninitialized weights with the given options.
-    llama3(llama3_options options, const hardware_accelerator& accelerator)
+    llama3(llama3_options options, hardware_accelerator& accelerator)
         requires cache_constructible<Cache>
     : basic_layer(accelerator),
       _M_sampler(std::make_shared<nucleus_sampler<value_type>>())
     {
-        _M_embedding = register_layer("tok_embeddings", _Embedding(accelerator));
+        // The original implementation of Llama 3.2 shares the weight of token embeddings
+        // and the output layer, use a shared tensor in order to reduce memory footprint.
+        auto weight = shared_tensor(tensor<value_type, 2, container_type>());
+
+        _M_embedding = register_layer("tok_embeddings", _Embedding(weight, accelerator));
         _M_norm = register_layer("norm", _RMSNorm(accelerator));
-        _M_output = register_layer("output", _Linear(accelerator));
+        _M_output = register_layer("output", _Linear(weight, accelerator));
         _M_transforms = register_layer("layers", _TransformerArray(accelerator));
         _M_caches = register_layer("caches", _CacheArray(accelerator));
 

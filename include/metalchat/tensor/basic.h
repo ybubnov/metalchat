@@ -1203,7 +1203,7 @@ empty(std::size_t (&&sizes)[N], Allocator alloc)
 
 template <typename T, std::size_t N>
 auto
-empty(std::size_t (&&sizes)[N], hardware_accelerator& accelerator)
+empty(std::size_t (&&sizes)[N], const hardware_accelerator& accelerator)
 {
     return empty<T>(std::move(sizes), accelerator.get_allocator());
 }
@@ -1278,7 +1278,7 @@ full(std::size_t (&&sizes)[N], const T& fill_value, Allocator alloc)
 
 template <typename T, std::size_t N> requires(N > 0)
 auto
-full(std::size_t (&&sizes)[N], const T& fill_value, hardware_accelerator& accelerator)
+full(std::size_t (&&sizes)[N], const T& fill_value, const hardware_accelerator& accelerator)
 {
     auto t = empty<T>(std::move(sizes), accelerator);
     std::fill_n(t.data_ptr(), t.numel(), fill_value);

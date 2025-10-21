@@ -63,6 +63,7 @@ public:
     : tensor_accessor(first, last, alloc)
     {}
 
+    // TBD.
     template <std::bidirectional_iterator BidirIt, typename Accessor>
     requires stride_accessor<Accessor> && size_accessor<Accessor>
     static void
