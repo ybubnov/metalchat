@@ -263,27 +263,23 @@ public:
     /// Number of special tokens used to prepare the input for the model.
     static constexpr const index_type nspecial = 256;
 
+    /// The \byte_pair_encoder copy constructor.
     byte_pair_encoder(const byte_pair_encoder&) = default;
 
-    /// Create an instance of byte-pair encoder using a base64-encoded token map.
+    /// Create an instance of a byte-pair encoder using a base64-encoded token map.
     ///
-    /// This constructor allows to specify a custom token regular expression that fits
-    /// best to the target language model.
+    /// This constructor reads token map from the specified input stream line-by-line and
+    /// decodes base64-decoded tokens.
     ///
-    /// \param p A path to the tokenizer model.
+    /// \param is An input stream containing tokenizer model.
     /// \param token_regex A regular expression to split the input string into tokens.
-    byte_pair_encoder(const std::filesystem::path& p, const std::string& token_regex)
+    byte_pair_encoder(std::istream& is, const std::string& token_regex)
     : _M_fmap(),
       _M_rmap(),
       _M_re(std::make_shared<RegularExpression>(token_regex))
     {
-        std::ifstream file(p, std::ios::binary);
-        if (!file.is_open()) {
-            throw std::invalid_argument(std::format("unable to open file '{}'", p.string()));
-        }
-
         std::string line;
-        while (std::getline(file, line)) {
+        while (std::getline(is, line)) {
             auto delim = line.find(" ");
             auto key_part = line.substr(0, delim);
             auto value_part = line.substr(delim + 1);
@@ -296,6 +292,20 @@ public:
         }
     }
 
+    byte_pair_encoder(std::istream&& is, const std::string& token_regex)
+    : byte_pair_encoder(is, token_regex)
+    {}
+
+    /// Create an instance of byte-pair encoder using a base64-encoded token map.
+    ///
+    /// This constructor allows to specify a custom token regular expression that fits
+    /// best to the target language model.
+    ///
+    /// \param p A path to the tokenizer model.
+    /// \param token_regex A regular expression to split the input string into tokens.
+    byte_pair_encoder(const std::filesystem::path& p, const std::string& token_regex)
+    : byte_pair_encoder(std::ifstream(p, std::ios::binary), token_regex)
+    {}
 
     /// Create an instance of a byte-pair encoder using a base64-encoded token map.
     ///

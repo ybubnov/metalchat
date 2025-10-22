@@ -72,20 +72,6 @@ make_llama3_compact(
 
 
 agent
-make_llama3(
-    const std::string& weights_path,
-    const std::string& tokens_path,
-    std::optional<nn::llama3_options> options
-)
-{
-    auto weights_fs_path = std::filesystem::path(weights_path);
-    auto tokens_fs_path = std::filesystem::path(tokens_path);
-
-    return make_llama3(weights_fs_path, tokens_fs_path, options);
-}
-
-
-agent
 make_llama3_compact(
     const std::string& weights_path,
     const std::string& tokens_path,

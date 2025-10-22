@@ -211,14 +211,6 @@ make_llama3(
 //);
 
 
-agent
-make_llama3(
-    const std::string& weights_path,
-    const std::string& tokens_path,
-    std::optional<nn::llama3_options> options = std::nullopt
-);
-
-
 // agent
 // make_llama3_compact(
 //     const std::string& weights_path,
