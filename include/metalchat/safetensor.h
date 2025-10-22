@@ -190,7 +190,7 @@ public:
         safetensor_type<std::uint8_t>{"U8", 8},
         safetensor_type<std::int16_t>{"I16", 16},
         safetensor_type<std::uint16_t>{"U16", 16},
-        safetensor_type<dtype::bf16>{"BF16", 16},
+        safetensor_type<bf16>{"BF16", 16},
         safetensor_type<std::int32_t>{"I32", 32},
         safetensor_type<std::uint32_t>{"U32", 32},
         safetensor_type<float>{"F32", 32},

@@ -19,9 +19,8 @@ make_llama3(
 
     auto options = options_.value_or(nn::default_llama3_1b_options());
 
-    using value_type = dtype::bf16;
-    using container_type = hardware_memory_container<value_type>;
-    using transformer_type = nn::llama3<value_type, container_type>;
+    using container_type = hardware_memory_container<bf16>;
+    using transformer_type = nn::llama3<bf16, container_type>;
 
     auto transformer = transformer_type(options, gpu0);
     safetensor_document::load(weights_path, transformer);

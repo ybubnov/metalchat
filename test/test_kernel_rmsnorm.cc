@@ -4,13 +4,11 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <metalchat/accelerator.h>
-#include <metalchat/dtype.h>
 #include <metalchat/kernel/rmsnorm.h>
 #include <metalchat/tensor.h>
 
 
 using namespace metalchat;
-using namespace metalchat::dtype;
 
 
 TEST_CASE("RMSNorm array of ones", "[kernel::rmsnorm]")

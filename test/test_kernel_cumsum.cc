@@ -2,7 +2,6 @@
 #include <catch2/matchers/catch_matchers_vector.hpp>
 
 #include <metalchat/accelerator.h>
-#include <metalchat/dtype.h>
 #include <metalchat/kernel/cumsum.h>
 #include <metalchat/tensor.h>
 

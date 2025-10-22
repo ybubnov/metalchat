@@ -4,14 +4,12 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <metalchat/accelerator.h>
-#include <metalchat/dtype.h>
 #include <metalchat/kernel/embedding.h>
 #include <metalchat/nn/embedding.h>
 #include <metalchat/tensor.h>
 
 
 using namespace metalchat;
-using namespace metalchat::dtype;
 
 
 TEST_CASE("Embedding batched", "[kernel::embedding]")

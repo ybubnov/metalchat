@@ -10,9 +10,6 @@
 namespace metalchat {
 
 
-namespace dtype {
-
-
 struct bf16 {
     using bits_type = std::array<uint16_t, 2>;
 
@@ -79,12 +76,9 @@ struct bf16 {
 };
 
 
-} // namespace dtype
-
-
 template <typename T> struct type_traits;
 
-template <> struct type_traits<dtype::bf16> {
+template <> struct type_traits<bf16> {
     static std::string
     name()
     {

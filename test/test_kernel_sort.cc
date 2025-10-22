@@ -8,7 +8,6 @@
 
 
 using namespace metalchat;
-using namespace metalchat::dtype;
 
 
 TEST_CASE("Test sorting", "[kernel::sort]")

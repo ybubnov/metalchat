@@ -5,13 +5,11 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <metalchat/accelerator.h>
-#include <metalchat/dtype.h>
 #include <metalchat/kernel/softmax.h>
 #include <metalchat/tensor.h>
 
 
 using namespace metalchat;
-using namespace metalchat::dtype;
 
 
 TEST_CASE("Softmax predefined array", "[kernel::softmax]")

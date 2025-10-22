@@ -1,7 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <metalchat/accelerator.h>
-#include <metalchat/dtype.h>
 #include <metalchat/functional.h>
 #include <metalchat/kernel/sort.h>
 #include <metalchat/nn/llama.h>
@@ -10,7 +9,6 @@
 
 
 using namespace metalchat;
-using namespace metalchat::dtype;
 
 
 TEST_CASE("Test make model", "[llama]")

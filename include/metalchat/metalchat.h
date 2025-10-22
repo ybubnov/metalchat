@@ -13,3 +13,4 @@
 #include <metalchat/nn.h>
 #include <metalchat/safetensor.h>
 #include <metalchat/tensor.h>
+#include <metalchat/text.h>

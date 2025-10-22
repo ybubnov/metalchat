@@ -2,14 +2,12 @@
 #include <catch2/matchers/catch_matchers_vector.hpp>
 
 #include <metalchat/accelerator.h>
-#include <metalchat/dtype.h>
 #include <metalchat/functional.h>
 #include <metalchat/nn.h>
 #include <metalchat/tensor.h>
 
 
 using namespace metalchat;
-using namespace metalchat::dtype;
 
 
 struct scoped_temp_directory {
@@ -72,7 +70,7 @@ TEST_CASE("Test model load", "[safetensor]")
 
 
 namespace std {
-template <> struct __libcpp_random_is_valid_realtype<dtype::bf16> : true_type {};
+template <> struct __libcpp_random_is_valid_realtype<bf16> : true_type {};
 }; // namespace std
 
 

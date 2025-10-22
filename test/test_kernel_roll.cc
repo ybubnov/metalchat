@@ -2,7 +2,6 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <metalchat/accelerator.h>
-#include <metalchat/dtype.h>
 #include <metalchat/kernel/roll.h>
 #include <metalchat/tensor.h>
 

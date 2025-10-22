@@ -1,12 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <metalchat/accelerator.h>
-#include <metalchat/dtype.h>
 #include <metalchat/tensor.h>
 
 
 using namespace metalchat;
-using namespace metalchat::dtype;
 
 
 TEST_CASE("Read-write 2d tensor slicing", "[tensor::operator]")

@@ -2,7 +2,6 @@
 
 
 #include <metalchat/accelerator.h>
-#include <metalchat/dtype.h>
 #include <metalchat/tensor.h>
 
 
