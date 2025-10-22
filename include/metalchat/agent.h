@@ -131,6 +131,12 @@ public:
       _M_encoding(1, encoder.encode(special_token::begin_text))
     {}
 
+    // void
+    // knows_function(const func_spec&);
+
+    // void
+    // knows_function(std::function<void(func_spec&)> fn);
+
     void
     send(const basic_message& message)
     {

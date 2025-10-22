@@ -304,6 +304,13 @@ public:
     auto
     operator()(Input1 input1, Input2 input2)
     {
+        return operator()<T, Input1, Input2>(input1, input2);
+    }
+
+    template <typename R, immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
+    auto
+    operator()(Input1 input1, Input2 input2)
+    {
         if (auto size1 = input1.sizes().back(), size2 = input2.sizes().back(); size1 != size2) {
             throw std::invalid_argument(std::format(
                 "{}: last dimension should be the same for both tensors {} != {}", _M_kernel.name(),
@@ -321,7 +328,7 @@ public:
         auto [grid, thread] = make_kernel_grid_2d(input1, BlockSize);
         auto input1_view = flatten<2>(input1);
         auto input2_view = flatten<2>(input2);
-        auto output_view = shared_empty_like<T>(input1_view, _M_kernel.get_allocator());
+        auto output_view = shared_empty_like<R>(input1_view, _M_kernel.get_allocator());
 
         auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(output_view, input1_view, input2_view);
@@ -334,8 +341,22 @@ public:
     auto
     operator()(Input1 input1, Input2 input2)
     {
+        return operator()<T, Input1, Input2>(input1, input2);
+    }
+
+    template <immutable_tensor_t<T> Input1>
+    auto
+    operator()(Input1 input1, T input2)
+    {
+        return operator()(input1, scalar(input2));
+    }
+
+    template <typename R, immutable_tensor_t<T> Input1, immutable_scalar_t<T> Input2>
+    auto
+    operator()(Input1 input1, Input2 input2)
+    {
         auto input_view = flatten<2>(input1);
-        auto output_view = shared_empty_like<T>(input_view, _M_kernel.get_allocator());
+        auto output_view = shared_empty_like<R>(input_view, _M_kernel.get_allocator());
 
         auto [grid, thread] = make_kernel_grid_2d(input1, BlockSize);
 
@@ -346,11 +367,14 @@ public:
         return output.view(input1.shape());
     }
 
-    template <immutable_tensor_t<T> Input1>
+    template <typename R, immutable_tensor_t<T> Input1>
     auto
-    operator()(Input1 input1, const T input2)
+    operator()(Input1 input1, T input2)
     {
-        return operator()(input1, scalar(input2));
+        auto input2_ = scalar(input2);
+        using Input2 = decltype(input2_);
+
+        return operator()<R, Input1, Input2>(input1, input2_);
     }
 };
 
