@@ -1,19 +1,20 @@
-#include <metalchat/agent.h>
+#include <metalchat/text/assistant.h>
 
 #include "metal_impl.h"
 
 
 namespace metalchat {
+namespace text {
 
 
-agent
+assistant
 make_llama3(
     const std::filesystem::path& weights_path,
     const std::filesystem::path& tokens_path,
     std::optional<nn::llama3_options> options_
 )
 {
-    metalchat::bpe bpe(tokens_path);
+    metalchat::text::bpe bpe(tokens_path);
     metalchat::hardware_accelerator gpu0;
 
     auto options = options_.value_or(nn::default_llama3_1b_options());
@@ -30,7 +31,7 @@ make_llama3(
     auto alloc = hardware_heap_allocator<void>(device, options.heap_size());
     gpu0.set_allocator(nocopy_allocator(alloc, device));
 
-    return agent(std::move(transformer), bpe);
+    return assistant(std::move(transformer), bpe);
 }
 
 
@@ -69,21 +70,8 @@ make_llama3_compact(
 
     return agent(std::move(transformer), bpe);
 }
-
-
-agent
-make_llama3_compact(
-    const std::string& weights_path,
-    const std::string& tokens_path,
-    std::optional<nn::llama3_options> options
-)
-{
-    auto weights_fs_path = std::filesystem::path(weights_path);
-    auto tokens_fs_path = std::filesystem::path(tokens_path);
-
-    return make_llama3_compact(weights_fs_path, tokens_fs_path, options);
-}
 */
 
 
+} // namespace text
 } // namespace metalchat

@@ -19,6 +19,7 @@
 
 
 namespace metalchat {
+namespace text {
 
 
 class regexp_iterator;
@@ -263,7 +264,7 @@ public:
     /// Number of special tokens used to prepare the input for the model.
     static constexpr const index_type nspecial = 256;
 
-    /// The \byte_pair_encoder copy constructor.
+    /// The \ref byte_pair_encoder copy constructor.
     byte_pair_encoder(const byte_pair_encoder&) = default;
 
     /// Create an instance of a byte-pair encoder using a base64-encoded token map.
@@ -423,4 +424,5 @@ public:
 using bpe = byte_pair_encoder<regexp>;
 
 
+} // namespace text
 } // namespace metalchat

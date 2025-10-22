@@ -2,10 +2,11 @@
 #include <catch2/matchers/catch_matchers_vector.hpp>
 
 
-#include <metalchat/bpe.h>
+#include <metalchat/text/bpe.h>
 
 
 using namespace metalchat;
+using namespace metalchat::text;
 
 
 TEST_CASE("Test BPE encode and decode", "[bpe]")

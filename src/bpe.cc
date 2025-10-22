@@ -3,10 +3,11 @@
 #include <cppcodec/base64_rfc4648.hpp>
 #include <pcre2.h>
 
-#include <metalchat/bpe.h>
+#include <metalchat/text/bpe.h>
 
 
 namespace metalchat {
+namespace text {
 
 
 std::string
@@ -173,4 +174,5 @@ regexp_iterator::next()
 }
 
 
+} // namespace text
 } // namespace metalchat

@@ -1,6 +1,15 @@
 Neural network layers
 =====================
 
+These are the basic building blocks for neural networks. In order to use them, include the header
+like in the example below:
+
+.. code-block:: c++
+
+   #include <metalchat/nn.h>
+
+   using namespace metalchat::nn;
+
 
 Attention
 ---------

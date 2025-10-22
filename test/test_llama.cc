@@ -1,12 +1,12 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <metalchat/accelerator.h>
-#include <metalchat/bpe.h>
 #include <metalchat/dtype.h>
 #include <metalchat/functional.h>
 #include <metalchat/kernel/sort.h>
 #include <metalchat/nn/llama.h>
 #include <metalchat/tensor.h>
+#include <metalchat/text.h>
 
 
 using namespace metalchat;
@@ -15,7 +15,7 @@ using namespace metalchat::dtype;
 
 TEST_CASE("Test make model", "[llama]")
 {
-    metalchat::byte_pair_encoder bpe("../Llama-3.2-1B/original/tokenizer.model");
+    metalchat::text::byte_pair_encoder bpe("../Llama-3.2-1B/original/tokenizer.model");
     metalchat::hardware_accelerator gpu0;
 
     auto options = nn::default_llama3_1b_options().max_seq_len(16);
@@ -31,7 +31,7 @@ TEST_CASE("Test make model", "[llama]")
     auto input_text = std::string("I have a dog called");
 
     std::vector<int32_t> ids;
-    bpe.encode(special_token::begin_text, std::back_inserter(ids));
+    bpe.encode(text::special_token::begin_text, std::back_inserter(ids));
     bpe.encode(input_text, std::back_inserter(ids));
 
     auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));
@@ -46,8 +46,13 @@ TEST_CASE("Test make model", "[llama]")
         auto logits = m(id, i).flatten<2>();
         id = top_p(logits, bf16(0.6f), bf16(0.9f), gpu0);
 
+        // outputs.push_back(id);
         std::cout << bpe.decode(id.get()[0, 0]) << std::flush;
     }
+
+    // for (auto& o : outputs) {
+    //     std::cout << bpe.decode(o.get()[0, 0]) << std::flush;
+    // }
 
     std::cout << std::endl;
 }

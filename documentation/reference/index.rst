@@ -10,12 +10,12 @@ TBD
    :hidden:
    :maxdepth: 2
 
+   text/index
+   layer/index
+   kernel/index
+   tensor/index
    allocator
    container
-   tensor/index
-   kernel/index
-   layer/index
-   agent/index
 
 
 Allocator library

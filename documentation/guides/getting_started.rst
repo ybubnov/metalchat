@@ -78,7 +78,7 @@ section.
        std::filesystem::path weights_path("instruct.safetensors");
        std::filesystem::path tokens_path("tokenizer.model");
 
-       auto chat = metalchat::make_llama3_1b(weights_path, tokens_path);
+       auto chat = metalchat::text::make_llama3_1b(weights_path, tokens_path);
 
        chat.send(metalchat::basic_message("system", "You are a helpful assistant"));
        chat.send(metalchat::basic_message("user", "What is the capital of France?"));

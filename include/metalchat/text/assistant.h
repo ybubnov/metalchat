@@ -3,15 +3,16 @@
 #include <iostream>
 #include <optional>
 
-#include <metalchat/bpe.h>
 #include <metalchat/dtype.h>
 #include <metalchat/functional.h>
 #include <metalchat/layer.h>
 #include <metalchat/nn.h>
 #include <metalchat/tensor.h>
+#include <metalchat/text/bpe.h>
 
 
 namespace metalchat {
+namespace text {
 
 
 class basic_message {
@@ -51,6 +52,19 @@ public:
 private:
     std::string _M_role;
     std::string _M_content;
+};
+
+
+class request : public basic_message {};
+
+
+class response : public basic_message {
+public:
+    // std::string
+    // json() const;
+
+    // const std::vector<func_call>&
+    // function_calls() const;
 };
 
 
@@ -118,13 +132,13 @@ private:
 };
 
 
-class agent {
+class assistant {
 public:
     using index_type = int32_t;
     using container_type = vector_memory_container<index_type>;
 
     template <typename Transformer>
-    agent(Transformer&& transformer, const bpe& encoder)
+    assistant(Transformer&& transformer, const bpe& encoder)
     : _M_transformer(std::make_shared<transformer_wrapper<Transformer>>(std::move(transformer))),
       _M_encoder(encoder),
       _M_start_pos(0),
@@ -195,7 +209,7 @@ private:
 };
 
 
-agent
+assistant
 make_llama3(
     const std::filesystem::path& weights_path,
     const std::filesystem::path& tokens_path,
@@ -211,12 +225,5 @@ make_llama3(
 //);
 
 
-// agent
-// make_llama3_compact(
-//     const std::string& weights_path,
-//     const std::string& tokens_path,
-//     std::optional<nn::llama3_options> options = std::nullopt
-//);
-
-
+} // namespace text
 } // namespace metalchat
