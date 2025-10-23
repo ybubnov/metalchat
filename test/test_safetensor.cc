@@ -76,9 +76,9 @@ template <> struct __libcpp_random_is_valid_realtype<bf16> : true_type {};
 
 TEST_CASE("Test write and read small model", "[safetensor]")
 {
-    struct model : public basic_layer {
+    struct model : public nn::basic_layer {
         model(hardware_accelerator& accelerator)
-        : basic_layer(accelerator)
+        : nn::basic_layer(accelerator)
         {
             auto w1 = rand<float>({10, 20}, accelerator);
             auto w2 = rand<bf16>({3, 4}, accelerator);

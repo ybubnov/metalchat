@@ -192,7 +192,7 @@ safetensor_document::insert(const std::string& name, const basic_tensor& tensor)
 
 
 void
-safetensor_document::insert(const basic_layer& layer)
+safetensor_document::insert(const nn::basic_layer& layer)
 {
     auto insert_fn = [&](const std::string& name, std::shared_ptr<basic_tensor> tensor) {
         insert(name, *tensor);
@@ -221,7 +221,7 @@ safetensor_document::load(const safetensor& st, basic_tensor& tensor) const
 
 
 void
-safetensor_document::load(const std::filesystem::path& p, basic_layer& layer)
+safetensor_document::load(const std::filesystem::path& p, nn::basic_layer& layer)
 {
     auto document = safetensor_document::open(p, layer.accelerator());
     document.load(layer);
@@ -241,7 +241,7 @@ safetensor_document::load(const std::string& name, basic_tensor& tensor) const
 
 
 void
-safetensor_document::load(basic_layer& layer) const
+safetensor_document::load(nn::basic_layer& layer) const
 {
     for (auto it = begin(); it != end(); ++it) {
         auto safetensor = *it;
@@ -252,7 +252,7 @@ safetensor_document::load(basic_layer& layer) const
 
 
 void
-safetensor_document::save(const std::filesystem::path& p, basic_layer& layer)
+safetensor_document::save(const std::filesystem::path& p, nn::basic_layer& layer)
 {
     safetensor_document document;
     document.insert(layer);

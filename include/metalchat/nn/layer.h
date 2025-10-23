@@ -10,6 +10,7 @@
 
 
 namespace metalchat {
+namespace nn {
 
 
 /// A Wrapper around a shared pointer for arbitrary layer implementation provides invocable
@@ -430,4 +431,5 @@ private:
 };
 
 
+} // namespace nn
 } // namespace metalchat

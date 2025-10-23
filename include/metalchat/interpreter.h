@@ -5,7 +5,6 @@
 
 #include <metalchat/dtype.h>
 #include <metalchat/functional.h>
-#include <metalchat/layer.h>
 #include <metalchat/nn.h>
 #include <metalchat/tensor.h>
 #include <metalchat/text.h>
@@ -80,7 +79,7 @@ concept transformer = requires(Transformer estimator) {
     typename Transformer::input_tensor;
     typename Transformer::output_tensor;
 
-    requires std::derived_from<Transformer, basic_layer>;
+    requires std::derived_from<Transformer, nn::basic_layer>;
 
     requires immutable_tensor2_t<
         typename Transformer::input_tensor, typename Transformer::index_type>;

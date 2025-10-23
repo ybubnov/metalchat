@@ -1,9 +1,10 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/kernel.h>
-#include <metalchat/layer.h>
+#include <metalchat/nn/layer.h>
 
 
 namespace metalchat {
+namespace nn {
 
 
 basic_layer::basic_layer(const hardware_accelerator& accelerator)
@@ -80,4 +81,5 @@ basic_layer::get_parameters(bool recurse) const
 }
 
 
+} // namespace nn
 } // namespace metalchat

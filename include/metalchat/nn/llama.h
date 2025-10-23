@@ -8,9 +8,9 @@
 #include <metalchat/container.h>
 #include <metalchat/dtype.h>
 #include <metalchat/functional.h>
-#include <metalchat/layer.h>
 #include <metalchat/nn/cache.h>
 #include <metalchat/nn/embedding.h>
+#include <metalchat/nn/layer.h>
 #include <metalchat/nn/rmsnorm.h>
 #include <metalchat/nn/sampling.h>
 #include <metalchat/nn/transformer.h>

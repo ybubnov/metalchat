@@ -3,7 +3,7 @@
 #include <iostream>
 
 #include <metalchat/kernel/rmsnorm.h>
-#include <metalchat/layer.h>
+#include <metalchat/nn/layer.h>
 
 
 namespace metalchat {

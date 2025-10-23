@@ -13,7 +13,7 @@
 #include <metalchat/allocator.h>
 #include <metalchat/container.h>
 #include <metalchat/dtype.h>
-#include <metalchat/layer.h>
+#include <metalchat/nn/layer.h>
 #include <metalchat/tensor/basic.h>
 
 
@@ -685,12 +685,13 @@ public:
     ///
     /// \param layer A layer to use.
     void
-    insert(const basic_layer& layer);
+    insert(const nn::basic_layer& layer);
 
     /// Load memory containers from a safetensor document into a layer.
     ///
-    /// The implementation is identical to the \ref safetensor_document::load(basic_layer&) const,
-    /// the difference is that safetensor file is not returned to the caller.
+    /// The implementation is identical to the
+    /// \ref safetensor_document::load(nn::basic_layer&) const, the difference is that safetensor
+    /// file is not returned to the caller.
     ///
     /// \warning Layer parameters should be using the same container type as the safetensor
     /// document.
@@ -698,7 +699,7 @@ public:
     /// \param p A path to load tensors from.
     /// \param layer A layer instance to load tensors into.
     static void
-    load(const std::filesystem::path& p, basic_layer& layer);
+    load(const std::filesystem::path& p, nn::basic_layer& layer);
 
     /// Load memory containers from a safetensor document into a layer.
     ///
@@ -721,7 +722,7 @@ public:
     /// doc.load(linear);
     /// ```
     void
-    load(basic_layer& layer) const;
+    load(nn::basic_layer& layer) const;
 
     /// Load memory container from a safetensor document into a tensor.
     ///
@@ -757,7 +758,7 @@ public:
     /// \param p A path to the file to save tensors.
     /// \param layer A layer containing parameters to save into the safetensors document.
     static void
-    save(const std::filesystem::path& p, basic_layer& layer);
+    save(const std::filesystem::path& p, nn::basic_layer& layer);
 
     /// Save all registered tensors into the file at the specified location.
     ///

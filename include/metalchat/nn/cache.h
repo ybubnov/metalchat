@@ -5,7 +5,7 @@
 
 #include <metalchat/functional.h>
 #include <metalchat/kernel/copy.h>
-#include <metalchat/layer.h>
+#include <metalchat/nn/layer.h>
 #include <metalchat/tensor/concept.h>
 
 

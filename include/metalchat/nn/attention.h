@@ -7,9 +7,9 @@
 #include <metalchat/functional.h>
 #include <metalchat/kernel/copy.h>
 #include <metalchat/kernel/embedding.h>
-#include <metalchat/layer.h>
 #include <metalchat/nn/cache.h>
 #include <metalchat/nn/embedding.h>
+#include <metalchat/nn/layer.h>
 #include <metalchat/nn/linear.h>
 #include <metalchat/tensor/future.h>
 

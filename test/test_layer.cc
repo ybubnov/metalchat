@@ -3,7 +3,7 @@
 #include <catch2/matchers/catch_matchers_string.hpp>
 
 #include <metalchat/accelerator.h>
-#include <metalchat/nn/linear.h>
+#include <metalchat/nn.h>
 
 
 using namespace metalchat;
@@ -35,24 +35,24 @@ TEST_CASE("Test recurse parameter query", "[layer]")
 {
     using linear = nn::linear<float, random_memory_container<float>>;
 
-    struct test_layer : public basic_layer {
-        shared_layer_ptr<linear> linear1;
-        shared_layer_ptr<linear> linear2;
+    struct test_layer : public nn::basic_layer {
+        nn::shared_layer_ptr<linear> linear1;
+        nn::shared_layer_ptr<linear> linear2;
 
         test_layer(hardware_accelerator gpu)
-        : basic_layer(gpu)
+        : nn::basic_layer(gpu)
         {
             linear1 = register_layer("layer1", linear(full<float>({3, 4}, 3.0), gpu));
             linear2 = register_layer("layer2", linear(full<float>({4, 5}, 4.0), gpu));
         }
     };
 
-    struct test_layer_outer : public basic_layer {
-        shared_layer_ptr<test_layer> inner;
-        shared_layer_ptr<linear> linear0;
+    struct test_layer_outer : public nn::basic_layer {
+        nn::shared_layer_ptr<test_layer> inner;
+        nn::shared_layer_ptr<linear> linear0;
 
         test_layer_outer(hardware_accelerator gpu)
-        : basic_layer(gpu)
+        : nn::basic_layer(gpu)
         {
             inner = register_layer("inner", test_layer(gpu));
             linear0 = register_layer("linear0", linear(full<float>({1, 2}, 5.0), gpu));
