@@ -62,7 +62,7 @@ public:
     // json() const;
 
     // const std::vector<func_call>&
-    // function_calls() const;
+    // command_calls() const;
 };
 
 
@@ -144,13 +144,13 @@ public:
     {}
 
     // void
-    // register_function(const func_spec&);
+    // register_command(const command&);
 
     // void
-    // register_function(std::function<void(func_spec&)> fn);
+    // register_command(std::function<void(command&)> fn);
 
     void
-    send(const basic_message& message)
+    write(const basic_message& message)
     {
         auto output = std::back_inserter(_M_encoding);
         message.encode(_M_encoder, output);
@@ -158,13 +158,13 @@ public:
     }
 
     std::string
-    receive_text()
+    read_text()
     {
-        return receive().content();
+        return read().content();
     }
 
     basic_message
-    receive()
+    read()
     {
         basic_message query("assistant");
         query.encode(_M_encoder, std::back_inserter(_M_encoding));
