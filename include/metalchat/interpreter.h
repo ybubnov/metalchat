@@ -8,11 +8,10 @@
 #include <metalchat/layer.h>
 #include <metalchat/nn.h>
 #include <metalchat/tensor.h>
-#include <metalchat/text/bpe.h>
+#include <metalchat/text.h>
 
 
 namespace metalchat {
-namespace text {
 
 
 class basic_message {
@@ -34,11 +33,11 @@ public:
 
     template <std::output_iterator<int32_t> OutputIt>
     void
-    encode(const bpe& encoder, OutputIt output) const
+    encode(const text::bpe& encoder, OutputIt output) const
     {
-        encoder.encode(special_token::begin_header, output);
+        encoder.encode(text::special_token::begin_header, output);
         encoder.encode(_M_role, output);
-        encoder.encode(special_token::end_header, output);
+        encoder.encode(text::special_token::end_header, output);
         encoder.encode("\n\n", output);
         encoder.encode(_M_content, output);
     }
@@ -132,31 +131,31 @@ private:
 };
 
 
-class assistant {
+class interpreter {
 public:
     using index_type = int32_t;
     using container_type = vector_memory_container<index_type>;
 
     template <typename Transformer>
-    assistant(Transformer&& transformer, const bpe& encoder)
+    interpreter(Transformer&& transformer, const text::bpe& encoder)
     : _M_transformer(std::make_shared<transformer_wrapper<Transformer>>(std::move(transformer))),
       _M_encoder(encoder),
       _M_start_pos(0),
-      _M_encoding(1, encoder.encode(special_token::begin_text))
+      _M_encoding(1, encoder.encode(text::special_token::begin_text))
     {}
 
     // void
-    // knows_function(const func_spec&);
+    // register_function(const func_spec&);
 
     // void
-    // knows_function(std::function<void(func_spec&)> fn);
+    // register_function(std::function<void(func_spec&)> fn);
 
     void
     send(const basic_message& message)
     {
         auto output = std::back_inserter(_M_encoding);
         message.encode(_M_encoder, output);
-        _M_encoder.encode(special_token::end_turn, output);
+        _M_encoder.encode(text::special_token::end_turn, output);
     }
 
     std::string
@@ -188,7 +187,7 @@ public:
         _M_start_pos += encoding_size;
         std::stringstream content;
 
-        auto end_turn = _M_encoder.encode(special_token::end_turn);
+        auto end_turn = _M_encoder.encode(text::special_token::end_turn);
         while (token != end_turn) {
             content << _M_encoder.decode(token);
             output = _M_transformer->transform(output, _M_start_pos++);
@@ -202,14 +201,14 @@ public:
 
 private:
     std::shared_ptr<basic_transformer> _M_transformer;
-    bpe _M_encoder;
+    text::bpe _M_encoder;
 
     std::size_t _M_start_pos;
     std::vector<index_type> _M_encoding;
 };
 
 
-assistant
+interpreter
 make_llama3(
     const std::filesystem::path& weights_path,
     const std::filesystem::path& tokens_path,
@@ -225,5 +224,4 @@ make_llama3(
 //);
 
 
-} // namespace text
 } // namespace metalchat

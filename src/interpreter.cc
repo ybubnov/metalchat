@@ -1,13 +1,12 @@
-#include <metalchat/text/assistant.h>
+#include <metalchat/interpreter.h>
 
 #include "metal_impl.h"
 
 
 namespace metalchat {
-namespace text {
 
 
-assistant
+interpreter
 make_llama3(
     const std::filesystem::path& weights_path,
     const std::filesystem::path& tokens_path,
@@ -30,12 +29,12 @@ make_llama3(
     auto alloc = hardware_heap_allocator<void>(device, options.heap_size());
     gpu0.set_allocator(nocopy_allocator(alloc, device));
 
-    return assistant(std::move(transformer), bpe);
+    return interpreter(std::move(transformer), bpe);
 }
 
 
 /*
-agent
+interpreter
 make_llama3_compact(
     const std::filesystem::path& weights_path,
     const std::filesystem::path& tokens_path,
@@ -67,10 +66,9 @@ make_llama3_compact(
 
     gpu0.set_allocator(std::move(alloc4));
 
-    return agent(std::move(transformer), bpe);
+    return interpreter(std::move(transformer), bpe);
 }
 */
 
 
-} // namespace text
 } // namespace metalchat
