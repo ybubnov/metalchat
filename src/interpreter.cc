@@ -1,9 +1,30 @@
+#include <mstch/mstch.hpp>
+
 #include <metalchat/interpreter.h>
 
 #include "metal_impl.h"
 
 
+namespace mustache = mstch;
+
+
 namespace metalchat {
+
+
+void
+interpreter::write(const basic_message& message)
+{
+    auto output = std::back_inserter(_M_encoding);
+
+    _M_encoder.encode(text::special_token::begin_header, output);
+    _M_encoder.encode(message.role(), output);
+    _M_encoder.encode(text::special_token::end_header, output);
+    _M_encoder.encode("\n\n", output);
+
+    auto content = mustache::render(message.content(), mustache::node());
+    _M_encoder.encode(content, output);
+    _M_encoder.encode(text::special_token::end_turn, output);
+}
 
 
 interpreter
@@ -26,8 +47,10 @@ make_llama3(
 
     auto device = gpu0.get_metal_device();
 
-    auto alloc = hardware_heap_allocator<void>(device, options.heap_size());
-    gpu0.set_allocator(nocopy_allocator(alloc, device));
+    if (options.heap_size() > 0) {
+        auto alloc = hardware_heap_allocator<void>(device, options.heap_size());
+        gpu0.set_allocator(nocopy_allocator(alloc, device));
+    }
 
     return interpreter(std::move(transformer), bpe);
 }

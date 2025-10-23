@@ -18,6 +18,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 
 find_package(cppcodec CONFIG REQUIRED)
 find_package(glaze CONFIG REQUIRED)
+find_package(mbits-mstch CONFIG REQUIRED)
 find_package(metal-cpp CONFIG REQUIRED)
 find_package(PCRE2 CONFIG REQUIRED)
 find_package(rapidhash CONFIG REQUIRED)
@@ -42,6 +43,7 @@ target_sources(${metalchat_FRAMEWORK} PRIVATE ${metalchat_METALLIB})
 
 set_target_properties(${metalchat_FRAMEWORK} PROPERTIES
     CXX_STANDARD 23
+    # LINK_FLAGS_RELEASE "-Wl,-dead_strip -Wl,-x"
     FRAMEWORK TRUE
     FRAMEWORK_VERSION A
     RESOURCE ${metalchat_METALLIB}
@@ -84,6 +86,7 @@ add_custom_target(copy_headers ALL
 target_link_libraries(${metalchat_FRAMEWORK}
     glaze::glaze
     cppcodec::cppcodec
+    mbits::mstch
     metal-cpp::metal-cpp
     PCRE2::8BIT
     rapidhash::rapidhash

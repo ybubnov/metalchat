@@ -14,7 +14,7 @@ TEST_CASE("Test interpreter", "[llama]")
     std::filesystem::path weights_path("../llama32.safetensors");
     std::filesystem::path tokens_path("../Llama-3.2-1B-Instruct/original/tokenizer.model");
 
-    auto options = nn::default_llama3_1b_options().heap_size(std::size_t(2048) * 1024 * 1024);
+    auto options = nn::default_llama3_1b_options().heap_size(0);
     auto interp = make_llama3(weights_path, tokens_path, options);
 
     command_metadata mul

@@ -10,12 +10,106 @@ TBD
    :hidden:
    :maxdepth: 2
 
-   text/index
+   interpreter/index
    layer/index
    kernel/index
    tensor/index
    allocator
    container
+
+
+Interpreter library
+-------------------
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:class:`metalchat::interpreter`
+     - A language model adapter to receive and send messages.
+
+   * - :cpp:class:`metalchat::basic_transformer`
+     - A language estimator adapter to predict the next token.
+
+   * - :cpp:class:`metalchat::text::byte_pair_encoder`
+     - Byte-pair encoder.
+
+
+Layer library
+-------------
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:class:`metalchat::basic_layer`
+     - A basic building block of neural networks in MetalChat.
+
+   * - :cpp:class:`metalchat::shared_layer_ptr`
+     - A convenience class for a :cpp:class:`metalchat::layer` type to share layer ownership.
+
+   * - :cpp:class:`metalchat::nn::llama3`
+     - TBD
+
+
+Kernel library
+--------------
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:class:`metalchat::hardware_accelerator`
+     - TBD
+
+   * - :cpp:class:`metalchat::basic_kernel`
+     - TBD
+
+   * - :cpp:class:`metalchat::binary_kernel_wrapper`
+     - TBD
+
+   * - :cpp:class:`metalchat::kernel_task`
+     - TBD
+
+   * - :cpp:class:`metalchat::kernel_thread`
+     - TBD
+
+   * - :cpp:class:`metalchat::recursive_kernel_thread`
+     - TBD
+
+
+Tensor library
+--------------
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:class:`metalchat::tensor`
+     - A multi-dimensional matrix containing elements of a single data type.
+
+   * - :cpp:class:`metalchat::tensor_iterator`
+     - A sequential accessor to the tensor's elements.
+
+   * - :cpp:class:`metalchat::shared_tensor_ptr`
+     - A tensor that could be shared by multiple owners.
+
+   * - :cpp:class:`metalchat::future_tensor`
+     - A tensor associated with a computation task, which result is not ready yet.
+
+
+Tensor functions
+^^^^^^^^^^^^^^^^
+
+.. list-table::
+   :width: 100%
+   :widths: 45 55
+
+   * - :cpp:func:`metalchat::scalar`
+     - TBD
+
+   * - :cpp:func:`metalchat::empty`
+     - TBD
 
 
 Allocator library
@@ -79,97 +173,3 @@ Container library
 
    * - :cpp:class:`metalchat::scalar_memory_container`
      - TBD.
-
-
-Tensor library
---------------
-
-.. list-table::
-   :width: 100%
-   :widths: 45 55
-
-   * - :cpp:class:`metalchat::tensor`
-     - A multi-dimensional matrix containing elements of a single data type.
-
-   * - :cpp:class:`metalchat::tensor_iterator`
-     - A sequential accessor to the tensor's elements.
-
-   * - :cpp:class:`metalchat::shared_tensor_ptr`
-     - A tensor that could be shared by multiple owners.
-
-   * - :cpp:class:`metalchat::future_tensor`
-     - A tensor associated with a computation task, which result is not ready yet.
-
-
-Tensor functions
-^^^^^^^^^^^^^^^^
-
-.. list-table::
-   :width: 100%
-   :widths: 45 55
-
-   * - :cpp:func:`metalchat::scalar`
-     - TBD
-
-   * - :cpp:func:`metalchat::empty`
-     - TBD
-
-
-Kernel library
---------------
-
-.. list-table::
-   :width: 100%
-   :widths: 45 55
-
-   * - :cpp:class:`metalchat::hardware_accelerator`
-     - TBD
-
-   * - :cpp:class:`metalchat::basic_kernel`
-     - TBD
-
-   * - :cpp:class:`metalchat::binary_kernel_wrapper`
-     - TBD
-
-   * - :cpp:class:`metalchat::kernel_task`
-     - TBD
-
-   * - :cpp:class:`metalchat::kernel_thread`
-     - TBD
-
-   * - :cpp:class:`metalchat::recursive_kernel_thread`
-     - TBD
-
-
-Layer library
--------------
-
-.. list-table::
-   :width: 100%
-   :widths: 45 55
-
-   * - :cpp:class:`metalchat::basic_layer`
-     - A basic building block of neural networks in MetalChat.
-
-   * - :cpp:class:`metalchat::shared_layer_ptr`
-     - A convenience class for a :cpp:class:`metalchat::layer` type to share layer ownership.
-
-   * - :cpp:class:`metalchat::nn::llama3`
-     - TBD
-
-
-Chat library
--------------
-
-.. list-table::
-   :width: 100%
-   :widths: 45 55
-
-   * - :cpp:class:`metalchat::byte_pair_encoder`
-     - Byte-pair encoder.
-
-   * - :cpp:class:`metalchat::agent`
-     - A language model adapter to receive and send messages.
-
-   * - :cpp:class:`metalchat::transformer`
-     - A language estimator adapter to predict the next token.

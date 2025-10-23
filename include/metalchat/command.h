@@ -37,7 +37,29 @@ struct command_metadata {
 
 
 /// This class provides a functionality of declaring an interpreter command in multiple steps.
-class command {};
+class command {
+private:
+    std::optional<std::string> _M_name;
+    std::optional<std::string> _M_description;
+
+public:
+    command()
+    : _M_name(std::nullopt),
+      _M_description(std::nullopt)
+    {}
+
+    void
+    name(const std::string& n)
+    {
+        _M_name = n;
+    }
+
+    void
+    description(const std::string& d)
+    {
+        _M_description = d;
+    }
+};
 
 
 } // namespace metalchat

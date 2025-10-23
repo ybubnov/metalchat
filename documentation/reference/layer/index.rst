@@ -12,19 +12,19 @@ Layer library
 Basic layer
 -----------
 
-.. doxygenclass:: metalchat::basic_layer
+.. doxygenclass:: metalchat::nn::basic_layer
    :members:
 
 
 Layer array
 -----------
 
-.. doxygenclass:: metalchat::layer_array
+.. doxygenclass:: metalchat::nn::layer_array
    :members:
 
 
 Shared layer
 ------------
 
-.. doxygenclass:: metalchat::shared_layer_ptr
+.. doxygenclass:: metalchat::nn::shared_layer_ptr
    :members:

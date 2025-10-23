@@ -30,6 +30,18 @@ public:
       _M_content()
     {}
 
+    const std::string&
+    role() const
+    {
+        return _M_role;
+    }
+
+    const std::string&
+    content() const
+    {
+        return _M_content;
+    }
+
     template <std::output_iterator<int32_t> OutputIt>
     void
     encode(const text::bpe& encoder, OutputIt output) const
@@ -39,12 +51,6 @@ public:
         encoder.encode(text::special_token::end_header, output);
         encoder.encode("\n\n", output);
         encoder.encode(_M_content, output);
-    }
-
-    std::string
-    content() const
-    {
-        return _M_content;
     }
 
 private:
@@ -150,12 +156,7 @@ public:
     // register_command(std::function<void(command&)> fn);
 
     void
-    write(const basic_message& message)
-    {
-        auto output = std::back_inserter(_M_encoding);
-        message.encode(_M_encoder, output);
-        _M_encoder.encode(text::special_token::end_turn, output);
-    }
+    write(const basic_message& message);
 
     std::string
     read_text()
