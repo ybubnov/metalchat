@@ -59,19 +59,6 @@ private:
 };
 
 
-class request : public basic_message {};
-
-
-class response : public basic_message {
-public:
-    // std::string
-    // json() const;
-
-    // const std::vector<func_call>&
-    // command_calls() const;
-};
-
-
 /// The language transformer is an abstraction of the next token prediction model.
 ///
 /// Types that comply to this concept are expected to produce logits for the all tokens
@@ -134,6 +121,9 @@ public:
 private:
     Transformer _M_transformer;
 };
+
+
+class interpreter_environment {};
 
 
 class interpreter {

@@ -17,6 +17,11 @@ TEST_CASE("Test interpreter", "[llama]")
     auto options = nn::default_llama3_1b_options().heap_size(0);
     auto interp = make_llama3(weights_path, tokens_path, options);
 
+    // interp.register_command("multiply", [](command& cmd) {
+    //     cmd.description("use it to multiply two numbers");
+    //     cmd.argument("a", argument::integer());
+    // });
+
     command_metadata mul
         = {.name = "multiply",
            .description = "Multiply two numbers",

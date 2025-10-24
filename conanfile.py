@@ -20,7 +20,7 @@ class MetalChat(ConanFile):
         "fPIC": True,
         "catch2/*:shared": True,
         "metal-cpp/*:shared": True,
-        "glaze/*:shared": False,
+        "jsoncons/*:shared": False,
         "pcre2/*:shared": False,
         "rapidhash/*:shared": False,
         "mbits-mstch/*:shared": False,
@@ -32,7 +32,7 @@ class MetalChat(ConanFile):
         self.requires("mbits-mstch/1.0.4")
         self.requires("metal-cpp/15.2")
         self.requires("rapidhash/3.0")
-        self.requires("glaze/5.4.1")
+        self.requires("jsoncons/1.3.0")
         self.requires("pcre2/10.44")
 
     def generate(self):

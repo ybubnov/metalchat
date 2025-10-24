@@ -17,11 +17,11 @@ add_subdirectory(test)
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 find_package(cppcodec CONFIG REQUIRED)
-find_package(glaze CONFIG REQUIRED)
+find_package(jsoncons CONFIG REQUIRED)
 find_package(mbits-mstch CONFIG REQUIRED)
 find_package(metal-cpp CONFIG REQUIRED)
-find_package(PCRE2 CONFIG REQUIRED)
 find_package(rapidhash CONFIG REQUIRED)
+find_package(PCRE2 CONFIG REQUIRED)
 
 
 set(metalchat_FRAMEWORK MetalChat)
@@ -84,10 +84,10 @@ add_custom_target(copy_headers ALL
 )
 
 target_link_libraries(${metalchat_FRAMEWORK}
-    glaze::glaze
     cppcodec::cppcodec
+    jsoncons
+    rapidhash::rapidhash
     mbits::mstch
     metal-cpp::metal-cpp
     PCRE2::8BIT
-    rapidhash::rapidhash
 )

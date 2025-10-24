@@ -1,21 +1,12 @@
-#include <glaze/json.hpp>
+#include <jsoncons/json.hpp>
 
 #include <metalchat/safetensor.h>
 
 
-template <> struct glz::meta<metalchat::safetensor_metadata> {
-    using T = metalchat::safetensor_metadata;
-
-    static constexpr auto value
-        = object("dtype", &T::dtype, "shape", &T::shape, "data_offsets", &T::data_offsets);
-};
+JSONCONS_ALL_MEMBER_TRAITS(metalchat::safetensor_metadata, dtype, shape, data_offsets);
 
 
 namespace metalchat {
-
-
-// A compilation check to ensure correct reflection of the structure fields.
-static_assert(glz::reflect<safetensor_metadata>::size == 3);
 
 
 safetensor_document::safetensor_document()
@@ -100,15 +91,9 @@ safetensor_document::parse_metadata(std::istream& is)
 
     std::string_view header(header_bytes, sizeof(header_bytes));
 
-    std::map<std::string, safetensor_metadata> tensor_metadata;
     std::vector<safetensor_metadata> metadata;
-
-    auto json_context = glz::context{};
-    constexpr auto json_opts = glz::opts{.error_on_unknown_keys = false};
-    auto err = glz::read<json_opts>(tensor_metadata, header, json_context);
-    if (err) {
-        throw std::runtime_error(glz::format_error(err, header));
-    }
+    using metadata_type = std::map<std::string, safetensor_metadata>;
+    auto tensor_metadata = jsoncons::decode_json<metadata_type>(header);
 
     for (auto [name, meta] : tensor_metadata) {
         // Shame on designers of safetensor specification, garbage like this should
@@ -269,10 +254,7 @@ safetensor_document::save(const std::filesystem::path& p)
     }
 
     std::string header;
-    auto err = glz::write_json(metadata, header);
-    if (err) {
-        throw std::runtime_error(glz::format_error(err, header));
-    }
+    jsoncons::encode_json(metadata, header);
 
     auto header_size = header.size();
 

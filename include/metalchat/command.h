@@ -23,10 +23,10 @@ struct command_parameters {
 
 
 /// The structure represents the JSON format of the tool calling defined in
-/// https://www.llama.com/docs/model-cards-and-prompt-formats/llama3_2/ user guide. Note, that
-/// format for Llama 3.1 and 3.2 are different according to that documentation, and here format
-/// for Llama 3.2 is used.
+/// https://platform.openai.com/docs/guides/function-calling?strict-mode=enabled#defining-functions
+/// user guide.
 struct command_metadata {
+    const std::string type = "function";
     std::string name;
     std::string description;
     command_parameters parameters;
@@ -36,28 +36,46 @@ struct command_metadata {
 };
 
 
+struct argument {
+private:
+    std::string _M_name;
+
+public:
+    argument(const std::string& name)
+    : _M_name(name)
+    {}
+
+    argument&
+    description(const std::string& description)
+    {
+        return *this;
+    }
+};
+
+
 /// This class provides a functionality of declaring an interpreter command in multiple steps.
 class command {
 private:
-    std::optional<std::string> _M_name;
+    std::string _M_name;
     std::optional<std::string> _M_description;
 
 public:
-    command()
-    : _M_name(std::nullopt),
+    command(const std::string& name)
+    : _M_name(name),
       _M_description(std::nullopt)
     {}
 
-    void
-    name(const std::string& n)
-    {
-        _M_name = n;
-    }
-
-    void
+    command&
     description(const std::string& d)
     {
         _M_description = d;
+        return *this;
+    }
+
+    command&
+    argument(const argument& arg)
+    {
+        return *this;
     }
 };
 
