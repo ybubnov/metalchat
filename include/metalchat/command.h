@@ -1,7 +1,8 @@
 #pragma once
 
-#include <filesystem>
+#include <memory>
 #include <optional>
+#include <string_view>
 #include <unordered_map>
 
 
@@ -39,7 +40,7 @@ class command_call {};
 class basic_command_scanner {
 public:
     virtual std::string
-    match(const std::string& declaration)
+    declare(const std::string& declaration)
         = 0;
 
     virtual command_call
@@ -50,8 +51,53 @@ public:
 };
 
 
-std::shared_ptr<basic_command_scanner>
-make_json_scanner();
+class json_command_scanner : public basic_command_scanner {
+private:
+    struct _Members;
+    std::shared_ptr<_Members> _M_data;
+
+public:
+    /// The structure represents the JSON format of the tool calling defined in
+    /// https://platform.openai.com/docs/guides/function-calling#defining-functions
+    /// user guide.
+    static constexpr std::string_view command_schema = R"({
+    "$id": "https://openai.com/schemas/function-call",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+      "type": {
+        "type": "string",
+        "enum": ["function"],
+        "description": "This should always be function"
+      },
+      "name": {
+        "type": "string",
+        "description": "The function name"
+      },
+      "description": {
+        "type": "string",
+        "description": "Details on when and how to use the function"
+      },
+      "parameters": {
+        "$ref": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "strict": {
+        "type": "boolean",
+        "description": "Whether to enforce strict mode for the function call"
+      }
+    },
+    "required": ["type", "name", "description", "parameters"]
+    })";
+
+    json_command_scanner();
+    json_command_scanner(const json_command_scanner&) = default;
+
+    std::string
+    declare(const std::string& declaration);
+
+    command_call
+    scan(const std::string& text);
+};
 
 
 } // namespace metalchat

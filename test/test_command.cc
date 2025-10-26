@@ -17,9 +17,9 @@ TEST_CASE("Test JSON command scanner", "[interpreter]")
 }
 })";
 
-    auto scanner = make_json_scanner();
-    auto command_name = scanner->match(declaration);
+    json_command_scanner scanner;
+    auto command_name = scanner.declare(declaration);
     REQUIRE(command_name == "get_weather");
 
-    scanner->scan(R"({"name": "get_weather", "parameters": {"location": "Berlin"}})");
+    scanner.scan(R"({"name": "get_weather", "parameters": {"location": "Berlin"}})");
 }
