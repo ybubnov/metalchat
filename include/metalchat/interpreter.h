@@ -3,6 +3,7 @@
 #include <iostream>
 #include <optional>
 
+#include <metalchat/command.h>
 #include <metalchat/dtype.h>
 #include <metalchat/functional.h>
 #include <metalchat/nn.h>
@@ -134,16 +135,14 @@ public:
     template <typename Transformer>
     interpreter(Transformer&& transformer, const text::bpe& encoder)
     : _M_transformer(std::make_shared<transformer_wrapper<Transformer>>(std::move(transformer))),
+      _M_commands(nullptr),
       _M_encoder(encoder),
       _M_start_pos(0),
       _M_encoding(1, encoder.encode(text::special_token::begin_text))
     {}
 
     // void
-    // register_command(const command&);
-
-    // void
-    // register_command(std::function<void(command&)> fn);
+    // register_command(const std::string& schema, std::function<std::string(params&)> fn);
 
     void
     write(const basic_message& message);
@@ -191,6 +190,7 @@ public:
 
 private:
     std::shared_ptr<basic_transformer> _M_transformer;
+    std::shared_ptr<basic_command_scanner> _M_commands;
     text::bpe _M_encoder;
 
     std::size_t _M_start_pos;

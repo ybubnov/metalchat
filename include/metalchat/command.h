@@ -22,9 +22,6 @@ struct command_parameters {
 };
 
 
-/// The structure represents the JSON format of the tool calling defined in
-/// https://platform.openai.com/docs/guides/function-calling?strict-mode=enabled#defining-functions
-/// user guide.
 struct command_metadata {
     const std::string type = "function";
     std::string name;
@@ -36,48 +33,25 @@ struct command_metadata {
 };
 
 
-struct argument {
-private:
-    std::string _M_name;
+class command_call {};
 
+
+class basic_command_scanner {
 public:
-    argument(const std::string& name)
-    : _M_name(name)
-    {}
+    virtual std::string
+    match(const std::string& declaration)
+        = 0;
 
-    argument&
-    description(const std::string& description)
-    {
-        return *this;
-    }
+    virtual command_call
+    scan(const std::string& text)
+        = 0;
+
+    virtual ~basic_command_scanner() {}
 };
 
 
-/// This class provides a functionality of declaring an interpreter command in multiple steps.
-class command {
-private:
-    std::string _M_name;
-    std::optional<std::string> _M_description;
-
-public:
-    command(const std::string& name)
-    : _M_name(name),
-      _M_description(std::nullopt)
-    {}
-
-    command&
-    description(const std::string& d)
-    {
-        _M_description = d;
-        return *this;
-    }
-
-    command&
-    argument(const argument& arg)
-    {
-        return *this;
-    }
-};
+std::shared_ptr<basic_command_scanner>
+make_json_scanner();
 
 
 } // namespace metalchat
