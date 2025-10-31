@@ -142,7 +142,8 @@ public:
     {}
 
     // void
-    // register_command(const std::string& schema, std::function<std::string(params&)> fn);
+    // register_command(const std::string& schema, std::function<std::string(command_statement&)>
+    // fn);
 
     void
     write(const basic_message& message);

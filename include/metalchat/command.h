@@ -34,20 +34,81 @@ struct command_metadata {
 };
 
 
-class command_call {};
+class basic_command_statement {
+public:
+    virtual std::string
+    get_name() const
+        = 0;
+
+    virtual std::optional<std::string>
+    get_parameter(const std::string&) const = 0;
+
+    virtual std::string
+    str() const
+        = 0;
+
+    virtual ~basic_command_statement() {}
+};
+
+
+class command_statement : public basic_command_statement {
+private:
+    std::shared_ptr<basic_command_statement> _M_ptr;
+
+public:
+    command_statement(const std::shared_ptr<basic_command_statement>& call);
+
+    template <typename CommandCall> requires std::derived_from<CommandCall, basic_command_statement>
+    command_statement(CommandCall&& call)
+    : _M_ptr(std::make_shared<CommandCall>(std::move(call)))
+    {}
+
+    std::string
+    get_name() const;
+
+    std::optional<std::string>
+    get_parameter(const std::string&) const;
+
+    std::string
+    str() const;
+};
 
 
 class basic_command_scanner {
 public:
     virtual std::string
-    declare(const std::string& declaration)
+    declare(const std::string& decl)
         = 0;
 
-    virtual command_call
+    virtual command_statement
     scan(const std::string& text)
         = 0;
 
     virtual ~basic_command_scanner() {}
+};
+
+
+class json_command_scanner;
+
+
+class json_command_statement : public basic_command_statement {
+private:
+    friend class json_command_scanner;
+
+    struct _Members;
+    std::shared_ptr<_Members> _M_data;
+
+    json_command_statement(_Members&&);
+
+public:
+    std::string
+    get_name() const;
+
+    std::optional<std::string>
+    get_parameter(const std::string&) const;
+
+    std::string
+    str() const;
 };
 
 
@@ -93,9 +154,9 @@ public:
     json_command_scanner(const json_command_scanner&) = default;
 
     std::string
-    declare(const std::string& declaration);
+    declare(const std::string& decl);
 
-    command_call
+    command_statement
     scan(const std::string& text);
 };
 

@@ -17,6 +17,71 @@ namespace metalchat {
 namespace jsonschema = jsoncons::jsonschema;
 
 
+command_statement::command_statement(const std::shared_ptr<basic_command_statement>& stmt)
+: _M_ptr(stmt)
+{}
+
+
+std::string
+command_statement::get_name() const
+{
+    return _M_ptr->get_name();
+}
+
+
+std::optional<std::string>
+command_statement::get_parameter(const std::string& p) const
+{
+    return _M_ptr->get_parameter(p);
+}
+
+
+std::string
+command_statement::str() const
+{
+    return _M_ptr->str();
+}
+
+
+struct json_command_statement::_Members {
+    std::string str;
+    std::string name;
+    jsoncons::json params;
+};
+
+
+json_command_statement::json_command_statement(_Members&& data)
+: _M_data(std::make_shared<_Members>(std::move(data)))
+{}
+
+
+std::string
+json_command_statement::get_name() const
+{
+    return _M_data->name;
+}
+
+
+std::optional<std::string>
+json_command_statement::get_parameter(const std::string& p) const
+{
+    if (_M_data->params.contains(p)) {
+        std::string value;
+        jsoncons::encode_json(_M_data->params[p], value);
+        return value;
+    }
+
+    return std::nullopt;
+}
+
+
+std::string
+json_command_statement::str() const
+{
+    return _M_data->str;
+}
+
+
 struct json_command_scanner::_Members {
     using schema_type = jsonschema::json_schema<jsoncons::json>;
 
@@ -39,9 +104,9 @@ json_command_scanner::json_command_scanner()
 
 
 std::string
-json_command_scanner::declare(const std::string& declaration)
+json_command_scanner::declare(const std::string& decl)
 {
-    auto command = jsoncons::json::parse(declaration);
+    auto command = jsoncons::json::parse(decl);
     if (!_M_data->command_schema.is_valid(command)) {
         // TODO: improve error.
         throw std::runtime_error("json_command_scanner: command schema is not valid");
@@ -62,7 +127,7 @@ json_command_scanner::declare(const std::string& declaration)
 }
 
 
-command_call
+command_statement
 json_command_scanner::scan(const std::string& text)
 {
     auto command = jsoncons::json::parse(text);
@@ -73,7 +138,13 @@ json_command_scanner::scan(const std::string& text)
         throw std::runtime_error("json_command_scanner: wrong command format");
     }
 
-    return command_call{};
+    auto stmt = json_command_statement(json_command_statement::_Members{
+        .str = text,
+        .name = command_name,
+        .params = std::move(command["parameters"]),
+    });
+
+    return command_statement(std::move(stmt));
 }
 
 

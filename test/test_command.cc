@@ -8,7 +8,7 @@ using namespace metalchat;
 
 TEST_CASE("Test JSON command scanner", "[interpreter]")
 {
-    std::string declaration = R"({
+    std::string statement = R"({
 "type": "function",
 "name": "get_weather",
 "description": "Get weather in a particular location",
@@ -18,8 +18,12 @@ TEST_CASE("Test JSON command scanner", "[interpreter]")
 })";
 
     json_command_scanner scanner;
-    auto command_name = scanner.declare(declaration);
+    auto command_name = scanner.declare(statement);
     REQUIRE(command_name == "get_weather");
 
-    scanner.scan(R"({"name": "get_weather", "parameters": {"location": "Berlin"}})");
+    auto text = R"({"name": "get_weather", "parameters": {"location": "Berlin"}})";
+    auto stmt = scanner.scan(text);
+
+    REQUIRE(stmt.get_name() == "get_weather");
+    REQUIRE(stmt.get_parameter("location") == R"("Berlin")");
 }
