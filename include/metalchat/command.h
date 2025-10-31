@@ -58,9 +58,10 @@ private:
 public:
     command_statement(const std::shared_ptr<basic_command_statement>& call);
 
-    template <typename CommandCall> requires std::derived_from<CommandCall, basic_command_statement>
-    command_statement(CommandCall&& call)
-    : _M_ptr(std::make_shared<CommandCall>(std::move(call)))
+    template <typename CommandStatement>
+    requires std::derived_from<CommandStatement, basic_command_statement>
+    command_statement(CommandStatement&& call)
+    : _M_ptr(std::make_shared<CommandStatement>(std::move(call)))
     {}
 
     std::string
