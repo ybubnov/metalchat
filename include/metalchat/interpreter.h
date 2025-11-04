@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileType: SOURCE
+
 #pragma once
 
 #include <iostream>
@@ -124,19 +128,17 @@ private:
 };
 
 
-class interpreter_environment {};
-
-
 class interpreter {
 public:
     using index_type = int32_t;
     using container_type = vector_memory_container<index_type>;
 
     template <typename Transformer>
-    interpreter(Transformer&& transformer, const text::bpe& encoder)
+    interpreter(Transformer&& transformer, const text::bpe& encoder, std::size_t max_pos = -1)
     : _M_transformer(std::make_shared<transformer_wrapper<Transformer>>(std::move(transformer))),
       _M_commands(nullptr),
       _M_encoder(encoder),
+      _M_max_pos(max_pos),
       _M_start_pos(0),
       _M_encoding(1, encoder.encode(text::special_token::begin_text))
     {}
@@ -144,6 +146,9 @@ public:
     // void
     // register_command(const std::string& schema, std::function<std::string(command_statement&)>
     // fn);
+
+    // void
+    // reset();
 
     void
     write(const basic_message& message);
@@ -157,8 +162,7 @@ public:
     basic_message
     read()
     {
-        basic_message query("assistant");
-        query.encode(_M_encoder, std::back_inserter(_M_encoding));
+        write_header("assistant");
 
         std::vector<index_type> encoding;
         _M_encoding.swap(encoding);
@@ -172,18 +176,11 @@ public:
         auto input = future_tensor(tensor({1, encoding_size}, container_ptr), alloc);
         auto output = _M_transformer->transform(input, _M_start_pos);
 
-        auto token = output.get()[0, 0];
-
         _M_start_pos += encoding_size;
         std::stringstream content;
+        std::ostream_iterator<std::string> content_iterator(content);
 
-        auto end_turn = _M_encoder.encode(text::special_token::end_turn);
-        while (token != end_turn) {
-            content << _M_encoder.decode(token);
-            output = _M_transformer->transform(output, _M_start_pos++);
-
-            token = output.get()[0, 0];
-        }
+        read_until(output, text::special_token::end_turn, content_iterator);
 
         return basic_message("assistant", content.str());
     }
@@ -194,8 +191,26 @@ private:
     std::shared_ptr<basic_command_scanner> _M_commands;
     text::bpe _M_encoder;
 
+    std::size_t _M_max_pos;
     std::size_t _M_start_pos;
     std::vector<index_type> _M_encoding;
+
+    void
+    write_header(const std::string& role);
+
+    template <immutable_tensor Output, std::output_iterator<std::string> OutputIt>
+    void
+    read_until(Output output, text::special_token special_token, OutputIt it)
+    {
+        auto token = output.get()[0, 0];
+        auto util_token = _M_encoder.encode(special_token);
+
+        while (token != util_token) {
+            *it++ = _M_encoder.decode(token);
+            output = _M_transformer->transform(output, _M_start_pos++);
+            token = output.get()[0, 0];
+        }
+    }
 };
 
 

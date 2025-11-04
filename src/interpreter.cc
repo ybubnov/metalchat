@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileType: SOURCE
+
 #include <mstch/mstch.hpp>
 
 #include <metalchat/interpreter.h>
@@ -12,15 +16,23 @@ namespace metalchat {
 
 
 void
-interpreter::write(const basic_message& message)
+interpreter::write_header(const std::string& role)
 {
     auto output = std::back_inserter(_M_encoding);
 
     _M_encoder.encode(text::special_token::begin_header, output);
-    _M_encoder.encode(message.role(), output);
+    _M_encoder.encode(role, output);
     _M_encoder.encode(text::special_token::end_header, output);
     _M_encoder.encode("\n\n", output);
+}
 
+
+void
+interpreter::write(const basic_message& message)
+{
+    write_header(message.role());
+
+    auto output = std::back_inserter(_M_encoding);
     auto content = mustache::render(message.content(), mustache::node());
     _M_encoder.encode(content, output);
     _M_encoder.encode(text::special_token::end_turn, output);

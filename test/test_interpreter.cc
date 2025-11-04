@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileType: SOURCE
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <metalchat/allocator.h>
@@ -46,6 +50,7 @@ You have access to the following tool:
 
 To use a tool, respond with JSON in this format:
 {"name": "multiply", "parameters": {"a": 5, "b": 3}}
+
 )";
 
     interp.write(basic_message("system", prompt));

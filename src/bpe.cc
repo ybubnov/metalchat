@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileType: SOURCE
+
 #define PCRE2_CODE_UNIT_WIDTH 8
 
 #include <cppcodec/base64_rfc4648.hpp>
