@@ -21,11 +21,9 @@ TEST_CASE("Test interpreter", "[llama]")
     auto options = nn::default_llama3_1b_options().heap_size(0);
     auto interp = make_llama3(weights_path, tokens_path, options);
 
-    // interp.register_command(command_schema, [](const command_params& params) {
-    // });
-
     command_metadata mul
         = {.name = "multiply",
+           .type = "function",
            .description = "Multiply two numbers",
            .parameters
            = {.type = "object",
@@ -53,10 +51,13 @@ To use a tool, respond with JSON in this format:
 
 )";
 
+    interp.register_command(command, [](const command_statement&) -> std::string {
+        return "1000";
+    });
     interp.write(basic_message("system", prompt));
     interp.write(basic_message("user", "What is 12135 multiplied by 9312?"));
 
-    std::cout << interp.read_text() << std::endl;
+    std::cout << interp.exec().content() << std::endl;
 
     interp.write(basic_message("user", "what is the capital of Belgium?"));
     std::cout << interp.read_text() << std::endl;

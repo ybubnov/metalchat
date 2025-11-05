@@ -18,7 +18,7 @@ namespace metalchat {
 void
 interpreter::write_header(const std::string& role)
 {
-    auto output = std::back_inserter(_M_encoding);
+    auto output = std::back_inserter(_M_buf);
 
     _M_encoder.encode(text::special_token::begin_header, output);
     _M_encoder.encode(role, output);
@@ -32,7 +32,7 @@ interpreter::write(const basic_message& message)
 {
     write_header(message.role());
 
-    auto output = std::back_inserter(_M_encoding);
+    auto output = std::back_inserter(_M_buf);
     auto content = mustache::render(message.content(), mustache::node());
     _M_encoder.encode(content, output);
     _M_encoder.encode(text::special_token::end_turn, output);

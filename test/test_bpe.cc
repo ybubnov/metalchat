@@ -47,6 +47,17 @@ TEST_CASE("Encode pairs with byte merge", "[bpe]")
 }
 
 
+TEST_CASE("Encode ipython word", "[bpe]")
+{
+    byte_pair_encoder tokenizer("../Llama-3.2-1B/original/tokenizer.model");
+
+    auto ids = tokenizer.encode(" ipython");
+
+    auto str = tokenizer.decode(ids.data_ptr(), ids.data_ptr() + ids.size(0));
+    REQUIRE(str == " ipython");
+}
+
+
 TEST_CASE("Encode unknown words", "[bpe]")
 {
     byte_pair_encoder tokenizer("../Llama-3.2-1B/original/tokenizer.model");

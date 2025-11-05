@@ -16,7 +16,6 @@ namespace metalchat {
 struct command_property {
     std::string type;
     std::string description;
-    std::optional<std::string> default_value;
 };
 
 
@@ -28,7 +27,7 @@ struct command_parameters {
 
 
 struct command_metadata {
-    const std::string type = "function";
+    std::string type;
     std::string name;
     std::string description;
     command_parameters parameters;
@@ -85,9 +84,8 @@ public:
     declare(const std::string& decl)
         = 0;
 
-    virtual command_statement
-    scan(const std::string& text)
-        = 0;
+    virtual std::optional<command_statement>
+    scan(const std::string& text) = 0;
 
     virtual ~basic_command_scanner() {}
 };
@@ -114,6 +112,25 @@ public:
 
     std::string
     str() const;
+};
+
+
+class noop_command_scanner : public basic_command_scanner {
+public:
+    noop_command_scanner() = default;
+    noop_command_scanner(const noop_command_scanner&) = default;
+
+    std::string
+    declare(const std::string& decl)
+    {
+        return "";
+    }
+
+    std::optional<command_statement>
+    scan(const std::string& text)
+    {
+        return std::nullopt;
+    }
 };
 
 
@@ -161,7 +178,7 @@ public:
     std::string
     declare(const std::string& decl);
 
-    command_statement
+    std::optional<command_statement>
     scan(const std::string& text);
 };
 

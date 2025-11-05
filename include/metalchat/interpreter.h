@@ -35,6 +35,8 @@ public:
       _M_content()
     {}
 
+    basic_message(const basic_message&) = default;
+
     const std::string&
     role() const
     {
@@ -129,23 +131,31 @@ private:
 
 
 class interpreter {
-public:
+private:
     using index_type = int32_t;
+    using tensor_type = future_tensor<index_type, 2>;
     using container_type = vector_memory_container<index_type>;
+
+public:
+    using command_type = std::function<std::string(const command_statement&)>;
 
     template <typename Transformer>
     interpreter(Transformer&& transformer, const text::bpe& encoder, std::size_t max_pos = -1)
     : _M_transformer(std::make_shared<transformer_wrapper<Transformer>>(std::move(transformer))),
-      _M_commands(nullptr),
+      _M_command_scanner(std::make_shared<json_command_scanner>()),
+      _M_commands(),
       _M_encoder(encoder),
       _M_max_pos(max_pos),
       _M_start_pos(0),
-      _M_encoding(1, encoder.encode(text::special_token::begin_text))
+      _M_buf(1, encoder.encode(text::special_token::begin_text))
     {}
 
-    // void
-    // register_command(const std::string& schema, std::function<std::string(command_statement&)>
-    // fn);
+    void
+    register_command(const std::string& declaration, command_type command)
+    {
+        auto command_name = _M_command_scanner->declare(declaration);
+        _M_commands.insert_or_assign(command_name, command);
+    }
 
     // void
     // reset();
@@ -164,8 +174,64 @@ public:
     {
         write_header("assistant");
 
+        std::stringstream content;
+        std::ostream_iterator<std::string> content_iterator(content);
+
+        read(content_iterator, text::special_token::end_turn);
+        return basic_message("assistant", content.str());
+    }
+
+    basic_message
+    exec()
+    {
+        basic_message message("assistant");
+
+        do {
+            write_header("assistant");
+
+            std::stringstream content;
+            std::ostream_iterator<std::string> content_iterator(content);
+
+            read(content_iterator, text::special_token::end_turn);
+            message = basic_message("assistant", content.str());
+
+            auto command_statement = _M_command_scanner->scan(content.str());
+            if (command_statement.has_value()) {
+                std::cout << "COMMAND=<<<" << content.str() << ">>>" << std::endl;
+                auto& statement = command_statement.value();
+                auto& command = _M_commands[statement.get_name()];
+                auto command_output = command(statement);
+
+                write(basic_message("python", command_output));
+            }
+
+        } while (!_M_buf.empty());
+
+        return message;
+    }
+
+private:
+    std::shared_ptr<basic_transformer> _M_transformer;
+    std::shared_ptr<basic_command_scanner> _M_command_scanner;
+    std::unordered_map<std::string, command_type> _M_commands;
+    text::bpe _M_encoder;
+
+    std::size_t _M_max_pos;
+    std::size_t _M_start_pos;
+    std::vector<index_type> _M_buf;
+
+    void
+    write_header(const std::string& role);
+
+    tensor_type
+    flush()
+    {
+        for (auto& e : _M_buf) {
+            std::cout << _M_encoder.decode(e);
+        }
+        std::cout << std::flush;
         std::vector<index_type> encoding;
-        _M_encoding.swap(encoding);
+        _M_buf.swap(encoding);
 
         auto encoding_size = encoding.size();
         auto container_ptr = std::make_shared<container_type>(std::move(encoding));
@@ -174,42 +240,28 @@ public:
         auto alloc = accelerator.get_allocator();
 
         auto input = future_tensor(tensor({1, encoding_size}, container_ptr), alloc);
-        auto output = _M_transformer->transform(input, _M_start_pos);
+        auto stream = _M_transformer->transform(input, _M_start_pos);
 
         _M_start_pos += encoding_size;
-        std::stringstream content;
-        std::ostream_iterator<std::string> content_iterator(content);
-
-        read_until(output, text::special_token::end_turn, content_iterator);
-
-        return basic_message("assistant", content.str());
+        return stream;
     }
 
-
-private:
-    std::shared_ptr<basic_transformer> _M_transformer;
-    std::shared_ptr<basic_command_scanner> _M_commands;
-    text::bpe _M_encoder;
-
-    std::size_t _M_max_pos;
-    std::size_t _M_start_pos;
-    std::vector<index_type> _M_encoding;
-
-    void
-    write_header(const std::string& role);
-
-    template <immutable_tensor Output, std::output_iterator<std::string> OutputIt>
-    void
-    read_until(Output output, text::special_token special_token, OutputIt it)
+    template <std::output_iterator<std::string> OutputIt>
+    tensor_type
+    read(OutputIt it, text::special_token special_token)
     {
-        auto token = output.get()[0, 0];
+        auto stream = flush();
+
+        auto token = stream.get()[0, 0];
         auto util_token = _M_encoder.encode(special_token);
 
         while (token != util_token) {
             *it++ = _M_encoder.decode(token);
-            output = _M_transformer->transform(output, _M_start_pos++);
-            token = output.get()[0, 0];
+            stream = _M_transformer->transform(stream, _M_start_pos++);
+            token = stream.get()[0, 0];
         }
+
+        return stream;
     }
 };
 

@@ -17,7 +17,11 @@ TEST_CASE("Test JSON command scanner", "[interpreter]")
 "name": "get_weather",
 "description": "Get weather in a particular location",
 "parameters": {
-  "location": {"type": "string", "description": "Location to get weather from"}
+  "type": "object",
+  "properties": {
+    "location": {"type": "string", "description": "Location to get weather from"}
+  },
+  "required": ["location"]
 }
 })";
 
@@ -28,6 +32,7 @@ TEST_CASE("Test JSON command scanner", "[interpreter]")
     auto text = R"({"name": "get_weather", "parameters": {"location": "Berlin"}})";
     auto stmt = scanner.scan(text);
 
-    REQUIRE(stmt.get_name() == "get_weather");
-    REQUIRE(stmt.get_parameter("location") == R"("Berlin")");
+    REQUIRE(stmt.has_value());
+    REQUIRE(stmt.value().get_name() == "get_weather");
+    REQUIRE(stmt.value().get_parameter("location") == R"("Berlin")");
 }

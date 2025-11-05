@@ -196,6 +196,17 @@ private:
                                                 R"(\s+(?!\S)|)"
                                                 R"(\s+)");
 
+    /// This structure is used in the byte-pair merging algorithm.
+    struct token_segment {
+        index_type priority;
+        std::size_t end;
+
+        token_segment(index_type p, std::size_t e)
+        : priority(p),
+          end(e)
+        {}
+    };
+
     /// Encode the specified string by joining byte pairs.
     ///
     /// The algorithm works like following:
@@ -211,11 +222,12 @@ private:
         std::size_t priority_limit = std::numeric_limits<index_type>::max();
 
         using pair_type = std::pair<index_type, std::size_t>;
+        using container_type = std::vector<pair_type>;
 
-        std::priority_queue<pair_type, std::vector<pair_type>, std::greater<pair_type>> ordering;
-        std::vector<pair_type> encoding;
+        std::priority_queue<pair_type, container_type, std::greater<pair_type>> ordering;
+        std::vector<token_segment> encoding;
 
-        // Get the priority from the map, when the key is not resented, return a
+        // Get the priority from the map, when the key is not presented, return a
         // limit of the priority type.
         auto get_priority = [&](const std::string& key) -> index_type {
             if (auto it = _M_fmap.find(key); it != _M_fmap.end()) {
@@ -225,40 +237,44 @@ private:
         };
 
         for (std::size_t i = 0; i < s.size() - 1; i++) {
-            auto key = s.substr(i, 2);
+            auto key = s.substr(i, 1);
             auto priority = get_priority(key);
 
             ordering.emplace(priority, i);
-            encoding.emplace_back(priority, i);
+            encoding.emplace_back(priority, i + 1);
         }
 
+        encoding.emplace_back(priority_limit, s.size());
+
         while (!ordering.empty()) {
-            auto [priority, i] = ordering.top();
+            auto [priority, begin] = ordering.top();
+            auto next = encoding[begin].end;
             ordering.pop();
-            if (i >= encoding.size() - 1) {
+
+            if (encoding[begin].priority >= priority_limit || next >= encoding.size()) {
                 continue;
             }
 
-            auto begin = encoding[i].second;
-            auto end = encoding[i + 1].second;
+            auto end = encoding[next].end;
             auto key = s.substr(begin, end - begin);
 
             auto merged_priority = get_priority(key);
-
-            encoding[i].first = merged_priority;
-            encoding.erase(encoding.begin() + i + 1);
+            if (merged_priority >= priority_limit) {
+                continue;
+            }
 
             // Merge elements, then push a merge into the queue for further processing.
-            if (merged_priority < priority_limit) {
-                ordering.emplace(merged_priority, i);
-            }
+            ordering.emplace(merged_priority, begin);
+
+            encoding[begin].priority = merged_priority;
+            encoding[begin].end = end;
+            encoding[next].priority = priority_limit;
         }
 
-        for (std::size_t i = 0; i < encoding.size() - 1; i++) {
-            auto begin = encoding[i].second;
-            auto end = encoding[i + 1].second;
-            auto key = s.substr(begin, end - begin);
-            *output++ = _M_fmap.at(key);
+        for (auto& e : encoding) {
+            if (e.priority < priority_limit) {
+                *output++ = e.priority;
+            }
         }
     }
 

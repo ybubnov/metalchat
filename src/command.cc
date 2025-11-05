@@ -10,9 +10,9 @@
 #include <metalchat/command.h>
 
 
-JSONCONS_ALL_MEMBER_TRAITS(metalchat::command_property, type, description, default_value);
+JSONCONS_ALL_MEMBER_TRAITS(metalchat::command_property, type, description);
 JSONCONS_ALL_MEMBER_TRAITS(metalchat::command_parameters, type, required, properties);
-JSONCONS_ALL_MEMBER_TRAITS(metalchat::command_metadata, name, description, parameters);
+JSONCONS_ALL_MEMBER_TRAITS(metalchat::command_metadata, type, name, description, parameters);
 
 
 namespace metalchat {
@@ -131,15 +131,19 @@ json_command_scanner::declare(const std::string& decl)
 }
 
 
-command_statement
+std::optional<command_statement>
 json_command_scanner::scan(const std::string& text)
 {
+    if (!text.starts_with("{")) {
+        return std::nullopt;
+    }
+
     auto command = jsoncons::json::parse(text);
     auto command_name = command["name"].as<std::string>();
     auto& command_schema = _M_data->commands.at(command_name);
 
     if (!command_schema.is_valid(command)) {
-        throw std::runtime_error("json_command_scanner: wrong command format");
+        return std::nullopt;
     }
 
     auto stmt = json_command_statement(json_command_statement::_Members{
