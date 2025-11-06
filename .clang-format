@@ -13,6 +13,7 @@ AccessModifierOffset: -4
 MaxEmptyLinesToKeep: 2
 
 AlignOperands: Align
+AlignEscapedNewlines: LeftWithLastLine
 BreakBeforeBinaryOperators: All
 
 BinPackParameters: false

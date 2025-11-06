@@ -344,6 +344,18 @@ public:
     : byte_pair_encoder(std::filesystem::path(path))
     {}
 
+    bool
+    is_special(index_type id) const
+    {
+        return id >= size();
+    }
+
+    std::size_t
+    size() const
+    {
+        return _M_fmap.size();
+    }
+
     /// Encode the provided string into tokens.
     ///
     /// This method iteratively splits the string into tokens and then appends a corresponding

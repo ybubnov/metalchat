@@ -34,25 +34,20 @@ TEST_CASE("Test interpreter", "[llama]")
 
     auto command = mul.write_json();
 
-    auto prompt = R"(
-Environment: ipython
-Tools: multiply
+    auto prompt = R"(Environment: ipython
 
 # Tool Instructions
 - When you need to multiply numbers, use the multiply tool
 - Always call tools when appropriate rather than guessing
 
-You have access to the following tool:
+You have access to the following tools:
 
-)" + command + R"(
-
-To use a tool, respond with JSON in this format:
-{"name": "multiply", "parameters": {"a": 5, "b": 3}}
-
+{{ $METALCHAT_COMMANDS }}
+{{ $METALCHAT_COMMAND_FORMAT }}
 )";
 
-    interp.register_command(command, [](const command_statement&) -> std::string {
-        return "1000";
+    interp.declare_command(command, [](const command_statement&) -> std::string {
+        return R"(113001120)";
     });
     interp.write(basic_message("system", prompt));
     interp.write(basic_message("user", "What is 12135 multiplied by 9312?"));

@@ -132,30 +132,40 @@ private:
 
 class interpreter {
 private:
+    struct _Members;
+
     using index_type = int32_t;
     using tensor_type = future_tensor<index_type, 2>;
     using container_type = vector_memory_container<index_type>;
 
+    interpreter(
+        std::shared_ptr<basic_transformer> transformer_ptr,
+        const text::bpe& encoder,
+        std::size_t max_pos
+    );
+
+    template <typename Transformer>
+    static std::shared_ptr<basic_transformer>
+    wrap(Transformer&& transformer)
+    {
+        return std::make_shared<transformer_wrapper<Transformer>>(std::move(transformer));
+    }
+
 public:
     using command_type = std::function<std::string(const command_statement&)>;
 
+    struct variables {
+        static const std::string commands;
+        static const std::string command_format;
+    };
+
     template <typename Transformer>
     interpreter(Transformer&& transformer, const text::bpe& encoder, std::size_t max_pos = -1)
-    : _M_transformer(std::make_shared<transformer_wrapper<Transformer>>(std::move(transformer))),
-      _M_command_scanner(std::make_shared<json_command_scanner>()),
-      _M_commands(),
-      _M_encoder(encoder),
-      _M_max_pos(max_pos),
-      _M_start_pos(0),
-      _M_buf(1, encoder.encode(text::special_token::begin_text))
+    : interpreter(wrap(std::move(transformer)), encoder, max_pos)
     {}
 
     void
-    register_command(const std::string& declaration, command_type command)
-    {
-        auto command_name = _M_command_scanner->declare(declaration);
-        _M_commands.insert_or_assign(command_name, command);
-    }
+    declare_command(const std::string& declaration, command_type command);
 
     // void
     // reset();
@@ -177,7 +187,7 @@ public:
         std::stringstream content;
         std::ostream_iterator<std::string> content_iterator(content);
 
-        read(content_iterator, text::special_token::end_turn);
+        read(content_iterator);
         return basic_message("assistant", content.str());
     }
 
@@ -192,17 +202,16 @@ public:
             std::stringstream content;
             std::ostream_iterator<std::string> content_iterator(content);
 
-            read(content_iterator, text::special_token::end_turn);
+            read(content_iterator);
             message = basic_message("assistant", content.str());
 
             auto command_statement = _M_command_scanner->scan(content.str());
             if (command_statement.has_value()) {
-                std::cout << "COMMAND=<<<" << content.str() << ">>>" << std::endl;
                 auto& statement = command_statement.value();
                 auto& command = _M_commands[statement.get_name()];
                 auto command_output = command(statement);
 
-                write(basic_message("python", command_output));
+                write(basic_message("ipython", command_output));
             }
 
         } while (!_M_buf.empty());
@@ -211,6 +220,7 @@ public:
     }
 
 private:
+    std::shared_ptr<_Members> _M_members;
     std::shared_ptr<basic_transformer> _M_transformer;
     std::shared_ptr<basic_command_scanner> _M_command_scanner;
     std::unordered_map<std::string, command_type> _M_commands;
@@ -248,20 +258,28 @@ private:
 
     template <std::output_iterator<std::string> OutputIt>
     tensor_type
-    read(OutputIt it, text::special_token special_token)
+    read(OutputIt it)
     {
         auto stream = flush();
-
         auto token = stream.get()[0, 0];
-        auto util_token = _M_encoder.encode(special_token);
 
-        while (token != util_token) {
+        auto end = index_type(0);
+        end |= bitset_token_cast(_M_encoder.encode(text::special_token::end_turn));
+        end |= bitset_token_cast(_M_encoder.encode(text::special_token::end_message));
+
+        while (!(_M_encoder.is_special(token) && (bitset_token_cast(token) & end))) {
             *it++ = _M_encoder.decode(token);
             stream = _M_transformer->transform(stream, _M_start_pos++);
             token = stream.get()[0, 0];
         }
 
         return stream;
+    }
+
+    index_type
+    bitset_token_cast(index_type id) const
+    {
+        return (1 << (id - _M_encoder.size()));
     }
 };
 

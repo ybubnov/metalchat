@@ -15,6 +15,67 @@ namespace mustache = mstch;
 namespace metalchat {
 
 
+const std::string interpreter::variables::commands = "$METALCHAT_COMMANDS";
+const std::string interpreter::variables::command_format = "$METALCHAT_COMMAND_FORMAT";
+
+
+namespace variable_default {
+
+
+static const std::string command_format = R"(
+To use a tool, respond with JSON in this format:
+{"name":"command_name","parameters":{"param1":"value","param2":"value"}}
+)";
+
+
+} // namespace variable_default
+
+
+struct interpreter::_Members {
+    mustache::map vars;
+
+    _Members()
+    : vars({
+          {variables::commands, ""},
+          {variables::command_format, variable_default::command_format},
+      })
+    {}
+};
+
+
+interpreter::interpreter(
+    std::shared_ptr<basic_transformer> transformer_ptr,
+    const text::bpe& encoder,
+    std::size_t max_pos
+)
+: _M_members(std::make_shared<_Members>()),
+  _M_transformer(transformer_ptr),
+  _M_command_scanner(std::make_shared<json_command_scanner>()),
+  _M_commands(),
+  _M_encoder(encoder),
+  _M_max_pos(max_pos),
+  _M_start_pos(0),
+  _M_buf(1, encoder.encode(text::special_token::begin_text))
+{
+    // Do not escape characters, leave them as is.
+    mustache::config::escape = [](const std::string& str) -> std::string { return str; };
+}
+
+
+void
+interpreter::declare_command(const std::string& declaration, command_type command)
+{
+    auto command_name = _M_command_scanner->declare(declaration);
+    _M_commands.insert_or_assign(command_name, command);
+
+    auto& commands = std::get<std::string>(_M_members->vars[variables::commands]);
+    if (!commands.empty()) {
+        commands += ",";
+    }
+    commands += declaration;
+}
+
+
 void
 interpreter::write_header(const std::string& role)
 {
@@ -33,7 +94,7 @@ interpreter::write(const basic_message& message)
     write_header(message.role());
 
     auto output = std::back_inserter(_M_buf);
-    auto content = mustache::render(message.content(), mustache::node());
+    auto content = mustache::render(message.content(), _M_members->vars);
     _M_encoder.encode(content, output);
     _M_encoder.encode(text::special_token::end_turn, output);
 }
