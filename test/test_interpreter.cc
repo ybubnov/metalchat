@@ -21,18 +21,14 @@ TEST_CASE("Test interpreter", "[llama]")
     auto options = nn::default_llama3_1b_options().heap_size(0);
     auto interp = make_llama3(weights_path, tokens_path, options);
 
-    command_metadata mul
-        = {.name = "multiply",
-           .type = "function",
-           .description = "Multiply two numbers",
-           .parameters
-           = {.type = "object",
-              .properties
-              = {{"a", {.type = "number", .description = "First number"}},
-                 {"b", {.type = "number", .description = "Second number"}}},
-              .required = {"a", "b"}}};
-
-    auto command = mul.write_json();
+    auto command = R"({
+"name":"multiply",
+"type": "function",
+"description":"multiply two numbers",
+"parameters":{
+  "a":{"type":"number","description":"first number"},
+  "b":{"type":"number","description":"second number"}
+}})";
 
     auto prompt = R"(Environment: ipython
 
@@ -44,10 +40,10 @@ You have access to the following tools:
 
 {{ $METALCHAT_COMMANDS }}
 {{ $METALCHAT_COMMAND_FORMAT }}
-{{ $MYVAR }}
+{{ $EXTRA_INSTRUCTIONS }}
 )";
 
-    interp.declare_variable("MYVAR", "you're cute");
+    interp.declare_variable("EXTRA_INSTRUCTIONS", "answer in english");
     interp.declare_command(command, [](const command_statement&) -> std::string {
         return R"(113001120)";
     });

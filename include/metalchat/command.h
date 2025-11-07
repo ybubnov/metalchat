@@ -13,30 +13,6 @@
 namespace metalchat {
 
 
-struct command_property {
-    std::string type;
-    std::string description;
-};
-
-
-struct command_parameters {
-    std::string type;
-    std::vector<std::string> required;
-    std::unordered_map<std::string, command_property> properties;
-};
-
-
-struct command_metadata {
-    std::string type;
-    std::string name;
-    std::string description;
-    command_parameters parameters;
-
-    std::string
-    write_json() const;
-};
-
-
 class basic_command_statement {
 public:
     virtual std::string

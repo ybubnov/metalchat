@@ -10,11 +10,6 @@
 #include <metalchat/command.h>
 
 
-JSONCONS_ALL_MEMBER_TRAITS(metalchat::command_property, type, description);
-JSONCONS_ALL_MEMBER_TRAITS(metalchat::command_parameters, type, required, properties);
-JSONCONS_ALL_MEMBER_TRAITS(metalchat::command_metadata, type, name, description, parameters);
-
-
 namespace metalchat {
 
 
@@ -163,16 +158,6 @@ std::shared_ptr<basic_command_scanner>
 make_json_scanner()
 {
     return std::make_shared<json_command_scanner>();
-}
-
-
-std::string
-command_metadata::write_json() const
-{
-    std::string output;
-    jsoncons::encode_json(*this, output);
-
-    return output;
 }
 
 
