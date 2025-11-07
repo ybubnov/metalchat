@@ -44,8 +44,10 @@ You have access to the following tools:
 
 {{ $METALCHAT_COMMANDS }}
 {{ $METALCHAT_COMMAND_FORMAT }}
+{{ $MYVAR }}
 )";
 
+    interp.declare_variable("MYVAR", "you're cute");
     interp.declare_command(command, [](const command_statement&) -> std::string {
         return R"(113001120)";
     });

@@ -15,8 +15,8 @@ namespace mustache = mstch;
 namespace metalchat {
 
 
-const std::string interpreter::variables::commands = "$METALCHAT_COMMANDS";
-const std::string interpreter::variables::command_format = "$METALCHAT_COMMAND_FORMAT";
+const std::string interpreter::variable::commands = "METALCHAT_COMMANDS";
+const std::string interpreter::variable::command_format = "METALCHAT_COMMAND_FORMAT";
 
 
 namespace variable_default {
@@ -36,10 +36,28 @@ struct interpreter::_Members {
 
     _Members()
     : vars({
-          {variables::commands, ""},
-          {variables::command_format, variable_default::command_format},
+          {expand(variable::commands), ""},
+          {expand(variable::command_format), variable_default::command_format},
       })
     {}
+
+    std::string
+    expand(const std::string& key)
+    {
+        return "$" + key;
+    }
+
+    std::string&
+    at(const std::string& key)
+    {
+        return std::get<std::string>(vars[expand(key)]);
+    }
+
+    void
+    assign(const std::string& key, const std::string& val)
+    {
+        vars.insert_or_assign(expand(key), val);
+    }
 };
 
 
@@ -57,7 +75,8 @@ interpreter::interpreter(
   _M_start_pos(0),
   _M_buf(1, encoder.encode(text::special_token::begin_text))
 {
-    // Do not escape characters, leave them as is.
+    // Do not escape characters, leave them as is. This is the global configuration,
+    // so unfortunately this line changes behaviour for the whole library.
     mustache::config::escape = [](const std::string& str) -> std::string { return str; };
 }
 
@@ -68,11 +87,24 @@ interpreter::declare_command(const std::string& declaration, command_type comman
     auto command_name = _M_command_scanner->declare(declaration);
     _M_commands.insert_or_assign(command_name, command);
 
-    auto& commands = std::get<std::string>(_M_members->vars[variables::commands]);
+    auto& commands = _M_members->at(variable::commands);
     if (!commands.empty()) {
         commands += ",";
     }
     commands += declaration;
+}
+
+
+void
+interpreter::declare_variable(const std::string& declaration, const std::string& value)
+{
+    if (declaration.starts_with("$")) {
+        throw std::invalid_argument(
+            std::format("interpreter: variable {} cannot start with $", declaration)
+        );
+    }
+
+    _M_members->assign(declaration, value);
 }
 
 

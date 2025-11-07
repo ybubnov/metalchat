@@ -152,10 +152,24 @@ private:
     }
 
 public:
+    /// Type of the command handler used to process command calls.
+    ///
+    /// Interpreter executes a registered command, when an LLM model requests for an execution.
     using command_type = std::function<std::string(const command_statement&)>;
 
-    struct variables {
+    /// The structure keeps variable names accessing to the interpreter.
+    ///
+    /// Each message submitted to the interpreter is being passed through the mustache
+    /// render engine, so all valid mustache sequences are expanded with appropriate
+    /// variable values.
+    ///
+    /// Like in UNIX shell, the variables are accessing through $-expansion syntax like
+    /// following: `$COMMAND_NAME`.
+    struct variable {
+        /// Variable `$METALCHAT_COMMANDS`
         static const std::string commands;
+
+        /// Variable `$METALCHAT_COMMAND_FORMAT`
         static const std::string command_format;
     };
 
@@ -164,8 +178,32 @@ public:
     : interpreter(wrap(std::move(transformer)), encoder, max_pos)
     {}
 
+    /// Declare the command available for execution.
+    ///
+    /// The declaration format depends on the underlying command scanner. By default command
+    /// scanner is a \ref json_command_scanner, and declaration should be a
+    /// [JSON Schema](https://json-schema.org/draft/2020-12) of the command and it's parameters.
+    ///
+    /// All command declarations are appended to the variable `$METALCHAT_COMMANDS`.
+    ///
+    /// \param declaration A command declaration (i.e. JSON Schema by default).
+    /// \param command A handler that returns the result of command execution.
     void
     declare_command(const std::string& declaration, command_type command);
+
+    /// Declare the variable.
+    ///
+    /// The variable should not start with $-expansion symbol.
+    ///
+    /// ```c++
+    /// interpreter interp(/* ... */);
+    /// interp.declare_variable("MY_VAR", R"(arbitrary text)");
+    /// ```
+    ///
+    /// \param declaration A variable name.
+    /// \param value A variable value.
+    void
+    declare_variable(const std::string& declaration, const std::string& value);
 
     // void
     // reset();
