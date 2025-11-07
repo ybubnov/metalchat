@@ -136,21 +136,26 @@ json_command_scanner::scan(const std::string& text)
     }
     auto str = text.substr(tag.size(), text.size() - tag.size());
 
-    auto command = jsoncons::json::parse(str);
-    auto command_name = command["name"].as<std::string>();
-    auto& command_schema = _M_data->commands.at(command_name);
+    try {
+        auto command = jsoncons::json::parse(str);
+        auto command_name = command["name"].as<std::string>();
+        auto& command_schema = _M_data->commands.at(command_name);
 
-    if (!command_schema.is_valid(command)) {
+        if (!command_schema.is_valid(command)) {
+            return std::nullopt;
+        }
+
+        auto stmt = json_command_statement(json_command_statement::_Members{
+            .str = str,
+            .name = command_name,
+            .params = std::move(command["parameters"]),
+        });
+
+        return command_statement(std::move(stmt));
+
+    } catch (const jsoncons::ser_error&) {
         return std::nullopt;
     }
-
-    auto stmt = json_command_statement(json_command_statement::_Members{
-        .str = str,
-        .name = command_name,
-        .params = std::move(command["parameters"]),
-    });
-
-    return command_statement(std::move(stmt));
 }
 
 
