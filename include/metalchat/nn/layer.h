@@ -48,7 +48,7 @@ public:
 
     /// Return the raw shared pointer to the layer.
     std::shared_ptr<Layer>
-    get()
+    get() const
     {
         return _M_value;
     }
@@ -71,6 +71,14 @@ public:
     operator*() const noexcept
     {
         return (*_M_value);
+    }
+
+    template <typename DerivedLayer> requires std::derived_from<DerivedLayer, Layer>
+    shared_layer_ptr<Layer>&
+    operator=(const shared_layer_ptr<DerivedLayer>& derived)
+    {
+        _M_value = derived.get();
+        return *this;
     }
 
 private:

@@ -48,12 +48,13 @@ template <typename T, contiguous_container Container> class attention : public b
 private:
     static constexpr std::size_t input_size = 4;
 
+    using _BasicLinear = nn::basic_linear<T, Container>;
     using _Linear = nn::linear<T, Container>;
 
-    _Linear::layer_pointer _M_wq;
-    _Linear::layer_pointer _M_wk;
-    _Linear::layer_pointer _M_wv;
-    _Linear::layer_pointer _M_wo;
+    _BasicLinear::layer_pointer _M_wq;
+    _BasicLinear::layer_pointer _M_wk;
+    _BasicLinear::layer_pointer _M_wv;
+    _BasicLinear::layer_pointer _M_wo;
 
     nn::rope<T> _M_rope;
     nn::attention_options _M_options;

@@ -122,11 +122,12 @@ private:
     using _CacheArray = layer_array<Cache>;
     using _Embedding = nn::embedding<T, Container>;
     using _RMSNorm = nn::rmsnorm<T, Container>;
+    using _BasicLinear = nn::basic_linear<T, Container>;
     using _Linear = nn::linear<T, Container>;
 
     _Embedding::layer_pointer _M_embedding;
     _RMSNorm::layer_pointer _M_norm;
-    _Linear::layer_pointer _M_output;
+    _BasicLinear::layer_pointer _M_output;
 
     _TransformerArray::layer_pointer _M_transforms;
     _CacheArray::layer_pointer _M_caches;

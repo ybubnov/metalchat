@@ -14,13 +14,36 @@ namespace metalchat {
 namespace nn {
 
 
+template <typename T, contiguous_container Container = hardware_memory_container<T>>
+class basic_linear : public basic_layer {
+public:
+    using value_type = T;
+    using container_type = Container;
+
+    using layer_type = basic_linear<T, Container>;
+    using layer_pointer = shared_layer_ptr<layer_type>;
+
+    using input_type = future_tensor<value_type, 3>;
+    using result_type = future_tensor<value_type, 3>;
+
+    using basic_layer::basic_layer;
+
+    virtual result_type
+    operator()(input_type input);
+
+    virtual ~basic_linear() {}
+};
+
+
 /// Applies an affine linear transformation to the input data.
 ///
 /// This module does not support bias adjustment to the input tensor, and only multiplies
 /// it (input) by the specified weight tensor. Meaning it effectively works as matrix
 /// multiplication operation.
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class linear : public basic_layer {
+class linear : public basic_linear<T, Container> {
+    using _Base = basic_linear<T, Container>;
+
 public:
     using value_type = T;
     using container_type = Container;
@@ -31,10 +54,10 @@ public:
     using layer_pointer = shared_layer_ptr<layer_type>;
 
     linear(weight_pointer weight_ptr, hardware_accelerator& accelerator)
-    : basic_layer(accelerator),
+    : _Base(accelerator),
       _M_weight(weight_ptr)
     {
-        register_parameter("weight", _M_weight);
+        _Base::register_parameter("weight", _M_weight);
     }
 
     linear(weight_type&& weight, hardware_accelerator& accelerator)
@@ -54,7 +77,13 @@ public:
     auto
     operator()(Input input)
     {
-        return matmul(input, _M_weight.transpose({1, 0}), accelerator());
+        return matmul(input, _M_weight.transpose({1, 0}), _Base::accelerator());
+    }
+
+    _Base::result_type
+    operator()(_Base::input_type input)
+    {
+        return matmul(input, _M_weight.transpose({1, 0}), _Base::accelerator());
     }
 
     friend std::ostream&

@@ -24,11 +24,12 @@ namespace nn {
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class feed_forward : public basic_layer {
 private:
+    using _BasicLinear = nn::basic_linear<T, Container>;
     using _Linear = nn::linear<T, Container>;
 
-    _Linear::layer_pointer _M_w1;
-    _Linear::layer_pointer _M_w2;
-    _Linear::layer_pointer _M_w3;
+    _BasicLinear::layer_pointer _M_w1;
+    _BasicLinear::layer_pointer _M_w2;
+    _BasicLinear::layer_pointer _M_w3;
 
 public:
     using value_type = T;
