@@ -84,3 +84,34 @@ TEST_CASE("Test recurse parameter query", "[layer]")
     REQUIRE_THROWS_WITH(tl.get_parameter("inner....."), match_not_registered);
     REQUIRE_THROWS_WITH(tl.get_parameter(""), match_not_registered);
 }
+
+
+TEST_CASE("Test layers traversal", "[layer]")
+{
+    using linear = nn::linear<float, hardware_memory_container<float>>;
+
+    struct test_layer : public nn::basic_layer {
+        using _LinearArray = nn::layer_array<linear>;
+        _LinearArray::layer_pointer layers;
+
+        test_layer(std::size_t size, hardware_accelerator gpu)
+        : nn::basic_layer(gpu)
+        {
+            layers = register_layer("layers", _LinearArray(gpu));
+
+            for (std::size_t i = 0; i < size; i++) {
+                layers->emplace_back(10, 3, gpu);
+            }
+        }
+    };
+
+    hardware_accelerator gpu0;
+    test_layer layer(10, gpu0);
+
+    using layer_ptr = test_layer::layer_pointer;
+    std::vector<layer_ptr> layers;
+
+    layer.apply([&](nn::named_layer layer) { layers.push_back(layer.ptr); });
+
+    REQUIRE(layers.size() == 11);
+}

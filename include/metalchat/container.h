@@ -161,6 +161,9 @@ concept contiguous_container = requires {
 template <typename T, contiguous_container Container> struct container_rebind;
 
 
+template <contiguous_container> struct container_remove_type;
+
+
 template <contiguous_container Container> struct container_offset;
 
 
@@ -323,6 +326,11 @@ public:
 };
 
 
+template <typename T> struct container_remove_type<random_memory_container<T>> {
+    using type = random_memory_container<void>;
+};
+
+
 template <typename T> struct container_rebind<T, random_memory_container<void>> {
     using type = random_memory_container<T>;
     using pointer = std::shared_ptr<type>;
@@ -440,6 +448,11 @@ template <typename T> struct hardware_memory_container : public memory_container
     {
         return static_cast<std::uint8_t*>(metal::data(_M_mem)) + storage_offset();
     }
+};
+
+
+template <typename T> struct container_remove_type<hardware_memory_container<T>> {
+    using type = hardware_memory_container<void>;
 };
 
 
@@ -563,6 +576,11 @@ public:
 };
 
 
+template <typename T> struct container_remove_type<filebuf_memory_container<T>> {
+    using type = filebuf_memory_container<void>;
+};
+
+
 template <typename T> class offsetted_container_adapter : public memory_container<T> {
 public:
     using value_type = T;
@@ -600,6 +618,11 @@ public:
 private:
     std::shared_ptr<memory_container<T>> _M_container;
     std::size_t _M_offset;
+};
+
+
+template <typename T> struct container_remove_type<offsetted_container_adapter<T>> {
+    using type = offsetted_container_adapter<void>;
 };
 
 

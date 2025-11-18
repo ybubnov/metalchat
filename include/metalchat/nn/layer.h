@@ -6,6 +6,7 @@
 
 #include <deque>
 #include <functional>
+#include <memory>
 #include <optional>
 
 #include <metalchat/accelerator.h>
@@ -83,6 +84,21 @@ public:
 
 private:
     std::shared_ptr<Layer> _M_value;
+};
+
+
+class basic_layer;
+
+
+struct named_layer {
+    std::string name;
+    std::shared_ptr<basic_layer> ptr;
+};
+
+
+struct named_parameter {
+    std::string name;
+    std::shared_ptr<basic_tensor> ptr;
 };
 
 
@@ -265,12 +281,12 @@ public:
     ///
     /// This method traverses all parameters in breadth-first way when `recurse` parameter is set
     /// to `true`. Otherwise, only parameters of the current layer are visited.
-    template <std::invocable<const std::string&, parameter_pointer> Function>
+    template <std::invocable<named_parameter> Function>
     void
     apply(Function fn, bool recurse = true) const
     {
         for (const auto& [full_name, param] : _M_params) {
-            fn(full_name, param);
+            fn(named_parameter{full_name, param});
         }
 
         if (!recurse) {
@@ -292,8 +308,29 @@ public:
 
             for (auto [param_name, param] : layer_ptr->_M_params) {
                 auto full_name = name + "." + param_name;
-                fn(full_name, param);
+                fn(named_parameter{full_name, param});
             }
+        }
+    }
+
+    template <std::invocable<named_layer> Function>
+    void
+    apply(Function fn)
+    {
+        using layer_type = layer_container::value_type;
+        std::deque<layer_type> layers(_M_layers.begin(), _M_layers.end());
+
+        while (!layers.empty()) {
+            auto [name, layer_ptr] = layers.front();
+            layers.pop_front();
+
+            // Iterate over the downstream layers, and push them back to the queue.
+            for (auto [child_name, child_layer_ref] : layer_ptr->_M_layers) {
+                auto full_name = name + "." + child_name;
+                layers.emplace_back(full_name, child_layer_ref);
+            }
+
+            fn(named_layer{name, layer_ptr});
         }
     }
 

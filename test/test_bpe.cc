@@ -13,9 +13,12 @@ using namespace metalchat;
 using namespace metalchat::text;
 
 
+static const std::string tokenizer_path = "../Llama-3.2-1B-Instruct/original/tokenizer.model";
+
+
 TEST_CASE("Test BPE encode and decode", "[bpe]")
 {
-    byte_pair_encoder tokenizer("../Llama-3.2-1B/original/tokenizer.model");
+    byte_pair_encoder tokenizer(tokenizer_path);
 
     auto ids = tokenizer.encode("This is a test sentence.");
     REQUIRE(ids.size(0) == 6);
@@ -36,7 +39,7 @@ TEST_CASE("Test BPE encode and decode", "[bpe]")
 
 TEST_CASE("Encode pairs with byte merge", "[bpe]")
 {
-    byte_pair_encoder tokenizer("../Llama-3.2-1B/original/tokenizer.model");
+    byte_pair_encoder tokenizer(tokenizer_path);
 
     auto ids = tokenizer.encode("And his name is John Cena.");
 
@@ -49,7 +52,7 @@ TEST_CASE("Encode pairs with byte merge", "[bpe]")
 
 TEST_CASE("Encode ipython word", "[bpe]")
 {
-    byte_pair_encoder tokenizer("../Llama-3.2-1B/original/tokenizer.model");
+    byte_pair_encoder tokenizer(tokenizer_path);
 
     auto ids = tokenizer.encode(" ipython");
 
@@ -60,7 +63,7 @@ TEST_CASE("Encode ipython word", "[bpe]")
 
 TEST_CASE("Encode unknown words", "[bpe]")
 {
-    byte_pair_encoder tokenizer("../Llama-3.2-1B/original/tokenizer.model");
+    byte_pair_encoder tokenizer(tokenizer_path);
 
     auto ids = tokenizer.encode("This is debatable topic.");
     REQUIRE(ids.size(0) > 0);
@@ -69,7 +72,7 @@ TEST_CASE("Encode unknown words", "[bpe]")
 
 TEST_CASE("Decode special token", "bpe")
 {
-    byte_pair_encoder tokenizer("../Llama-3.2-1B/original/tokenizer.model");
+    byte_pair_encoder tokenizer(tokenizer_path);
 
     auto token = tokenizer.decode(128001);
     REQUIRE(token == "<|end_of_text|>");

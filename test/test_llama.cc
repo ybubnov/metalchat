@@ -17,7 +17,7 @@ using namespace metalchat;
 
 TEST_CASE("Test make model", "[llama]")
 {
-    metalchat::text::byte_pair_encoder bpe("../Llama-3.2-1B/original/tokenizer.model");
+    metalchat::text::byte_pair_encoder bpe("../Llama-3.2-1B-Instruct/original/tokenizer.model");
     metalchat::hardware_accelerator gpu0;
 
     auto options = nn::default_llama3_1b_options().max_seq_len(16);

@@ -183,9 +183,7 @@ safetensor_document::insert(const std::string& name, const basic_tensor& tensor)
 void
 safetensor_document::insert(const nn::basic_layer& layer)
 {
-    auto insert_fn = [&](const std::string& name, std::shared_ptr<basic_tensor> tensor) {
-        insert(name, *tensor);
-    };
+    auto insert_fn = [&](nn::named_parameter parameter) { insert(parameter.name, *parameter.ptr); };
     layer.apply(insert_fn, /*recurse=*/true);
 }
 

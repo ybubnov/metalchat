@@ -76,8 +76,8 @@ basic_layer::get_parameters(bool recurse) const
 {
     parameter_container params;
 
-    auto fn = [&](const std::string& name, parameter_pointer param) {
-        params.insert_or_assign(name, param);
+    auto fn = [&](named_parameter parameter) {
+        params.insert_or_assign(parameter.name, parameter.ptr);
     };
 
     apply(fn, recurse);
