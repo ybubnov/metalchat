@@ -20,7 +20,7 @@ template <typename T> struct __hadamard_parameters {
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 hadamard(
     __hadamard_parameters<T> params,
@@ -44,13 +44,33 @@ hadamard(
 }
 
 
-__lib_metalchat_kernel2(hadamard, bfloat, 8);
-__lib_metalchat_kernel2(hadamard, bfloat, 16);
-__lib_metalchat_kernel2(hadamard, bfloat, 32);
+__lib_metalchat_kernel2(hadamard, bfloat);
+__lib_metalchat_kernel2(hadamard, float);
 
-__lib_metalchat_kernel2(hadamard, float, 8);
-__lib_metalchat_kernel2(hadamard, float, 16);
-__lib_metalchat_kernel2(hadamard, float, 32);
+
+template <typename T, typename U> struct __hadamard_bcast_parameters {
+    constant layout2& output_layout;
+    device T* output_data;
+    constant layout2& input1_layout;
+    const device T* input1_data;
+    constant layout2& input2_layout;
+    const device U* input2_data;
+};
+
+
+template <typename T, typename U>
+kernel void
+hadamard_bcast(
+    __hadamard_bcast_parameters<T, U> params,
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
+)
+{}
+
+
+__lib_metalchat_kernel2_mixed(hadamard_bcast, bfloat, int8_t);
+__lib_metalchat_kernel2_mixed(hadamard_bcast, float, int8_t);
 
 
 template <typename T> struct __scalar_mul_parameters {
@@ -62,7 +82,7 @@ template <typename T> struct __scalar_mul_parameters {
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 scalar_mul(
     __scalar_mul_parameters<T> params,
@@ -85,13 +105,5 @@ scalar_mul(
 }
 
 
-__lib_metalchat_kernel2(scalar_mul, bfloat, 1);
-__lib_metalchat_kernel2(scalar_mul, bfloat, 8);
-__lib_metalchat_kernel2(scalar_mul, bfloat, 16);
-__lib_metalchat_kernel2(scalar_mul, bfloat, 32);
-__lib_metalchat_kernel2(scalar_mul, bfloat, 128);
-
-__lib_metalchat_kernel2(scalar_mul, float, 1);
-__lib_metalchat_kernel2(scalar_mul, float, 8);
-__lib_metalchat_kernel2(scalar_mul, float, 16);
-__lib_metalchat_kernel2(scalar_mul, float, 32);
+__lib_metalchat_kernel2(scalar_mul, bfloat);
+__lib_metalchat_kernel2(scalar_mul, float);

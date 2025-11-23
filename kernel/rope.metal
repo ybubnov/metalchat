@@ -26,7 +26,7 @@ template <typename T> struct __rope_parameters {
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 rope(
     __rope_parameters<T> params,
@@ -59,13 +59,8 @@ rope(
 }
 
 
-__lib_metalchat_kernel2(rope, bfloat, 8);
-__lib_metalchat_kernel2(rope, bfloat, 16);
-__lib_metalchat_kernel2(rope, bfloat, 32);
-
-__lib_metalchat_kernel2(rope, float, 8);
-__lib_metalchat_kernel2(rope, float, 16);
-__lib_metalchat_kernel2(rope, float, 32);
+__lib_metalchat_kernel2(rope, bfloat);
+__lib_metalchat_kernel2(rope, float);
 
 
 template <typename T> struct __rope_freqs_parameters {
@@ -79,7 +74,7 @@ template <typename T> struct __rope_freqs_parameters {
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 rope_freqs(
     __rope_freqs_parameters<T> params,
@@ -104,6 +99,4 @@ rope_freqs(
 }
 
 
-__lib_metalchat_kernel2(rope_freqs, float, 8);
-__lib_metalchat_kernel2(rope_freqs, float, 16);
-__lib_metalchat_kernel2(rope_freqs, float, 32);
+__lib_metalchat_kernel2(rope_freqs, float);

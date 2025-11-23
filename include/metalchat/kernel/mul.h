@@ -20,7 +20,7 @@ private:
 
 public:
     hadamard(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("hadamard"))
+    : _M_kernel(gpu.load<T>("hadamard"))
     {}
 
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
@@ -38,7 +38,7 @@ private:
 
 public:
     scalar_mul(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("scalar_mul"))
+    : _M_kernel(gpu.load<T>("scalar_mul"))
     {}
 
     template <immutable_tensor_t<T> Input, immutable_scalar_t<T> Multiplier>

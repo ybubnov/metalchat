@@ -17,7 +17,7 @@ template <typename T> struct __copy_parameters {
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 copy(
     __copy_parameters<T> params,
@@ -37,14 +37,8 @@ copy(
 }
 
 
-__lib_metalchat_kernel2(copy, bfloat, 8);
-__lib_metalchat_kernel2(copy, bfloat, 16);
-__lib_metalchat_kernel2(copy, bfloat, 32);
-__lib_metalchat_kernel2(copy, bfloat, 128);
-
-__lib_metalchat_kernel2(copy, float, 8);
-__lib_metalchat_kernel2(copy, float, 16);
-__lib_metalchat_kernel2(copy, float, 32);
+__lib_metalchat_kernel2(copy, bfloat);
+__lib_metalchat_kernel2(copy, float);
 
 
 template <typename T> struct __scatter_parameters {
@@ -54,7 +48,7 @@ template <typename T> struct __scatter_parameters {
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 scatter(
     __scatter_parameters<T> params,
@@ -75,14 +69,8 @@ scatter(
     }
 }
 
-__lib_metalchat_kernel2(scatter, bfloat, 8);
-__lib_metalchat_kernel2(scatter, bfloat, 16);
-__lib_metalchat_kernel2(scatter, bfloat, 32);
-__lib_metalchat_kernel2(scatter, bfloat, 128);
-
-__lib_metalchat_kernel2(scatter, float, 8);
-__lib_metalchat_kernel2(scatter, float, 16);
-__lib_metalchat_kernel2(scatter, float, 32);
+__lib_metalchat_kernel2(scatter, bfloat);
+__lib_metalchat_kernel2(scatter, float);
 
 
 template <typename T> struct __gather_parameters {
@@ -95,7 +83,7 @@ template <typename T> struct __gather_parameters {
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 gather(
     __gather_parameters<T> params,
@@ -119,11 +107,5 @@ gather(
 }
 
 
-__lib_metalchat_kernel2(gather, float, 8);
-__lib_metalchat_kernel2(gather, float, 16);
-__lib_metalchat_kernel2(gather, float, 32);
-
-
-__lib_metalchat_kernel2(gather, int32_t, 8);
-__lib_metalchat_kernel2(gather, int32_t, 16);
-__lib_metalchat_kernel2(gather, int32_t, 32);
+__lib_metalchat_kernel2(gather, float);
+__lib_metalchat_kernel2(gather, int32_t);

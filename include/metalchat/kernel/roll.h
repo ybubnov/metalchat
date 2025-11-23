@@ -24,7 +24,7 @@ private:
 public:
     /// The kernel constructor.
     roll(hardware_accelerator& accelerator)
-    : _M_kernel(accelerator.load<T, BlockSize>("roll"))
+    : _M_kernel(accelerator.load<T>("roll"))
     {}
 
     /// Invokes the kernel.

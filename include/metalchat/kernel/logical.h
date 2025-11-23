@@ -20,7 +20,7 @@ private:
 
 public:
     gt(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("gt"))
+    : _M_kernel(gpu.load<T>("gt"))
     {}
 
     template <immutable_tensor_t<T> Input1>

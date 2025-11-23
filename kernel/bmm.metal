@@ -88,5 +88,5 @@ bmm(__bmm_parameters<T> params,
 }
 
 
-__lib_metalchat_kernel3(bmm, bfloat, 8);
-__lib_metalchat_kernel3(bmm, float, 8);
+__lib_metalchat_kernel3_tiled(bmm, 8, bfloat);
+__lib_metalchat_kernel3_tiled(bmm, 8, float);

@@ -109,4 +109,13 @@ template <> struct type_traits<int32_t> {
 };
 
 
+template <> struct type_traits<int8_t> {
+    static std::string
+    name()
+    {
+        return "int8_t";
+    }
+};
+
+
 } // namespace metalchat

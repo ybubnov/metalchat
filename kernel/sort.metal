@@ -81,20 +81,20 @@ sort(
 }
 
 
-__lib_metalchat_kernel2(sort, bfloat, 8);
-__lib_metalchat_kernel2(sort, bfloat, 16);
-__lib_metalchat_kernel2(sort, bfloat, 32);
-__lib_metalchat_kernel2(sort, bfloat, 128);
-__lib_metalchat_kernel2(sort, bfloat, 256);
-__lib_metalchat_kernel2(sort, bfloat, 512);
-__lib_metalchat_kernel2(sort, bfloat, 1024);
-__lib_metalchat_kernel2(sort, bfloat, 2048);
+__lib_metalchat_kernel2_tiled(sort, 8, bfloat);
+__lib_metalchat_kernel2_tiled(sort, 16, bfloat);
+__lib_metalchat_kernel2_tiled(sort, 32, bfloat);
+__lib_metalchat_kernel2_tiled(sort, 128, bfloat);
+__lib_metalchat_kernel2_tiled(sort, 256, bfloat);
+__lib_metalchat_kernel2_tiled(sort, 512, bfloat);
+__lib_metalchat_kernel2_tiled(sort, 1024, bfloat);
+__lib_metalchat_kernel2_tiled(sort, 2048, bfloat);
 
 
-__lib_metalchat_kernel2(sort, float, 8);
-__lib_metalchat_kernel2(sort, float, 16);
-__lib_metalchat_kernel2(sort, float, 32);
-__lib_metalchat_kernel2(sort, float, 128);
-__lib_metalchat_kernel2(sort, float, 512);
-__lib_metalchat_kernel2(sort, float, 1024);
-__lib_metalchat_kernel2(sort, float, 2048);
+__lib_metalchat_kernel2_tiled(sort, 8, float);
+__lib_metalchat_kernel2_tiled(sort, 16, float);
+__lib_metalchat_kernel2_tiled(sort, 32, float);
+__lib_metalchat_kernel2_tiled(sort, 128, float);
+__lib_metalchat_kernel2_tiled(sort, 512, float);
+__lib_metalchat_kernel2_tiled(sort, 1024, float);
+__lib_metalchat_kernel2_tiled(sort, 2048, float);

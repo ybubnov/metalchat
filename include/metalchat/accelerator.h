@@ -150,6 +150,18 @@ public:
     const basic_kernel&
     load(const std::string& name, const std::string& type);
 
+    /// Load the kernel from kernel library
+    ///
+    /// This is a convenience method that loads kernels with names in the following format:
+    /// `{name}_{data_type}`.
+    template <typename T>
+    const basic_kernel&
+    load(const std::string_view& name)
+    {
+        auto kernel_name = std::format("{}_{}", name, type_traits<T>::name());
+        return load(kernel_name);
+    }
+
     /// Load the kernel from kernel library.
     ///
     /// This is a convenience method that loads kernels with names in the following format:

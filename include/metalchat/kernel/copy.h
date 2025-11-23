@@ -59,7 +59,7 @@ private:
 public:
     /// The kernel constructor.
     clone(hardware_accelerator& accelerator)
-    : _M_kernel(accelerator.load<T, BlockSize>("copy"))
+    : _M_kernel(accelerator.load<T>("copy"))
     {}
 
     /// Invokes the kernel.
@@ -87,7 +87,7 @@ private:
 public:
     /// The kernel constructor.
     scatter(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("scatter"))
+    : _M_kernel(gpu.load<T>("scatter"))
     {}
 
     /// Invokes the kernel, and writes a single value to the output tensor according to
@@ -156,7 +156,7 @@ private:
 public:
     /// The kernel constructor.
     gather(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("gather"))
+    : _M_kernel(gpu.load<T>("gather"))
     {}
 
     /// Invokes the kernel.

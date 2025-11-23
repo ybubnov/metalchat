@@ -16,7 +16,7 @@ template <typename T> struct __silu_parameters {
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 silu(
     __silu_parameters<T> params,
@@ -37,10 +37,5 @@ silu(
 }
 
 
-__lib_metalchat_kernel2(silu, bfloat, 8);
-__lib_metalchat_kernel2(silu, bfloat, 16);
-__lib_metalchat_kernel2(silu, bfloat, 32);
-
-__lib_metalchat_kernel2(silu, float, 8);
-__lib_metalchat_kernel2(silu, float, 16);
-__lib_metalchat_kernel2(silu, float, 32);
+__lib_metalchat_kernel2(silu, bfloat);
+__lib_metalchat_kernel2(silu, float);

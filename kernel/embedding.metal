@@ -65,8 +65,8 @@ embedding(
 }
 
 
-__lib_metalchat_kernel3(embedding, bfloat, 4);
-__lib_metalchat_kernel3(embedding, bfloat, 16);
+__lib_metalchat_kernel3_tiled(embedding, 4, bfloat);
+__lib_metalchat_kernel3_tiled(embedding, 16, bfloat);
 
-__lib_metalchat_kernel3(embedding, float, 4);
-__lib_metalchat_kernel3(embedding, float, 16);
+__lib_metalchat_kernel3_tiled(embedding, 4, float);
+__lib_metalchat_kernel3_tiled(embedding, 16, float);

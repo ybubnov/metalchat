@@ -93,7 +93,7 @@ template <typename T> struct __multinomial_parameters {
 /// distribution, which means that sum of each row of the input should be a equal to 1.0.
 ///
 /// The kernel expects input probabilities to be in reverse order.
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 multinomial(
     __multinomial_parameters<T> params,
@@ -116,10 +116,5 @@ multinomial(
 }
 
 
-__lib_metalchat_kernel2(multinomial, bfloat, 8);
-__lib_metalchat_kernel2(multinomial, bfloat, 16);
-__lib_metalchat_kernel2(multinomial, bfloat, 32);
-
-__lib_metalchat_kernel2(multinomial, float, 8);
-__lib_metalchat_kernel2(multinomial, float, 16);
-__lib_metalchat_kernel2(multinomial, float, 32);
+__lib_metalchat_kernel2(multinomial, bfloat);
+__lib_metalchat_kernel2(multinomial, float);

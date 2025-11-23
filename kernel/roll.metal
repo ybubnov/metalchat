@@ -20,7 +20,7 @@ template <typename T> struct __roll_parameters {
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 roll(
     __roll_parameters<T> params,
@@ -45,12 +45,5 @@ roll(
 }
 
 
-__lib_metalchat_kernel(roll, bfloat, 8);
-__lib_metalchat_kernel(roll, bfloat, 16);
-__lib_metalchat_kernel(roll, bfloat, 32);
-__lib_metalchat_kernel(roll, bfloat, 128);
-
-__lib_metalchat_kernel(roll, float, 8);
-__lib_metalchat_kernel(roll, float, 16);
-__lib_metalchat_kernel(roll, float, 32);
-__lib_metalchat_kernel(roll, float, 128);
+__lib_metalchat_kernel(roll, bfloat);
+__lib_metalchat_kernel(roll, float);

@@ -57,6 +57,10 @@ public:
 
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class qlora_linear : public nn::basic_linear<T, Container> {
+public:
+    using value_type = T;
+    using container_type = Container;
+
 private:
     using _Base = nn::basic_linear<T, Container>;
     using _Adaptor = qlora_adaptor<T, Container>;
@@ -74,16 +78,15 @@ private:
 
     weight_pointer _M_weight;
     scales_pointer _M_scales;
+    value_type _M_scale;
 
 public:
-    using value_type = T;
-    using container_type = Container;
-
-    qlora_linear(float scale, hardware_accelerator& accelerator)
+    qlora_linear(T scale, hardware_accelerator& accelerator)
     : _Base(accelerator),
       _M_adaptor(nullptr),
       _M_weight(weight_type()),
-      _M_scales(scales_type())
+      _M_scales(scales_type()),
+      _M_scale(scale)
     {
         _M_adaptor = _Base::register_layer("adaptor", _Adaptor(accelerator));
         _Base::register_parameter("weight", _M_weight);
@@ -93,7 +96,12 @@ public:
     _Base::result_type
     operator()(_Base::input_type input)
     {
-        throw std::runtime_error("not implemented");
+        // weight = weight.view({/* ... */});
+        // scales = scales.view({/* ... */});
+        // matmul(hadamard_bcast(weight, scales), input);
+        auto adaptation = mul(_M_adaptor(input), _M_scale, _Base::accelerator());
+        return adaptation;
+        // return sum_mixed(output, adaptation);
     }
 };
 

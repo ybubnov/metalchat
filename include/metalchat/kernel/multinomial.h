@@ -24,7 +24,7 @@ private:
 
 public:
     multinomial(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("multinomial")),
+    : _M_kernel(gpu.load<T>("multinomial")),
       _M_random_device(),
       _M_generator(_M_random_device()),
       _M_seed(0, std::numeric_limits<uint64_t>::max())

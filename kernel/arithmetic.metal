@@ -4,8 +4,6 @@
 // SPDX-FileCopyrightText: 2025 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
-#pragma once
-
 #include <metal_common>
 
 #include "kernel.h"
@@ -22,7 +20,7 @@ template <typename T> struct __add_parameters {
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 add(__add_parameters<T> params,
     uint2 gid [[threadgroup_position_in_grid]],
@@ -44,13 +42,8 @@ add(__add_parameters<T> params,
 }
 
 
-__lib_metalchat_kernel2(add, bfloat, 8);
-__lib_metalchat_kernel2(add, bfloat, 16);
-__lib_metalchat_kernel2(add, bfloat, 32);
-
-__lib_metalchat_kernel2(add, float, 8);
-__lib_metalchat_kernel2(add, float, 16);
-__lib_metalchat_kernel2(add, float, 32);
+__lib_metalchat_kernel2(add, bfloat);
+__lib_metalchat_kernel2(add, float);
 
 
 template <typename T> struct __add2_parameters {
@@ -93,13 +86,13 @@ add2(
 }
 
 
-__lib_metalchat_kernel3(add2, bfloat, 8);
-__lib_metalchat_kernel3(add2, bfloat, 16);
-__lib_metalchat_kernel3(add2, bfloat, 32);
+__lib_metalchat_kernel3_tiled(add2, 8, bfloat);
+__lib_metalchat_kernel3_tiled(add2, 16, bfloat);
+__lib_metalchat_kernel3_tiled(add2, 32, bfloat);
 
-__lib_metalchat_kernel3(add2, float, 8);
-__lib_metalchat_kernel3(add2, float, 16);
-__lib_metalchat_kernel3(add2, float, 32);
+__lib_metalchat_kernel3_tiled(add2, 8, float);
+__lib_metalchat_kernel3_tiled(add2, 16, float);
+__lib_metalchat_kernel3_tiled(add2, 32, float);
 
 
 template <typename T> struct __sub_parameters {
@@ -112,7 +105,7 @@ template <typename T> struct __sub_parameters {
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 sub(__sub_parameters<T> params,
     uint2 gid [[threadgroup_position_in_grid]],
@@ -134,11 +127,5 @@ sub(__sub_parameters<T> params,
 }
 
 
-__lib_metalchat_kernel2(sub, bfloat, 8);
-__lib_metalchat_kernel2(sub, bfloat, 16);
-__lib_metalchat_kernel2(sub, bfloat, 32);
-__lib_metalchat_kernel2(sub, bfloat, 128);
-
-__lib_metalchat_kernel2(sub, float, 8);
-__lib_metalchat_kernel2(sub, float, 16);
-__lib_metalchat_kernel2(sub, float, 32);
+__lib_metalchat_kernel2(sub, bfloat);
+__lib_metalchat_kernel2(sub, float);

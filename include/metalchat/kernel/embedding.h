@@ -59,7 +59,7 @@ private:
 
 public:
     rope(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("rope"))
+    : _M_kernel(gpu.load<T>("rope"))
     {}
 
     template <
@@ -116,7 +116,7 @@ private:
 
 public:
     rope_freqs(std::size_t dim, std::size_t seq_len, T theta, hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("rope_freqs")),
+    : _M_kernel(gpu.load<T>("rope_freqs")),
       _M_dim(dim),
       _M_seq_len(seq_len),
       _M_theta(theta)

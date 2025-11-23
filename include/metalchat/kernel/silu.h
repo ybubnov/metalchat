@@ -20,7 +20,7 @@ private:
 
 public:
     silu(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("silu"))
+    : _M_kernel(gpu.load<T>("silu"))
     {}
 
     template <immutable_tensor_t<T> Input>

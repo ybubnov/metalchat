@@ -17,7 +17,7 @@ template <typename T> struct __gt_parameters {
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 gt(__gt_parameters<T> params,
    uint2 gid [[threadgroup_position_in_grid]],
@@ -35,11 +35,5 @@ gt(__gt_parameters<T> params,
 }
 
 
-__lib_metalchat_kernel2(gt, bfloat, 8);
-__lib_metalchat_kernel2(gt, bfloat, 16);
-__lib_metalchat_kernel2(gt, bfloat, 32);
-__lib_metalchat_kernel2(gt, bfloat, 128);
-
-__lib_metalchat_kernel2(gt, float, 8);
-__lib_metalchat_kernel2(gt, float, 16);
-__lib_metalchat_kernel2(gt, float, 32);
+__lib_metalchat_kernel2(gt, bfloat);
+__lib_metalchat_kernel2(gt, float);
