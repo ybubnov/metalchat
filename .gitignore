@@ -40,3 +40,6 @@ documentation/_xml
 *.exe
 *.out
 *.app
+
+# Python run files
+*.pyc
