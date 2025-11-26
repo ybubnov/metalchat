@@ -67,7 +67,7 @@ _HardwareHeapAllocator::_HardwareHeapAllocator(metal::shared_device device, std:
   _M_size(std::make_shared<std::size_t>(0))
 {
     auto heap_options_ptr = MTL::HeapDescriptor::alloc();
-    auto heap_options = NS::RetainPtr(heap_options_ptr->init());
+    auto heap_options = NS::TransferPtr(heap_options_ptr->init());
 
     heap_options->setType(MTL::HeapTypeAutomatic);
     heap_options->setStorageMode(MTL::StorageModeShared);
@@ -76,7 +76,7 @@ _HardwareHeapAllocator::_HardwareHeapAllocator(metal::shared_device device, std:
     heap_options->setHazardTrackingMode(MTL::HazardTrackingModeUntracked);
     heap_options->setCpuCacheMode(MTL::CPUCacheModeDefaultCache);
 
-    _M_data->heap = NS::RetainPtr(device->ptr->newHeap(heap_options.get()));
+    _M_data->heap = NS::TransferPtr(device->ptr->newHeap(heap_options.get()));
     if (!_M_data->heap) {
         throw std::runtime_error("metalchat::hardware_heap_allocator: failed creating a new heap");
     }
@@ -85,13 +85,13 @@ _HardwareHeapAllocator::_HardwareHeapAllocator(metal::shared_device device, std:
     // it make sense to keep the number of allocations only to 1, since we anyway
     // won't add anything apart from heap to that set.
     auto rset_options_ptr = MTL::ResidencySetDescriptor::alloc();
-    auto rset_options = NS::RetainPtr(rset_options_ptr->init());
+    auto rset_options = NS::TransferPtr(rset_options_ptr->init());
     rset_options->setInitialCapacity(1);
 
-    NS::SharedPtr<NS::Error> error = NS::RetainPtr(NS::Error::alloc());
+    NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
     NS::Error* error_ptr = error.get();
 
-    _M_data->rset = NS::RetainPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
+    _M_data->rset = NS::TransferPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
     if (!_M_data->rset) {
         auto failure_reason = error_ptr->localizedDescription();
         throw std::runtime_error(failure_reason->utf8String());
@@ -212,13 +212,13 @@ _HardwareResidentAllocator::_HardwareResidentAllocator(
   _M_size(std::make_shared<std::size_t>(0))
 {
     auto rset_options_ptr = MTL::ResidencySetDescriptor::alloc();
-    auto rset_options = NS::RetainPtr(rset_options_ptr->init());
+    auto rset_options = NS::TransferPtr(rset_options_ptr->init());
     rset_options->setInitialCapacity(capacity);
 
-    NS::SharedPtr<NS::Error> error = NS::RetainPtr(NS::Error::alloc());
+    NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
     NS::Error* error_ptr = error.get();
 
-    _M_data->rset = NS::RetainPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
+    _M_data->rset = NS::TransferPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
     if (!_M_data->rset) {
         auto failure_reason = error_ptr->localizedDescription();
         throw std::runtime_error(

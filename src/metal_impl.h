@@ -73,7 +73,7 @@ struct device {
     {}
 
     device(MTL::Device* p)
-    : ptr(NS::RetainPtr(p))
+    : ptr(NS::TransferPtr(p))
     {}
 };
 
@@ -92,8 +92,8 @@ struct kernel {
     {}
 
     kernel(MTL::Function* f, MTL::ComputePipelineState* p)
-    : function(NS::RetainPtr(f)),
-      pipeline(NS::RetainPtr(p))
+    : function(NS::TransferPtr(f)),
+      pipeline(NS::TransferPtr(p))
     {}
 };
 
@@ -106,7 +106,7 @@ struct library {
     {}
 
     library(MTL::Library* p)
-    : ptr(NS::RetainPtr(p))
+    : ptr(NS::TransferPtr(p))
     {}
 };
 

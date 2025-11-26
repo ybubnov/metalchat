@@ -22,12 +22,12 @@ struct kernel_queue {
 
     kernel_queue(metal::shared_device device)
     : id(0),
-      queue(NS::RetainPtr(device->ptr->newCommandQueue())),
-      commands(NS::RetainPtr(queue->commandBuffer())),
-      encoder(NS::RetainPtr(commands->computeCommandEncoder(MTL::DispatchTypeConcurrent))),
-      event(NS::RetainPtr(device->ptr->newEvent()))
+      queue(NS::TransferPtr(device->ptr->newCommandQueue())),
+      commands(NS::TransferPtr(queue->commandBuffer())),
+      encoder(NS::TransferPtr(commands->computeCommandEncoder(MTL::DispatchTypeConcurrent))),
+      event(NS::TransferPtr(device->ptr->newEvent()))
     {
-        auto label = NS::RetainPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
+        auto label = NS::TransferPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
         queue->setLabel(label.get());
     }
 
@@ -37,12 +37,12 @@ struct kernel_queue {
         kernel_queue kq = *this;
 
         kq.id++;
-        kq.commands = NS::RetainPtr(kq.queue->commandBuffer());
+        kq.commands = NS::TransferPtr(kq.queue->commandBuffer());
         kq.commands->enqueue();
         kq.commands->encodeWait(kq.event.get(), id);
 
         auto encoder = kq.commands->computeCommandEncoder(MTL::DispatchTypeConcurrent);
-        kq.encoder = NS::RetainPtr(encoder);
+        kq.encoder = NS::TransferPtr(encoder);
         return kq;
     }
 
@@ -110,7 +110,7 @@ hardware_function_encoder::dispatch(dim3 grid, dim3 group)
     command_name_stream << _M_name << "<" << grid << "," << group << ">" << std::endl;
 
     auto command_name = command_name_stream.str();
-    auto cmd_name = NS::RetainPtr(NS::String::string(command_name.c_str(), NS::UTF8StringEncoding));
+    auto cmd_name = NS::TransferPtr(NS::String::string(command_name.c_str(), NS::UTF8StringEncoding));
     _M_queue->encoder->setLabel(cmd_name.get());
 
     MTL::Size threads_per_grid(grid.x, grid.y, grid.z);
@@ -185,7 +185,7 @@ kernel_thread::make_ready_at_thread_exit()
 {
     if (!_M_committed) {
         auto label = std::format("metalchat commands (size={})", _M_size);
-        auto cmd_label = NS::RetainPtr(NS::String::string(label.c_str(), NS::UTF8StringEncoding));
+        auto cmd_label = NS::TransferPtr(NS::String::string(label.c_str(), NS::UTF8StringEncoding));
 
         _M_queue->encoder->endEncoding();
 
