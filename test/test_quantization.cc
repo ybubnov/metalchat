@@ -11,7 +11,7 @@
 using namespace metalchat;
 
 
-TEST_CASE("Test replace QLora linear", "[layer]")
+TEST_CASE("Test replace QLora linear", "[quantization]")
 {
     hardware_accelerator gpu0;
     nn::feed_forward<float> input_layer(gpu0);
@@ -26,4 +26,22 @@ TEST_CASE("Test replace QLora linear", "[layer]")
 
     auto params_after = input_layer.get_parameters();
     REQUIRE(params_after.size() == 12);
+}
+
+
+TEST_CASE("Test QLora adaptor", "[quantization]")
+{
+    hardware_accelerator gpu0;
+    quantization::qlora_adaptor<float> adaptor(gpu0);
+
+    adaptor.set_parameter("A.weight", rand<float>({16, 2048}, gpu0));
+    adaptor.set_parameter("B.weight", rand<float>({512, 16}, gpu0));
+
+    auto input = rand<float>({1, 19, 2048}, gpu0);
+    auto output = adaptor(input).get();
+
+    REQUIRE(output.dim() == 3);
+    REQUIRE(output.size(0) == 1);
+    REQUIRE(output.size(1) == 19);
+    REQUIRE(output.size(2) == 512);
 }

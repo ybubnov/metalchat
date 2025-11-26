@@ -98,7 +98,7 @@ public:
     {
         // weight = weight.view({/* ... */});
         // scales = scales.view({/* ... */});
-        // matmul(hadamard_bcast(weight, scales), input);
+        // output = matmul(hadamard_bcast(weight, scales), input);
         auto adaptation = mul(_M_adaptor(input), _M_scale, _Base::accelerator());
         return adaptation;
         // return sum_mixed(output, adaptation);

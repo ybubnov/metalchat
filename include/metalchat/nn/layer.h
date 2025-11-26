@@ -255,11 +255,8 @@ public:
     void
     set_parameter(const std::string& name, Tensor&& tensor)
     {
-        if (auto it = _M_params.find(name); it != _M_params.end()) {
-            move_tensor_to_pointer(it->second, std::move(tensor));
-        } else {
-            throw std::invalid_argument(std::format("parameter '{}' is not registered", name));
-        }
+        auto param_ptr = get_parameter(name);
+        move_tensor_to_pointer(param_ptr, std::move(tensor));
     }
 
     /// Return a pointer to the registered parameter by the specified name.
