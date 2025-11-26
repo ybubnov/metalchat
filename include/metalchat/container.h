@@ -280,7 +280,7 @@ private:
 public:
     using value_type = T;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
 
     random_memory_container(std::shared_ptr<void> data, std::size_t size, std::size_t offset = 0)
     : _M_data(data),
@@ -367,7 +367,7 @@ private:
 public:
     using value_type = T;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
 
     vector_memory_container(std::vector<T>&& data)
     : _M_data(std::move(data))
@@ -401,7 +401,7 @@ public:
 template <typename T> struct hardware_memory_container : public memory_container<T> {
     using value_type = T;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
 
     metal::shared_buffer _M_mem;
     std::size_t _M_size;
@@ -489,7 +489,7 @@ private:
 public:
     using value_type = T;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
 
     scalar_memory_container(T data)
     : _M_data(data)
@@ -535,7 +535,7 @@ private:
 public:
     using value_type = T;
     using pointer = value_type*;
-    using const_pointer = const pointer;
+    using const_pointer = const value_type*;
 
     /// Constructs a new instance of a file-buffered container and initializes it with
     /// the provided data. After construction file is not mapped into the memory.
