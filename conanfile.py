@@ -5,10 +5,15 @@ from conan.tools.apple import XcodeToolchain, XcodeDeps
 
 class MetalChat(ConanFile):
     name = "MetalChat"
+    version = "1.0.0"
+    package_type = "library"
+
+    license = "GPL-3.0-or-later"
+    author = "Yakau Bubnou (girokompass@gmail.com)"
     description = "Llama inference for Apple Devices"
     url = "https://github.com/ybubnov/metalchat"
+    topics = ("deep-learning", "machine-learning", "neural-networks", "llama")
 
-    package_type = "library"
     settings = "os", "build_type"
     options = {
         "shared": [True, False],

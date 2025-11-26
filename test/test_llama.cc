@@ -11,19 +11,23 @@
 #include <metalchat/tensor.h>
 #include <metalchat/text.h>
 
+#include "metalchat/testing.h"
 
 using namespace metalchat;
 
 
 TEST_CASE("Test make model", "[llama]")
 {
-    metalchat::text::byte_pair_encoder bpe("../Llama-3.2-1B-Instruct/original/tokenizer.model");
+    auto bpe_path = testdata_path() / "llama3.2:1b-instruct" / "original" / "tokenizer.model";
+    auto model_path = testdata_path() / "llama3.2:1b-instruct" / "model.safetensors";
+
+    metalchat::text::byte_pair_encoder bpe(bpe_path);
     metalchat::hardware_accelerator gpu0;
 
     auto options = nn::default_llama3_1b_options().max_seq_len(16);
     nn::llama3<bf16> m(options, gpu0);
 
-    safetensor_document::load("../llama32.safetensors", m);
+    safetensor_document::load(model_path, m);
 
     auto heap_size = std::size_t(512) * 1024 * 1024;
     auto alloc3 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);

@@ -1,6 +1,7 @@
 # Build
 build/
 lib/
+testdata/
 
 # Doxygen output
 documentation/_xml

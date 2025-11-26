@@ -5,20 +5,25 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_vector.hpp>
 
-
 #include <metalchat/text/bpe.h>
+
+#include "metalchat/testing.h"
 
 
 using namespace metalchat;
 using namespace metalchat::text;
 
 
-static const std::string tokenizer_path = "../Llama-3.2-1B-Instruct/original/tokenizer.model";
+std::filesystem::path
+tokenizer_path()
+{
+    return testdata_path() / "llama3.2:1b-instruct/original/tokenizer.model";
+}
 
 
 TEST_CASE("Test BPE encode and decode", "[bpe]")
 {
-    byte_pair_encoder tokenizer(tokenizer_path);
+    byte_pair_encoder tokenizer(tokenizer_path());
 
     auto ids = tokenizer.encode("This is a test sentence.");
     REQUIRE(ids.size(0) == 6);
@@ -39,7 +44,7 @@ TEST_CASE("Test BPE encode and decode", "[bpe]")
 
 TEST_CASE("Encode pairs with byte merge", "[bpe]")
 {
-    byte_pair_encoder tokenizer(tokenizer_path);
+    byte_pair_encoder tokenizer(tokenizer_path());
 
     auto ids = tokenizer.encode("And his name is John Cena.");
 
@@ -52,7 +57,7 @@ TEST_CASE("Encode pairs with byte merge", "[bpe]")
 
 TEST_CASE("Encode ipython word", "[bpe]")
 {
-    byte_pair_encoder tokenizer(tokenizer_path);
+    byte_pair_encoder tokenizer(tokenizer_path());
 
     auto ids = tokenizer.encode(" ipython");
 
@@ -63,7 +68,7 @@ TEST_CASE("Encode ipython word", "[bpe]")
 
 TEST_CASE("Encode unknown words", "[bpe]")
 {
-    byte_pair_encoder tokenizer(tokenizer_path);
+    byte_pair_encoder tokenizer(tokenizer_path());
 
     auto ids = tokenizer.encode("This is debatable topic.");
     REQUIRE(ids.size(0) > 0);
@@ -72,7 +77,7 @@ TEST_CASE("Encode unknown words", "[bpe]")
 
 TEST_CASE("Decode special token", "bpe")
 {
-    byte_pair_encoder tokenizer(tokenizer_path);
+    byte_pair_encoder tokenizer(tokenizer_path());
 
     auto token = tokenizer.decode(128001);
     REQUIRE(token == "<|end_of_text|>");

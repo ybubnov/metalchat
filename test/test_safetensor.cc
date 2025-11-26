@@ -10,6 +10,7 @@
 #include <metalchat/nn.h>
 #include <metalchat/tensor.h>
 
+#include "metalchat/testing.h"
 
 using namespace metalchat;
 
@@ -60,7 +61,9 @@ TEST_CASE("Test model load", "[safetensor]")
     auto alloc = gpu0.get_allocator();
 
     nn::llama3<bf16> m(nn::default_llama3_1b_options(), gpu0);
-    auto doc = safetensor_document::open("../llama32.safetensors", gpu0);
+
+    auto doc_path = testdata_path() / "llama3.2:1b-instruct" / "model.safetensors";
+    auto doc = safetensor_document::open(doc_path, gpu0);
 
     doc.load(m);
     auto params = m.get_parameters();

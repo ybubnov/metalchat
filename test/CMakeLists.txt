@@ -15,6 +15,11 @@ foreach(metalchat_TEST_SOURCE ${metalchat_TEST_SOURCES})
     target_link_libraries(${metalchat_TEST} Catch2::Catch2WithMain)
     target_link_libraries(${metalchat_TEST} MetalChat)
 
+    target_compile_definitions(
+        ${metalchat_TEST}
+        PUBLIC METALCHAT_TESTDATA_DIRECTORY="${PROJECT_SOURCE_DIR}/testdata"
+    )
+
     # Define a new test from the source file.
     add_test(
         NAME ${metalchat_TEST}
