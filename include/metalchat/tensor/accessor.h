@@ -6,6 +6,7 @@
 
 #include <format>
 #include <iterator>
+#include <span>
 
 #include <metalchat/allocator.h>
 #include <metalchat/container.h>
