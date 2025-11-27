@@ -8,11 +8,15 @@ set(CMAKE_FRAMEWORK TRUE)
 set(metalchat_LIBRARY_VERSION "1.0.0")
 set(metalchat_LIBRARY_SOVERSION "1")
 
-enable_testing()
-
-
 add_subdirectory(kernel)
-add_subdirectory(test)
+
+# The variable BUILD_TESTING is set by conan generator through, when a build
+# option build.tools:skip_test is set to 'True'. In this case, unit tests won't
+# be compiled and executed.
+if (NOT BUILD_TESTING STREQUAL OFF)
+    add_subdirectory(test)
+    enable_testing()
+endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
