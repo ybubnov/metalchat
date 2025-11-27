@@ -7,13 +7,13 @@
 #include <filesystem>
 
 
-#ifndef METALCHAT_TESTDATA_DIRECTORY
-#define METALCHAT_TESTDATA_DIRECTORY "testdata"
+#ifndef METALCHAT_TEST_FIXTURE_DIRECTORY
+#define METALCHAT_TEST_FIXTURE_DIRECTORY "test_fixture"
 #endif
 
 
 std::filesystem::path
-testdata_path()
+test_fixture_path()
 {
-    return std::filesystem::path(METALCHAT_TESTDATA_DIRECTORY);
+    return std::filesystem::path(METALCHAT_TEST_FIXTURE_DIRECTORY);
 }

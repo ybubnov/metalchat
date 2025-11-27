@@ -62,7 +62,7 @@ TEST_CASE("Test model load", "[safetensor]")
 
     nn::llama3<bf16> m(nn::default_llama3_1b_options(), gpu0);
 
-    auto doc_path = testdata_path() / "llama3.2:1b-instruct" / "model.safetensors";
+    auto doc_path = test_fixture_path() / "llama3.2:1b-instruct" / "model.safetensors";
     auto doc = safetensor_document::open(doc_path, gpu0);
 
     doc.load(m);

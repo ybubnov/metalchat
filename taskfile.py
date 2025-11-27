@@ -21,7 +21,7 @@ def prepare_llama(repo_id: str, path: str, subdir: str = "") -> None:
     save_file(model, Path(path) / "model.safetensors")
 
 
-def prepare_testdata(path: str = "testdata") -> None:
+def prepare_test_fixture(path: str = "test_fixture") -> None:
     prepare_llama(
         repo_id="meta-llama/Llama-3.2-1B-Instruct",
         path=str(Path(path) / "llama3.2:1b-instruct"),

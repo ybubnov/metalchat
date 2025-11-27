@@ -18,8 +18,8 @@ using namespace metalchat;
 
 TEST_CASE("Test make model", "[llama]")
 {
-    auto bpe_path = testdata_path() / "llama3.2:1b-instruct" / "original" / "tokenizer.model";
-    auto model_path = testdata_path() / "llama3.2:1b-instruct" / "model.safetensors";
+    auto bpe_path = test_fixture_path() / "llama3.2:1b-instruct" / "original" / "tokenizer.model";
+    auto model_path = test_fixture_path() / "llama3.2:1b-instruct" / "model.safetensors";
 
     metalchat::text::byte_pair_encoder bpe(bpe_path);
     metalchat::hardware_accelerator gpu0;
