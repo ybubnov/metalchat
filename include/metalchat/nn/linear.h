@@ -66,7 +66,7 @@ public:
 
     linear(std::size_t in_features, std::size_t out_features, hardware_accelerator& accelerator)
         requires std::same_as<Container, hardware_memory_container<T>>
-    : linear(empty<T>({in_features, out_features}, accelerator), accelerator)
+    : linear(rand<T>({out_features, in_features}, accelerator), accelerator)
     {}
 
     linear(hardware_accelerator accelerator)

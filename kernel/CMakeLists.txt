@@ -24,7 +24,7 @@ foreach(metalchat_KERNEL_SOURCE ${metalchat_KERNEL_SOURCES})
             ${CMAKE_CURRENT_SOURCE_DIR}/${metalchat_KERNEL_NAME}.metal
             ${COMMON_DEPENDENCIES}
             ${metalchat_KERNEL_HEADERS}
-        COMMAND xcrun -v -sdk ${metalchat_SDK} metal
+        COMMAND xcrun -sdk ${metalchat_SDK} metal
         ${METAL_FLAGS}
         -I .
         -I ${PROJECT_SOURCE_DIR}/include

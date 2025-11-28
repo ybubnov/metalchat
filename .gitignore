@@ -3,6 +3,9 @@ build/
 lib/
 testdata/
 
+# Ignore conan-generated presents
+CMakeUserPresets.json
+
 # Doxygen output
 documentation/_xml
 

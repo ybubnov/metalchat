@@ -1,12 +1,16 @@
 cmake_minimum_required(VERSION 3.31 FATAL_ERROR)
+file(STRINGS version.txt metalchat_LIBRARY_VERSION)
 
-project(metalchat LANGUAGES CXX)
+project(metalchat
+        VERSION ${metalchat_LIBRARY_VERSION}
+        DESCRIPTION "Llama inference for Apple Devices"
+        HOMEPAGE_URL "https://github.com/ybubnov/metalchat"
+        LANGUAGES CXX)
+
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_FRAMEWORK TRUE)
-
-set(metalchat_LIBRARY_VERSION "1.0.0")
-set(metalchat_LIBRARY_SOVERSION "1")
+set(metalchat_LIBRARY_SOVERSION ${CMAKE_PROJECT_VERSION_MAJOR})
 
 add_subdirectory(kernel)
 
@@ -14,8 +18,8 @@ add_subdirectory(kernel)
 # option build.tools:skip_test is set to 'True'. In this case, unit tests won't
 # be compiled and executed.
 if (NOT BUILD_TESTING STREQUAL OFF)
-    add_subdirectory(test)
     enable_testing()
+    add_subdirectory(test)
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
