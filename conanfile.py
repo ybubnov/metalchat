@@ -21,11 +21,13 @@ class MetalChat(ConanFile):
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
+        "build_executable": [True, False],
     }
 
     default_options = {
         "shared": True,
         "fPIC": True,
+        "build_executable": True,
 
         # Default options of the dependent packages.
         "catch2/*:shared": True,
@@ -62,6 +64,9 @@ class MetalChat(ConanFile):
         self.requires("rapidhash/3.0")
         self.requires("jsoncons/1.3.0")
         self.requires("pcre2/[>=10.30 <11.0]")
+
+        if self.options.build_executable:
+            self.requires("replxx/[>=0.0.4 <1.0.0]")
 
     def build_requirements(self):
         self.tool_requires("cmake/[>=3.31.0]")

@@ -30,6 +30,7 @@ find_package(mbits-mstch CONFIG REQUIRED)
 find_package(metal-cpp CONFIG REQUIRED)
 find_package(rapidhash CONFIG REQUIRED)
 find_package(PCRE2 CONFIG REQUIRED)
+find_package(replxx)
 
 
 set(metalchat_FRAMEWORK MetalChat)
@@ -37,6 +38,7 @@ set(metalchat_METALLIB metalchat.metallib)
 set(metalchat_MODULEMAP ${CMAKE_CURRENT_SOURCE_DIR}/module.modulemap)
 
 aux_source_directory(src metalchat_SOURCES)
+aux_source_directory(program metalchat_PROGRAM)
 aux_source_directory(include metalchat_HEADERS)
 
 # Metal shaders are pre-compiled and therefore only available after building an
@@ -99,3 +101,12 @@ target_link_libraries(${metalchat_FRAMEWORK}
     metal-cpp::metal-cpp
     PCRE2::8BIT
 )
+
+
+if (replxx_FOUND)
+    add_executable(${CMAKE_PROJECT_NAME} ${metalchat_PROGRAM})
+    target_link_libraries(${CMAKE_PROJECT_NAME}
+        ${metalchat_FRAMEWORK}
+        replxx::replxx
+    )
+endif()

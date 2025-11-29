@@ -110,7 +110,8 @@ hardware_function_encoder::dispatch(dim3 grid, dim3 group)
     command_name_stream << _M_name << "<" << grid << "," << group << ">" << std::endl;
 
     auto command_name = command_name_stream.str();
-    auto cmd_name = NS::TransferPtr(NS::String::string(command_name.c_str(), NS::UTF8StringEncoding));
+    auto cmd_name
+        = NS::TransferPtr(NS::String::string(command_name.c_str(), NS::UTF8StringEncoding));
     _M_queue->encoder->setLabel(cmd_name.get());
 
     MTL::Size threads_per_grid(grid.x, grid.y, grid.z);
