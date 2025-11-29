@@ -274,10 +274,6 @@ private:
     tensor_type
     flush()
     {
-        for (auto& e : _M_buf) {
-            std::cout << _M_encoder.decode(e);
-        }
-        std::cout << std::flush;
         std::vector<index_type> encoding;
         _M_buf.swap(encoding);
 
