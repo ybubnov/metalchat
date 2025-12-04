@@ -172,6 +172,19 @@ public:
         return tensor_accessor(sizes, strides, offsets);
     }
 
+    template <allocator_t<value_type> Allocator = random_memory_allocator<value_type>>
+    tensor_accessor
+    copy(Allocator allocator = Allocator()) const
+    {
+        tensor_accessor other(_M_dim, allocator);
+
+        std::copy_n(_M_sizes->data(), _M_dim, other._M_sizes->data());
+        std::copy_n(_M_strides->data(), _M_dim, other._M_strides->data());
+        std::copy_n(_M_offsets->data(), _M_dim, other._M_offsets->data());
+
+        return other;
+    }
+
 private:
     value_type _M_dim;
     container_pointer _M_sizes;

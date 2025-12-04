@@ -18,7 +18,38 @@ namespace nn {
 
 
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class embedding : public basic_layer {
+class basic_embedding : public basic_layer {
+public:
+    using value_type = T;
+    using container_type = Container;
+
+    using layer_type = basic_embedding<T, Container>;
+    using layer_pointer = shared_layer_ptr<layer_type>;
+
+    using input_type = future_tensor<int32_t, 2>;
+    using result_type = future_tensor<value_type, 3>;
+
+    using basic_layer::basic_layer;
+
+    virtual result_type
+    operator()(input_type input);
+
+    template <immutable_tensor2_t<int32_t> Input>
+    auto
+    operator()(Input input)
+    {
+        auto alloc = accelerator().get_allocator();
+        return operator()(future_tensor(move(input, alloc)));
+    }
+
+    virtual ~basic_embedding() {}
+};
+
+
+template <typename T, contiguous_container Container = hardware_memory_container<T>>
+class embedding : public basic_embedding<T, Container> {
+    using _Base = basic_embedding<T, Container>;
+
 public:
     using value_type = T;
     using container_type = T;
@@ -29,11 +60,11 @@ public:
     using layer_pointer = shared_layer_ptr<layer_type>;
 
     embedding(weight_pointer weight_ptr, hardware_accelerator& accelerator)
-    : basic_layer(accelerator),
+    : _Base(accelerator),
       _M_weight(weight_ptr),
       _M_embedding(accelerator)
     {
-        register_parameter("weight", _M_weight);
+        _Base::register_parameter("weight", _M_weight);
     }
 
     embedding(weight_type&& weight, hardware_accelerator& accelerator)
@@ -53,6 +84,12 @@ public:
     template <immutable_tensor2_t<int32_t> Input>
     auto
     operator()(Input input)
+    {
+        return _M_embedding(input, _M_weight);
+    }
+
+    _Base::result_type
+    operator()(_Base::input_type input)
     {
         return _M_embedding(input, _M_weight);
     }

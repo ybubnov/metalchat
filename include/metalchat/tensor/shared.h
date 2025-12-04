@@ -24,6 +24,8 @@ public:
 
     using pointer_type = tensor_type::pointer_type;
 
+    using accessor_type = tensor_accessor;
+
     using container_type = tensor_type::container_type;
 
     using container_pointer = tensor_type::container_pointer;
@@ -66,6 +68,12 @@ public:
     numel() const
     {
         return _M_value->numel();
+    }
+
+    const accessor_type&
+    accessor() const
+    {
+        return _M_value->accessor();
     }
 
     container_type&

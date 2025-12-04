@@ -9,6 +9,7 @@
 #include <span>
 
 #include <metalchat/container.h>
+#include <metalchat/tensor/accessor.h>
 
 
 namespace metalchat {
@@ -68,6 +69,7 @@ concept immutable_tensor = requires(std::remove_reference_t<Tensor> const t) {
     { t.offsets() } -> std::same_as<const std::span<std::size_t>>;
     { t.numel() } -> std::same_as<std::size_t>;
 
+    { t.accessor() } -> std::same_as<const tensor_accessor&>;
     { t.container() } -> std::same_as<typename Tensor::container_type&>;
     // { t.container_ptr() } -> std::same_as<std::shared_ptr<basic_container>&>;
     { t.layout() } -> std::same_as<tensor_layout<Tensor::dim()>>;

@@ -631,6 +631,12 @@ public:
         return n;
     }
 
+    const accessor_type&
+    accessor() const
+    {
+        return _M_access;
+    }
+
     /// Returns a reference to the underlying \ref contiguous_container of the tensor.
     container_type&
     container() const
@@ -1383,24 +1389,17 @@ to_tensor(const tensor<T, N, Container>& t)
 
 template <immutable_tensor Tensor, hardware_allocator_t<void> Allocator>
 auto
-move(const Tensor& t, Allocator alloc)
+move(const Tensor& t, Allocator& alloc)
 {
-    using T = typename Tensor::value_type;
-    constexpr auto N = Tensor::dim();
+    using value_type = typename Tensor::value_type;
 
-    using allocator_type = rebind_allocator<T, Allocator>;
+    using allocator_type = rebind_allocator<value_type, Allocator>;
     using container_type = allocator_type::container_type;
-    using tensor_type = tensor<T, N, container_type>;
+    using tensor_type = tensor<value_type, Tensor::dim(), container_type>;
 
     auto allocator = allocator_type(alloc);
     auto container = allocator.allocate(t.data_ptr(), t.numel());
-
-    auto accessor = tensor_accessor(N);
-    for (std::size_t dim = 0; dim < N; dim++) {
-        accessor.set_size(dim, t.size(dim));
-        accessor.set_stride(dim, t.stride(dim));
-        accessor.set_offset(dim, t.offset(dim));
-    }
+    auto accessor = t.accessor().copy();
 
     return tensor_type(accessor, container);
 }

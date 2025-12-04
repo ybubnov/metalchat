@@ -55,6 +55,8 @@ public:
     /// Pointer to the tensor type.
     using pointer_type = result_type::pointer_type;
 
+    using accessor_type = tensor_accessor;
+
     /// Container type storing the data of the tensor.
     using container_type = result_type::container_type;
 
@@ -251,6 +253,13 @@ public:
     numel() const
     {
         return _M_result.numel();
+    }
+
+    /// See \ref tensor::accessor.
+    const tensor_accessor&
+    accessor() const
+    {
+        return _M_result.accessor();
     }
 
     /// See \ref tensor::container.

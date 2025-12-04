@@ -120,12 +120,13 @@ private:
     using _Transformer = nn::transformer<T, Container>;
     using _TransformerArray = layer_array<_Transformer>;
     using _CacheArray = layer_array<Cache>;
+    using _BasicEmbedding = nn::basic_embedding<T, Container>;
     using _Embedding = nn::embedding<T, Container>;
     using _RMSNorm = nn::rmsnorm<T, Container>;
     using _BasicLinear = nn::basic_linear<T, Container>;
     using _Linear = nn::linear<T, Container>;
 
-    _Embedding::layer_pointer _M_embedding;
+    _BasicEmbedding::layer_pointer _M_embedding;
     _RMSNorm::layer_pointer _M_norm;
     _BasicLinear::layer_pointer _M_output;
 
