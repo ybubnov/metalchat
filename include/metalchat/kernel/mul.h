@@ -43,7 +43,7 @@ public:
     : _M_kernel(gpu.load<T, I1, I2>("hadamard_broadcast"))
     {}
 
-    template <immutable_tensor3_t<I1> Input1, immutable_tensor3_t<I2> Input2>
+    template <immutable_tensor2_t<I1> Input1, immutable_tensor2_t<I2> Input2>
     auto
     operator()(Input1 input1, Input2 input2)
     {
@@ -53,27 +53,36 @@ public:
                 input1.size(0), input2.size(0)
             ));
         }
-        if (input1.size(1) != input2.size(1)) {
-            throw std::invalid_argument(std::format(
-                "kernel::hadamard_broadcast: 1-dimension of input tensors are different {} != {}",
-                input1.size(1), input2.size(1)
-            ));
-        }
-        if (input2.size(2) != 1) {
+        if (input2.size(1) != 1) {
             throw std::invalid_argument(
                 std::format("kernel::hadamard_broadcast: 2-dimension of input1 tensor must be 1")
             );
         }
 
         auto [grid, thread] = make_kernel_grid_2d(input1, BlockSize);
-        auto input1_view = flatten<2>(input1);
-        auto input2_view = flatten<2>(input2);
-        auto output_view = shared_empty_like<T>(input1_view, _M_kernel.get_allocator());
+        auto output = shared_empty_like<T>(input1, _M_kernel.get_allocator());
 
         auto task = kernel_task(_M_kernel, grid, thread);
-        auto task_future = task.bind_front(output_view, input1_view, input2_view);
+        auto task_future = task.bind_front(output, input1, input2);
 
-        auto output = future_tensor(output_view, std::move(task_future));
+        return future_tensor(output, std::move(task_future));
+    }
+
+    template <immutable_tensor3_t<I1> Input1, immutable_tensor3_t<I2> Input2>
+    auto
+    operator()(Input1 input1, Input2 input2)
+    {
+        if (input1.size(1) != input2.size(1)) {
+            throw std::invalid_argument(std::format(
+                "kernel::hadamard_broadcast: 1-dimension of input tensors are different {} != {}",
+                input1.size(1), input2.size(1)
+            ));
+        }
+
+        auto input1_view = flatten<2>(input1);
+        auto input2_view = flatten<2>(input2);
+
+        auto output = operator()(input1_view, input2_view);
         return output.view(input1.shape());
     }
 };
