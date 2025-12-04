@@ -96,12 +96,17 @@ public:
     _Base::result_type
     operator()(_Base::input_type input)
     {
-        // weight = weight.view({/* ... */});
-        // scales = scales.view({/* ... */});
-        // output = matmul(hadamard_bcast(weight, scales), input);
+        // input // bfloat16
+        // weight = weight.view({/* ... */}); // int8
+        // scales = scales.view({/* ... */}); // float32
+        // weight_dequant = hadamard_broadcast<T>(weight, scales); // bfloat16
+        //
+        // output = matmul(weight_dequant, input);
         auto adaptation = mul(_M_adaptor(input), _M_scale, _Base::accelerator());
+        // adaptation // bfloat16
+
         return adaptation;
-        // return sum_mixed(output, adaptation);
+        // return add(output, adaptation);
     }
 };
 

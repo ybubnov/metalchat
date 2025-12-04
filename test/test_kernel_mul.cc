@@ -38,6 +38,34 @@ TEST_CASE("Hadamard product", "[kernel::hadamard]")
 }
 
 
+TEST_CASE("Hadamard broadcasting product", "[kernel::hadamard_broadcast]")
+{
+    metalchat::hardware_accelerator gpu0;
+    kernel::hadamard_broadcast<float, int8_t, float> m(gpu0);
+
+    auto weight = shared_tensor(rand<int8_t>({512, 64, 32}, 1, 10));
+    auto scales = shared_tensor(rand<float>({512, 64, 1}));
+
+    auto output = m(weight, scales).get();
+    REQUIRE(output.dim() == 3);
+    REQUIRE(output.size(0) == 512);
+    REQUIRE(output.size(1) == 64);
+    REQUIRE(output.size(2) == 32);
+
+    // std::cout << output.get() << std::endl;
+    for (std::size_t i = 0; i < output.size(0); i++) {
+        for (std::size_t j = 0; j < output.size(1); j++) {
+            for (std::size_t k = 0; k < output.size(2); k++) {
+                auto result = static_cast<float>(weight[i, j, k]);
+                result *= static_cast<float>(scales[i, j, 0]);
+
+                REQUIRE_THAT((output[i, j, k]), Catch::Matchers::WithinAbs(result, 0.00001));
+            }
+        }
+    }
+}
+
+
 TEST_CASE("Scalar multiplication", "[kernel::scalar_mul]")
 {
     metalchat::hardware_accelerator gpu0;

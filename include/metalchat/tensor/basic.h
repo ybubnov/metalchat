@@ -1302,7 +1302,10 @@ zeros(std::size_t (&&sizes)[N])
 /// interval [0, 1).
 ///
 /// The shape of the tensor is defined by the variable argument `sizes`.
-template <typename T, std::size_t N, allocator_t<T> Allocator = random_memory_allocator<T>>
+template <
+    std::floating_point T,
+    std::size_t N,
+    allocator_t<T> Allocator = random_memory_allocator<T>>
 requires(N > 0)
 auto
 rand(std::size_t (&&sizes)[N], Allocator alloc = Allocator())
@@ -1319,7 +1322,7 @@ rand(std::size_t (&&sizes)[N], Allocator alloc = Allocator())
 }
 
 
-template <typename T, std::size_t N> requires(N > 0)
+template <std::floating_point T, std::size_t N> requires(N > 0)
 auto
 rand(std::size_t (&&sizes)[N], hardware_accelerator& accelerator)
 {
@@ -1327,6 +1330,28 @@ rand(std::size_t (&&sizes)[N], hardware_accelerator& accelerator)
     auto alloc = rebind_allocator<T, allocator_type>(accelerator.get_allocator());
 
     return rand<T>(std::move(sizes), alloc);
+}
+
+
+template <std::integral T, std::size_t N, allocator_t<T> Allocator = random_memory_allocator<T>>
+requires(N > 0)
+auto
+rand(
+    std::size_t (&&sizes)[N],
+    T a = 0,
+    T b = std::numeric_limits<T>::max(),
+    Allocator alloc = Allocator()
+)
+{
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    std::uniform_int_distribution<T> distribution(a, b);
+
+    auto t = empty<T>(std::move(sizes), alloc);
+
+    std::generate_n(t.data_ptr(), t.numel(), [&]() { return distribution(generator); });
+
+    return t;
 }
 
 

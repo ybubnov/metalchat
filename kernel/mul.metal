@@ -48,29 +48,40 @@ __lib_metalchat_kernel2(hadamard, bfloat);
 __lib_metalchat_kernel2(hadamard, float);
 
 
-template <typename T, typename U> struct __hadamard_bcast_parameters {
-    constant layout2& output_layout;
-    device T* output_data;
-    constant layout2& input1_layout;
-    const device T* input1_data;
-    constant layout2& input2_layout;
-    const device U* input2_data;
+template <typename Output, typename Input1, typename Input2>
+struct __hadamard_broadcast_parameters {
+    tensor2<Output> output;
+    tensor2<const Input1> input1;
+    tensor2<const Input2> input2;
 };
 
 
-template <typename T, typename U>
+template <typename Output, typename Input1, typename Input2>
 kernel void
-hadamard_bcast(
-    __hadamard_bcast_parameters<T, U> params,
+hadamard_broadcast(
+    __hadamard_broadcast_parameters<Output, Input1, Input2> params,
     uint2 gid [[threadgroup_position_in_grid]],
     uint2 tid [[thread_position_in_threadgroup]],
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
-{}
+{
+    const uint dim_size = params.output.size(1);
+    const uint i = gid.x;
+
+    const uint k = tid.x + gid.y * threadgroup_size.x;
+
+    if (k < dim_size) {
+        params.output.at(i, k)
+            = (static_cast<Output>(params.input1.at(i, k))
+               * static_cast<Output>(params.input2.at(i, 0)));
+    }
+}
 
 
-__lib_metalchat_kernel2_mixed(hadamard_bcast, bfloat, int8_t);
-__lib_metalchat_kernel2_mixed(hadamard_bcast, float, int8_t);
+__lib_metalchat_kernel2_mixed3(hadamard_broadcast, bfloat, int8_t, bfloat);
+__lib_metalchat_kernel2_mixed3(hadamard_broadcast, bfloat, int8_t, float);
+__lib_metalchat_kernel2_mixed3(hadamard_broadcast, float, int8_t, bfloat);
+__lib_metalchat_kernel2_mixed3(hadamard_broadcast, float, int8_t, float);
 
 
 template <typename T> struct __scalar_mul_parameters {
