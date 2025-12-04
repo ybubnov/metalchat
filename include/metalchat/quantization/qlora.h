@@ -76,14 +76,16 @@ private:
 
     _Adaptor::layer_pointer _M_adaptor;
 
+    std::size_t _M_group_size;
     weight_pointer _M_weight;
     scales_pointer _M_scales;
     value_type _M_scale;
 
 public:
-    qlora_linear(T scale, hardware_accelerator& accelerator)
+    qlora_linear(T scale, std::size_t group_size, hardware_accelerator& accelerator)
     : _Base(accelerator),
       _M_adaptor(nullptr),
+      _M_group_size(group_size),
       _M_weight(weight_type()),
       _M_scales(scales_type()),
       _M_scale(scale)
@@ -96,17 +98,30 @@ public:
     _Base::result_type
     operator()(_Base::input_type input)
     {
-        // input // bfloat16
-        // weight = weight.view({/* ... */}); // int8
-        // scales = scales.view({/* ... */}); // float32
-        // weight_dequant = hadamard_broadcast<T>(weight, scales); // bfloat16
-        //
-        // output = matmul(weight_dequant, input);
-        auto adaptation = mul(_M_adaptor(input), _M_scale, _Base::accelerator());
-        // adaptation // bfloat16
+        auto& accelerator = _Base::accelerator();
 
-        return adaptation;
-        // return add(output, adaptation);
+        // The parameters in this module are defined as 2-dimensional tensors, since
+        // original model is distributed with 2-dimensional weights. So in order to
+        // load this module from a file, the reshaping must be implemented on-the-fly.
+        //
+        // Note: obviously model could be distributed with 3-dimensional tensors, so
+        // this operation could be avoided. But seems like it's a historical artifact.
+        auto weight_size = static_cast<int>(_M_weight.size(0));
+        auto scales_size = static_cast<int>(_M_scales.size(0));
+        auto group_size = static_cast<int>(_M_group_size);
+
+        auto weight_lora = _M_weight.view({weight_size, -1, group_size});
+        auto scales_lora = _M_scales.view({scales_size, -1, 1});
+
+        // Note: hadamard multiplication stores the result into target type T (bfloat16,
+        // by default). And the next matrix multiplication operation is performed in that
+        // target type T (bfloat16). Which might result in a loss of precision.
+        auto weight_dequant = hadamard_broadcast<T>(weight_lora, scales_lora, accelerator);
+        auto weight = weight_dequant.view(_M_weight.shape());
+        auto output = matmul(input, weight.transpose({1, 0}), accelerator);
+
+        auto adaptation = mul(_M_adaptor(input), _M_scale, accelerator);
+        return add(output, adaptation, accelerator);
     }
 };
 

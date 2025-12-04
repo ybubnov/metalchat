@@ -1302,10 +1302,7 @@ zeros(std::size_t (&&sizes)[N])
 /// interval [0, 1).
 ///
 /// The shape of the tensor is defined by the variable argument `sizes`.
-template <
-    std::floating_point T,
-    std::size_t N,
-    allocator_t<T> Allocator = random_memory_allocator<T>>
+template <typename T, std::size_t N, allocator_t<T> Allocator = random_memory_allocator<T>>
 requires(N > 0)
 auto
 rand(std::size_t (&&sizes)[N], Allocator alloc = Allocator())
@@ -1322,7 +1319,7 @@ rand(std::size_t (&&sizes)[N], Allocator alloc = Allocator())
 }
 
 
-template <std::floating_point T, std::size_t N> requires(N > 0)
+template <typename T, std::size_t N> requires(N > 0)
 auto
 rand(std::size_t (&&sizes)[N], hardware_accelerator& accelerator)
 {

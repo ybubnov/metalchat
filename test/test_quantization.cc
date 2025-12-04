@@ -22,7 +22,7 @@ TEST_CASE("Test replace QLora linear", "[quantization]")
     using BasicLinear = nn::basic_linear<float>;
     using QLoraLinear = quantization::qlora_linear<float>;
 
-    quantization::replace<BasicLinear>(input_layer, QLoraLinear(1.0, gpu0));
+    quantization::replace<BasicLinear>(input_layer, QLoraLinear(1.0, 32, gpu0));
 
     auto params_after = input_layer.get_parameters();
     REQUIRE(params_after.size() == 12);

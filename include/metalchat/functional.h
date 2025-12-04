@@ -54,6 +54,21 @@ hadamard(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 }
 
 
+template <
+    typename T,
+    immutable_tensor Tensor1,
+    immutable_tensor Tensor2,
+    std::size_t BlockSize = 16>
+auto
+hadamard_broadcast(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
+{
+    using input1_type = Tensor1::value_type;
+    using input2_type = Tensor2::value_type;
+    kernel::hadamard_broadcast<T, input1_type, input2_type> op(gpu);
+    return op(t1, t2);
+}
+
+
 template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 16>
 auto
 add(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
