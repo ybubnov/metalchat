@@ -6,6 +6,7 @@
 
 #include <metalchat/container.h>
 #include <metalchat/nn/linear.h>
+#include <metalchat/tensor.h>
 
 
 namespace metalchat {
@@ -64,21 +65,15 @@ public:
 private:
     using _Base = nn::basic_linear<T, Container>;
     using _Adaptor = qlora_adaptor<T, Container>;
-    using _Container = container_remove_type<Container>::type;
 
-    using weight_container = container_rebind<std::int8_t, _Container>::type;
-    using weight_type = tensor<std::int8_t, 2, weight_container>;
-    using weight_pointer = shared_tensor_ptr<weight_type>;
-
-    using scales_container = container_rebind<float, _Container>::type;
-    using scales_type = tensor<float, 2, scales_container>;
-    using scales_pointer = shared_tensor_ptr<scales_type>;
+    using weight_traits = tensor_traits<std::int8_t, 2, container_type>;
+    using scales_traits = tensor_traits<float, 2, container_type>;
 
     _Adaptor::layer_pointer _M_adaptor;
 
     std::size_t _M_group_size;
-    weight_pointer _M_weight;
-    scales_pointer _M_scales;
+    weight_traits::pointer _M_weight;
+    scales_traits::pointer _M_scales;
     value_type _M_scale;
 
 public:
@@ -86,8 +81,8 @@ public:
     : _Base(accelerator),
       _M_adaptor(nullptr),
       _M_group_size(group_size),
-      _M_weight(weight_type()),
-      _M_scales(scales_type()),
+      _M_weight(typename weight_traits::type()),
+      _M_scales(typename scales_traits::type()),
       _M_scale(scale)
     {
         _M_adaptor = _Base::register_layer("adaptor", _Adaptor(accelerator));
@@ -122,6 +117,42 @@ public:
 
         auto adaptation = mul(_M_adaptor(input), _M_scale, accelerator);
         return add(output, adaptation, accelerator);
+    }
+};
+
+
+template <typename T, contiguous_container Container = hardware_memory_container<T>>
+class qlora_embedding : public nn::basic_embedding<T, Container> {
+private:
+    using _Base = nn::basic_embedding<T, Container>;
+
+    using weight_traits = tensor_traits<std::int8_t, 2, Container>;
+    using scales_traits = tensor_traits<float, 2, Container>;
+
+    weight_traits::pointer _M_weight;
+    scales_traits::pointer _M_scales;
+    kernel::embedding<T> _M_embedding;
+
+public:
+    using value_type = T;
+    using container_type = Container;
+
+    qlora_embedding(hardware_accelerator& accelerator)
+    : _Base(accelerator),
+      _M_weight(typename weight_traits::type()),
+      _M_scales(typename scales_traits::type()),
+      _M_embedding(accelerator)
+    {
+        _Base::register_parameter("weight", _M_weight);
+        _Base::register_parameter("scales", _M_scales);
+    }
+
+    _Base::result_type
+    operator()(_Base::input_type input)
+    {
+        auto& accelerator = _Base::accelerator();
+        auto weight_dequant = hadamard_broadcast<T>(_M_weight, _M_scales, accelerator);
+        return _M_embedding(input, weight_dequant);
     }
 };
 

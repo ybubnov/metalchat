@@ -11,3 +11,4 @@
 #include <metalchat/tensor/indexing.h>
 #include <metalchat/tensor/iterator.h>
 #include <metalchat/tensor/shared.h>
+#include <metalchat/tensor/traits.h>
