@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2025 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
-#include <metalchat/nn/llama.h>
+#include <metalchat/nn/options.h>
 
 
 namespace metalchat {
@@ -18,8 +18,7 @@ default_llama3_1b_options()
         .n_kv_heads(8)
         .n_layers(16)
         .max_seq_len(1024)
-        .rope_theta(500000.0f)
-        .heap_size(std::size_t(512) * 1024 * 1024);
+        .rope_theta(500000.0f);
 }
 
 
@@ -145,31 +144,6 @@ std::size_t
 llama3_options::max_seq_len() const noexcept
 {
     return _M_max_seq_len;
-}
-
-
-void
-llama3_options::set_heap_size(std::size_t heap_size)
-{
-    _M_heap_size = heap_size;
-}
-
-
-llama3_options
-llama3_options::heap_size(std::optional<std::size_t> heap_size) const noexcept
-{
-    llama3_options o = *this;
-    if (heap_size.has_value()) {
-        o.set_heap_size(heap_size.value());
-    }
-    return o;
-}
-
-
-std::size_t
-llama3_options::heap_size() const noexcept
-{
-    return _M_heap_size;
 }
 
 

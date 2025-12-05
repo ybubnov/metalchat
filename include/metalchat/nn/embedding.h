@@ -77,8 +77,8 @@ public:
     : embedding(empty<T>({num_embeddings, embedding_dim}, accelerator), accelerator)
     {}
 
-    embedding(const hardware_accelerator& accelerator)
-    : embedding(shared_tensor(tensor<T, 2, Container>()), accelerator)
+    embedding(hardware_accelerator& accelerator)
+    : embedding(shared_tensor(weight_type()), accelerator)
     {}
 
     template <immutable_tensor2_t<int32_t> Input>

@@ -83,11 +83,7 @@ public:
     using layer_type = attention<T, Container>;
     using layer_pointer = shared_layer_ptr<layer_type>;
 
-    attention(
-        const attention_options& options,
-        hardware_accelerator accelerator,
-        std::size_t max_batch_size = 1
-    )
+    attention(const attention_options& options, hardware_accelerator accelerator)
     : basic_layer(accelerator),
       _M_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
       _M_options(options),

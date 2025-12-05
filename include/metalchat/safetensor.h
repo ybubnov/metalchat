@@ -443,6 +443,13 @@ public:
 };
 
 
+template <typename Adaptor>
+concept safetensor_document_adaptor
+    = requires(std::remove_reference_t<Adaptor> const a, safetensor_document& document) {
+          { a.adapt(document) } -> std::same_as<void>;
+      };
+
+
 /// A document for writing and reading tensors in a `safetensor` format.
 class safetensor_document {
 private:

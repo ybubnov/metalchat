@@ -15,6 +15,7 @@
 #include <metalchat/nn/cache.h>
 #include <metalchat/nn/embedding.h>
 #include <metalchat/nn/layer.h>
+#include <metalchat/nn/options.h>
 #include <metalchat/nn/rmsnorm.h>
 #include <metalchat/nn/sampling.h>
 #include <metalchat/nn/transformer.h>
@@ -25,87 +26,15 @@ namespace metalchat {
 namespace nn {
 
 
-struct llama3_options {
-public:
-    llama3_options() {}
-    llama3_options(const llama3_options&) = default;
-
-    llama3_options
-    head_dim(std::optional<std::size_t> head_dim) const noexcept;
-
-    llama3_options
-    n_heads(std::optional<std::size_t> n_heads) const noexcept;
-
-    llama3_options
-    n_kv_heads(std::optional<std::size_t> n_kv_heads) const noexcept;
-
-    llama3_options
-    n_layers(std::optional<std::size_t> n_layers) const noexcept;
-
-    llama3_options
-    max_seq_len(std::optional<std::size_t> max_seq_len) const noexcept;
-
-    llama3_options
-    heap_size(std::optional<std::size_t> heap_size) const noexcept;
-
-    llama3_options
-    rope_theta(std::optional<float> rope_theta) const noexcept;
-
-    std::size_t
-    head_dim() const noexcept;
-
-    std::size_t
-    n_heads() const noexcept;
-
-    std::size_t
-    n_kv_heads() const noexcept;
-
-    std::size_t
-    n_layers() const noexcept;
-
-    std::size_t
-    max_seq_len() const noexcept;
-
-    std::size_t
-    heap_size() const noexcept;
-
-    float
-    rope_theta() const noexcept;
-
-private:
-    std::size_t _M_head_dim = 0;
-    std::size_t _M_n_heads = 0;
-    std::size_t _M_n_kv_heads = 0;
-    std::size_t _M_n_layers = 0;
-    std::size_t _M_max_seq_len = 0;
-    std::size_t _M_heap_size = 0;
-    float _M_rope_theta = 0.0f;
-
+// The original implementation of Llama 3.2 shares the weight of token embeddings and the output
+// layer, use a shared tensor in order to reduce memory footprint.
+struct metallama3_document_adaptor {
     void
-    set_head_dim(std::size_t head_dim);
-
-    void
-    set_n_heads(std::size_t n_heads);
-
-    void
-    set_n_kv_heads(std::size_t n_kv_heads);
-
-    void
-    set_n_layers(std::size_t n_layers);
-
-    void
-    set_max_seq_len(std::size_t max_seq_len);
-
-    void
-    set_heap_size(std::size_t heap_size);
-
-    void
-    set_rope_theta(float rope_theta);
+    adapt(safetensor_document& document) const
+    {
+        document.insert("output.weight", "tok_embeddings.weight");
+    }
 };
-
-
-llama3_options
-default_llama3_1b_options();
 
 
 /// Llama 3 is an auto-regressive language model that uses an optimized transformer architecture.
@@ -146,18 +75,14 @@ public:
     using layer_pointer = shared_layer_ptr<layer_type>;
 
     /// Constructs a new Llama3 model with uninitialized weights with the given options.
-    llama3(llama3_options options, hardware_accelerator& accelerator)
+    llama3(const llama3_options& options, hardware_accelerator& accelerator)
         requires cache_constructible<Cache>
     : basic_layer(accelerator),
       _M_sampler(std::make_shared<nucleus_sampler<value_type>>())
     {
-        // The original implementation of Llama 3.2 shares the weight of token embeddings
-        // and the output layer, use a shared tensor in order to reduce memory footprint.
-        auto weight = shared_tensor(tensor<value_type, 2, container_type>());
-
-        _M_embedding = register_layer("tok_embeddings", _Embedding(weight, accelerator));
+        _M_embedding = register_layer("tok_embeddings", _Embedding(accelerator));
         _M_norm = register_layer("norm", _RMSNorm(accelerator));
-        _M_output = register_layer("output", _Linear(weight, accelerator));
+        _M_output = register_layer("output", _Linear(accelerator));
         _M_transforms = register_layer("layers", _TransformerArray(accelerator));
         _M_caches = register_layer("caches", _CacheArray(accelerator));
 
@@ -209,6 +134,18 @@ public:
     {
         auto logits = operator()(input, start_pos);
         return _M_sampler->sample(logits.template flatten<2>(), accelerator());
+    }
+
+    template <safetensor_document_adaptor SafetensorDocumentAdaptor = metallama3_document_adaptor>
+    void
+    load(
+        const std::filesystem::path& path,
+        SafetensorDocumentAdaptor document_adaptor = SafetensorDocumentAdaptor()
+    )
+    {
+        auto document = safetensor_document::open(path, accelerator());
+        document_adaptor.adapt(document);
+        document.load(*this);
     }
 };
 

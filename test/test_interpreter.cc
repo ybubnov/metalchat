@@ -20,8 +20,7 @@ TEST_CASE("Test interpreter", "[llama]")
     auto weights_path = test_fixture_path() / "llama3.2:1b-instruct" / "model.safetensors";
     auto tokens_path = test_fixture_path() / "llama3.2:1b-instruct" / "original/tokenizer.model";
 
-    auto options = nn::default_llama3_1b_options().heap_size(0);
-    auto interp = make_llama3(weights_path, tokens_path, options);
+    auto interp = make_llama3(weights_path, tokens_path);
 
     auto command = R"({
 "name":"multiply",

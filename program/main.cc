@@ -18,8 +18,7 @@ main()
     auto weights_path = std::filesystem::path(std::getenv("METALCHAT_SAFETENSOR_PATH"));
     auto tokens_path = std::filesystem::path(std::getenv("METALCHAT_TOKENIZER_PATH"));
 
-    auto options = metalchat::nn::default_llama3_1b_options().heap_size(0);
-    auto interp = metalchat::make_llama3(weights_path, tokens_path, options);
+    auto interp = metalchat::make_llama3(weights_path, tokens_path);
 
     for (;;) {
         char const* raw_input = nullptr;

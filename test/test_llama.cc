@@ -27,7 +27,10 @@ TEST_CASE("Test make model", "[llama]")
     auto options = nn::default_llama3_1b_options().max_seq_len(16);
     nn::llama3<bf16> m(options, gpu0);
 
-    safetensor_document::load(model_path, m);
+    auto document = safetensor_document::open(model_path, gpu0);
+    auto document_adaptor = nn::metallama3_document_adaptor();
+    document_adaptor.adapt(document);
+    document.load(m);
 
     auto heap_size = std::size_t(512) * 1024 * 1024;
     auto alloc3 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);

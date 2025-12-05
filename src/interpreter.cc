@@ -133,31 +133,15 @@ interpreter::write(const basic_message& message)
 
 
 interpreter
-make_llama3(
-    const std::filesystem::path& weights_path,
-    const std::filesystem::path& tokens_path,
-    std::optional<nn::llama3_options> options_
-)
+make_llama3(const std::filesystem::path& weights_path, const std::filesystem::path& tokens_path)
 {
+    metalchat::hardware_accelerator accelerator;
     metalchat::text::bpe bpe(tokens_path);
-    metalchat::hardware_accelerator gpu0;
 
-    auto options = options_.value_or(nn::default_llama3_1b_options());
+    nn::llama3<bf16> layer(nn::default_llama3_1b_options(), accelerator);
+    layer.load(weights_path);
 
-    using container_type = hardware_memory_container<bf16>;
-    using transformer_type = nn::llama3<bf16, container_type>;
-
-    auto transformer = transformer_type(options, gpu0);
-    safetensor_document::load(weights_path, transformer);
-
-    auto device = gpu0.get_metal_device();
-
-    if (options.heap_size() > 0) {
-        auto alloc = hardware_heap_allocator<void>(device, options.heap_size());
-        gpu0.set_allocator(nocopy_allocator(alloc, device));
-    }
-
-    return interpreter(std::move(transformer), bpe);
+    return interpreter(std::move(layer), bpe);
 }
 
 

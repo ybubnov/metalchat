@@ -69,7 +69,7 @@ public:
     : linear(rand<T>({out_features, in_features}, accelerator), accelerator)
     {}
 
-    linear(hardware_accelerator accelerator)
+    linear(hardware_accelerator& accelerator)
     : linear(shared_tensor(weight_type()), accelerator)
     {}
 
