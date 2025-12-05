@@ -130,3 +130,20 @@ TEST_CASE("Test write and read small model", "[safetensor]")
 
     REQUIRE_THAT(l2_out_vec, Approx(l2_in_vec));
 }
+
+
+TEST_CASE("Test tensor link", "[safetensor]")
+{
+    auto input = rand<float>({3, 4});
+
+    safetensor_document doc;
+    doc.insert("input.weight", input);
+    doc.insert("output.weight", "input.weight");
+
+    auto output = tensor<float, 2>();
+    doc.load("output.weight", output);
+
+    REQUIRE(output.size(0) == input.size(0));
+    REQUIRE(output.size(1) == input.size(1));
+    REQUIRE(output.container_ptr() == input.container_ptr());
+}

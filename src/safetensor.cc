@@ -181,6 +181,18 @@ safetensor_document::insert(const std::string& name, const basic_tensor& tensor)
 
 
 void
+safetensor_document::insert(const std::string& name, const std::string& source)
+{
+    auto pos = _M_names.at(source);
+    auto metadata = _M_metadata[pos];
+    auto container_ptr = _M_containers[pos];
+
+    metadata.name = name;
+    insert(metadata, container_ptr);
+}
+
+
+void
 safetensor_document::insert(const nn::basic_layer& layer)
 {
     auto insert_fn = [&](nn::named_parameter parameter) { insert(parameter.name, *parameter.ptr); };

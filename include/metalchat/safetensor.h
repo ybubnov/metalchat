@@ -673,6 +673,25 @@ public:
     void
     insert(const std::string& name, const basic_tensor& tensor);
 
+    /// Insert a tensor into the safetensor document.
+    ///
+    /// Inserts a new tensor entry within a safetensor that refers to the another tensor
+    /// with a name specified in `source` argument. The `source` tensor must be presented in
+    /// the safetensor document.
+    ///
+    /// Both tensors will be sharing the same underlying container.
+    ///
+    /// Example:
+    /// ```c++
+    /// auto weight = zeros<float>({3, 4});
+    ///
+    /// safetensor_document doc;
+    /// doc.insert("input.weight", weight);
+    /// doc.insert("output.weight", "input.weight");
+    /// ```
+    void
+    insert(const std::string& name, const std::string& source);
+
     /// Insert all registered parameters of the specified layer.
     ///
     /// This method recursively traverses layer and inserts parameters into the safetensor
