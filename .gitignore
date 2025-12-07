@@ -1,7 +1,7 @@
 # Build
 build/
 lib/
-testdata/
+test_fixture/
 
 # Ignore conan-generated presents
 CMakeUserPresets.json

@@ -17,15 +17,13 @@ namespace metalchat {
 class basic_command_statement {
 public:
     virtual std::string
-    get_name() const
-        = 0;
+    get_name() const = 0;
 
     virtual std::optional<std::string>
     get_parameter(const std::string&) const = 0;
 
     virtual std::string
-    str() const
-        = 0;
+    str() const = 0;
 
     virtual ~basic_command_statement() {}
 };
@@ -58,8 +56,7 @@ public:
 class basic_command_scanner {
 public:
     virtual std::string
-    declare(const std::string& decl)
-        = 0;
+    declare(const std::string& decl) = 0;
 
     virtual std::optional<command_statement>
     scan(const std::string& text) = 0;

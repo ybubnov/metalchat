@@ -98,12 +98,10 @@ public:
     using tensor_type = future_tensor<index_type, 2>;
 
     virtual tensor_type
-    transform(tensor_type, std::size_t start_pos)
-        = 0;
+    transform(tensor_type, std::size_t start_pos) = 0;
 
     virtual hardware_accelerator&
-    accelerator()
-        = 0;
+    accelerator() = 0;
 };
 
 

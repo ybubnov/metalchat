@@ -100,8 +100,8 @@ using change_tensor_container_t = typename change_tensor_container<Tensor, Conta
 /// a Hadamard product) could be computed on tensors of the same value type, and never
 /// on tensors of different types (meaning, no automatic type cast).
 template <typename Tensor, typename T>
-concept immutable_tensor_t
-    = immutable_tensor<Tensor> && std::same_as<typename Tensor::value_type, T>;
+concept immutable_tensor_t =
+    immutable_tensor<Tensor> && std::same_as<typename Tensor::value_type, T>;
 
 
 template <typename Tensor, typename T>
@@ -125,17 +125,17 @@ concept immutable_tensor4_t = immutable_tensor_t<Tensor, T> && Tensor::dim() == 
 
 
 template <typename Tensor, typename T>
-concept immutable_hardware_tensor_t = immutable_tensor_t<Tensor, T>
-                                      && std::same_as<
-                                          typename Tensor::container_type,
-                                          hardware_memory_container<typename Tensor::value_type>>;
+concept immutable_hardware_tensor_t =
+    immutable_tensor_t<Tensor, T> && std::same_as<
+                                         typename Tensor::container_type,
+                                         hardware_memory_container<typename Tensor::value_type>>;
 
 
 template <typename Tensor, typename T>
-concept immutable_hardware_tensor4_t = immutable_tensor4_t<Tensor, T>
-                                       && std::same_as<
-                                           typename Tensor::container_type,
-                                           hardware_memory_container<typename Tensor::value_type>>;
+concept immutable_hardware_tensor4_t =
+    immutable_tensor4_t<Tensor, T> && std::same_as<
+                                          typename Tensor::container_type,
+                                          hardware_memory_container<typename Tensor::value_type>>;
 
 
 template <typename Tensor, typename T> struct optional_tensor : public std::false_type {};
@@ -151,8 +151,8 @@ concept optional_tensor_t = optional_tensor<Tensor, T>::value;
 
 
 template <typename Tensor, typename T>
-concept immutable_filebuf_tensor_t = immutable_tensor_t<Tensor, T>
-                                     && std::same_as<
+concept immutable_filebuf_tensor_t =
+    immutable_tensor_t<Tensor, T> && std::same_as<
                                          typename Tensor::container_type,
                                          filebuf_memory_container<typename Tensor::value_type>>;
 

@@ -22,8 +22,7 @@ public:
     using output_tensor = future_tensor<index_type, 2>;
 
     virtual output_tensor
-    sample(input_tensor logits, hardware_accelerator& accelerator)
-        = 0;
+    sample(input_tensor logits, hardware_accelerator& accelerator) = 0;
 
     template <immutable_tensor_t<T> InputTensor>
     output_tensor

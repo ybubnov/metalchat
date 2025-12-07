@@ -5,4 +5,5 @@
 #pragma once
 
 #include <metalchat/quantization/algorithm.h>
+#include <metalchat/quantization/linear.h>
 #include <metalchat/quantization/qlora.h>

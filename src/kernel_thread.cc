@@ -110,8 +110,8 @@ hardware_function_encoder::dispatch(dim3 grid, dim3 group)
     command_name_stream << _M_name << "<" << grid << "," << group << ">" << std::endl;
 
     auto command_name = command_name_stream.str();
-    auto cmd_name
-        = NS::TransferPtr(NS::String::string(command_name.c_str(), NS::UTF8StringEncoding));
+    auto cmd_name =
+        NS::TransferPtr(NS::String::string(command_name.c_str(), NS::UTF8StringEncoding));
     _M_queue->encoder->setLabel(cmd_name.get());
 
     MTL::Size threads_per_grid(grid.x, grid.y, grid.z);
@@ -131,12 +131,12 @@ kernel_thread::kernel_thread(const kernel_queue& queue, std::size_t capacity, al
 {
     // After the completion of the kernel execution, release the promise and all blocks
     // waiting for the completion of this kernel.
-    _M_queue->commands->addCompletedHandler([promise
-                                             = _M_promise](const MTL::CommandBuffer* buffer) {
+    _M_queue->commands->addCompletedHandler([promise =
+                                                 _M_promise](const MTL::CommandBuffer* buffer) {
         if (buffer->error() != nullptr) {
             auto failure_reason = buffer->error()->localizedDescription();
-            auto exception_ptr
-                = std::make_exception_ptr(std::runtime_error(failure_reason->utf8String()));
+            auto exception_ptr =
+                std::make_exception_ptr(std::runtime_error(failure_reason->utf8String()));
             promise->set_exception(exception_ptr);
         } else {
             promise->set_value();

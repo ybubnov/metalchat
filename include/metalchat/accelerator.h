@@ -170,8 +170,8 @@ public:
     const basic_kernel&
     load(const std::string_view& name)
     {
-        auto kernel_name
-            = std::format("{}_{}_{}", name, type_traits<T1>::name(), type_traits<T2>::name());
+        auto kernel_name =
+            std::format("{}_{}_{}", name, type_traits<T1>::name(), type_traits<T2>::name());
         ((kernel_name += "_" + type_traits<TN>::name()), ...);
         return load(kernel_name);
     }

@@ -71,18 +71,18 @@ concept allocator_t = allocator<Allocator> && std::same_as<typename Allocator::v
 /// The concept specifies the requirements for a type to allocate elements contiguously stored
 /// in the hardware (Metal) memory.
 template <typename Allocator>
-concept hardware_allocator = allocator<Allocator>
-                             && std::same_as<
-                                 typename Allocator::container_type,
-                                 hardware_memory_container<typename Allocator::value_type>>;
+concept hardware_allocator =
+    allocator<Allocator> && std::same_as<
+                                typename Allocator::container_type,
+                                hardware_memory_container<typename Allocator::value_type>>;
 
 
 /// The concept specifies the requirements for a type to allocate elements of a type `T`
 /// conguously stored in the hardware (Metal) memory.
 template <typename Allocator, typename T>
-concept hardware_allocator_t
-    = allocator_t<Allocator, T>
-      && std::same_as<typename Allocator::container_type, hardware_memory_container<T>>;
+concept hardware_allocator_t =
+    allocator_t<Allocator, T> &&
+    std::same_as<typename Allocator::container_type, hardware_memory_container<T>>;
 
 
 /// This class template is a virtual class that should be inherited by allocator implementations
@@ -400,8 +400,8 @@ public:
         using const_byte_pointer = const std::uint8_t*;
 
         auto alloc_ptr = static_cast<const_byte_pointer>(ptr);
-        auto container_it
-            = std::lower_bound(_M_containers.begin(), _M_containers.end(), ptr, container_less_ptr);
+        auto container_it =
+            std::lower_bound(_M_containers.begin(), _M_containers.end(), ptr, container_less_ptr);
 
         for (; container_it != _M_containers.end(); ++container_it) {
             auto& container_ptr = *container_it;

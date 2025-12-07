@@ -150,6 +150,7 @@ public:
     _Base::result_type
     operator()(_Base::input_type input)
     {
+        std::cout << "qlora embedding" << std::endl;
         auto& accelerator = _Base::accelerator();
         auto weight_dequant = hadamard_broadcast<T>(_M_weight, _M_scales, accelerator);
         return _M_embedding(input, weight_dequant);

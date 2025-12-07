@@ -47,8 +47,8 @@ public:
             ));
         }
 
-        auto output
-            = shared_empty<T>({num_batches, input_size1, weight_size2}, _M_kernel.get_allocator());
+        auto output =
+            shared_empty<T>({num_batches, input_size1, weight_size2}, _M_kernel.get_allocator());
 
         auto grid = dim3(
             ceil_div(input_size1, BlockSize) * BlockSize,

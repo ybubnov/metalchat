@@ -37,8 +37,8 @@ public:
         auto dim_size = input.sizes().back();
         auto num_rows = data_size / dim_size;
 
-        auto output
-            = shared_empty<T>({input.size(0), dim_size, emb_size}, _M_kernel.get_allocator());
+        auto output =
+            shared_empty<T>({input.size(0), dim_size, emb_size}, _M_kernel.get_allocator());
 
         auto thread_size_x = ceil_div(dim_size, BlockSize);
         auto thread_size_y = ceil_div(emb_size, EmbeddingBlockSize);

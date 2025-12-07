@@ -97,9 +97,9 @@ public:
     operator==(const iterator& rhs) const
     {
         return (
-            (_M_data == nullptr && rhs._M_data == nullptr)
-            || ((_M_data != nullptr) && (rhs._M_data != nullptr)
-                && (_M_data->data_ptr() == rhs._M_data->data_ptr()) && (_M_num == rhs._M_num))
+            (_M_data == nullptr && rhs._M_data == nullptr) ||
+            ((_M_data != nullptr) && (rhs._M_data != nullptr) &&
+             (_M_data->data_ptr() == rhs._M_data->data_ptr()) && (_M_num == rhs._M_num))
         );
     }
 

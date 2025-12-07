@@ -91,21 +91,45 @@ class basic_layer;
 
 
 struct named_layer {
+    std::string path;
     std::string name;
     std::shared_ptr<basic_layer> ptr;
 };
 
 
 struct named_parameter {
+    std::string path;
     std::string name;
     std::shared_ptr<basic_tensor> ptr;
+};
+
+
+template <typename Layer> class layer {
+public:
+    layer(const std::string& name, basic_layer* ptr)
+    : _M_layer(ptr),
+      _M_name(name)
+    {}
+
+    layer()
+    : _M_layer(nullptr),
+      _M_name()
+    {}
+
+    template <class... Args>
+    auto
+    operator()(Args&&... args);
+
+private:
+    basic_layer* _M_layer;
+    std::string _M_name;
 };
 
 
 /// Layer is a basic building block of neural networks in MetalChat. A layer specifies a set of
 /// (trainable) parameters it uses for computation and a set of upstream layers, used within a
 /// layer computation logic.
-class basic_layer {
+class basic_layer : public std::enable_shared_from_this<basic_layer> {
 public:
     /// A shared pointer to the basic tensor.
     using parameter_pointer = std::shared_ptr<basic_tensor>;
@@ -114,6 +138,8 @@ public:
 
     using parameter_container = std::unordered_map<std::string, parameter_pointer>;
     using layer_container = std::unordered_map<std::string, layer_pointer>;
+
+    basic_layer(char delimiter, const hardware_accelerator& accelerator);
 
     /// Construct a layer that is a associated with the specified hardware accelerator.
     basic_layer(const hardware_accelerator& accelerator);
@@ -160,23 +186,43 @@ public:
     register_layer(const std::string& name, Layer&& l)
     {
         auto layer_ptr = std::make_shared<Layer>(std::move(l));
-        _M_layers.emplace(name, layer_ptr);
-        return shared_layer_ptr(layer_ptr);
+        _M_layers.insert_or_assign(name, layer_ptr);
+        // return shared_layer_ptr(layer_ptr);
+        auto lp = shared_layer_ptr(layer_ptr);
+
+        if (name == "tok_embeddings") {
+            std::cout << " layer_ptr=" << layer_ptr << " " << typeid(lp.get()).name();
+            std::cout << " shared_layer_ptr=" << lp.get();
+            std::cout << " emplace_layer_ptr=" << _M_layers[name] << std::endl;
+        }
+        return lp;
     }
 
     template <typename Layer>
     shared_layer_ptr<Layer>
     register_layer(const std::string& name, const shared_layer_ptr<Layer>& layer_ptr)
     {
-        _M_layers.emplace(name, layer_ptr.get());
+        _M_layers.insert_or_assign(name, layer_ptr.get());
         return layer_ptr;
+    }
+
+    template <typename Base, typename Layer>
+    layer<Base> // requires derived_from || constructible_from
+    register_polymorphic_layer(const std::string& name, Layer&& l)
+    {
+        layer_pointer layer_ptr = std::make_shared<Layer>(std::move(l));
+        _M_layers.insert_or_assign(name, layer_ptr);
+        return layer<Base>(name, this);
     }
 
     /// Get upstream layer by name. This method does not perform recursive lookup and only
     /// returns layers registered at the current layer. If layer is not registered, method
     /// throws exception.
-    const basic_layer&
+    basic_layer&
     get_layer(const std::string& name) const;
+
+    basic_layer&
+    get_parent_layer(const std::string& name) const;
 
     /// Add a parameter to the layer.
     ///
@@ -267,7 +313,7 @@ public:
     get_parameter(const std::string& name) const;
 
     /// Return a set of parameters with fully-qualified names. Parameters of different layers
-    /// are separated using dot (".") delimiter symbol.
+    /// are separated using dot ('.') delimiter symbol.
     ///
     /// If you want to return only parameters of the current layer and drop upstream parameters,
     /// you could call this method with `recurse = false`.
@@ -282,8 +328,8 @@ public:
     void
     apply(Function fn, bool recurse = true) const
     {
-        for (const auto& [full_name, param] : _M_params) {
-            fn(named_parameter{full_name, param});
+        for (const auto& [param_name, param] : _M_params) {
+            fn(named_parameter{param_name, param_name, param});
         }
 
         if (!recurse) {
@@ -294,18 +340,18 @@ public:
         std::deque<layer_type> layers(_M_layers.begin(), _M_layers.end());
 
         while (!layers.empty()) {
-            auto [name, layer_ptr] = layers.front();
+            auto [layer_path, layer_ptr] = layers.front();
             layers.pop_front();
 
             // Iterate over the downstream layers, and push them back to the queue.
-            for (auto [child_name, child_layer_ref] : layer_ptr->_M_layers) {
-                auto full_name = name + "." + child_name;
-                layers.emplace_back(full_name, child_layer_ref);
+            for (auto [child_name, child_layer_ptr] : layer_ptr->_M_layers) {
+                auto child_path = layer_path + _M_delimiter + child_name;
+                layers.emplace_back(child_path, child_layer_ptr);
             }
 
             for (auto [param_name, param] : layer_ptr->_M_params) {
-                auto full_name = name + "." + param_name;
-                fn(named_parameter{full_name, param});
+                auto param_path = layer_path + _M_delimiter + param_name;
+                fn(named_parameter{param_path, param_name, param});
             }
         }
     }
@@ -318,16 +364,21 @@ public:
         std::deque<layer_type> layers(_M_layers.begin(), _M_layers.end());
 
         while (!layers.empty()) {
-            auto [name, layer_ptr] = layers.front();
+            auto [layer_path, layer_ptr] = layers.front();
             layers.pop_front();
 
             // Iterate over the downstream layers, and push them back to the queue.
-            for (auto [child_name, child_layer_ref] : layer_ptr->_M_layers) {
-                auto full_name = name + "." + child_name;
-                layers.emplace_back(full_name, child_layer_ref);
+            for (auto [child_name, child_layer_ptr] : layer_ptr->_M_layers) {
+                auto child_path = layer_path + _M_delimiter + child_name;
+                layers.emplace_back(child_path, child_layer_ptr);
             }
 
-            fn(named_layer{name, layer_ptr});
+            auto delim_pos = layer_path.rfind(_M_delimiter);
+            auto layer_name = layer_path;
+            if (delim_pos != std::string::npos) {
+                layer_name = layer_name.substr(delim_pos + 1);
+            }
+            fn(named_layer{layer_path, layer_name, layer_ptr});
         }
     }
 
@@ -337,6 +388,7 @@ private:
     parameter_container _M_params;
     layer_container _M_layers;
     hardware_accelerator _M_accelerator;
+    char _M_delimiter;
 
     template <immutable_tensor Tensor>
     void
@@ -350,6 +402,17 @@ private:
         *tensor_ptr = std::move(tensor);
     }
 };
+
+
+template <typename Layer>
+template <class... Args>
+auto
+layer<Layer>::operator()(Args&&... args)
+{
+    std::cout << "calling layer::operator()" << std::endl;
+    Layer& layer_impl = dynamic_cast<Layer&>(_M_layer->get_layer(_M_name));
+    return layer_impl(std::forward<Args>(args)...);
+}
 
 
 /// Sequential container of layers.

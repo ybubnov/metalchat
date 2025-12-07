@@ -71,9 +71,9 @@ hadamard_broadcast(
     const uint k = tid.x + gid.y * threadgroup_size.x;
 
     if (k < dim_size) {
-        params.output.at(i, k)
-            = (static_cast<Output>(params.input1.at(i, k))
-               * static_cast<Output>(params.input2.at(i, 0)));
+        params.output.at(i, k) =
+            (static_cast<Output>(params.input1.at(i, k)) *
+             static_cast<Output>(params.input2.at(i, 0)));
     }
 }
 

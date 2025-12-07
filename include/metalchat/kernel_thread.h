@@ -158,10 +158,10 @@ public:
 
 
 template <typename T>
-concept hardware_encodable_function
-    = requires(std::remove_reference_t<T> t, hardware_function_encoder encoder) {
-          { t.encode(encoder) } -> std::same_as<void>;
-      };
+concept hardware_encodable_function =
+    requires(std::remove_reference_t<T> t, hardware_function_encoder encoder) {
+        { t.encode(encoder) } -> std::same_as<void>;
+    };
 
 
 class kernel_thread {

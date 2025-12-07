@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-def prepare_llama(repo_id: str, path: str, subdir: str = "") -> None:
+def prepare_llama(repo_id: str, path: str, subdir: str = "", no_output: bool = True) -> None:
     import torch
     from huggingface_hub import hf_hub_download
     from safetensors.torch import save_file
@@ -16,7 +16,8 @@ def prepare_llama(repo_id: str, path: str, subdir: str = "") -> None:
 
     model_path = Path(path) / Path(subdir) / "consolidated.00.pth"
     model = torch.load(model_path, "cpu", weights_only=True)
-    del model["output.weight"]
+    if no_output:
+        del model["output.weight"]
 
     save_file(model, Path(path) / "model.safetensors")
 
@@ -31,4 +32,5 @@ def prepare_test_fixture(path: str = "test_fixture") -> None:
     prepare_llama(
         repo_id="meta-llama/Llama-3.2-1B-Instruct-QLORA_INT4_EO8",
         path=str(Path(path) / "llama3.2:1b-qlora"),
+        no_output=False,
     )

@@ -11,10 +11,17 @@ namespace metalchat {
 namespace nn {
 
 
-basic_layer::basic_layer(const hardware_accelerator& accelerator)
-: _M_layers(),
+basic_layer::basic_layer(char delimiter, const hardware_accelerator& accelerator)
+: enable_shared_from_this(),
+  _M_layers(),
   _M_params(),
-  _M_accelerator(accelerator)
+  _M_accelerator(accelerator),
+  _M_delimiter(delimiter)
+{}
+
+
+basic_layer::basic_layer(const hardware_accelerator& accelerator)
+: basic_layer('.', accelerator)
 {}
 
 
@@ -32,37 +39,60 @@ basic_layer::accelerator()
 }
 
 
-const basic_layer&
+basic_layer&
+basic_layer::get_parent_layer(const std::string& name) const
+{
+    basic_layer* this_layer = const_cast<basic_layer*>(this);
+    std::size_t start_pos = 0, pos = 0;
+
+    for (pos = name.find(_M_delimiter); pos != std::string::npos;
+         pos = name.find(_M_delimiter, start_pos)) {
+        const auto layer_name = name.substr(start_pos, pos - start_pos);
+        start_pos = pos + 1;
+
+        try {
+            this_layer = this_layer->_M_layers.at(layer_name).get();
+        } catch (std::out_of_range) {
+            throw std::runtime_error(std::format("layer '{}' is not registered", name));
+        }
+    }
+
+    return *this_layer;
+}
+
+
+basic_layer&
 basic_layer::get_layer(const std::string& name) const
 {
-    try {
-        return (*_M_layers.at(name).get());
-    } catch (std::out_of_range) {
-        throw std::runtime_error(std::format("layer '{}' is not registered", name));
+    const basic_layer* this_layer = this;
+    auto delim_pos = name.rfind(_M_delimiter);
+    auto layer_name = name;
+
+    if (delim_pos != std::string::npos) {
+        layer_name = name.substr(delim_pos + 1);
+        this_layer = &get_parent_layer(name);
     }
+
+    if (auto it = this_layer->_M_layers.find(layer_name); it != this_layer->_M_layers.end()) {
+        return *(it->second);
+    }
+
+    throw std::runtime_error(std::format("layer '{}' is not registered", name));
 }
 
 
 basic_layer::parameter_pointer
 basic_layer::get_parameter(const std::string& name) const
 {
-    if (auto it = _M_params.find(name); it != _M_params.end()) {
-        return it->second;
-    }
-
     const basic_layer* this_layer = this;
+    auto delim_pos = name.rfind(_M_delimiter);
+    auto param_name = name;
 
-    std::size_t start_pos = 0, pos = 0;
-    const char delimiter = '.';
-
-    for (pos = name.find(delimiter); pos != name.npos; pos = name.find(delimiter, start_pos)) {
-        const auto layer_name = name.substr(start_pos, pos - start_pos);
-        start_pos = pos + 1;
-
-        this_layer = &this_layer->get_layer(layer_name);
+    if (delim_pos != std::string::npos) {
+        param_name = name.substr(delim_pos + 1);
+        this_layer = &get_layer(name.substr(0, delim_pos));
     }
 
-    auto param_name = name.substr(start_pos);
     if (auto it = this_layer->_M_params.find(param_name); it != this_layer->_M_params.end()) {
         return it->second;
     }
@@ -77,7 +107,7 @@ basic_layer::get_parameters(bool recurse) const
     parameter_container params;
 
     auto fn = [&](named_parameter parameter) {
-        params.insert_or_assign(parameter.name, parameter.ptr);
+        params.insert_or_assign(parameter.path, parameter.ptr);
     };
 
     apply(fn, recurse);

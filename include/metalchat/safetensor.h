@@ -444,10 +444,16 @@ public:
 
 
 template <typename Adaptor>
-concept safetensor_document_adaptor
-    = requires(std::remove_reference_t<Adaptor> const a, safetensor_document& document) {
-          { a.adapt(document) } -> std::same_as<void>;
-      };
+concept safetensor_document_adaptor =
+    requires(std::remove_reference_t<Adaptor> const a, safetensor_document& document) {
+        { a.adapt(document) } -> std::same_as<void>;
+    };
+
+
+struct noop_document_adaptor {
+    void
+    adapt(safetensor_document&) {};
+};
 
 
 /// A document for writing and reading tensors in a `safetensor` format.

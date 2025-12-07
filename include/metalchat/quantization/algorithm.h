@@ -25,18 +25,28 @@ namespace quantization {
 ///
 /// quantization::replace<SourceLayer>(llm, OutputLayer());
 /// ```
-template <typename Layer, typename OutputLayer> requires std::derived_from<Layer, nn::basic_layer>
+template <typename Layer, typename OutputLayer>
+requires std::derived_from<Layer, nn::basic_layer> &&
+         std::derived_from<OutputLayer, nn::basic_layer> && std::copy_constructible<OutputLayer>
 void
 replace(nn::basic_layer& input, const OutputLayer& new_value)
 {
-    auto replace = [&](nn::named_layer layer) {
-        auto layer_ptr = dynamic_pointer_cast<Layer>(layer.ptr);
-        if (layer_ptr != nullptr) {
-            *layer_ptr = new_value;
+    std::vector<nn::named_layer> candidates;
+
+    auto find_candidates = [&](nn::named_layer layer) {
+        if (dynamic_pointer_cast<Layer>(layer.ptr) != nullptr) {
+            candidates.push_back(layer);
         }
     };
 
-    input.apply(replace);
+    input.apply(find_candidates);
+
+    for (auto& layer : candidates) {
+        auto& layer_parent = input.get_parent_layer(layer.path);
+
+        OutputLayer layer_value = new_value;
+        layer_parent.register_layer(layer.name, std::move(layer_value));
+    }
 }
 
 

@@ -14,19 +14,21 @@ MaxEmptyLinesToKeep: 2
 
 AlignOperands: Align
 AlignEscapedNewlines: LeftWithLastLine
-BreakBeforeBinaryOperators: All
 
 BinPackParameters: false
 AllowAllArgumentsOnNextLine: false
 BreakAfterReturnType: All
 BreakTemplateDeclarations: MultiLine
 BreakBeforeBraces: Custom
+BreakBeforeBinaryOperators: None
 BraceWrapping:
   AfterFunction: true
   SplitEmptyFunction: false
   BeforeLambdaBody: false
 
 RequiresClausePosition: WithPreceding
+RequiresExpressionIndentation: OuterScope
+IndentRequiresClause: true
 LambdaBodyIndentation: OuterScope
 
 SkipMacroDefinitionBody: true

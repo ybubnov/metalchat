@@ -34,42 +34,35 @@ class basic_tensor {
 public:
     /// Returns type information about tensor elements data type.
     virtual const std::type_info&
-    dtype() const
-        = 0;
+    dtype() const = 0;
 
     /// Returns a constant byte-aligned pointer to the underlying data.
     virtual const void*
-    data() const
-        = 0;
+    data() const = 0;
 
     /// Returns a byte-aligned pointer to the underlying data.
     virtual void*
-    data()
-        = 0;
+    data() = 0;
 
     /// Returns a pointer to the underlying data container of the tensor.
     virtual std::shared_ptr<basic_container>
     container_ptr() const = 0;
 
     virtual void
-    set_container(const std::shared_ptr<basic_container>&)
-        = 0;
+    set_container(const std::shared_ptr<basic_container>&) = 0;
 
     /// Returns the number of dimension of the tensor.
     virtual std::size_t
-    dimensions() const
-        = 0;
+    dimensions() const = 0;
 
     /// Returns the size of the specified tensor dimension.
     ///
     /// \param dim the dimension for which to retrieve the size.
     virtual std::size_t
-    size(std::size_t dim) const
-        = 0;
+    size(std::size_t dim) const = 0;
 
     virtual void
-    set_size(std::size_t dim, std::size_t size)
-        = 0;
+    set_size(std::size_t dim, std::size_t size) = 0;
 
     /// Returns the sizes of the tensor.
     virtual const std::span<std::size_t>
@@ -79,12 +72,10 @@ public:
     ///
     /// \param dim the dimension for which to retrieve the stride.
     virtual std::size_t
-    stride(std::size_t dim) const
-        = 0;
+    stride(std::size_t dim) const = 0;
 
     virtual void
-    set_stride(std::size_t dim, std::size_t stride)
-        = 0;
+    set_stride(std::size_t dim, std::size_t stride) = 0;
 
     /// Returns strides of the tensor.
     virtual const std::span<std::size_t>
@@ -94,12 +85,10 @@ public:
     ///
     /// \param dim the dimension for which to retrieve the offset.
     virtual std::size_t
-    offset(std::size_t dim) const
-        = 0;
+    offset(std::size_t dim) const = 0;
 
     virtual void
-    set_offset(std::size_t dim, std::size_t offset)
-        = 0;
+    set_offset(std::size_t dim, std::size_t offset) = 0;
 
     /// Returns the offsets of the tensor container.
     virtual const std::span<std::size_t>
@@ -107,8 +96,7 @@ public:
 
     /// Returns the total number of elements in the tensor.
     virtual std::size_t
-    numel() const
-        = 0;
+    numel() const = 0;
 
     /// The tensor destructor.
     virtual ~basic_tensor() {}
@@ -642,6 +630,11 @@ public:
     container() const
     {
         if (!_M_data) {
+            std::cout << "Empty container: numel=" << numel() << ", size=";
+            for (auto i = 0; i < N; i++) {
+                std::cout << size(i) << ",";
+            }
+            std::cout << std::endl;
             throw std::logic_error("tensor::container: empty container cannot be accessed");
         }
         return *_M_data;
@@ -906,8 +899,7 @@ public:
 
     /// The move assignment operator.
     tensor&
-    operator=(tensor&& other)
-        = default;
+    operator=(tensor&& other) = default;
 
     /// Returns a reference to the `indices`-th element of the tensor.
     ///

@@ -96,12 +96,10 @@ make_pointer_alias(const std::shared_ptr<T>& ptr1, const std::shared_ptr<U>& ptr
 struct basic_container {
 
     virtual void*
-    data_ptr()
-        = 0;
+    data_ptr() = 0;
 
     virtual const void*
-    data_ptr() const
-        = 0;
+    data_ptr() const = 0;
 
     virtual ~basic_container() = default;
 };
@@ -114,17 +112,14 @@ template <typename T> struct memory_container : public basic_container {
 
     /// Get a write access to the underlying container data.
     virtual pointer
-    data()
-        = 0;
+    data() = 0;
 
     /// Get a read access to the underlying container data.
     virtual const_pointer
-    data() const
-        = 0;
+    data() const = 0;
 
     virtual std::size_t
-    size() const
-        = 0;
+    size() const = 0;
 
     void*
     data_ptr() override
@@ -338,8 +333,8 @@ template <typename T> struct container_rebind<T, random_memory_container<void>> 
     static pointer
     rebind(std::shared_ptr<random_memory_container<void>> ptr)
     {
-        auto container_ptr
-            = std::make_shared<type>(ptr->storage(), ptr->size(), ptr->storage_offset());
+        auto container_ptr =
+            std::make_shared<type>(ptr->storage(), ptr->size(), ptr->storage_offset());
         return make_pointer_alias(container_ptr, ptr);
     }
 };
