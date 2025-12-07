@@ -55,10 +55,10 @@ private:
     using _BasicLinear = nn::basic_linear<T, Container>;
     using _Linear = nn::linear<T, Container>;
 
-    //_BasicEmbedding::layer_pointer _M_embedding;
-    layer<_BasicEmbedding> _M_embedding;
+    polymorphic_layer<_BasicEmbedding> _M_embedding;
+    polymorphic_layer<_BasicLinear> _M_output;
     _RMSNorm::layer_pointer _M_norm;
-    _BasicLinear::layer_pointer _M_output;
+    // indirect_layer<_RMSNorm> _M_norm;
 
     _TransformerArray::layer_pointer _M_transforms;
     _CacheArray::layer_pointer _M_caches;
@@ -81,14 +81,14 @@ public:
     : basic_layer(accelerator),
       _M_sampler(std::make_shared<nucleus_sampler<value_type>>())
     {
-        //_M_embedding = register_layer("tok_embeddings", _Embedding(accelerator));
-        _M_embedding =
-            register_polymorphic_layer<_BasicEmbedding>("tok_embeddings", _Embedding(accelerator));
-
+        _M_embedding = register_polymorphic_layer<_BasicEmbedding>("tok_embeddings");
+        _M_output = register_polymorphic_layer<_BasicLinear>("output");
         _M_norm = register_layer("norm", _RMSNorm(accelerator));
-        _M_output = register_layer("output", _Linear(accelerator));
         _M_transforms = register_layer("layers", _TransformerArray(accelerator));
         _M_caches = register_layer("caches", _CacheArray(accelerator));
+
+        _M_embedding = _Embedding(accelerator);
+        _M_output = _Linear(accelerator);
 
         const auto caching_opts = caching_options{
             .head_dim = options.head_dim(),
@@ -116,10 +116,7 @@ public:
     auto
     operator()(Input input, std::size_t start_pos = 0)
     {
-        std::cout << "start llama3, input=" << input.numel() << std::endl;
-        // std::cout << "emb ptr=" << _M_embedding.get() << std::endl;
         auto x = _M_embedding(input);
-        std::cout << "emb=" << x.get() << std::endl;
 
         for (std::size_t i = 0; i < _M_transforms->size(); i++) {
             auto& transform = _M_transforms->at(i);

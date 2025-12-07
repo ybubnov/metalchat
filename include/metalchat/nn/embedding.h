@@ -91,7 +91,6 @@ public:
     _Base::result_type
     operator()(_Base::input_type input)
     {
-        std::cout << "start nn::embedding" << std::endl;
         return _M_embedding(input, _M_weight);
     }
 

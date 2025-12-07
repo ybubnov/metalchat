@@ -104,14 +104,14 @@ struct named_parameter {
 };
 
 
-template <typename Layer> class layer {
+template <typename Layer> class polymorphic_layer {
 public:
-    layer(const std::string& name, basic_layer* ptr)
+    polymorphic_layer(const std::string& name, basic_layer* ptr)
     : _M_layer(ptr),
       _M_name(name)
     {}
 
-    layer()
+    polymorphic_layer()
     : _M_layer(nullptr),
       _M_name()
     {}
@@ -119,6 +119,12 @@ public:
     template <class... Args>
     auto
     operator()(Args&&... args);
+
+    template <typename DerivedLayer> requires std::derived_from<DerivedLayer, Layer>
+    polymorphic_layer<Layer>&
+    operator=(DerivedLayer&& derived);
+
+    virtual ~polymorphic_layer() {}
 
 private:
     basic_layer* _M_layer;
@@ -129,7 +135,7 @@ private:
 /// Layer is a basic building block of neural networks in MetalChat. A layer specifies a set of
 /// (trainable) parameters it uses for computation and a set of upstream layers, used within a
 /// layer computation logic.
-class basic_layer : public std::enable_shared_from_this<basic_layer> {
+class basic_layer {
 public:
     /// A shared pointer to the basic tensor.
     using parameter_pointer = std::shared_ptr<basic_tensor>;
@@ -187,15 +193,7 @@ public:
     {
         auto layer_ptr = std::make_shared<Layer>(std::move(l));
         _M_layers.insert_or_assign(name, layer_ptr);
-        // return shared_layer_ptr(layer_ptr);
-        auto lp = shared_layer_ptr(layer_ptr);
-
-        if (name == "tok_embeddings") {
-            std::cout << " layer_ptr=" << layer_ptr << " " << typeid(lp.get()).name();
-            std::cout << " shared_layer_ptr=" << lp.get();
-            std::cout << " emplace_layer_ptr=" << _M_layers[name] << std::endl;
-        }
-        return lp;
+        return shared_layer_ptr(layer_ptr);
     }
 
     template <typename Layer>
@@ -207,12 +205,21 @@ public:
     }
 
     template <typename Base, typename Layer>
-    layer<Base> // requires derived_from || constructible_from
+    // requires derived_from || constructible_from
+    polymorphic_layer<Base>
     register_polymorphic_layer(const std::string& name, Layer&& l)
     {
         layer_pointer layer_ptr = std::make_shared<Layer>(std::move(l));
         _M_layers.insert_or_assign(name, layer_ptr);
-        return layer<Base>(name, this);
+        return polymorphic_layer<Base>(name, this);
+    }
+
+    template <typename Base>
+    polymorphic_layer<Base>
+    register_polymorphic_layer(const std::string& name)
+    {
+        _M_layers.insert_or_assign(name, nullptr);
+        return polymorphic_layer<Base>(name, this);
     }
 
     /// Get upstream layer by name. This method does not perform recursive lookup and only
@@ -407,11 +414,19 @@ private:
 template <typename Layer>
 template <class... Args>
 auto
-layer<Layer>::operator()(Args&&... args)
+polymorphic_layer<Layer>::operator()(Args&&... args)
 {
-    std::cout << "calling layer::operator()" << std::endl;
     Layer& layer_impl = dynamic_cast<Layer&>(_M_layer->get_layer(_M_name));
     return layer_impl(std::forward<Args>(args)...);
+}
+
+template <typename Layer>
+template <typename DerivedLayer> requires std::derived_from<DerivedLayer, Layer>
+polymorphic_layer<Layer>&
+polymorphic_layer<Layer>::operator=(DerivedLayer&& derived)
+{
+    _M_layer->register_layer(_M_name, std::move(derived));
+    return *this;
 }
 
 

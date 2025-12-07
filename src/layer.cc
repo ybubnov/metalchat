@@ -12,8 +12,7 @@ namespace nn {
 
 
 basic_layer::basic_layer(char delimiter, const hardware_accelerator& accelerator)
-: enable_shared_from_this(),
-  _M_layers(),
+: _M_layers(),
   _M_params(),
   _M_accelerator(accelerator),
   _M_delimiter(delimiter)
