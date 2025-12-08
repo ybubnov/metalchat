@@ -723,6 +723,13 @@ public:
     void
     insert(const nn::basic_layer& layer);
 
+    template <typename Layer>
+    void
+    insert(const nn::indirect_layer<Layer>& layer)
+    {
+        insert(*layer);
+    }
+
     /// Load memory containers from a safetensor document into a layer.
     ///
     /// The implementation is identical to the
@@ -736,6 +743,13 @@ public:
     /// \param layer A layer instance to load tensors into.
     static void
     load(const std::filesystem::path& p, nn::basic_layer& layer);
+
+    template <typename Layer>
+    static void
+    load(const std::filesystem::path& p, nn::indirect_layer<Layer>& layer)
+    {
+        load(p, *layer);
+    }
 
     /// Load memory containers from a safetensor document into a layer.
     ///
@@ -759,6 +773,13 @@ public:
     /// ```
     void
     load(nn::basic_layer& layer) const;
+
+    template <typename Layer>
+    void
+    load(nn::indirect_layer<Layer>& layer) const
+    {
+        load(*layer);
+    }
 
     /// Load memory container from a safetensor document into a tensor.
     ///
@@ -795,6 +816,13 @@ public:
     /// \param layer A layer containing parameters to save into the safetensors document.
     static void
     save(const std::filesystem::path& p, nn::basic_layer& layer);
+
+    template <typename Layer>
+    static void
+    save(const std::filesystem::path& p, nn::indirect_layer<Layer>& layer)
+    {
+        save(p, *layer);
+    }
 
     /// Save all registered tensors into the file at the specified location.
     ///

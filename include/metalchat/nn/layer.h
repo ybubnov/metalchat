@@ -117,6 +117,9 @@ public:
     void
     set_parameter(const std::string& name, Tensor&& tensor);
 
+    parameter_pointer
+    get_parameter(const std::string& name) const;
+
     const parameter_container
     get_parameters(bool recurse = true) const;
 
@@ -497,6 +500,14 @@ void
 indirect_layer<Layer>::set_parameter(const std::string& name, Tensor&& tensor)
 {
     _M_value->set_parameter(name, std::move(tensor));
+}
+
+
+template <typename Layer>
+indirect_layer<Layer>::parameter_pointer
+indirect_layer<Layer>::get_parameter(const std::string& name) const
+{
+    return _M_value->get_parameter(name);
 }
 
 

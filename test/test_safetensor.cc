@@ -56,11 +56,10 @@ public:
 
 TEST_CASE("Test model load", "[safetensor]")
 {
-    metalchat::hardware_accelerator gpu0(16);
+    using LLama3 = nn::llama3<bf16>;
 
-    auto alloc = gpu0.get_allocator();
-
-    nn::llama3<bf16> m(nn::default_llama3_1b_options(), gpu0);
+    hardware_accelerator gpu0(16);
+    nn::indirect_layer<LLama3> m(nn::default_llama3_1b_options(), gpu0);
 
     auto doc_path = test_fixture_path() / "llama3.2:1b-instruct" / "model.safetensors";
     auto doc_adapter = nn::metallama3_document_adaptor();
@@ -92,8 +91,8 @@ TEST_CASE("Test write and read small model", "[safetensor]")
             auto w1 = rand<float>({10, 20}, accelerator);
             auto w2 = rand<bf16>({3, 4}, accelerator);
 
-            register_layer("linear1", nn::linear<float>(std::move(w1), accelerator));
-            register_layer("linear2", nn::linear<bf16>(std::move(w2), accelerator));
+            register_layer<nn::linear<float>>("linear1", std::move(w1));
+            register_layer<nn::linear<bf16>>("linear2", std::move(w2));
         }
     };
 
@@ -102,7 +101,7 @@ TEST_CASE("Test write and read small model", "[safetensor]")
 
     hardware_accelerator accelerator;
 
-    model model_out(accelerator);
+    nn::indirect_layer<model> model_out(accelerator);
     safetensor_document::save(model_path, model_out);
 
     REQUIRE(std::filesystem::exists(model_path));
