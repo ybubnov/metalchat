@@ -23,14 +23,12 @@ namespace quantization {
 /// using SourceLayer = nn::linear<bf16>;
 /// using OutputLayer = quantization::qlora_linear<bf16>;
 ///
-/// quantization::replace<SourceLayer>(llm, OutputLayer());
+/// quantization::replace<SourceLayer>(llm, []() { return OutputLayer(); });
 /// ```
-template <typename InputLayer, typename OutputLayer, typename Layer>
-requires std::copy_constructible<OutputLayer> && std::derived_from<Layer, nn::basic_layer> &&
-         std::derived_from<InputLayer, nn::basic_layer> &&
-         std::derived_from<OutputLayer, nn::basic_layer>
+template <typename InputLayer, typename Generator, typename Layer>
+requires std::derived_from<InputLayer, nn::basic_layer> && std::derived_from<Layer, nn::basic_layer>
 void
-replace(nn::indirect_layer<Layer>& input, const nn::indirect_layer<OutputLayer>& new_value)
+replace(nn::indirect_layer<Layer>& input, Generator generator)
 {
     std::vector<nn::named_layer> candidates;
 
@@ -44,7 +42,7 @@ replace(nn::indirect_layer<Layer>& input, const nn::indirect_layer<OutputLayer>&
 
     for (auto& layer : candidates) {
         auto& layer_parent = input.get_parent_layer(layer.path);
-        layer_parent.register_layer(layer.name, new_value.clone());
+        layer_parent.register_layer(layer.name, generator());
     }
 }
 

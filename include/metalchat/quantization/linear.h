@@ -42,7 +42,8 @@ public:
     {
         auto& accelerator = _Base::accelerator();
         auto weight_dequant = hadamard_broadcast<T>(_M_weight, _M_scales, accelerator);
-        return matmul(input, weight_dequant, accelerator);
+        // exit(0);
+        return matmul(input, weight_dequant.transpose({1, 0}), accelerator);
     }
 };
 

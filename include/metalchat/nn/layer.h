@@ -62,14 +62,6 @@ public:
         _M_value->initialize();
     }
 
-    indirect_layer
-    clone() const
-    {
-        auto value = *_M_value;
-        auto ptr = std::make_shared<layer_type>(std::move(value));
-        return indirect_layer(ptr);
-    }
-
     /// Invoke the stored layer target with the parameters `args`.
     ///
     /// Effectively does `f(std::forward<Args>(args)...);`, where `f` is the target layer.
@@ -671,6 +663,7 @@ public:
     void
     emplace_back(Args&&... args)
     {
+        // TODO: Does it make sense to pass in an accelerator, like in basic_layer::register_layer?
         push_back(indirect_layer<Layer>(std::forward<Args>(args)...));
     }
 

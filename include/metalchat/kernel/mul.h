@@ -59,8 +59,17 @@ public:
             );
         }
 
-        auto [grid, thread] = make_kernel_grid_2d(input1, BlockSize);
+        auto grid = dim3(
+            ceil_div(input1.size(0), BlockSize) * BlockSize,
+            ceil_div(input1.size(1), BlockSize) * BlockSize
+        );
+        auto thread = dim3(1, BlockSize);
+
         auto output = shared_empty_like<T>(input1, _M_kernel.get_allocator());
+
+        // std::cout << "<HB>: input1=" << input1.sizes();
+        // std::cout << " , input2=" << input2.sizes();
+        // std::cout << ", <" << grid << ", " << thread << ">" << std::endl;
 
         auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(output, input1, input2);

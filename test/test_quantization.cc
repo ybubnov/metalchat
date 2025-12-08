@@ -24,12 +24,13 @@ TEST_CASE("Test replace QLoRa linear", "[quantization]")
     hardware_accelerator gpu0;
 
     nn::indirect_layer<FeedForward> input_layer(gpu0);
-    nn::indirect_layer<QLoraLinear> output_layer(1.0, 32, gpu0);
 
     auto params_before = input_layer.get_parameters();
     REQUIRE(params_before.size() == 3);
 
-    quantization::replace<BasicLinear>(input_layer, output_layer);
+    quantization::replace<BasicLinear>(input_layer, [&] {
+        return nn::indirect_layer<QLoraLinear>(1.0, 32, gpu0);
+    });
 
     auto params_after = input_layer.get_parameters();
     REQUIRE(params_after.size() == 12);
@@ -70,8 +71,12 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
     using QLoraLinear = quantization::qlora_linear<bf16>;
     using QLoraEmbedding = quantization::qlora_embedding<bf16>;
 
-    quantization::replace<BasicLinear>(model, nn::indirect_layer<QLoraLinear>(2.0, 32, gpu0));
-    quantization::replace<BasicEmbedding>(model, nn::indirect_layer<QLoraEmbedding>(gpu0));
+    quantization::replace<BasicLinear>(model, [&] {
+        return nn::indirect_layer<QLoraLinear>(2.0, 32, gpu0);
+    });
+    quantization::replace<BasicEmbedding>(model, [&] {
+        return nn::indirect_layer<QLoraEmbedding>(gpu0);
+    });
 
     auto replace = [&](nn::named_layer layer) {
         auto layer_ptr = dynamic_pointer_cast<BasicLinear>(layer.ptr);
