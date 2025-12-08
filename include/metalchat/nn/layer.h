@@ -21,6 +21,20 @@ namespace nn {
 class basic_layer;
 
 
+struct named_layer {
+    std::string path;
+    std::string name;
+    std::shared_ptr<basic_layer> ptr;
+};
+
+
+struct named_parameter {
+    std::string path;
+    std::string name;
+    std::shared_ptr<basic_tensor> ptr;
+};
+
+
 /// A Wrapper around a shared pointer for arbitrary layer implementation provides invocable
 /// functionality for `Layer` implementations.
 template <typename Layer> class indirect_layer {
@@ -123,26 +137,20 @@ public:
     const parameter_container
     get_parameters(bool recurse = true) const;
 
+    template <std::invocable<named_parameter> Function>
+    void
+    apply(Function fn, bool recurse = true) const;
+
+    template <std::invocable<named_layer> Function>
+    void
+    apply(Function fn) const;
+
 private:
     std::shared_ptr<layer_type> _M_value;
 };
 
 
 template <typename Layer> indirect_layer(Layer&&) -> indirect_layer<Layer>;
-
-
-struct named_layer {
-    std::string path;
-    std::string name;
-    std::shared_ptr<basic_layer> ptr;
-};
-
-
-struct named_parameter {
-    std::string path;
-    std::string name;
-    std::shared_ptr<basic_tensor> ptr;
-};
 
 
 template <typename Layer> class polymorphic_layer {
@@ -416,7 +424,7 @@ public:
 
     template <std::invocable<named_layer> Function>
     void
-    apply(Function fn)
+    apply(Function fn) const
     {
         using layer_type = layer_container::value_type;
         std::deque<layer_type> layers(_M_layers.begin(), _M_layers.end());
@@ -520,15 +528,29 @@ indirect_layer<Layer>::get_parameters(bool recurse) const
 
 
 template <typename Layer>
+template <std::invocable<named_parameter> Function>
+void
+indirect_layer<Layer>::apply(Function fn, bool recurse) const
+{
+    _M_value->apply(fn, recurse);
+}
+
+
+template <typename Layer>
+template <std::invocable<named_layer> Function>
+void
+indirect_layer<Layer>::apply(Function fn) const
+{
+    _M_value->apply(fn);
+}
+
+
+template <typename Layer>
 template <class... Args>
 auto
 polymorphic_layer<Layer>::operator()(Args&&... args)
 {
-    std::cout << "calling polymorphic_layer::operator()" << std::endl;
-    std::cout << "layer_ptr=" << _M_layer << std::endl;
-    std::cout << typeid(_M_layer->get_layer(_M_name)).name() << std::endl;
     Layer& layer_impl = dynamic_cast<Layer&>(_M_layer->get_layer(_M_name));
-    std::cout << "cast succeeded" << std::endl;
     return layer_impl(std::forward<Args>(args)...);
 }
 

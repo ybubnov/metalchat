@@ -115,14 +115,14 @@ public:
     operator()(Input input, std::size_t start_pos = 0)
     {
         auto x = _M_embedding(input);
-        std::cout << "embedding=" << x.get() << std::endl;
+        // std::cout << "embedding=" << x.get() << std::endl;
 
         for (std::size_t i = 0; i < _M_transforms->size(); i++) {
             auto& transform = _M_transforms->at(i);
             auto& cache = _M_caches->at(i);
 
             x = transform(x, cache, start_pos);
-            std::cout << "transform[" << i << "]=" << x.get() << std::endl;
+            // std::cout << "transform[" << i << "]=" << x.get() << std::endl;
         }
 
         auto output = _M_norm(x);

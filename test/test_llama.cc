@@ -24,8 +24,9 @@ TEST_CASE("Test make model", "[llama]")
     metalchat::text::byte_pair_encoder bpe(bpe_path);
     metalchat::hardware_accelerator gpu0;
 
+    using LLama3 = nn::llama3<bf16>;
     auto options = nn::default_llama3_1b_options().max_seq_len(16);
-    nn::llama3<bf16> m(options, gpu0);
+    nn::indirect_layer<LLama3> m(options, gpu0);
 
     auto document = safetensor_document::open(model_path, gpu0);
     auto document_adaptor = nn::metallama3_document_adaptor();

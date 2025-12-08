@@ -80,7 +80,7 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
             layer_parent.register_layer<QLinear>(layer.name);
         }
     };
-    model->apply(replace);
+    model.apply(replace);
 
     auto bpe_path = test_fixture_path() / "llama3.2:1b-qlora" / "tokenizer.model";
     auto model_path = test_fixture_path() / "llama3.2:1b-qlora" / "model.safetensors";

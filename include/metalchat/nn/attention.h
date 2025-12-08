@@ -108,14 +108,10 @@ public:
         auto n_reps = _M_options.repeats();
         const int head_dim = _M_options.head_dim;
 
-        std::cout << "input=" << input.shape() << std::endl;
-        std::cout << "before wq linear" << std::endl;
         auto q = _M_wq(input).view({bs, len, n_heads, head_dim});
-        std::cout << "before wk linear" << std::endl;
         auto k = _M_wk(input).view({bs, len, n_kv_heads, head_dim});
         auto v = _M_wv(input).view({bs, len, n_kv_heads, head_dim});
 
-        std::cout << "before attention rope" << std::endl;
         q = _M_rope(q, /*start_pos=*/start_pos);
         k = _M_rope(k, /*start_pos=*/start_pos);
 
