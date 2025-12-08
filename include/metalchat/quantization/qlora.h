@@ -16,17 +16,14 @@ namespace quantization {
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class qlora_adaptor : public nn::basic_layer {
 private:
-    using _Linear = nn::linear<T, Container>;
+    using Linear = nn::linear<T, Container>;
 
-    _Linear::layer_pointer _M_a;
-    _Linear::layer_pointer _M_b;
+    nn::indirect_layer<Linear> _M_a;
+    nn::indirect_layer<Linear> _M_b;
 
 public:
     using value_type = T;
     using container_type = Container;
-
-    using layer_type = qlora_adaptor<T, Container>;
-    using layer_pointer = nn::shared_layer_ptr<layer_type>;
 
     qlora_adaptor(
         std::size_t in_features,
@@ -36,15 +33,15 @@ public:
     )
     : basic_layer(accelerator)
     {
-        _M_a = register_layer("A", _Linear(in_features, rank, accelerator));
-        _M_b = register_layer("B", _Linear(rank, out_features, accelerator));
+        _M_a = register_layer<Linear>("A", in_features, rank);
+        _M_b = register_layer<Linear>("B", rank, out_features);
     }
 
     qlora_adaptor(hardware_accelerator& accelerator)
     : basic_layer(accelerator)
     {
-        _M_a = register_layer("A", _Linear(accelerator));
-        _M_b = register_layer("B", _Linear(accelerator));
+        _M_a = register_layer<Linear>("A");
+        _M_b = register_layer<Linear>("B");
     }
 
     template <immutable_tensor_t<T> Input>
@@ -64,12 +61,12 @@ public:
 
 private:
     using _Base = nn::basic_linear<T, Container>;
-    using _Adaptor = qlora_adaptor<T, Container>;
+    using QLoraAdaptor = qlora_adaptor<T, Container>;
 
     using weight_traits = tensor_traits<std::int8_t, 2, container_type>;
     using scales_traits = tensor_traits<float, 2, container_type>;
 
-    _Adaptor::layer_pointer _M_adaptor;
+    nn::indirect_layer<QLoraAdaptor> _M_adaptor;
 
     std::size_t _M_group_size;
     weight_traits::pointer _M_weight;
@@ -79,13 +76,13 @@ private:
 public:
     qlora_linear(T scale, std::size_t group_size, hardware_accelerator& accelerator)
     : _Base(accelerator),
-      _M_adaptor(nullptr),
+      _M_adaptor(),
       _M_group_size(group_size),
       _M_weight(typename weight_traits::type()),
       _M_scales(typename scales_traits::type()),
       _M_scale(scale)
     {
-        _M_adaptor = _Base::register_layer("adaptor", _Adaptor(accelerator));
+        _M_adaptor = _Base::template register_layer<QLoraAdaptor>("adaptor");
         _Base::register_parameter("weight", _M_weight);
         _Base::register_parameter("scales", _M_scales);
     }
@@ -117,6 +114,13 @@ public:
 
         auto adaptation = mul(_M_adaptor(input), _M_scale, accelerator);
         return add(output, adaptation, accelerator);
+    }
+
+    template <immutable_tensor3_t<T> Input>
+    auto
+    operator()(Input input)
+    {
+        return operator()(future_tensor(std::move(input)));
     }
 };
 
@@ -150,7 +154,6 @@ public:
     _Base::result_type
     operator()(_Base::input_type input)
     {
-        std::cout << "qlora embedding" << std::endl;
         auto& accelerator = _Base::accelerator();
         auto weight_dequant = hadamard_broadcast<T>(_M_weight, _M_scales, accelerator);
         return _M_embedding(input, weight_dequant);

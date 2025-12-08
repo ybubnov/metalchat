@@ -18,29 +18,48 @@ namespace metalchat {
 namespace nn {
 
 
+class basic_layer;
+
+
 /// A Wrapper around a shared pointer for arbitrary layer implementation provides invocable
 /// functionality for `Layer` implementations.
-template <typename Layer> class shared_layer_ptr {
+template <typename Layer> class indirect_layer {
 public:
+    using layer_type = std::remove_cvref_t<Layer>;
+    using layer_pointer = layer_type::layer_pointer;
+    using layer_container = layer_type::layer_container;
+    using parameter_pointer = layer_type::parameter_pointer;
+    using parameter_container = layer_type::parameter_container;
+
     /// Construct a shared layer with no managed layer, i.e. empty `shared_ptr`.
-    shared_layer_ptr()
+    indirect_layer()
     : _M_value(nullptr)
     {}
 
-    /// Construct a shared layer that takes ownership from the specified `Layer` instance.
-    shared_layer_ptr(Layer&& layer)
-    : _M_value(std::move(layer))
-    {}
-
     /// Construct a shared layer which shares ownership of the layer managed by `r`.
-    shared_layer_ptr(const std::shared_ptr<Layer>& r)
+    indirect_layer(std::shared_ptr<layer_type> r)
     : _M_value(r)
     {}
+
+    template <typename... Args>
+    indirect_layer(Args&&... args)
+    : indirect_layer(std::make_shared<layer_type>(std::forward<Args>(args)...))
+    {
+        _M_value->initialize();
+    }
+
+    indirect_layer
+    clone() const
+    {
+        auto value = *_M_value;
+        auto ptr = std::make_shared<layer_type>(std::move(value));
+        return indirect_layer(ptr);
+    }
 
     /// Invoke the stored layer target with the parameters `args`.
     ///
     /// Effectively does `f(std::forward<Args>(args)...);`, where `f` is the target layer.
-    template <class... Args>
+    template <typename... Args>
     auto
     operator()(Args&&... args)
     {
@@ -48,46 +67,65 @@ public:
     }
 
     /// Return the raw shared pointer to the layer.
-    std::shared_ptr<Layer>
+    std::shared_ptr<layer_type>
     get() const
     {
         return _M_value;
     }
 
     /// Dereference the stored pointer to the Layer.
-    Layer*
+    layer_type*
     operator->() noexcept
     {
         return _M_value.get();
     }
 
     /// Dereference the stored pointer to the Layer.
-    Layer&
+    layer_type&
     operator*() noexcept
     {
         return (*_M_value);
     }
 
-    const Layer&
+    const layer_type&
     operator*() const noexcept
     {
         return (*_M_value);
     }
 
-    template <typename DerivedLayer> requires std::derived_from<DerivedLayer, Layer>
-    shared_layer_ptr<Layer>&
-    operator=(const shared_layer_ptr<DerivedLayer>& derived)
+    template <typename DerivedLayer> requires std::derived_from<DerivedLayer, layer_type>
+    indirect_layer<layer_type>&
+    operator=(const indirect_layer<DerivedLayer>& derived)
     {
         _M_value = derived.get();
         return *this;
     }
 
+    const hardware_accelerator&
+    accelerator() const;
+
+    hardware_accelerator&
+    accelerator();
+
+    basic_layer&
+    get_layer(const std::string& name) const;
+
+    basic_layer&
+    get_parent_layer(const std::string& name) const;
+
+    template <immutable_tensor Tensor>
+    void
+    set_parameter(const std::string& name, Tensor&& tensor);
+
+    const parameter_container
+    get_parameters(bool recurse = true) const;
+
 private:
-    std::shared_ptr<Layer> _M_value;
+    std::shared_ptr<layer_type> _M_value;
 };
 
 
-class basic_layer;
+template <typename Layer> indirect_layer(Layer&&) -> indirect_layer<Layer>;
 
 
 struct named_layer {
@@ -106,7 +144,7 @@ struct named_parameter {
 
 template <typename Layer> class polymorphic_layer {
 public:
-    polymorphic_layer(const std::string& name, basic_layer* ptr)
+    polymorphic_layer(const std::string& name, const std::shared_ptr<basic_layer>& ptr)
     : _M_layer(ptr),
       _M_name(name)
     {}
@@ -122,12 +160,12 @@ public:
 
     template <typename DerivedLayer> requires std::derived_from<DerivedLayer, Layer>
     polymorphic_layer<Layer>&
-    operator=(DerivedLayer&& derived);
+    operator=(indirect_layer<DerivedLayer>&& derived);
 
     virtual ~polymorphic_layer() {}
 
 private:
-    basic_layer* _M_layer;
+    std::shared_ptr<basic_layer> _M_layer;
     std::string _M_name;
 };
 
@@ -135,15 +173,15 @@ private:
 /// Layer is a basic building block of neural networks in MetalChat. A layer specifies a set of
 /// (trainable) parameters it uses for computation and a set of upstream layers, used within a
 /// layer computation logic.
-class basic_layer {
+class basic_layer : public std::enable_shared_from_this<basic_layer> {
 public:
     /// A shared pointer to the basic tensor.
     using parameter_pointer = std::shared_ptr<basic_tensor>;
     /// A shared pointer to the basic layer.
     using layer_pointer = std::shared_ptr<basic_layer>;
 
-    using parameter_container = std::unordered_map<std::string, parameter_pointer>;
-    using layer_container = std::unordered_map<std::string, layer_pointer>;
+    using parameter_container = std::unordered_map<std::string, parameter_pointer, _StringHash>;
+    using layer_container = std::unordered_map<std::string, layer_pointer, _StringHash>;
 
     basic_layer(char delimiter, const hardware_accelerator& accelerator);
 
@@ -157,6 +195,9 @@ public:
     /// Get a reference to the hardware accelerator.
     hardware_accelerator&
     accelerator();
+
+    virtual void
+    initialize();
 
     /// Register an upstream layer for the current layer. The layer could be accessed using
     /// the given name using `basic_layer::get_layer` method.
@@ -175,51 +216,58 @@ public:
     ///
     /// struct custom_layer : public basic_layer {
     ///     // Declare upstream layers here.
-    ///     nn::linear<float>::layer_pointer linear1;
-    ///     nn::linear<float>::layer_pointer linear2;
+    ///     indirect_layer<nn::linear<float>> linear1;
+    ///     indirect_layer<nn::linear<float>> linear2;
     ///
     ///    custom_layer(hardware_accelerator accelerator)
     ///    : basic_layer(accelerator)
     ///    {
     ///       // Register layers here.
-    ///       linear1 = register_layer("linear1", nn::linear<float>(accelerator));
-    ///       linear2 = register_layer("linear2", nn::linear<float>(accelerator));
+    ///       linear1 = register_layer<nn::linear<float>>("linear1");
+    ///       linear2 = register_layer<nn::linear<float>>("linear2");
     ///    }
     /// };
     /// ```
-    template <typename Layer>
-    shared_layer_ptr<Layer>
-    register_layer(const std::string& name, Layer&& l)
+    template <typename Layer, typename... Args>
+    requires std::constructible_from<Layer, Args..., hardware_accelerator&> &&
+             std::derived_from<Layer, basic_layer>
+    indirect_layer<Layer>
+    register_layer(const std::string& name, Args&&... args)
     {
-        auto layer_ptr = std::make_shared<Layer>(std::move(l));
-        _M_layers.insert_or_assign(name, layer_ptr);
-        return shared_layer_ptr(layer_ptr);
+        indirect_layer<Layer> layer(std::forward<Args>(args)..., _M_accelerator);
+        _M_layers.insert_or_assign(name, layer.get());
+        return layer;
     }
 
     template <typename Layer>
-    shared_layer_ptr<Layer>
-    register_layer(const std::string& name, const shared_layer_ptr<Layer>& layer_ptr)
+    indirect_layer<Layer>
+    register_layer(const std::string& name, const indirect_layer<Layer>& layer_ptr)
     {
-        _M_layers.insert_or_assign(name, layer_ptr.get());
+        layer_pointer ptr = layer_ptr.get();
+        _M_layers.insert_or_assign(name, ptr);
         return layer_ptr;
     }
 
-    template <typename Base, typename Layer>
-    // requires derived_from || constructible_from
+    template <typename Base, typename Layer, typename... Args>
+    requires std::constructible_from<Layer, Args..., hardware_accelerator&> &&
+             std::derived_from<Layer, Base> && std::derived_from<Base, basic_layer>
     polymorphic_layer<Base>
-    register_polymorphic_layer(const std::string& name, Layer&& l)
+    register_polymorphic_layer(const std::string& name, Args&&... args)
     {
-        layer_pointer layer_ptr = std::make_shared<Layer>(std::move(l));
+        // TODO: move the initialize call to polymorphic_layer?
+        auto layer_ptr = std::make_shared<Layer>(std::forward<Args>(args)..., _M_accelerator);
+        layer_ptr->initialize();
+
         _M_layers.insert_or_assign(name, layer_ptr);
-        return polymorphic_layer<Base>(name, this);
+        return polymorphic_layer<Base>(name, shared_from_this());
     }
 
-    template <typename Base>
+    template <typename Base> requires std::derived_from<Base, basic_layer>
     polymorphic_layer<Base>
     register_polymorphic_layer(const std::string& name)
     {
         _M_layers.insert_or_assign(name, nullptr);
-        return polymorphic_layer<Base>(name, this);
+        return polymorphic_layer<Base>(name, shared_from_this());
     }
 
     /// Get upstream layer by name. This method does not perform recursive lookup and only
@@ -412,20 +460,73 @@ private:
 
 
 template <typename Layer>
+const hardware_accelerator&
+indirect_layer<Layer>::accelerator() const
+{
+    return _M_value->accelerator();
+}
+
+
+template <typename Layer>
+hardware_accelerator&
+indirect_layer<Layer>::accelerator()
+{
+    return _M_value->accelerator();
+}
+
+
+template <typename Layer>
+basic_layer&
+indirect_layer<Layer>::get_layer(const std::string& name) const
+{
+    return _M_value->get_layer(name);
+}
+
+
+template <typename Layer>
+basic_layer&
+indirect_layer<Layer>::get_parent_layer(const std::string& name) const
+{
+    return _M_value->get_parent_layer(name);
+}
+
+
+template <typename Layer>
+template <immutable_tensor Tensor>
+void
+indirect_layer<Layer>::set_parameter(const std::string& name, Tensor&& tensor)
+{
+    _M_value->set_parameter(name, std::move(tensor));
+}
+
+
+template <typename Layer>
+const indirect_layer<Layer>::parameter_container
+indirect_layer<Layer>::get_parameters(bool recurse) const
+{
+    return _M_value->get_parameters(recurse);
+}
+
+
+template <typename Layer>
 template <class... Args>
 auto
 polymorphic_layer<Layer>::operator()(Args&&... args)
 {
+    std::cout << "calling polymorphic_layer::operator()" << std::endl;
+    std::cout << "layer_ptr=" << _M_layer << std::endl;
+    std::cout << typeid(_M_layer->get_layer(_M_name)).name() << std::endl;
     Layer& layer_impl = dynamic_cast<Layer&>(_M_layer->get_layer(_M_name));
+    std::cout << "cast succeeded" << std::endl;
     return layer_impl(std::forward<Args>(args)...);
 }
 
 template <typename Layer>
 template <typename DerivedLayer> requires std::derived_from<DerivedLayer, Layer>
 polymorphic_layer<Layer>&
-polymorphic_layer<Layer>::operator=(DerivedLayer&& derived)
+polymorphic_layer<Layer>::operator=(indirect_layer<DerivedLayer>&& derived)
 {
-    _M_layer->register_layer(_M_name, std::move(derived));
+    _M_layer->register_layer(_M_name, derived);
     return *this;
 }
 
@@ -471,12 +572,9 @@ polymorphic_layer<Layer>::operator=(DerivedLayer&& derived)
 template <typename Layer> class layer_array : public basic_layer {
 public:
     using size_type = std::size_t;
-    using pointer = shared_layer_ptr<Layer>;
+    using pointer = indirect_layer<Layer>;
     using reference = Layer&;
     using const_reference = const Layer&;
-
-    using layer_type = layer_array<Layer>;
-    using layer_pointer = shared_layer_ptr<layer_type>;
 
     /// The layer array constructor.
     layer_array(const hardware_accelerator& accelerator)
@@ -524,10 +622,10 @@ public:
     ///
     /// \param layer the layer to append.
     void
-    push_back(Layer&& layer)
+    push_back(const indirect_layer<Layer>& layer)
     {
         auto name = std::format("{}", _M_pointers.size());
-        auto ptr = register_layer(name, std::move(layer));
+        auto ptr = register_layer(name, layer);
         _M_pointers.push_back(ptr);
     }
 
@@ -540,7 +638,7 @@ public:
     void
     emplace_back(Args&&... args)
     {
-        push_back(Layer(std::forward<Args>(args)...));
+        push_back(indirect_layer<Layer>(std::forward<Args>(args)...));
     }
 
     /// Returns the number of elements in the container.

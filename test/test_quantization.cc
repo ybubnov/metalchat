@@ -17,16 +17,19 @@ using namespace metalchat;
 
 TEST_CASE("Test replace QLoRa linear", "[quantization]")
 {
+    using FeedForward = nn::feed_forward<float>;
+    using BasicLinear = nn::basic_linear<float>;
+    using QLoraLinear = quantization::qlora_linear<float>;
+
     hardware_accelerator gpu0;
-    nn::feed_forward<float> input_layer(gpu0);
+
+    nn::indirect_layer<FeedForward> input_layer(gpu0);
+    nn::indirect_layer<QLoraLinear> output_layer(1.0, 32, gpu0);
 
     auto params_before = input_layer.get_parameters();
     REQUIRE(params_before.size() == 3);
 
-    using BasicLinear = nn::basic_linear<float>;
-    using QLoraLinear = quantization::qlora_linear<float>;
-
-    quantization::replace<BasicLinear>(input_layer, QLoraLinear(1.0, 32, gpu0));
+    quantization::replace<BasicLinear>(input_layer, output_layer);
 
     auto params_after = input_layer.get_parameters();
     REQUIRE(params_after.size() == 12);
@@ -35,8 +38,10 @@ TEST_CASE("Test replace QLoRa linear", "[quantization]")
 
 TEST_CASE("Test QLoRa adaptor", "[quantization]")
 {
+    using QLoraAdaptor = quantization::qlora_adaptor<float>;
+
     hardware_accelerator gpu0;
-    quantization::qlora_adaptor<float> adaptor(gpu0);
+    nn::indirect_layer<QLoraAdaptor> adaptor(gpu0);
 
     adaptor.set_parameter("A.weight", rand<float>({16, 2048}, gpu0));
     adaptor.set_parameter("B.weight", rand<float>({512, 16}, gpu0));
@@ -53,32 +58,35 @@ TEST_CASE("Test QLoRa adaptor", "[quantization]")
 
 TEST_CASE("Test QLoRA inference", "[quantization]")
 {
+    using LLama3 = nn::llama3<bf16>;
+
     hardware_accelerator gpu0;
-    nn::llama3<bf16> model(nn::default_llama3_1b_options(), gpu0);
+    nn::indirect_layer<LLama3> model(nn::default_llama3_1b_options(), gpu0);
+    std::cout << "model created" << std::endl;
 
     using BasicLinear = nn::basic_linear<bf16>;
     using BasicEmbedding = nn::basic_embedding<bf16>;
+    using QLinear = quantization::linear<bf16>;
     using QLoraLinear = quantization::qlora_linear<bf16>;
     using QLoraEmbedding = quantization::qlora_embedding<bf16>;
 
-    quantization::replace<BasicLinear>(model, QLoraLinear(2.0, 32, gpu0));
-    std::cout << "1111111111111111" << std::endl;
-    quantization::replace<BasicEmbedding>(model, QLoraEmbedding(gpu0));
-    std::cout << "2222222222222222" << std::endl;
+    quantization::replace<BasicLinear>(model, nn::indirect_layer<QLoraLinear>(2.0, 32, gpu0));
+    quantization::replace<BasicEmbedding>(model, nn::indirect_layer<QLoraEmbedding>(gpu0));
 
     auto replace = [&](nn::named_layer layer) {
         auto layer_ptr = dynamic_pointer_cast<BasicLinear>(layer.ptr);
         if (layer.name == "output" && layer_ptr != nullptr) {
-            *layer.ptr = quantization::linear<bf16>(gpu0);
+            auto& layer_parent = model.get_parent_layer(layer.path);
+            layer_parent.register_layer<QLinear>(layer.name);
         }
     };
-    model.apply(replace);
+    model->apply(replace);
 
     auto bpe_path = test_fixture_path() / "llama3.2:1b-qlora" / "tokenizer.model";
     auto model_path = test_fixture_path() / "llama3.2:1b-qlora" / "model.safetensors";
 
     metalchat::text::bpe bpe(bpe_path);
-    safetensor_document::load(model_path, model);
+    safetensor_document::load(model_path, *model);
 
     auto alloc = gpu0.get_allocator();
     gpu0.set_allocator(nocopy_allocator(alloc, gpu0.get_metal_device()));
@@ -91,7 +99,6 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
 
     auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));
     auto logit0 = model(input0, 0);
-    std::cout << "@@@@@@@@@@@@@@@@@@@@" << std::endl;
     auto id = top_p(logit0.flatten<2>(), bf16(0.6f), bf16(0.9), gpu0);
 
     std::cout << input_text;

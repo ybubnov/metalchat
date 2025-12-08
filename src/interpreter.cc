@@ -135,13 +135,15 @@ interpreter::write(const basic_message& message)
 interpreter
 make_llama3(const std::filesystem::path& weights_path, const std::filesystem::path& tokens_path)
 {
-    metalchat::hardware_accelerator accelerator;
-    metalchat::text::bpe bpe(tokens_path);
+    // hardware_accelerator accelerator;
+    // text::bpe bpe(tokens_path);
 
-    nn::llama3<bf16> layer(nn::default_llama3_1b_options(), accelerator);
-    layer.load(weights_path);
+    // using LLama3 = nn::llama3<bf16>;
+    // nn::indirect_layer<LLama3> layer(nn::default_llama3_1b_options(), accelerator);
+    // layer->load(weights_path);
 
-    return interpreter(std::move(layer), bpe);
+    // return interpreter(std::move(layer), bpe);
+    throw std::runtime_error("not implemented");
 }
 
 

@@ -38,6 +38,11 @@ basic_layer::accelerator()
 }
 
 
+void
+basic_layer::initialize()
+{}
+
+
 basic_layer&
 basic_layer::get_parent_layer(const std::string& name) const
 {

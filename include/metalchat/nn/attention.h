@@ -48,13 +48,13 @@ template <typename T, contiguous_container Container> class attention : public b
 private:
     static constexpr std::size_t input_size = 4;
 
-    using _BasicLinear = nn::basic_linear<T, Container>;
-    using _Linear = nn::linear<T, Container>;
+    using BasicLinear = nn::basic_linear<T, Container>;
+    using Linear = nn::linear<T, Container>;
 
-    _BasicLinear::layer_pointer _M_wq;
-    _BasicLinear::layer_pointer _M_wk;
-    _BasicLinear::layer_pointer _M_wv;
-    _BasicLinear::layer_pointer _M_wo;
+    polymorphic_layer<BasicLinear> _M_wq;
+    polymorphic_layer<BasicLinear> _M_wk;
+    polymorphic_layer<BasicLinear> _M_wv;
+    polymorphic_layer<BasicLinear> _M_wo;
 
     nn::rope<T> _M_rope;
     nn::attention_options _M_options;
@@ -80,20 +80,21 @@ public:
     using value_type = T;
     using container_type = Container;
 
-    using layer_type = attention<T, Container>;
-    using layer_pointer = shared_layer_ptr<layer_type>;
-
     attention(const attention_options& options, hardware_accelerator accelerator)
     : basic_layer(accelerator),
       _M_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
       _M_options(options),
       _M_scale(options.scale()),
       _M_clone(accelerator)
+    {}
+
+    void
+    initialize()
     {
-        _M_wq = register_layer("wq", _Linear(accelerator));
-        _M_wk = register_layer("wk", _Linear(accelerator));
-        _M_wv = register_layer("wv", _Linear(accelerator));
-        _M_wo = register_layer("wo", _Linear(accelerator));
+        _M_wq = register_polymorphic_layer<BasicLinear, Linear>("wq");
+        _M_wk = register_polymorphic_layer<BasicLinear, Linear>("wk");
+        _M_wv = register_polymorphic_layer<BasicLinear, Linear>("wv");
+        _M_wo = register_polymorphic_layer<BasicLinear, Linear>("wo");
     }
 
     template <immutable_tensor3_t<T> Input, cache_t<T> Cache>
@@ -107,10 +108,14 @@ public:
         auto n_reps = _M_options.repeats();
         const int head_dim = _M_options.head_dim;
 
+        std::cout << "input=" << input.shape() << std::endl;
+        std::cout << "before wq linear" << std::endl;
         auto q = _M_wq(input).view({bs, len, n_heads, head_dim});
+        std::cout << "before wk linear" << std::endl;
         auto k = _M_wk(input).view({bs, len, n_kv_heads, head_dim});
         auto v = _M_wv(input).view({bs, len, n_kv_heads, head_dim});
 
+        std::cout << "before attention rope" << std::endl;
         q = _M_rope(q, /*start_pos=*/start_pos);
         k = _M_rope(k, /*start_pos=*/start_pos);
 

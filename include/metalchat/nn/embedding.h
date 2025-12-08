@@ -23,9 +23,6 @@ public:
     using value_type = T;
     using container_type = Container;
 
-    using layer_type = basic_embedding<T, Container>;
-    using layer_pointer = shared_layer_ptr<layer_type>;
-
     using input_type = future_tensor<int32_t, 2>;
     using result_type = future_tensor<value_type, 3>;
 
@@ -55,9 +52,6 @@ public:
     using container_type = T;
     using weight_type = tensor<T, 2, Container>;
     using weight_pointer = shared_tensor_ptr<weight_type>;
-
-    using layer_type = embedding<T, Container>;
-    using layer_pointer = shared_layer_ptr<layer_type>;
 
     embedding(weight_pointer weight_ptr, hardware_accelerator& accelerator)
     : _Base(accelerator),
@@ -118,9 +112,6 @@ public:
     using value_type = T;
     using container_type = hardware_memory_container<T>;
     using freqs_type = future_tensor<float, 2>;
-
-    using layer_type = rope<T>;
-    using layer_pointer = shared_layer_ptr<layer_type>;
 
 private:
     std::size_t _M_start_pos;

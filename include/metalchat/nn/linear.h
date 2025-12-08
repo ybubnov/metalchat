@@ -20,9 +20,6 @@ public:
     using value_type = T;
     using container_type = Container;
 
-    using layer_type = basic_linear<T, Container>;
-    using layer_pointer = shared_layer_ptr<layer_type>;
-
     using input_type = future_tensor<value_type, 3>;
     using result_type = future_tensor<value_type, 3>;
 
@@ -49,9 +46,6 @@ public:
     using container_type = Container;
     using weight_type = tensor<T, 2, Container>;
     using weight_pointer = shared_tensor_ptr<weight_type>;
-
-    using layer_type = linear<T, Container>;
-    using layer_pointer = shared_layer_ptr<layer_type>;
 
     linear(weight_pointer weight_ptr, hardware_accelerator& accelerator)
     : _Base(accelerator),

@@ -24,26 +24,27 @@ namespace nn {
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class feed_forward : public basic_layer {
 private:
-    using _BasicLinear = nn::basic_linear<T, Container>;
-    using _Linear = nn::linear<T, Container>;
+    using BasicLinear = nn::basic_linear<T, Container>;
+    using Linear = nn::linear<T, Container>;
 
-    _BasicLinear::layer_pointer _M_w1;
-    _BasicLinear::layer_pointer _M_w2;
-    _BasicLinear::layer_pointer _M_w3;
+    polymorphic_layer<BasicLinear> _M_w1;
+    polymorphic_layer<BasicLinear> _M_w2;
+    polymorphic_layer<BasicLinear> _M_w3;
 
 public:
     using value_type = T;
     using container_type = Container;
 
-    using layer_type = feed_forward<T, Container>;
-    using layer_pointer = shared_layer_ptr<layer_type>;
-
-    feed_forward(hardware_accelerator accelerator)
+    feed_forward(hardware_accelerator& accelerator)
     : basic_layer(accelerator)
+    {}
+
+    void
+    initialize()
     {
-        _M_w1 = register_layer("w1", _Linear(accelerator));
-        _M_w2 = register_layer("w2", _Linear(accelerator));
-        _M_w3 = register_layer("w3", _Linear(accelerator));
+        _M_w1 = register_polymorphic_layer<BasicLinear, Linear>("w1");
+        _M_w2 = register_polymorphic_layer<BasicLinear, Linear>("w2");
+        _M_w3 = register_polymorphic_layer<BasicLinear, Linear>("w3");
     }
 
     template <immutable_tensor3_t<T> Input>
@@ -68,30 +69,27 @@ public:
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class transformer : public basic_layer {
 private:
-    using _RMSNorm = nn::rmsnorm<T, Container>;
-    using _Attention = nn::attention<T, Container>;
-    using _FeedForward = nn::feed_forward<T, Container>;
+    using RMSNorm = nn::rmsnorm<T, Container>;
+    using Attention = nn::attention<T, Container>;
+    using FeedForward = nn::feed_forward<T, Container>;
 
-    _Attention::layer_pointer _M_attention;
-    _RMSNorm::layer_pointer _M_attention_norm;
+    indirect_layer<Attention> _M_attention;
+    indirect_layer<RMSNorm> _M_attention_norm;
 
-    _FeedForward::layer_pointer _M_ff;
-    _RMSNorm::layer_pointer _M_ff_norm;
+    indirect_layer<FeedForward> _M_ff;
+    indirect_layer<RMSNorm> _M_ff_norm;
 
 public:
     using value_type = T;
     using container_type = Container;
 
-    using layer_type = transformer<T, Container>;
-    using layer_pointer = shared_layer_ptr<layer_type>;
-
     transformer(const attention_options& options, hardware_accelerator accelerator)
     : basic_layer(accelerator)
     {
-        _M_attention = register_layer("attention", _Attention(options, accelerator));
-        _M_attention_norm = register_layer("attention_norm", _RMSNorm(accelerator));
-        _M_ff = register_layer("feed_forward", _FeedForward(accelerator));
-        _M_ff_norm = register_layer("ffn_norm", _RMSNorm(accelerator));
+        _M_attention = register_layer<Attention>("attention", options);
+        _M_attention_norm = register_layer<RMSNorm>("attention_norm");
+        _M_ff = register_layer<FeedForward>("feed_forward");
+        _M_ff_norm = register_layer<RMSNorm>("ffn_norm");
     }
 
     template <immutable_tensor3_t<T> Input, cache_t<T> Cache>

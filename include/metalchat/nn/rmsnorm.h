@@ -22,9 +22,6 @@ public:
     using weight_type = tensor<T, 1, Container>;
     using weight_pointer = shared_tensor_ptr<weight_type>;
 
-    using layer_type = rmsnorm<T, Container>;
-    using layer_pointer = shared_layer_ptr<layer_type>;
-
     rmsnorm(weight_type&& weight, hardware_accelerator accelerator)
     : basic_layer(accelerator),
       _M_weight(std::move(weight)),

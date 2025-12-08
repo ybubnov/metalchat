@@ -25,27 +25,26 @@ namespace quantization {
 ///
 /// quantization::replace<SourceLayer>(llm, OutputLayer());
 /// ```
-template <typename Layer, typename OutputLayer>
-requires std::derived_from<Layer, nn::basic_layer> &&
-         std::derived_from<OutputLayer, nn::basic_layer> && std::copy_constructible<OutputLayer>
+template <typename InputLayer, typename OutputLayer, typename Layer>
+requires std::copy_constructible<OutputLayer> && std::derived_from<Layer, nn::basic_layer> &&
+         std::derived_from<InputLayer, nn::basic_layer> &&
+         std::derived_from<OutputLayer, nn::basic_layer>
 void
-replace(nn::basic_layer& input, const OutputLayer& new_value)
+replace(nn::indirect_layer<Layer>& input, const nn::indirect_layer<OutputLayer>& new_value)
 {
     std::vector<nn::named_layer> candidates;
 
     auto find_candidates = [&](nn::named_layer layer) {
-        if (dynamic_pointer_cast<Layer>(layer.ptr) != nullptr) {
+        if (dynamic_pointer_cast<InputLayer>(layer.ptr) != nullptr) {
             candidates.push_back(layer);
         }
     };
 
-    input.apply(find_candidates);
+    input->apply(find_candidates);
 
     for (auto& layer : candidates) {
         auto& layer_parent = input.get_parent_layer(layer.path);
-
-        OutputLayer layer_value = new_value;
-        layer_parent.register_layer(layer.name, std::move(layer_value));
+        layer_parent.register_layer(layer.name, new_value.clone());
     }
 }
 

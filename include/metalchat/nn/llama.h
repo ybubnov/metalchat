@@ -46,22 +46,21 @@ template <
     cache_t<T> Cache = sink_cache<T>>
 class llama3 : public basic_layer {
 private:
-    using _Transformer = nn::transformer<T, Container>;
-    using _TransformerArray = layer_array<_Transformer>;
-    using _CacheArray = layer_array<Cache>;
-    using _BasicEmbedding = nn::basic_embedding<T, Container>;
-    using _Embedding = nn::embedding<T, Container>;
-    using _RMSNorm = nn::rmsnorm<T, Container>;
-    using _BasicLinear = nn::basic_linear<T, Container>;
-    using _Linear = nn::linear<T, Container>;
+    using Transformer = nn::transformer<T, Container>;
+    using TransformerArray = layer_array<Transformer>;
+    using CacheArray = layer_array<Cache>;
+    using BasicEmbedding = nn::basic_embedding<T, Container>;
+    using Embedding = nn::embedding<T, Container>;
+    using RMSNorm = nn::rmsnorm<T, Container>;
+    using BasicLinear = nn::basic_linear<T, Container>;
+    using Linear = nn::linear<T, Container>;
 
-    polymorphic_layer<_BasicEmbedding> _M_embedding;
-    polymorphic_layer<_BasicLinear> _M_output;
-    _RMSNorm::layer_pointer _M_norm;
-    // indirect_layer<_RMSNorm> _M_norm;
+    polymorphic_layer<BasicEmbedding> _M_embedding;
+    polymorphic_layer<BasicLinear> _M_output;
 
-    _TransformerArray::layer_pointer _M_transforms;
-    _CacheArray::layer_pointer _M_caches;
+    indirect_layer<RMSNorm> _M_norm;
+    indirect_layer<TransformerArray> _M_transforms;
+    indirect_layer<CacheArray> _M_caches;
 
     std::shared_ptr<basic_sampler<T>> _M_sampler;
 
@@ -72,23 +71,15 @@ public:
     using cache_type = Cache;
     using tensor_type = future_tensor<index_type, 2>;
 
-    using layer_type = llama3<T, Container, Cache>;
-    using layer_pointer = shared_layer_ptr<layer_type>;
-
     /// Constructs a new Llama3 model with uninitialized weights with the given options.
     llama3(const llama3_options& options, hardware_accelerator& accelerator)
         requires cache_constructible<Cache>
     : basic_layer(accelerator),
       _M_sampler(std::make_shared<nucleus_sampler<value_type>>())
     {
-        _M_embedding = register_polymorphic_layer<_BasicEmbedding>("tok_embeddings");
-        _M_output = register_polymorphic_layer<_BasicLinear>("output");
-        _M_norm = register_layer("norm", _RMSNorm(accelerator));
-        _M_transforms = register_layer("layers", _TransformerArray(accelerator));
-        _M_caches = register_layer("caches", _CacheArray(accelerator));
-
-        _M_embedding = _Embedding(accelerator);
-        _M_output = _Linear(accelerator);
+        _M_norm = register_layer<RMSNorm>("norm");
+        _M_transforms = register_layer<TransformerArray>("layers");
+        _M_caches = register_layer<CacheArray>("caches");
 
         const auto caching_opts = caching_options{
             .head_dim = options.head_dim(),
@@ -112,17 +103,26 @@ public:
         }
     }
 
+    void
+    initialize()
+    {
+        _M_embedding = register_polymorphic_layer<BasicEmbedding, Embedding>("tok_embeddings");
+        _M_output = register_polymorphic_layer<BasicLinear, Linear>("output");
+    }
+
     template <immutable_tensor2_t<index_type> Input>
     auto
     operator()(Input input, std::size_t start_pos = 0)
     {
         auto x = _M_embedding(input);
+        std::cout << "embedding=" << x.get() << std::endl;
 
         for (std::size_t i = 0; i < _M_transforms->size(); i++) {
             auto& transform = _M_transforms->at(i);
             auto& cache = _M_caches->at(i);
 
             x = transform(x, cache, start_pos);
+            std::cout << "transform[" << i << "]=" << x.get() << std::endl;
         }
 
         auto output = _M_norm(x);
