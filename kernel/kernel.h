@@ -23,6 +23,10 @@ template <typename T> T inline __ceil_div(T a, T b) { return (a + b - 1) / b; }
     __lib_metalchat_stringify(s1##_##s2##_##s3##_##s4)
 
 
+#define __lib_metalchat_concatenate5(s1, s2, s3, s4, s5) \
+    __lib_metalchat_stringify(s1##_##s2##_##s3##_##s4##_##s5)
+
+
 #define __lib_metalchat_kernel(function_name, type)                             \
     template [[host_name(__lib_metalchat_concatenate2(function_name, type))]]   \
     kernel void                                                                 \
@@ -55,6 +59,16 @@ template <typename T> T inline __ceil_div(T a, T b) { return (a + b - 1) / b; }
     template [[host_name(__lib_metalchat_concatenate4(function_name, type1, type2, type3))]] \
     kernel void                                                                              \
     function_name<type1, type2, type3>(                                                      \
+        __##function_name##_parameters<type1, type2, type3>, uint2, uint2, uint2             \
+    )
+
+
+#define __lib_metalchat_kernel2_mixed3_tiled(function_name, block_size, type1, type2, type3) \
+    template [[host_name(                                                                    \
+        __lib_metalchat_concatenate5(function_name, block_size, type1, type2, type3)         \
+    )]]                                                                                      \
+    kernel void                                                                              \
+    function_name<type1, type2, type3, block_size>(                                          \
         __##function_name##_parameters<type1, type2, type3>, uint2, uint2, uint2             \
     )
 

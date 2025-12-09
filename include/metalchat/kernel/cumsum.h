@@ -20,7 +20,7 @@ private:
 
 public:
     cumsum(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("cumsum"))
+    : _M_kernel(gpu.load<T>("cumsum", BlockSize))
     {}
 
     template <immutable_tensor_t<T> Input>

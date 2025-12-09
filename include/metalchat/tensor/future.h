@@ -192,6 +192,13 @@ public:
       _M_future_wait(nullptr)
     {}
 
+    future_tensor()
+    : _M_result(),
+      _M_future_mutex(std::make_shared<std::mutex>()),
+      _M_future(nullptr),
+      _M_future_wait(nullptr)
+    {}
+
     future_tensor(result_type::tensor_type&& result)
     : future_tensor(shared_tensor(std::move(result)))
     {}

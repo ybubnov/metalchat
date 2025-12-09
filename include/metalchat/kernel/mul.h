@@ -40,7 +40,7 @@ private:
 
 public:
     hadamard_broadcast(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, I1, I2>("hadamard_broadcast"))
+    : _M_kernel(gpu.load<T, I1, I2>("hadamard_broadcast", BlockSize))
     {}
 
     template <immutable_tensor2_t<I1> Input1, immutable_tensor2_t<I2> Input2>
@@ -59,15 +59,17 @@ public:
             );
         }
 
-        auto grid = dim3(
-            ceil_div(input1.size(0), BlockSize) * BlockSize,
-            ceil_div(input1.size(1), BlockSize) * BlockSize
-        );
-        auto thread = dim3(1, BlockSize);
+        auto max_threads = _M_kernel.max_threads_per_threadgroup();
+        auto num_rows = ceil_div(input1.size(0), BlockSize);
+        auto num_dims = ceil_div(input1.size(1), BlockSize);
+
+        auto thread = dim3(ceil_div(max_threads, num_dims), num_dims);
+        auto grid = dim3(ceil_div(num_rows, thread.x) * thread.x, thread.y);
 
         auto output = shared_empty_like<T>(input1, _M_kernel.get_allocator());
 
-        // std::cout << "<HB>: input1=" << input1.sizes();
+        // std::cout << "kernel::hadamard_broadcast: ";
+        // std::cout << " input1=" << input1.sizes();
         // std::cout << " , input2=" << input2.sizes();
         // std::cout << ", <" << grid << ", " << thread << ">" << std::endl;
 
@@ -87,6 +89,11 @@ public:
                 input1.size(1), input2.size(1)
             ));
         }
+
+        // std::cout << "kernel::hadamard_broadcast: ";
+        // std::cout << " input1=" << input1.sizes();
+        // std::cout << " , input2=" << input2.sizes() << std::endl;
+        // std::cout << ", <" << grid << ", " << thread << ">" << std::endl;
 
         auto input1_view = flatten<2>(input1);
         auto input2_view = flatten<2>(input2);

@@ -25,7 +25,7 @@ private:
 
 public:
     embedding(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("embedding"))
+    : _M_kernel(gpu.load<T>("embedding", BlockSize))
     {}
 
     template <immutable_tensor2_t<int32_t> Input, immutable_tensor2_t<T> WeightTensor>

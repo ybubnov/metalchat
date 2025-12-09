@@ -34,9 +34,9 @@ TEST_CASE("Test make model", "[llama]")
     document.load(m);
 
     auto heap_size = std::size_t(512) * 1024 * 1024;
-    auto alloc3 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);
-    auto alloc4 = nocopy_allocator(alloc3, gpu0.get_metal_device());
-    gpu0.set_allocator(std::move(alloc4));
+    auto alloc0 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);
+    auto alloc1 = nocopy_allocator(alloc0, gpu0.get_metal_device());
+    gpu0.set_allocator(std::move(alloc1));
 
     auto input_text = std::string("I have a dog called");
 

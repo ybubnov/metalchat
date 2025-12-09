@@ -20,7 +20,7 @@ private:
 
 public:
     rmsnorm(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("rmsnorm"))
+    : _M_kernel(gpu.load<T>("rmsnorm", BlockSize))
     {}
 
     template <immutable_tensor_t<T> Input, immutable_tensor1_t<T> Weight>

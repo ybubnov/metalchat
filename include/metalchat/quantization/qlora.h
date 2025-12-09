@@ -113,7 +113,8 @@ public:
         auto output = matmul(input, weight.transpose({1, 0}), accelerator);
 
         auto adaptation = mul(_M_adaptor(input), _M_scale, accelerator);
-        return add(output, adaptation, accelerator);
+        auto result = add(output, adaptation, accelerator);
+        return result;
     }
 
     template <immutable_tensor3_t<T> Input>
@@ -137,6 +138,9 @@ private:
     scales_traits::pointer _M_scales;
     kernel::embedding<T> _M_embedding;
 
+    future_tensor<T, 2> _M_result;
+    bool _M_result_done;
+
 public:
     using value_type = T;
     using container_type = Container;
@@ -145,7 +149,9 @@ public:
     : _Base(accelerator),
       _M_weight(typename weight_traits::type()),
       _M_scales(typename scales_traits::type()),
-      _M_embedding(accelerator)
+      _M_embedding(accelerator),
+      _M_result(),
+      _M_result_done(false)
     {
         _Base::register_parameter("weight", _M_weight);
         _Base::register_parameter("scales", _M_scales);
@@ -154,9 +160,12 @@ public:
     _Base::result_type
     operator()(_Base::input_type input)
     {
-        auto& accelerator = _Base::accelerator();
-        auto weight_dequant = hadamard_broadcast<T>(_M_weight, _M_scales, accelerator);
-        return _M_embedding(input, weight_dequant);
+        if (!_M_result_done) {
+            auto& accelerator = _Base::accelerator();
+            auto weight_dequant = hadamard_broadcast<T>(_M_weight, _M_scales, accelerator);
+            _M_result = future_tensor(weight_dequant);
+        }
+        return _M_embedding(input, _M_result);
     }
 };
 

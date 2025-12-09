@@ -56,7 +56,7 @@ struct __hadamard_broadcast_parameters {
 };
 
 
-template <typename Output, typename Input1, typename Input2>
+template <typename Output, typename Input1, typename Input2, uint BlockSize>
 kernel void
 hadamard_broadcast(
     __hadamard_broadcast_parameters<Output, Input1, Input2> params,
@@ -65,22 +65,30 @@ hadamard_broadcast(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
+    const uint row_size = params.output.size(0);
     const uint dim_size = params.output.size(1);
-    const uint i = gid.x * threadgroup_size.x + tid.x;
-    const uint k = gid.y * threadgroup_size.y + tid.y;
 
-    if (k < dim_size) {
-        params.output.at(i, k) =
-            (static_cast<Output>(params.input1.at(i, k)) *
-             static_cast<Output>(params.input2.at(i, 0)));
+    const uint ibegin = (gid.x * threadgroup_size.x + tid.x) * BlockSize;
+    const uint iend = ibegin + BlockSize;
+
+    for (uint i = ibegin; i < iend && i < row_size; i++) {
+        const uint kbegin = tid.y * BlockSize;
+        const uint kend = kbegin + BlockSize;
+
+#pragma unroll(BlockSize)
+        for (uint k = kbegin; k < kend && k < dim_size; k++) {
+            params.output.at(i, k) =
+                (static_cast<Output>(params.input1.at(i, k)) *
+                 static_cast<Output>(params.input2.at(i, 0)));
+        }
     }
 }
 
 
-__lib_metalchat_kernel2_mixed3(hadamard_broadcast, bfloat, int8_t, bfloat);
-__lib_metalchat_kernel2_mixed3(hadamard_broadcast, bfloat, int8_t, float);
-__lib_metalchat_kernel2_mixed3(hadamard_broadcast, float, int8_t, bfloat);
-__lib_metalchat_kernel2_mixed3(hadamard_broadcast, float, int8_t, float);
+__lib_metalchat_kernel2_mixed3_tiled(hadamard_broadcast, 16, bfloat, int8_t, bfloat);
+__lib_metalchat_kernel2_mixed3_tiled(hadamard_broadcast, 16, bfloat, int8_t, float);
+__lib_metalchat_kernel2_mixed3_tiled(hadamard_broadcast, 16, float, int8_t, bfloat);
+__lib_metalchat_kernel2_mixed3_tiled(hadamard_broadcast, 16, float, int8_t, float);
 
 
 template <typename T> struct __scalar_mul_parameters {

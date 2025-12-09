@@ -4,12 +4,13 @@
 
 #include <metalchat/metalchat.h>
 
+using namespace metalchat;
 
 int
 main()
 {
-    metalchat::hardware_accelerator gpu0;
-    metalchat::nn::linear<float> linear(10, 64, gpu0);
+    hardware_accelerator gpu0;
+    nn::indirect_layer<nn::linear<float>> linear(10, 64, gpu0);
 
     auto input = metalchat::rand<float>({14, 10}, gpu0);
     auto output = linear(input);

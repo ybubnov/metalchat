@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <format>
 #include <future>
+#include <iostream>
 #include <memory>
 
 #include <metalchat/allocator.h>

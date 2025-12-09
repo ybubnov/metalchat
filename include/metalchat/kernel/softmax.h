@@ -20,7 +20,7 @@ private:
 
 public:
     softmax(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("softmax"))
+    : _M_kernel(gpu.load<T>("softmax", BlockSize))
     {}
 
     template <immutable_tensor_t<T> Input>

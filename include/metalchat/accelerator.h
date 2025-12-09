@@ -180,11 +180,22 @@ public:
     ///
     /// This is a convenience method that loads kernels with names in the following format:
     /// `{name}_{block_size}_{data_type}`.
-    template <typename T, std::size_t BlockSize>
+    template <typename T>
     const basic_kernel&
-    load(const std::string_view& name)
+    load(const std::string_view& name, std::size_t block_size)
     {
-        auto kernel_name = std::format("{}_{}_{}", name, BlockSize, type_traits<T>::name());
+        auto kernel_name = std::format("{}_{}_{}", name, block_size, type_traits<T>::name());
+        return load(kernel_name);
+    }
+
+    template <typename T1, typename T2, typename... TN>
+    const basic_kernel&
+    load(const std::string_view& name, std::size_t block_size)
+    {
+        auto kernel_name = std::format(
+            "{}_{}_{}_{}", name, block_size, type_traits<T1>::name(), type_traits<T2>::name()
+        );
+        ((kernel_name += "_" + type_traits<TN>::name()), ...);
         return load(kernel_name);
     }
 };

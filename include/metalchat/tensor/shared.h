@@ -38,6 +38,10 @@ public:
     : _M_value(std::make_shared<tensor_type>(std::move(t)))
     {}
 
+    shared_tensor_ptr()
+    : _M_value(nullptr)
+    {}
+
     /// See \ref tensor::dim.
     static constexpr std::size_t
     dim()

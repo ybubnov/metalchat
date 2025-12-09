@@ -34,7 +34,7 @@ private:
 
 public:
     sort(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("sort"))
+    : _M_kernel(gpu.load<T>("sort", BlockSize))
     {}
 
     template <immutable_tensor_t<T> Input>

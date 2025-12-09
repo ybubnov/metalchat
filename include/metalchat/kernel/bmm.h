@@ -20,7 +20,7 @@ private:
 
 public:
     bmm(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, BlockSize>("bmm"))
+    : _M_kernel(gpu.load<T>("bmm", BlockSize))
     {}
 
     template <immutable_tensor3_t<T> Input, immutable_tensor3_t<T> Weight>

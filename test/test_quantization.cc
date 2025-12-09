@@ -61,9 +61,8 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
 {
     using LLama3 = nn::llama3<bf16>;
 
-    hardware_accelerator gpu0;
+    hardware_accelerator gpu0(4);
     nn::indirect_layer<LLama3> model(nn::default_llama3_1b_options(), gpu0);
-    std::cout << "model created" << std::endl;
 
     using BasicLinear = nn::basic_linear<bf16>;
     using BasicEmbedding = nn::basic_embedding<bf16>;
@@ -91,10 +90,12 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
     auto model_path = test_fixture_path() / "llama3.2:1b-qlora" / "model.safetensors";
 
     metalchat::text::bpe bpe(bpe_path);
-    safetensor_document::load(model_path, *model);
+    safetensor_document::load(model_path, model);
 
-    auto alloc = gpu0.get_allocator();
-    gpu0.set_allocator(nocopy_allocator(alloc, gpu0.get_metal_device()));
+    auto heap_size = std::size_t(1024) * 1024 * 1024;
+    auto alloc0 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);
+    auto alloc1 = nocopy_allocator(alloc0, gpu0.get_metal_device());
+    gpu0.set_allocator(std::move(alloc1));
 
     auto input_text = std::string("I have a dog called");
 
@@ -108,9 +109,8 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
 
     std::cout << input_text;
     std::cout << bpe.decode(id.get()[0, 0]);
-    std::vector<future_tensor<int32_t, 2>> outputs;
 
-    for (std::size_t i = input0.size(1); i < 64; i++) {
+    for (std::size_t i = input0.size(1); i < 16; i++) {
         auto logits = model(id, i).flatten<2>();
         id = top_p(logits, bf16(0.6f), bf16(0.9f), gpu0);
 

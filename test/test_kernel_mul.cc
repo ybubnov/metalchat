@@ -52,7 +52,6 @@ TEST_CASE("Hadamard broadcasting product", "[kernel::hadamard_broadcast]")
     REQUIRE(output.size(1) == 64);
     REQUIRE(output.size(2) == 32);
 
-    // std::cout << output.get() << std::endl;
     for (std::size_t i = 0; i < output.size(0); i++) {
         for (std::size_t j = 0; j < output.size(1); j++) {
             for (std::size_t k = 0; k < output.size(2); k++) {

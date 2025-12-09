@@ -24,6 +24,9 @@ private:
     weight_traits::pointer _M_weight;
     scales_traits::pointer _M_scales;
 
+    future_tensor<T, 2> _M_result;
+    bool _M_result_done;
+
 public:
     using value_type = T;
     using container_type = Container;
@@ -31,7 +34,9 @@ public:
     linear(hardware_accelerator& accelerator)
     : _Base(accelerator),
       _M_weight(typename weight_traits::type()),
-      _M_scales(typename scales_traits::type())
+      _M_scales(typename scales_traits::type()),
+      _M_result(),
+      _M_result_done(false)
     {
         _Base::register_parameter("weight", _M_weight);
         _Base::register_parameter("scales", _M_scales);
@@ -41,9 +46,13 @@ public:
     operator()(_Base::input_type input)
     {
         auto& accelerator = _Base::accelerator();
-        auto weight_dequant = hadamard_broadcast<T>(_M_weight, _M_scales, accelerator);
-        // exit(0);
-        return matmul(input, weight_dequant.transpose({1, 0}), accelerator);
+
+        if (!_M_result_done) {
+            auto weight_dequant = hadamard_broadcast<T>(_M_weight, _M_scales, accelerator);
+            _M_result = weight_dequant;
+        }
+        // return matmul(input, weight_dequant.transpose({1, 0}), accelerator);
+        return matmul(input, _M_result.transpose({1, 0}), accelerator);
     }
 };
 
