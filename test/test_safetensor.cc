@@ -106,7 +106,7 @@ TEST_CASE("Test write and read small model", "[safetensor]")
 
     REQUIRE(std::filesystem::exists(model_path));
 
-    model model_in(accelerator);
+    nn::indirect_layer<model> model_in(accelerator);
     safetensor_document::load(model_path, model_in);
 
     // Ensure that model parameter's data is the same.

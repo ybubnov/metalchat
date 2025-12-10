@@ -110,9 +110,9 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
     std::cout << input_text;
     std::cout << bpe.decode(id.get()[0, 0]);
 
-    for (std::size_t i = input0.size(1); i < 64; i++) {
-         auto logits = model(id, i).flatten<2>();
-         id = top_p(logits, bf16(0.6f), bf16(0.9f), gpu0);
+    for (std::size_t i = input0.size(1); i < 32; i++) {
+        auto logits = model(id, i).flatten<2>();
+        id = top_p(logits, bf16(0.6f), bf16(0.9f), gpu0);
 
         std::cout << bpe.decode(id.get()[0, 0]) << std::flush;
     }

@@ -51,7 +51,6 @@ public:
             _M_weight_dequant = hadamard_broadcast<T>(_M_weight, _M_scales, accelerator);
             _M_weight_done = true;
         }
-        // return matmul(input, weight_dequant.transpose({1, 0}), accelerator);
         return matmul(input, _M_weight_dequant.transpose({1, 0}), accelerator);
     }
 };

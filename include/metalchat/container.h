@@ -333,7 +333,11 @@ template <typename T> struct container_rebind<T, random_memory_container<void>> 
     static pointer
     rebind(std::shared_ptr<random_memory_container<void>> ptr)
     {
-        return std::make_shared<type>(ptr->storage(), ptr->size(), ptr->storage_offset());
+        auto size = ptr->size();
+        auto offset = ptr->storage_offset();
+        auto container_ptr = std::make_shared<type>(ptr->storage(), size, offset);
+
+        return make_pointer_alias(container_ptr, ptr);
     }
 };
 
@@ -343,12 +347,13 @@ template <typename T> struct container_offset<random_memory_container<T>> {
     using pointer = std::shared_ptr<type>;
 
     static pointer
-    offset(pointer ptr, std::size_t offset)
+    offset(pointer ptr, std::size_t off)
     {
-        auto size = ptr->size() - offset;
-        auto off = ptr->storage_offset() + offset;
+        auto size = ptr->size() - off;
+        auto offset = ptr->storage_offset() + off;
+        auto container_ptr = std::make_shared<type>(ptr->storage(), size, offset);
 
-        return std::make_shared<type>(ptr->storage(), size, off);
+        return make_pointer_alias(container_ptr, ptr);
     }
 };
 
@@ -441,12 +446,6 @@ template <typename T> struct hardware_memory_container : public memory_container
     {
         return static_cast<std::uint8_t*>(metal::data(_M_mem)) + storage_offset();
     }
-
-    std::size_t
-    storage_use_count() const
-    {
-        return _M_mem.use_count();
-    }
 };
 
 
@@ -462,7 +461,21 @@ template <typename T> struct container_rebind<T, hardware_memory_container<void>
     static pointer
     rebind(std::shared_ptr<hardware_memory_container<void>> ptr)
     {
-        return std::make_shared<type>(ptr->storage(), ptr->storage_offset());
+        // You might wonder, why would somebody create an alias to the container that
+        // was just converted the type. The answer is in the implementation of the
+        // safetensors. The most efficient method of opening a safetensors file is mapping
+        // it to the memory (mmap), and then using a single buffer for slicing storage
+        // for tensors. But that file must remain in the memory until the last tensor that
+        // is associated with that memory-mapped memory is not removed.
+        //
+        // API of the Allocators in this library return containers, therefore safetensor
+        // loading logic creates an alias to the container types, not to the underlying
+        // metal buffers.
+        //
+        // In order to keep the mmap-file pointer even after rebinding of the container type,
+        // we must store it into the final pointer.
+        auto container_ptr = std::make_shared<type>(ptr->storage(), ptr->storage_offset());
+        return make_pointer_alias(container_ptr, ptr);
     }
 };
 
@@ -474,7 +487,8 @@ template <typename T> struct container_offset<hardware_memory_container<T>> {
     static pointer
     offset(pointer ptr, std::size_t offset)
     {
-        return std::make_shared<type>(ptr->storage(), ptr->storage_offset() + offset);
+        auto container_ptr = std::make_shared<type>(ptr->storage(), ptr->storage_offset() + offset);
+        return make_pointer_alias(container_ptr, ptr);
     }
 };
 

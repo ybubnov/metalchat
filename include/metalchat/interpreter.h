@@ -136,12 +136,6 @@ private:
     using tensor_type = future_tensor<index_type, 2>;
     using container_type = vector_memory_container<index_type>;
 
-    interpreter(
-        std::shared_ptr<basic_transformer> transformer_ptr,
-        const text::bpe& encoder,
-        std::size_t max_pos
-    );
-
     template <typename Transformer>
     static std::shared_ptr<basic_transformer>
     wrap(Transformer&& transformer)
@@ -175,6 +169,12 @@ public:
     interpreter(Transformer&& transformer, const text::bpe& encoder, std::size_t max_pos = -1)
     : interpreter(wrap(std::move(transformer)), encoder, max_pos)
     {}
+
+    interpreter(
+        std::shared_ptr<basic_transformer> transformer_ptr,
+        const text::bpe& encoder,
+        std::size_t max_pos = -1
+    );
 
     /// Declare the command available for execution.
     ///

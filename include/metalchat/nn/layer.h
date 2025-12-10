@@ -50,12 +50,15 @@ public:
     : _M_value(nullptr)
     {}
 
+    indirect_layer(indirect_layer&& other) noexcept = default;
+    indirect_layer(const indirect_layer& other) noexcept = default;
+
     /// Construct a shared layer which shares ownership of the layer managed by `r`.
     indirect_layer(std::shared_ptr<layer_type> r)
     : _M_value(r)
     {}
 
-    template <typename... Args>
+    template <typename... Args> requires std::constructible_from<Layer, Args...>
     indirect_layer(Args&&... args)
     : indirect_layer(std::make_shared<layer_type>(std::forward<Args>(args)...))
     {
@@ -99,13 +102,11 @@ public:
         return (*_M_value);
     }
 
-    template <typename DerivedLayer> requires std::derived_from<DerivedLayer, layer_type>
-    indirect_layer<layer_type>&
-    operator=(const indirect_layer<DerivedLayer>& derived)
-    {
-        _M_value = derived.get();
-        return *this;
-    }
+    indirect_layer&
+    operator=(const indirect_layer& other) = default;
+
+    indirect_layer&
+    operator=(indirect_layer&& other) = default;
 
     const hardware_accelerator&
     accelerator() const;

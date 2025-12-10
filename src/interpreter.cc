@@ -135,15 +135,35 @@ interpreter::write(const basic_message& message)
 interpreter
 make_llama3(const std::filesystem::path& weights_path, const std::filesystem::path& tokens_path)
 {
-    // hardware_accelerator accelerator;
-    // text::bpe bpe(tokens_path);
+    hardware_accelerator accelerator;
+    text::bpe bpe(tokens_path);
 
-    // using LLama3 = nn::llama3<bf16>;
-    // nn::indirect_layer<LLama3> layer(nn::default_llama3_1b_options(), accelerator);
-    // layer->load(weights_path);
+    using LLama3 = nn::llama3<bf16>;
+    nn::indirect_layer<LLama3> layer(nn::default_llama3_1b_options(), accelerator);
+    layer->load(weights_path);
 
-    // return interpreter(std::move(layer), bpe);
-    throw std::runtime_error("not implemented");
+    struct llama3 : public basic_transformer {
+        nn::indirect_layer<LLama3> _M_layer;
+
+        llama3(nn::indirect_layer<LLama3> l)
+        : _M_layer(l)
+        {}
+
+        tensor_type
+        transform(tensor_type input, std::size_t start_pos)
+        {
+            return _M_layer->transform(input, start_pos);
+        }
+
+        hardware_accelerator&
+        accelerator()
+        {
+            return _M_layer.accelerator();
+        }
+    };
+
+    std::shared_ptr<basic_transformer> layer_ptr = std::make_shared<llama3>(layer);
+    return interpreter(layer_ptr, bpe);
 }
 
 

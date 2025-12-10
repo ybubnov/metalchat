@@ -13,6 +13,21 @@
 using namespace metalchat;
 
 
+TEST_CASE("Test layer copy assignment", "[layer]")
+{
+    using Linear = nn::linear<float>;
+
+    hardware_accelerator gpu0;
+    nn::indirect_layer<Linear> linear0(gpu0);
+    auto linear1 = linear0;
+
+    auto weight = linear1.get_parameter("weight");
+    REQUIRE(weight->dimensions() == 2);
+    REQUIRE(weight->size(0) == 0);
+    REQUIRE(weight->size(1) == 0);
+}
+
+
 TEST_CASE("Test layer parameters", "[layer]")
 {
     using Linear = nn::linear<float, random_memory_container<float>>;
