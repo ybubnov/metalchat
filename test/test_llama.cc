@@ -22,7 +22,7 @@ TEST_CASE("Test make model", "[llama]")
     auto model_path = test_fixture_path() / "llama3.2:1b-instruct" / "model.safetensors";
 
     metalchat::text::byte_pair_encoder bpe(bpe_path);
-    metalchat::hardware_accelerator gpu0;
+    metalchat::hardware_accelerator gpu0(1);
 
     using LLama3 = nn::llama3<bf16>;
     auto options = nn::default_llama3_1b_options().max_seq_len(16);

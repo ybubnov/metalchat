@@ -75,6 +75,7 @@ public:
       _M_future_mutex(std::make_shared<std::mutex>())
     {
         const std::scoped_lock __lock(*_M_future_mutex);
+        auto task_ptr = std::make_shared<Task>(std::move(task));
 
         // Enqueue the calculations to compute the tensor, upon the completion,
         // command buffers calls a callback that sets a value to the promise, so
@@ -82,12 +83,8 @@ public:
         //
         // The main advantage of this approach is that the task and all its associated
         // memory will be released as a result of calling this callback.
-        auto future = task([ft = std::make_shared<future_tensor<T, N>>(*this)] {
-            const std::scoped_lock __lock(*(ft->_M_future_mutex));
-
-            ft->_M_future_wait = nullptr;
-            ft->_M_future = nullptr;
-        });
+        auto future =
+            (*task_ptr)([task_ptr = task_ptr]() { task_ptr->make_ready_at_thread_exit(); });
 
         _M_future = std::make_shared<future_type::element_type>(
             std::bind(&std::shared_future<void>::wait, std::move(future))
@@ -95,9 +92,8 @@ public:
 
         // Erase type of the task, and simply ensure that task is ready, when a user
         // calls either `wait` or `get` method of the future tensor.
-        _M_future_wait = std::make_shared<future_wait_type::element_type>(
-            std::bind(&Task::make_ready_at_thread_exit, std::move(task))
-        );
+        auto future_wait = [task_ptr = task_ptr]() { task_ptr->make_ready_at_thread_exit(); };
+        _M_future_wait = std::make_shared<future_wait_type::element_type>(std::move(future_wait));
     }
 
     template <typename U, std::size_t M>
@@ -208,6 +204,12 @@ public:
     : future_tensor(move(t, alloc))
     {}
 
+    void
+    reset()
+    {
+        _M_result = result_type();
+    }
+
     /// Waits for (by calling \ref future_tensor::wait) until the shared tensor is ready, then
     /// retrieves the value stored in the shared state.
     result_type
@@ -244,8 +246,8 @@ public:
         // Once the waiting of the future completion is done, erase associated
         // with this task, but setting an empty function (lambda), so that the
         // task could be destroyed.
-        _M_future = nullptr;
-        _M_future_wait = nullptr;
+        _M_future.reset();
+        _M_future_wait.reset();
     }
 
     /// See \ref tensor::dim.

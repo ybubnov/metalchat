@@ -5,6 +5,7 @@
 #pragma once
 
 #include <filesystem>
+#include <iostream>
 #include <list>
 
 #include <Foundation/Foundation.hpp>
@@ -27,7 +28,7 @@ struct buffer {
 
 
 struct buffer_deleter {
-    std::list<buffer::deleter_type> deleters;
+    std::vector<buffer::deleter_type> deleters;
 
     buffer_deleter()
     : deleters()

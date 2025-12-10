@@ -39,7 +39,7 @@ public:
         return operator()(future_tensor(move(input, alloc)));
     }
 
-    virtual ~basic_embedding() {}
+    virtual ~basic_embedding() = default;
 };
 
 

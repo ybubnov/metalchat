@@ -73,6 +73,9 @@ private:
     scales_traits::pointer _M_scales;
     value_type _M_scale;
 
+    future_tensor<T, 2> _M_weight_dequant;
+    bool _M_weight_done;
+
 public:
     qlora_linear(T scale, std::size_t group_size, hardware_accelerator& accelerator)
     : _Base(accelerator),
@@ -138,8 +141,8 @@ private:
     scales_traits::pointer _M_scales;
     kernel::embedding<T> _M_embedding;
 
-    future_tensor<T, 2> _M_result;
-    bool _M_result_done;
+    future_tensor<T, 2> _M_weight_dequant;
+    bool _M_weight_done;
 
 public:
     using value_type = T;
@@ -150,8 +153,8 @@ public:
       _M_weight(typename weight_traits::type()),
       _M_scales(typename scales_traits::type()),
       _M_embedding(accelerator),
-      _M_result(),
-      _M_result_done(false)
+      _M_weight_dequant(),
+      _M_weight_done(false)
     {
         _Base::register_parameter("weight", _M_weight);
         _Base::register_parameter("scales", _M_scales);
@@ -160,12 +163,13 @@ public:
     _Base::result_type
     operator()(_Base::input_type input)
     {
-        if (!_M_result_done) {
+        if (!_M_weight_done) {
             auto& accelerator = _Base::accelerator();
             auto weight_dequant = hadamard_broadcast<T>(_M_weight, _M_scales, accelerator);
-            _M_result = future_tensor(weight_dequant);
+            _M_weight_dequant = future_tensor(weight_dequant);
+            _M_weight_done = true;
         }
-        return _M_embedding(input, _M_result);
+        return _M_embedding(input, _M_weight_dequant);
     }
 };
 

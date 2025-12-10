@@ -106,8 +106,7 @@ private:
 
     basic_kernel _M_kernel;
     std::shared_ptr<kernel_thread> _M_this_thread_ptr;
-
-    arguments_type _M_args;
+    std::shared_ptr<arguments_type> _M_args;
 
     /// Configuration of the Metal grid to invoke this particular kernel. Grid specifies
     /// the total number of threads in a grid, while thread defines a number of threads
@@ -122,7 +121,7 @@ public:
     kernel_task(basic_kernel kernel, dim3 grid, dim3 thread, std::tuple<Args...>&& args)
     : _M_kernel(kernel),
       _M_this_thread_ptr(nullptr),
-      _M_args(args),
+      _M_args(std::make_shared<arguments_type>(args)),
       _M_grid(grid),
       _M_thread(thread)
     {
@@ -224,11 +223,12 @@ public:
     void
     make_ready_at_thread_exit()
     {
-        if (_M_this_thread_ptr != nullptr) {
-            _M_this_thread_ptr->make_ready_at_thread_exit();
-        } else {
+        if (_M_this_thread_ptr == nullptr) {
             throw std::runtime_error(std::format("kernel_task: task was not invoked"));
         }
+
+        _M_this_thread_ptr->make_ready_at_thread_exit();
+        _M_args.reset();
     }
 
     /// Returns a new kernel task with bound arguments at positions starting from the beginning
@@ -248,7 +248,7 @@ public:
     bind_front(FrontArgs... front_args)
     {
         return kernel_task<FrontArgs..., Args...>(
-            _M_kernel, _M_grid, _M_thread, std::tuple_cat(std::make_tuple(front_args...), _M_args)
+            _M_kernel, _M_grid, _M_thread, std::tuple_cat(std::make_tuple(front_args...), *_M_args)
         );
     }
 
@@ -265,7 +265,7 @@ public:
     bind_back(BackArgs... back_args)
     {
         return kernel_task<Args..., BackArgs...>(
-            _M_kernel, _M_grid, _M_thread, std::tuple_cat(_M_args, std::make_tuple(back_args...))
+            _M_kernel, _M_grid, _M_thread, std::tuple_cat(*_M_args, std::make_tuple(back_args...))
         );
     }
 
@@ -287,7 +287,7 @@ protected:
             using tensor_type = std::tuple_element<Indices, arguments_type>::type;
             using value_type = tensor_type::value_type;
 
-            const auto& arg = std::get<Indices>(_M_args);
+            const auto& arg = std::get<Indices>(*_M_args);
             encoder.encode<value_type>(arg);
         }(), ...);
 

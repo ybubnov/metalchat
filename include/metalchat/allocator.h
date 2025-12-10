@@ -661,8 +661,7 @@ template <typename T> class hardware_heap_allocator {
     allocate(size_type size)
     {
         auto container = _M_alloc.allocate(sizeof(T) * size);
-        // TODO: replace with container rebind
-        return std::reinterpret_pointer_cast<container_type>(container);
+        return container_traits<container_type>::template rebind<T>(container);
     }
 
     container_pointer
@@ -670,8 +669,7 @@ template <typename T> class hardware_heap_allocator {
     {
         auto container = _M_alloc.allocate(size);
         std::memcpy(container->data(), ptr, sizeof(T) * size);
-        // TODO: replace with container rebind
-        return std::reinterpret_pointer_cast<container_type>(container);
+        return container_traits<container_type>::template rebind<T>(container);
     }
 
 private:
@@ -696,8 +694,7 @@ public:
     container_pointer
     allocate(size_type size)
     {
-        auto container = _M_alloc.allocate(size);
-        return std::reinterpret_pointer_cast<container_type>(container);
+        return _M_alloc.allocate(size);
     }
 
     container_pointer
@@ -705,7 +702,7 @@ public:
     {
         auto container = _M_alloc.allocate(size);
         std::memcpy(container->data(), ptr, size);
-        return std::reinterpret_pointer_cast<container_type>(container);
+        return container;
     }
 
 private:

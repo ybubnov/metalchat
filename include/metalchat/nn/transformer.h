@@ -100,7 +100,8 @@ public:
         auto h = add(input, _M_attention(norm, cache, start_pos), accelerator());
 
         auto ff_norm = _M_ff_norm(h);
-        return add(h, _M_ff(ff_norm), accelerator());
+        auto result = add(h, _M_ff(ff_norm), accelerator());
+        return result;
     }
 
     friend std::ostream&

@@ -89,7 +89,7 @@ make_pointer_alias(const std::shared_ptr<T>& ptr1, const std::shared_ptr<U>& ptr
     using union_pointer = std::pair<t_pointer, u_pointer>;
 
     auto ptr = std::make_shared<union_pointer>(ptr1, ptr2);
-    return t_pointer(ptr, ptr1.get());
+    return t_pointer(ptr, ptr->first.get());
 }
 
 
@@ -333,9 +333,7 @@ template <typename T> struct container_rebind<T, random_memory_container<void>> 
     static pointer
     rebind(std::shared_ptr<random_memory_container<void>> ptr)
     {
-        auto container_ptr =
-            std::make_shared<type>(ptr->storage(), ptr->size(), ptr->storage_offset());
-        return make_pointer_alias(container_ptr, ptr);
+        return std::make_shared<type>(ptr->storage(), ptr->size(), ptr->storage_offset());
     }
 };
 
@@ -347,10 +345,10 @@ template <typename T> struct container_offset<random_memory_container<T>> {
     static pointer
     offset(pointer ptr, std::size_t offset)
     {
-        auto container_ptr = std::make_shared<type>(
-            ptr->storage(), ptr->size() - offset, ptr->storage_offset() + offset
-        );
-        return make_pointer_alias(container_ptr, ptr);
+        auto size = ptr->size() - offset;
+        auto off = ptr->storage_offset() + offset;
+
+        return std::make_shared<type>(ptr->storage(), size, off);
     }
 };
 
@@ -443,6 +441,12 @@ template <typename T> struct hardware_memory_container : public memory_container
     {
         return static_cast<std::uint8_t*>(metal::data(_M_mem)) + storage_offset();
     }
+
+    std::size_t
+    storage_use_count() const
+    {
+        return _M_mem.use_count();
+    }
 };
 
 
@@ -458,8 +462,7 @@ template <typename T> struct container_rebind<T, hardware_memory_container<void>
     static pointer
     rebind(std::shared_ptr<hardware_memory_container<void>> ptr)
     {
-        auto container_ptr = std::make_shared<type>(ptr->storage(), ptr->storage_offset());
-        return make_pointer_alias(container_ptr, ptr);
+        return std::make_shared<type>(ptr->storage(), ptr->storage_offset());
     }
 };
 
@@ -471,8 +474,7 @@ template <typename T> struct container_offset<hardware_memory_container<T>> {
     static pointer
     offset(pointer ptr, std::size_t offset)
     {
-        auto container_ptr = std::make_shared<type>(ptr->storage(), ptr->storage_offset() + offset);
-        return make_pointer_alias(container_ptr, ptr);
+        return std::make_shared<type>(ptr->storage(), ptr->storage_offset() + offset);
     }
 };
 

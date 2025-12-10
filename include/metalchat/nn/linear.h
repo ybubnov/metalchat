@@ -28,7 +28,7 @@ public:
     virtual result_type
     operator()(input_type input);
 
-    virtual ~basic_linear() {}
+    virtual ~basic_linear() = default;
 };
 
 

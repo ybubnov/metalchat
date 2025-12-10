@@ -129,7 +129,8 @@ _HardwareHeapAllocator::allocate(std::size_t size)
     auto deleter = _HardwareIterativeResidenceDeleter{_M_data->rset, _M_mutex, _M_size};
     auto buffer_ptr = metal::make_buffer(memory_ptr, deleter);
 
-    return std::make_shared<container_type>(buffer_ptr);
+    auto ptr = std::make_shared<container_type>(buffer_ptr);
+    return ptr;
 }
 
 
