@@ -14,7 +14,7 @@ namespace quantization {
 
 
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class qlora_adaptor : public nn::basic_layer {
+class lora_adaptor : public nn::basic_layer {
 private:
     using Linear = nn::linear<T, Container>;
 
@@ -25,7 +25,7 @@ public:
     using value_type = T;
     using container_type = Container;
 
-    qlora_adaptor(
+    lora_adaptor(
         std::size_t in_features,
         std::size_t out_features,
         std::size_t rank,
@@ -37,7 +37,7 @@ public:
         _M_b = register_layer<Linear>("B", rank, out_features);
     }
 
-    qlora_adaptor(hardware_accelerator& accelerator)
+    lora_adaptor(hardware_accelerator& accelerator)
     : basic_layer(accelerator)
     {
         _M_a = register_layer<Linear>("A");
@@ -54,19 +54,19 @@ public:
 
 
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class qlora_linear : public nn::basic_linear<T, Container> {
+class lora_linear : public nn::basic_linear<T, Container> {
 public:
     using value_type = T;
     using container_type = Container;
 
 private:
     using _Base = nn::basic_linear<T, Container>;
-    using QLoraAdaptor = qlora_adaptor<T, Container>;
+    using LoraAdaptor = lora_adaptor<T, Container>;
 
     using weight_traits = tensor_traits<std::int8_t, 2, container_type>;
     using scales_traits = tensor_traits<float, 2, container_type>;
 
-    nn::indirect_layer<QLoraAdaptor> _M_adaptor;
+    nn::indirect_layer<LoraAdaptor> _M_adaptor;
 
     std::size_t _M_group_size;
     weight_traits::pointer _M_weight;
@@ -77,7 +77,7 @@ private:
     bool _M_weight_done;
 
 public:
-    qlora_linear(T scale, std::size_t group_size, hardware_accelerator& accelerator)
+    lora_linear(T scale, std::size_t group_size, hardware_accelerator& accelerator)
     : _Base(accelerator),
       _M_adaptor(),
       _M_group_size(group_size),
@@ -85,7 +85,7 @@ public:
       _M_scales(typename scales_traits::type()),
       _M_scale(scale)
     {
-        _M_adaptor = _Base::template register_layer<QLoraAdaptor>("adaptor");
+        _M_adaptor = _Base::template register_layer<LoraAdaptor>("adaptor");
         _Base::register_parameter("weight", _M_weight);
         _Base::register_parameter("scales", _M_scales);
     }
@@ -130,7 +130,7 @@ public:
 
 
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class qlora_embedding : public nn::basic_embedding<T, Container> {
+class lora_embedding : public nn::basic_embedding<T, Container> {
 private:
     using _Base = nn::basic_embedding<T, Container>;
 
@@ -148,7 +148,7 @@ public:
     using value_type = T;
     using container_type = Container;
 
-    qlora_embedding(hardware_accelerator& accelerator)
+    lora_embedding(hardware_accelerator& accelerator)
     : _Base(accelerator),
       _M_weight(typename weight_traits::type()),
       _M_scales(typename scales_traits::type()),

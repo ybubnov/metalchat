@@ -19,7 +19,7 @@ TEST_CASE("Test replace QLoRa linear", "[quantization]")
 {
     using FeedForward = nn::feed_forward<float>;
     using BasicLinear = nn::basic_linear<float>;
-    using QLoraLinear = quantization::qlora_linear<float>;
+    using QLoraLinear = quantization::lora_linear<float>;
 
     hardware_accelerator gpu0;
 
@@ -39,7 +39,7 @@ TEST_CASE("Test replace QLoRa linear", "[quantization]")
 
 TEST_CASE("Test QLoRa adaptor", "[quantization]")
 {
-    using QLoraAdaptor = quantization::qlora_adaptor<float>;
+    using QLoraAdaptor = quantization::lora_adaptor<float>;
 
     hardware_accelerator gpu0;
     nn::indirect_layer<QLoraAdaptor> adaptor(gpu0);
@@ -61,14 +61,14 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
 {
     using LLama3 = nn::llama3<bf16>;
 
-    hardware_accelerator gpu0(1);
+    hardware_accelerator gpu0(8);
     nn::indirect_layer<LLama3> model(nn::default_llama3_1b_options(), gpu0);
 
     using BasicLinear = nn::basic_linear<bf16>;
     using BasicEmbedding = nn::basic_embedding<bf16>;
     using QLinear = quantization::linear<bf16>;
-    using QLoraLinear = quantization::qlora_linear<bf16>;
-    using QLoraEmbedding = quantization::qlora_embedding<bf16>;
+    using QLoraLinear = quantization::lora_linear<bf16>;
+    using QLoraEmbedding = quantization::lora_embedding<bf16>;
 
     quantization::replace<BasicLinear>(model, [&] {
         return nn::indirect_layer<QLoraLinear>(2.0, 32, gpu0);
@@ -92,7 +92,7 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
     metalchat::text::bpe bpe(bpe_path);
     safetensor_document::load(model_path, model);
 
-    auto heap_size = std::size_t(1024) * 1024 * 1024;
+    auto heap_size = std::size_t(2048) * 1024 * 1024;
     auto alloc0 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);
     auto alloc1 = nocopy_allocator(alloc0, gpu0.get_metal_device());
     gpu0.set_allocator(std::move(alloc1));
@@ -110,10 +110,10 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
     std::cout << input_text;
     std::cout << bpe.decode(id.get()[0, 0]);
 
-    // for (std::size_t i = input0.size(1); i < 16; i++) {
-    //     auto logits = model(id, i).flatten<2>();
-    //     id = top_p(logits, bf16(0.6f), bf16(0.9f), gpu0);
+    for (std::size_t i = input0.size(1); i < 64; i++) {
+         auto logits = model(id, i).flatten<2>();
+         id = top_p(logits, bf16(0.6f), bf16(0.9f), gpu0);
 
-    //    std::cout << bpe.decode(id.get()[0, 0]) << std::flush;
-    //}
+        std::cout << bpe.decode(id.get()[0, 0]) << std::flush;
+    }
 }

@@ -21,7 +21,7 @@ namespace quantization {
 /// auto llm = nn::llama3(/* ... */);
 ///
 /// using SourceLayer = nn::linear<bf16>;
-/// using OutputLayer = quantization::qlora_linear<bf16>;
+/// using OutputLayer = quantization::lora_linear<bf16>;
 ///
 /// quantization::replace<SourceLayer>(llm, []() { return OutputLayer(); });
 /// ```
