@@ -17,7 +17,6 @@
 #include <metalchat/nn/layer.h>
 #include <metalchat/nn/options.h>
 #include <metalchat/nn/rmsnorm.h>
-#include <metalchat/nn/sampling.h>
 #include <metalchat/nn/transformer.h>
 #include <metalchat/safetensor.h>
 
@@ -51,8 +50,6 @@ private:
     indirect_layer<TransformerArray> _M_transforms;
     indirect_layer<CacheArray> _M_caches;
 
-    std::shared_ptr<basic_sampler<T>> _M_sampler;
-
 public:
     using index_type = int32_t;
     using value_type = T;
@@ -63,8 +60,7 @@ public:
     /// Constructs a new Llama3 model with uninitialized weights with the given options.
     llama3(const llama3_options& options, hardware_accelerator& accelerator)
         requires cache_constructible<Cache>
-    : basic_layer(accelerator),
-      _M_sampler(std::make_shared<nucleus_sampler<value_type>>())
+    : basic_layer(accelerator)
     {
         _M_norm = register_layer<RMSNorm>("norm");
         _M_transforms = register_layer<TransformerArray>("layers");
@@ -119,13 +115,6 @@ public:
         output = output.narrow(1, len - 1, 1);
 
         return _M_output(output);
-    }
-
-    tensor_type
-    transform(tensor_type input, std::size_t start_pos = 0)
-    {
-        auto logits = operator()(input, start_pos);
-        return _M_sampler->sample(logits.template flatten<2>(), accelerator());
     }
 };
 
