@@ -12,9 +12,27 @@
 namespace metalchat {
 
 
-basic_memfile::basic_memfile(const std::filesystem::path& p, const std::string& mode)
+std::string
+filemode(std::ios::openmode mode)
 {
-    _M_file = std::fopen(p.c_str(), mode.c_str());
+    std::string fmode("r");
+    auto writeonly = std::ios::out;
+    if ((mode & writeonly) == writeonly) {
+        fmode = "w";
+    }
+
+    auto readwrite = std::ios::in | std::ios::out;
+    if ((mode & readwrite) == readwrite) {
+        fmode = "w+";
+    }
+    return fmode;
+}
+
+
+basic_memfile::basic_memfile(const std::filesystem::path& p, std::ios::openmode mode)
+{
+    auto fmode = filemode(mode);
+    _M_file = std::fopen(p.c_str(), fmode.c_str());
     if (_M_file == nullptr) {
         throw std::invalid_argument(
             std::format("basic_memfile: unable to open file '{}'", p.string())
@@ -23,21 +41,28 @@ basic_memfile::basic_memfile(const std::filesystem::path& p, const std::string& 
 
     _M_file_size = static_cast<std::size_t>(std::filesystem::file_size(p));
     _M_file_p = _M_file_size;
+    _M_mode = mode;
 }
 
 
 basic_memfile::basic_memfile(const std::filesystem::path& p)
-: basic_memfile(p, "r")
+: basic_memfile(p, std::ios::in)
 {}
 
 
-basic_memfile::basic_memfile()
+basic_memfile::basic_memfile(std::ios::openmode mode)
 {
+    _M_mode = mode;
     _M_file = std::tmpfile();
     if (_M_file == nullptr) {
         throw std::invalid_argument("basic_memfile: unable to create temporary file");
     }
 }
+
+
+basic_memfile::basic_memfile()
+: basic_memfile(std::ios::in)
+{}
 
 
 bool
@@ -59,7 +84,15 @@ basic_memfile::declare_mapped()
         throw std::invalid_argument("basic_memfile: unable to get file descriptor for a file");
     }
 
-    _M_map = static_cast<char_type*>(mmap(nullptr, _M_file_size, PROT_READ, MAP_PRIVATE, fd, 0));
+    int prot = PROT_READ;
+    int flags = MAP_PRIVATE;
+
+    if (_M_mode & std::ios::out) {
+        prot |= PROT_WRITE;
+        flags = MAP_SHARED;
+    }
+
+    _M_map = static_cast<char_type*>(mmap(nullptr, _M_file_size, prot, flags, fd, 0));
     if (_M_map == MAP_FAILED) {
         throw std::invalid_argument("basic_memfile: unable to memory-map safetensors a file");
     }
@@ -72,6 +105,10 @@ basic_memfile&
 basic_memfile::undeclare_mapped()
 {
     if (is_mapped()) {
+        if (writable()) {
+            msync(_M_map, _M_file_size, MS_SYNC);
+        }
+
         munmap(_M_map, _M_file_size);
         _M_map = nullptr;
     }
@@ -145,11 +182,18 @@ basic_memfile::read(void* d, std::size_t size)
 }
 
 
+bool
+basic_memfile::writable() const
+{
+    return is_mapped() && static_cast<bool>(_M_mode & std::ios::out);
+}
+
+
 basic_memfile&
 basic_memfile::write(const char_type* s, std::size_t size)
 {
-    if (is_mapped()) {
-        throw std::runtime_error("basic_memfile: writing to a memory-mapped file is prohibited");
+    if (writable()) {
+        throw std::runtime_error("basic_memfile: file is not opened in a write mode");
     }
 
     auto written = std::fwrite(s, sizeof(char_type), size, _M_file);

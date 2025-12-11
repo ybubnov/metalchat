@@ -81,8 +81,8 @@ TEST_CASE("Test filebuf interpreter", "[llama]")
     auto transformer = loader.load(options, Allocator());
     auto interp = interpreter(transformer, tokenizer);
 
-    interp.write(basic_message("system", "You are a Geography Book"));
-    interp.write(basic_message("user", "What is the capital of the USA?"));
+    interp.write(basic_message("system", "You are a helpful assistant"));
+    interp.write(basic_message("user", "What is the capital of Germany?"));
 
     std::cout << interp.read_text() << std::endl;
 }

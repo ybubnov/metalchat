@@ -140,13 +140,22 @@ public:
     void
     encode(const Tensor& tensor)
     {
-        using container_type = std::remove_cvref_t<typename Tensor::container_type>;
-        container_type container = tensor.container();
+        auto& container = tensor.container();
+        container.unpark();
 
-        on_completed([container = container]() { container.park(); });
+        // TODO: consider adding a mutex to the filebuf container, to control
+        // exclusive access to the container parking/unparking logic.
+        //
+        // Does it even make sense to park container only on the completion? In case
+        // of nocopy_allocator, it would make sense, since CPU and GPU are sharing
+        // memory and instead of copying memory we could wait until it's no longer is
+        // used (on operation completion) and park container.
+        //
+        // on_completed([container = container]() { container.park(); });
 
         auto alloc = rebind_allocator<T, allocator_type>(_M_allocator);
         auto container_ptr = alloc.allocate(tensor.data_ptr(), tensor.numel());
+        container.park();
 
         auto layout = tensor.layout();
         encode(&layout, sizeof(layout));

@@ -1009,7 +1009,7 @@ template <> struct filebuf_memory_allocator<void> {
     allocate(size_type size)
     {
         auto data = std::make_shared<std::uint8_t[]>(size);
-        return std::make_shared<container_type>(data.get(), size);
+        return allocate(data.get(), size);
     }
 
     container_pointer

@@ -574,8 +574,9 @@ public:
 
         for (const auto& m : metadata) {
             auto container_ptr = allocator.allocate(m.dtype, m.size(), alloc);
+            auto data_ptr = static_cast<char*>(container_ptr->data_ptr());
 
-            is.read(static_cast<char*>(container_ptr->data_ptr()), m.size());
+            is.read(data_ptr, m.size());
             if (is.gcount() != m.size()) {
                 throw std::runtime_error(std::format(
                     "safetensor_document::open: unable to read tensor of size {}", m.size()

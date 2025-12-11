@@ -22,8 +22,9 @@ public:
     using char_type = char;
     using pos_type = std::size_t;
 
+    basic_memfile(const std::filesystem::path& p, std::ios::openmode mode);
     basic_memfile(const std::filesystem::path& p);
-    basic_memfile(const std::filesystem::path& p, const std::string& mode);
+    basic_memfile(std::ios::openmode mode);
     basic_memfile();
 
     bool
@@ -77,6 +78,10 @@ private:
     pos_type _M_file_p = 0;
     pos_type _M_file_g = 0;
     char_type* _M_map = nullptr;
+    std::ios::openmode _M_mode = std::ios::in;
+
+    bool
+    writable() const;
 };
 
 
@@ -561,11 +566,12 @@ public:
     /// Constructs a new instance of a file-buffered container and initializes it with
     /// the provided data. After construction file is not mapped into the memory.
     filebuf_memory_container(const_pointer data, std::size_t size)
-    : _M_storage(std::make_shared<basic_memfile>()),
+    : _M_storage(std::make_shared<basic_memfile>(std::ios::in | std::ios::out)),
       _M_size(size),
       _M_offset(0)
     {
         _M_storage->write(data, size);
+        _M_storage->undeclare_mapped();
     }
 
     filebuf_memory_container(const storage_type& storage, std::size_t size, std::size_t offset)
@@ -580,6 +586,12 @@ public:
     park() const
     {
         _M_storage->undeclare_mapped();
+    }
+
+    void
+    unpark() const
+    {
+        _M_storage->declare_mapped();
     }
 
     std::size_t
@@ -654,7 +666,7 @@ template <typename T> struct container_offset<filebuf_memory_container<T>> {
     static pointer
     offset(pointer ptr, std::size_t off)
     {
-        auto size = ptr->size();
+        auto size = ptr->size() - off;
         auto offset = ptr->storage_offset() + off;
         auto container_ptr = std::make_shared<type>(ptr->storage(), size, offset);
 

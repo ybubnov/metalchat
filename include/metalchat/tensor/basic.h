@@ -630,11 +630,6 @@ public:
     container() const
     {
         if (!_M_data) {
-            std::cout << "Empty container: numel=" << numel() << ", size=";
-            for (auto i = 0; i < N; i++) {
-                std::cout << size(i) << ",";
-            }
-            std::cout << std::endl;
             throw std::logic_error("tensor::container: empty container cannot be accessed");
         }
         return *_M_data;

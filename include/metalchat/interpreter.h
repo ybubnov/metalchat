@@ -299,16 +299,4 @@ private:
 };
 
 
-interpreter
-make_llama3(const std::filesystem::path& weights_path, const std::filesystem::path& tokens_path);
-
-
-// agent
-// make_llama3_compact(
-//     const std::filesystem::path& weights_path,
-//     const std::filesystem::path& tokens_path,
-//     std::optional<nn::llama3_options> options = std::nullopt
-//);
-
-
 } // namespace metalchat

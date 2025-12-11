@@ -272,7 +272,7 @@ safetensor_document::save(const std::filesystem::path& p)
 
     auto header_size = header.size();
 
-    basic_memfile file(p, "w");
+    basic_memfile file(p, std::ios::out);
     file.write(&header_size, sizeof(header_size));
     file.write(header.c_str(), header_size);
 

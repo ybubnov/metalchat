@@ -102,7 +102,6 @@ public:
         auto x = _M_embedding(input);
 
         for (std::size_t i = 0; i < _M_transforms->size(); i++) {
-
             auto& transform = _M_transforms->at(i);
             auto& cache = _M_caches->at(i);
 
