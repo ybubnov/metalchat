@@ -144,12 +144,15 @@ template <typename T> struct memory_container : public basic_container {
 
 
 template <typename Container>
-concept contiguous_container = requires {
+concept contiguous_container = requires(std::remove_reference_t<Container> const c) {
     typename Container::value_type;
     typename Container::pointer;
     typename Container::const_pointer;
+    typename Container::storage_type;
 
     requires std::derived_from<Container, memory_container<typename Container::value_type>>;
+
+    { c.storage() } -> std::same_as<const typename Container::storage_type&>;
 };
 
 
@@ -265,20 +268,14 @@ template <contiguous_container Container> struct container_traits {
 
 
 template <typename T> struct random_memory_container : public memory_container<T> {
-private:
-    std::shared_ptr<void> _M_data = nullptr;
-    std::size_t _M_size;
-    std::size_t _M_offset;
-
-    template <typename U> friend struct random_memory_container;
-
 public:
     using value_type = T;
     using pointer = value_type*;
     using const_pointer = const value_type*;
+    using storage_type = std::shared_ptr<void>;
 
-    random_memory_container(std::shared_ptr<void> data, std::size_t size, std::size_t offset = 0)
-    : _M_data(data),
+    random_memory_container(const storage_type& storage, std::size_t size, std::size_t offset = 0)
+    : _M_storage(storage),
       _M_size(size),
       _M_offset(offset)
     {}
@@ -301,10 +298,10 @@ public:
         return static_cast<const_pointer>(storage_ptr());
     }
 
-    std::shared_ptr<void>
+    const storage_type&
     storage() const
     {
-        return _M_data;
+        return _M_storage;
     }
 
     std::size_t
@@ -316,8 +313,15 @@ public:
     void*
     storage_ptr() const
     {
-        return static_cast<std::uint8_t*>(_M_data.get()) + storage_offset();
+        return static_cast<std::uint8_t*>(_M_storage.get()) + storage_offset();
     }
+
+private:
+    storage_type _M_storage = nullptr;
+    std::size_t _M_size;
+    std::size_t _M_offset;
+
+    template <typename U> friend struct random_memory_container;
 };
 
 
@@ -359,55 +363,60 @@ template <typename T> struct container_offset<random_memory_container<T>> {
 
 
 template <typename T> struct vector_memory_container : public memory_container<T> {
-private:
-    std::vector<T> _M_data;
-
 public:
     using value_type = T;
     using pointer = value_type*;
     using const_pointer = const value_type*;
+    using storage_type = std::vector<T>;
 
-    vector_memory_container(std::vector<T>&& data)
-    : _M_data(std::move(data))
+    vector_memory_container(storage_type&& storage)
+    : _M_storage(std::move(storage))
     {}
 
     vector_memory_container()
-    : _M_data()
+    : _M_storage()
     {}
 
     std::size_t
     size() const
     {
-        return _M_data.size() * sizeof(value_type);
+        return _M_storage.size() * sizeof(value_type);
     }
 
     pointer
     data()
     {
-        return _M_data.data();
+        return _M_storage.data();
     }
 
     const value_type*
     data() const
     {
-        const value_type* ptr = _M_data.data();
+        const value_type* ptr = _M_storage.data();
         return ptr;
     }
+
+    const storage_type&
+    storage() const
+    {
+        return _M_storage;
+    }
+
+private:
+    storage_type _M_storage;
 };
 
 
 template <typename T> struct hardware_memory_container : public memory_container<T> {
+public:
     using value_type = T;
     using pointer = value_type*;
     using const_pointer = const value_type*;
+    using storage_type = metal::shared_buffer;
 
-    metal::shared_buffer _M_mem;
-    std::size_t _M_size;
-    std::size_t _M_offset;
-
-    hardware_memory_container(metal::shared_buffer mem, std::size_t offset = 0)
-    : _M_mem(mem),
-      _M_size(metal::size(_M_mem) - offset),
+    hardware_memory_container(const storage_type& storage, std::size_t offset = 0)
+    : _M_storage(storage),
+      _M_size(metal::size(storage) - offset),
       _M_offset(offset)
     {}
 
@@ -429,10 +438,10 @@ template <typename T> struct hardware_memory_container : public memory_container
         return static_cast<const_pointer>(storage_ptr());
     }
 
-    metal::shared_buffer
+    const storage_type&
     storage() const
     {
-        return _M_mem;
+        return _M_storage;
     }
 
     std::size_t
@@ -444,8 +453,13 @@ template <typename T> struct hardware_memory_container : public memory_container
     void*
     storage_ptr() const
     {
-        return static_cast<std::uint8_t*>(metal::data(_M_mem)) + storage_offset();
+        return static_cast<std::uint8_t*>(metal::data(_M_storage)) + storage_offset();
     }
+
+private:
+    storage_type _M_storage;
+    std::size_t _M_size;
+    std::size_t _M_offset;
 };
 
 
@@ -494,16 +508,14 @@ template <typename T> struct container_offset<hardware_memory_container<T>> {
 
 
 template <typename T> struct scalar_memory_container : public memory_container<T> {
-private:
-    T _M_data;
-
 public:
     using value_type = T;
     using pointer = value_type*;
     using const_pointer = const value_type*;
+    using storage_type = T;
 
-    scalar_memory_container(T data)
-    : _M_data(data)
+    scalar_memory_container(const storage_type& storage)
+    : _M_storage(storage)
     {}
 
     std::size_t
@@ -515,23 +527,24 @@ public:
     pointer
     data()
     {
-        return &_M_data;
+        return &_M_storage;
     }
 
     const_pointer
     data() const
     {
-        return const_pointer(&_M_data);
+        return const_pointer(&_M_storage);
     }
+
+    const storage_type&
+    storage() const
+    {
+        return _M_storage;
+    }
+
+private:
+    storage_type _M_storage;
 };
-
-
-template <typename T>
-auto
-make_scalar_container(T data)
-{
-    return std::make_shared<scalar_memory_container<T>>(data);
-}
 
 
 /// A container that keeps data within a temporary file.
@@ -539,30 +552,34 @@ make_scalar_container(T data)
 /// When users need to get read (or write) access to the file, it's mapped to the memory and
 /// remains mapped, when `filebuf_memory_container::park` method is called.
 template <typename T> struct filebuf_memory_container : public memory_container<T> {
-private:
-    std::shared_ptr<basic_memfile> _M_filebuf;
-    std::size_t _M_size;
-
 public:
     using value_type = T;
     using pointer = value_type*;
     using const_pointer = const value_type*;
+    using storage_type = std::shared_ptr<basic_memfile>;
 
     /// Constructs a new instance of a file-buffered container and initializes it with
     /// the provided data. After construction file is not mapped into the memory.
     filebuf_memory_container(const_pointer data, std::size_t size)
-    : _M_filebuf(std::make_shared<basic_memfile>()),
-      _M_size(size * sizeof(value_type))
+    : _M_storage(std::make_shared<basic_memfile>()),
+      _M_size(size),
+      _M_offset(0)
     {
-        _M_filebuf->write(data, sizeof(value_type) * size);
+        _M_storage->write(data, size);
     }
+
+    filebuf_memory_container(const storage_type& storage, std::size_t size, std::size_t offset)
+    : _M_storage(storage),
+      _M_size(size),
+      _M_offset(offset)
+    {}
 
     /// Method evicts memory-mapped file from the memory. When the file is not memory-mapped
     /// method does absolutely nothing, so calling method multiple time is safe.
     void
     park() const
     {
-        _M_filebuf->undeclare_mapped();
+        _M_storage->undeclare_mapped();
     }
 
     std::size_t
@@ -574,16 +591,38 @@ public:
     pointer
     data()
     {
-        _M_filebuf->declare_mapped();
-        return reinterpret_cast<pointer>(_M_filebuf->data());
+        return static_cast<pointer>(storage_ptr());
     }
 
     const_pointer
     data() const
     {
-        _M_filebuf->declare_mapped();
-        return reinterpret_cast<const_pointer>(_M_filebuf->data());
+        return static_cast<const_pointer>(storage_ptr());
     }
+
+    const storage_type&
+    storage() const
+    {
+        return _M_storage;
+    }
+
+    std::size_t
+    storage_offset() const
+    {
+        return _M_offset;
+    }
+
+    void*
+    storage_ptr() const
+    {
+        _M_storage->declare_mapped();
+        return _M_storage->data() + storage_offset();
+    }
+
+private:
+    storage_type _M_storage;
+    std::size_t _M_size;
+    std::size_t _M_offset;
 };
 
 
@@ -592,42 +631,78 @@ template <typename T> struct container_remove_type<filebuf_memory_container<T>> 
 };
 
 
+template <typename T> struct container_rebind<T, filebuf_memory_container<void>> {
+    using type = filebuf_memory_container<T>;
+    using pointer = std::shared_ptr<type>;
+
+    static pointer
+    rebind(std::shared_ptr<filebuf_memory_container<void>> ptr)
+    {
+        auto size = ptr->size();
+        auto offset = ptr->storage_offset();
+        auto container_ptr = std::make_shared<type>(ptr->storage(), size, offset);
+
+        return make_pointer_alias(container_ptr, ptr);
+    }
+};
+
+
+template <typename T> struct container_offset<filebuf_memory_container<T>> {
+    using type = filebuf_memory_container<T>;
+    using pointer = std::shared_ptr<type>;
+
+    static pointer
+    offset(pointer ptr, std::size_t off)
+    {
+        auto size = ptr->size();
+        auto offset = ptr->storage_offset() + off;
+        auto container_ptr = std::make_shared<type>(ptr->storage(), size, offset);
+
+        return make_pointer_alias(container_ptr, ptr);
+    }
+};
+
+
 template <typename T> class offsetted_container_adapter : public memory_container<T> {
 public:
     using value_type = T;
     using pointer = value_type*;
     using const_pointer = const value_type*;
+    using storage_type = std::shared_ptr<memory_container<T>>;
 
-    using container_type = memory_container<T>;
-    using container_pointer = std::shared_ptr<container_type>;
-
-    offsetted_container_adapter(const container_pointer& container_ptr, std::size_t offset)
-    : _M_container(container_ptr),
+    offsetted_container_adapter(const storage_type& storage, std::size_t offset)
+    : _M_storage(storage),
       _M_offset(offset)
     {}
 
     pointer
     data()
     {
-        void* ptr = static_cast<std::uint8_t*>(_M_container->data_ptr()) + _M_offset;
+        void* ptr = static_cast<std::uint8_t*>(_M_storage->data_ptr()) + _M_offset;
         return static_cast<pointer>(ptr);
     }
 
     const_pointer
     data() const
     {
-        const void* ptr = static_cast<const std::uint8_t*>(_M_container->data_ptr()) + _M_offset;
+        const void* ptr = static_cast<const std::uint8_t*>(_M_storage->data_ptr()) + _M_offset;
         return static_cast<const_pointer>(ptr);
     }
 
     std::size_t
     size() const
     {
-        return _M_container->size() - _M_offset;
+        return _M_storage->size() - _M_offset;
+    }
+
+    const storage_type&
+    storage() const
+    {
+        return _M_storage;
     }
 
 private:
-    std::shared_ptr<memory_container<T>> _M_container;
+    storage_type _M_storage;
     std::size_t _M_offset;
 };
 

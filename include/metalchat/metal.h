@@ -15,11 +15,11 @@ struct buffer;
 using shared_buffer = std::shared_ptr<buffer>;
 
 void*
-data(const shared_buffer buffer);
+data(const shared_buffer& buffer);
 
 
 std::size_t
-size(const shared_buffer buffer);
+size(const shared_buffer& buffer);
 
 
 struct device;

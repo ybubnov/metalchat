@@ -17,14 +17,14 @@ namespace metal {
 
 
 void*
-data(const shared_buffer buffer)
+data(const shared_buffer& buffer)
 {
     return buffer->ptr->contents();
 }
 
 
 std::size_t
-size(const shared_buffer buffer)
+size(const shared_buffer& buffer)
 {
     return buffer->ptr->length();
 }

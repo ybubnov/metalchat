@@ -63,9 +63,10 @@ You have access to the following tools:
 }
 
 
-/*
 TEST_CASE("Test filebuf interpreter", "[llama]")
 {
+    SKIP();
+
     auto repo_path = test_fixture_path() / "llama3.2:1b-instruct";
     auto tokens_path = repo_path / "original/tokenizer.model";
 
@@ -85,4 +86,3 @@ TEST_CASE("Test filebuf interpreter", "[llama]")
 
     std::cout << interp.read_text() << std::endl;
 }
-*/

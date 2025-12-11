@@ -114,19 +114,13 @@ concept transformer_traits = requires {
     typename TransformerTraits::layer_type;
     typename TransformerTraits::options_type;
     typename TransformerTraits::document_adaptor;
+    typename TransformerTraits::container_type;
 
+    contiguous_container<typename TransformerTraits::container_type>;
     safetensor_document_adaptor<typename TransformerTraits::document_adaptor>;
 };
 
 
-/// ```c++
-/// using Transformer = metalchat::llama3_huggingface_traits;
-/// using Autoloader = metalchat::autoloader<Transformer>;
-///
-/// hardware_accelerator accelerator;
-/// Autoloader autoloader("Llama-3.1-1B-Instruct");
-/// auto layer = autoloader.load(accelerator);
-/// ```
 template <transformer_traits TransformerTraits> struct autoloader {
     using layer_type = TransformerTraits::layer_type;
     using options_type = TransformerTraits::options_type;

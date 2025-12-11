@@ -723,7 +723,7 @@ template <typename T> struct random_memory_allocator {
     container_pointer
     allocate(size_type size)
     {
-        std::shared_ptr<T[]> memory_ptr(new T[size]());
+        auto memory_ptr = std::make_shared<T[]>(size);
         return std::make_shared<container_type>(memory_ptr, size * sizeof(T));
     }
 
@@ -750,7 +750,7 @@ template <> struct random_memory_allocator<void> {
     container_pointer
     allocate(size_type size)
     {
-        std::shared_ptr<std::uint8_t[]> memory_ptr(new std::uint8_t[size]());
+        auto memory_ptr = std::make_shared<std::uint8_t[]>(size);
         return std::make_shared<container_type>(memory_ptr, size);
     }
 
@@ -983,8 +983,33 @@ template <typename T> struct filebuf_memory_allocator {
     {
         // Memory is copied, so despite the pointer is passed to other method, there is no
         // need to worry that pointer will be invalid (it's simply not going to be used).
-        auto data = std::make_shared<value_type[]>(size);
+        auto data = std::make_shared<value_type[]>(size * sizeof(T));
         return allocate(data.get(), size);
+    }
+
+    container_pointer
+    allocate(const_pointer ptr, size_type size)
+    {
+        return std::make_shared<container_type>(ptr, size * sizeof(T));
+    }
+};
+
+
+template <> struct filebuf_memory_allocator<void> {
+    using value_type = void;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
+    using size_type = std::size_t;
+    using container_type = filebuf_memory_container<void>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    filebuf_memory_allocator() {}
+
+    container_pointer
+    allocate(size_type size)
+    {
+        auto data = std::make_shared<std::uint8_t[]>(size);
+        return std::make_shared<container_type>(data.get(), size);
     }
 
     container_pointer
