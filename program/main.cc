@@ -15,10 +15,16 @@ main()
 {
     replxx::Replxx shell;
 
-    auto weights_path = std::filesystem::path(std::getenv("METALCHAT_SAFETENSOR_PATH"));
-    auto tokens_path = std::filesystem::path(std::getenv("METALCHAT_TOKENIZER_PATH"));
+    auto repo_path = std::filesystem::path(std::getenv("METALCHAT_PATH"));
+    auto tokens_path = repo_path / "original/tokenizer.model";
 
-    auto interp = metalchat::make_llama3(weights_path, tokens_path);
+    metalchat::hardware_accelerator accelerator;
+    metalchat::autoloader loader(repo_path);
+    metalchat::text::bpe tokenizer(tokens_path);
+
+    auto options = metalchat::nn::default_llama3_1b_options();
+    auto transformer = loader.load(options, accelerator);
+    auto interp = metalchat::interpreter(transformer, tokenizer);
 
     for (;;) {
         char const* raw_input = nullptr;

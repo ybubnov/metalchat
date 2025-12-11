@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <metalchat/allocator.h>
+#include <metalchat/autoloader.h>
 #include <metalchat/command.h>
 #include <metalchat/interpreter.h>
 #include <metalchat/nn.h>
@@ -17,10 +18,15 @@ using namespace metalchat;
 
 TEST_CASE("Test interpreter", "[llama]")
 {
-    auto weights_path = test_fixture_path() / "llama3.2:1b-instruct" / "model.safetensors";
-    auto tokens_path = test_fixture_path() / "llama3.2:1b-instruct" / "original/tokenizer.model";
+    auto repo_path = test_fixture_path() / "llama3.2:1b-instruct";
+    auto tokens_path = repo_path / "original/tokenizer.model";
 
-    auto interp = make_llama3(weights_path, tokens_path);
+    hardware_accelerator accelerator;
+    autoloader loader(repo_path);
+    text::bpe tokenizer(tokens_path);
+
+    auto transformer = loader.load(nn::default_llama3_1b_options(), accelerator);
+    auto interp = interpreter(transformer, tokenizer);
 
     auto command = R"({
 "name":"multiply",

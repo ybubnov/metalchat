@@ -66,32 +66,6 @@ private:
 };
 
 
-/// The language transformer is an abstraction of the next token prediction model.
-///
-/// Types that comply to this concept are expected to produce logits for the all tokens
-/// (characters, words, word combinations, etc.) that the given model is capable of
-/// generating. All types should be inherited from `metalchat::basic_layer` type to able
-/// assign context of the model during runtime.
-template <typename Transformer>
-concept transformer = requires(Transformer estimator) {
-    typename Transformer::index_type;
-    typename Transformer::value_type;
-    typename Transformer::input_tensor;
-    typename Transformer::output_tensor;
-
-    requires std::derived_from<Transformer, nn::basic_layer>;
-
-    requires immutable_tensor2_t<
-        typename Transformer::input_tensor, typename Transformer::index_type>;
-    requires immutable_tensor3_t<
-        typename Transformer::output_tensor, typename Transformer::value_type>;
-
-    {
-        estimator(std::declval<typename Transformer::input_tensor>(), std::size_t())
-    } -> is_future_tensor3_v<typename Transformer::value_type>;
-};
-
-
 class basic_transformer {
 public:
     using index_type = int32_t;
@@ -111,6 +85,10 @@ public:
     : _M_transformer(std::move(transformer))
     {}
 
+    transformer_wrapper(const Transformer& transformer)
+    : _M_transformer(transformer)
+    {}
+
     tensor_type
     transform(tensor_type input, std::size_t start_pos)
     {
@@ -120,7 +98,7 @@ public:
     hardware_accelerator&
     accelerator()
     {
-        return _M_transformer.accelerator();
+        return _M_transformer.get_layer().accelerator();
     }
 
 private:
@@ -168,6 +146,11 @@ public:
     template <typename Transformer>
     interpreter(Transformer&& transformer, const text::bpe& encoder, std::size_t max_pos = -1)
     : interpreter(wrap(std::move(transformer)), encoder, max_pos)
+    {}
+
+    template <typename Transformer>
+    interpreter(const Transformer& transformer, const text::bpe& encoder, std::size_t max_pos = -1)
+    : interpreter(warp(transformer), encoder, max_pos)
     {}
 
     interpreter(

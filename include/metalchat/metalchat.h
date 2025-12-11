@@ -6,6 +6,7 @@
 
 #include <metalchat/accelerator.h>
 #include <metalchat/allocator.h>
+#include <metalchat/autoloader.h>
 #include <metalchat/container.h>
 #include <metalchat/dtype.h>
 #include <metalchat/functional.h>

@@ -975,9 +975,14 @@ template <typename T> struct filebuf_memory_allocator {
 
     filebuf_memory_allocator() {}
 
+    /// Allocate the block of memory of the specified size and immediately write it to the
+    /// anonymous file buffer. The lifetime of the backing file buffer ends with the end of
+    /// lifetime of the returned container.
     container_pointer
     allocate(size_type size)
     {
+        // Memory is copied, so despite the pointer is passed to other method, there is no
+        // need to worry that pointer will be invalid (it's simply not going to be used).
         auto data = std::make_shared<value_type[]>(size);
         return allocate(data.get(), size);
     }

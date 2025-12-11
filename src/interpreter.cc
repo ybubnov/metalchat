@@ -133,6 +133,7 @@ interpreter::write(const basic_message& message)
 }
 
 
+/*
 interpreter
 make_llama3(const std::filesystem::path& weights_path, const std::filesystem::path& tokens_path)
 {
@@ -170,6 +171,7 @@ make_llama3(const std::filesystem::path& weights_path, const std::filesystem::pa
     std::shared_ptr<basic_transformer> layer_ptr = std::make_shared<llama3>(layer);
     return interpreter(layer_ptr, bpe);
 }
+*/
 
 
 /*
