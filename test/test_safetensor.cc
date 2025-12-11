@@ -6,6 +6,7 @@
 #include <catch2/matchers/catch_matchers_vector.hpp>
 
 #include <metalchat/accelerator.h>
+#include <metalchat/autoloader.h>
 #include <metalchat/functional.h>
 #include <metalchat/nn.h>
 #include <metalchat/tensor.h>
@@ -62,7 +63,7 @@ TEST_CASE("Test model load", "[safetensor]")
     nn::indirect_layer<LLama3> m(nn::default_llama3_1b_options(), gpu0);
 
     auto doc_path = test_fixture_path() / "llama3.2:1b-instruct" / "model.safetensors";
-    auto doc_adapter = nn::metallama3_document_adaptor();
+    auto doc_adapter = llama3_traits::reference_document_adaptor();
     auto doc = safetensor_document::open(doc_path, gpu0);
 
     doc_adapter.adapt(doc);

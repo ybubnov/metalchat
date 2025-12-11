@@ -26,17 +26,6 @@ namespace metalchat {
 namespace nn {
 
 
-// The original implementation of Llama 3.2 shares the weight of token embeddings and the output
-// layer, use a shared tensor in order to reduce memory footprint.
-struct metallama3_document_adaptor {
-    void
-    adapt(safetensor_document& document) const
-    {
-        document.insert("output.weight", "tok_embeddings.weight");
-    }
-};
-
-
 /// Llama 3 is an auto-regressive language model that uses an optimized transformer architecture.
 /// The tuned versions use supervised fine-tuning (SFT) and reinforcement learning with human
 /// feedback (RLHF) to align with human preferences for helpfulness and safety.
@@ -137,18 +126,6 @@ public:
     {
         auto logits = operator()(input, start_pos);
         return _M_sampler->sample(logits.template flatten<2>(), accelerator());
-    }
-
-    template <safetensor_document_adaptor SafetensorDocumentAdaptor = metallama3_document_adaptor>
-    void
-    load(
-        const std::filesystem::path& path,
-        SafetensorDocumentAdaptor document_adaptor = SafetensorDocumentAdaptor()
-    )
-    {
-        auto document = safetensor_document::open(path, accelerator());
-        document_adaptor.adapt(document);
-        document.load(*this);
     }
 };
 

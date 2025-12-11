@@ -5,6 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <metalchat/accelerator.h>
+#include <metalchat/autoloader.h>
 #include <metalchat/functional.h>
 #include <metalchat/kernel/sort.h>
 #include <metalchat/nn/llama.h>
@@ -29,7 +30,7 @@ TEST_CASE("Test make model", "[llama]")
     nn::indirect_layer<LLama3> m(options, gpu0);
 
     auto document = safetensor_document::open(model_path, gpu0);
-    auto document_adaptor = nn::metallama3_document_adaptor();
+    auto document_adaptor = llama3_traits::reference_document_adaptor();
     document_adaptor.adapt(document);
     document.load(m);
 
