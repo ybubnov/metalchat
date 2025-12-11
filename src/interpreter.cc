@@ -143,7 +143,7 @@ make_llama3(const std::filesystem::path& weights_path, const std::filesystem::pa
     nn::indirect_layer<LLama3> layer(nn::default_llama3_1b_options(), accelerator);
 
     auto document = safetensor_document::open(weights_path, accelerator);
-    auto document_adaptor = llama3_traits::reference_document_adaptor();
+    auto document_adaptor = llama3_reference_traits::document_adaptor();
     document_adaptor.adapt(document);
     document.load(layer);
 

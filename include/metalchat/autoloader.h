@@ -11,7 +11,7 @@
 namespace metalchat {
 
 
-struct llama3_traits {
+struct llama3_reference_traits {
     using layer_type = nn::llama3<bf16>;
     using layer_options = nn::llama3_options;
 
@@ -20,7 +20,18 @@ struct llama3_traits {
     //
     // This adaptor implement \ref safetensor_document_adaptor concept and creates an
     // alias between output and embedding layers.
-    struct reference_document_adaptor {
+    struct document_adaptor {
+        void
+        adapt(safetensor_document& document) const;
+    };
+};
+
+
+struct llama3_huggingface_traits {
+    using layer_type = nn::llama3<bf16>;
+    using layer_options = nn::llama3_options;
+
+    struct document_adaptor {
         void
         adapt(safetensor_document& document) const;
     };
@@ -28,8 +39,9 @@ struct llama3_traits {
 
 
 /// ```c++
-/// using Layer = metalchat::llama3_traits;
-/// using Autoloader = metalchat::huggingface_autoloader<Layer>;
+/// using LayerTraits = metalchat::llama3_huggingface_traits;
+/// using Autoloader = metalchat::huggingface_autoloader<LayerTraits>;
+///
 /// Autoloader autoloader("Llama-3.1-1B-Instruct");
 /// auto layer = autoloader.load();
 /// ```
@@ -39,11 +51,15 @@ template <typename LayerTraits> struct huggingface_autoloader {
 
     huggingface_autoloader(const std::filesystem::path& local_path);
 
-    // void merge_options(layer_options options);
-    // void override_options(layer_options options);
+    // huggingface_autoloader&
+    // merge_options(layer_options options);
+    //
+    // huggingface_autoloader&
+    // override_options(layer_options options);
 
     nn::indirect_layer<layer_type>
     load(hardware_accelerator& accelerator) const;
+
     nn::indirect_layer<layer_type>
     load() const;
 };
