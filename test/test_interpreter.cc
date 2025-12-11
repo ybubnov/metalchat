@@ -21,11 +21,10 @@ TEST_CASE("Test interpreter", "[llama]")
     auto repo_path = test_fixture_path() / "llama3.2:1b-instruct";
     auto tokens_path = repo_path / "original/tokenizer.model";
 
-    hardware_accelerator accelerator;
-    autoloader loader(repo_path);
     text::bpe tokenizer(tokens_path);
+    reference_autoloader loader(repo_path);
 
-    auto transformer = loader.load(nn::default_llama3_1b_options(), accelerator);
+    auto transformer = loader.load(nn::default_llama3_1b_options());
     auto interp = interpreter(transformer, tokenizer);
 
     auto command = R"({
@@ -62,3 +61,28 @@ You have access to the following tools:
     interp.write(basic_message("user", "what is the capital of Belgium?"));
     std::cout << interp.read_text() << std::endl;
 }
+
+
+/*
+TEST_CASE("Test filebuf interpreter", "[llama]")
+{
+    auto repo_path = test_fixture_path() / "llama3.2:1b-instruct";
+    auto tokens_path = repo_path / "original/tokenizer.model";
+
+    text::bpe tokenizer(tokens_path);
+
+    using Transformer = llama3_reference_traits<bf16, filebuf_memory_container<bf16>>;
+    using Autoloader = autoloader<Transformer>;
+    using Allocator = filebuf_memory_allocator<void>;
+
+    Autoloader loader(repo_path);
+    auto options = nn::default_llama3_1b_options();
+    auto transformer = loader.load(options, Allocator());
+    auto interp = interpreter(transformer, tokenizer);
+
+    interp.write(basic_message("system", "You are a Geography Book"));
+    interp.write(basic_message("user", "What is the capital of the USA?"));
+
+    std::cout << interp.read_text() << std::endl;
+}
+*/

@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <fstream>
+
+#include <metalchat/allocator.h>
 #include <metalchat/nn.h>
 #include <metalchat/safetensor.h>
 #include <metalchat/tensor/concept.h>
@@ -72,14 +75,12 @@ private:
 };
 
 
+template <typename T = bf16, contiguous_container Container = hardware_memory_container<T>>
 struct llama3_reference_traits {
-    using layer_type = nn::llama3<bf16>;
+    using value_type = T;
+    using layer_type = nn::llama3<T, Container>;
     using options_type = nn::llama3_options;
-
-    struct document_resolver {
-        std::filesystem::path
-        resolve(const std::filesystem::path& p) const;
-    };
+    using container_type = Container;
 
     // The original implementation of Llama 3.2 shares the weight of token embeddings
     // and the output layer, use a shared tensor in order to reduce memory footprint.
@@ -88,7 +89,10 @@ struct llama3_reference_traits {
     // alias between output and embedding layers.
     struct document_adaptor {
         void
-        adapt(safetensor_document& document) const;
+        adapt(safetensor_document& document) const
+        {
+            document.insert("output.weight", "tok_embeddings.weight");
+        }
     };
 };
 
@@ -96,6 +100,7 @@ struct llama3_reference_traits {
 struct llama3_huggingface_traits {
     using layer_type = nn::llama3<bf16>;
     using options_type = nn::llama3_options;
+    using container_type = hardware_memory_container<bf16>;
 
     struct document_adaptor {
         void
@@ -122,25 +127,36 @@ concept transformer_traits = requires {
 /// Autoloader autoloader("Llama-3.1-1B-Instruct");
 /// auto layer = autoloader.load(accelerator);
 /// ```
-template <transformer_traits TransformerTraits = llama3_reference_traits> struct autoloader {
+template <transformer_traits TransformerTraits> struct autoloader {
     using layer_type = TransformerTraits::layer_type;
     using options_type = TransformerTraits::options_type;
+    using container_type = TransformerTraits::container_type;
     using document_adaptor_type = TransformerTraits::document_adaptor;
-    using document_resolver_type = TransformerTraits::document_resolver;
 
-    autoloader(const std::filesystem::path& local_path)
-    : _M_local_path(local_path)
+    autoloader(
+        const std::filesystem::path& repo_path,
+        const std::string& safetensor_filename,
+        hardware_accelerator accelerator
+    )
+    : _M_local_path(repo_path / safetensor_filename),
+      _M_accelerator(accelerator)
+    {}
+
+    autoloader(const std::filesystem::path& repo_path, hardware_accelerator accelerator)
+    : autoloader(repo_path, "model.safetensors", accelerator)
+    {}
+
+    autoloader(const std::filesystem::path& repo_path)
+    : autoloader(repo_path, hardware_accelerator())
     {}
 
     transformer<layer_type>
-    load(options_type options, hardware_accelerator& accelerator) const
+    load(const options_type& options)
     {
-        nn::indirect_layer<layer_type> layer(options, accelerator);
+        nn::indirect_layer<layer_type> layer(options, _M_accelerator);
 
         auto document_adaptor = document_adaptor_type();
-        auto document_resolver = document_resolver_type();
-        auto document_path = document_resolver.resolve(_M_local_path);
-        auto document = safetensor_document::open(document_path, accelerator);
+        auto document = safetensor_document::open(_M_local_path, _M_accelerator);
 
         document_adaptor.adapt(document);
         document.load(layer);
@@ -148,15 +164,29 @@ template <transformer_traits TransformerTraits = llama3_reference_traits> struct
         return transformer<layer_type>(layer);
     }
 
+    template <allocator_t<void> Allocator>
     transformer<layer_type>
-    load(hardware_accelerator& accelerator) const;
+    load(const options_type& options, Allocator alloc = Allocator())
+    {
+        nn::indirect_layer<layer_type> layer(options, _M_accelerator);
+
+        auto document_stream = std::ifstream(_M_local_path, std::ios::binary);
+        auto document_adaptor = document_adaptor_type();
+        auto document = safetensor_document::open(document_stream, alloc);
+
+        document_adaptor.adapt(document);
+        document.load(layer);
+
+        return transformer<layer_type>(layer);
+    }
 
 private:
     std::filesystem::path _M_local_path;
+    hardware_accelerator _M_accelerator;
 };
 
 
-using reference_autoloader = autoloader<llama3_reference_traits>;
+using reference_autoloader = autoloader<llama3_reference_traits<bf16>>;
 using huggingface_autoloader = autoloader<llama3_huggingface_traits>;
 
 
