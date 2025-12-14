@@ -6,6 +6,7 @@
 
 #include <metalchat/tensor/basic.h>
 #include <metalchat/tensor/concept.h>
+#include <metalchat/tensor/expected.h>
 #include <metalchat/tensor/format.h>
 #include <metalchat/tensor/future.h>
 #include <metalchat/tensor/indexing.h>

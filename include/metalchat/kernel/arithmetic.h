@@ -9,6 +9,7 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
+#include <metalchat/tensor/expected.h>
 #include <metalchat/tensor/future.h>
 
 
@@ -55,12 +56,8 @@ public:
         auto dim1_size = input2.size(1);
         auto num_rows = data_size / (dim0_size * dim1_size);
 
-        if (dim0_size != input1.size(M - 2) || dim1_size != input1.size(M - 1)) {
-            throw std::invalid_argument(std::format(
-                "add2: last dimensions should be the same for both tensors {}x{} != {}x{}",
-                input1.size(M - 2), input1.size(M - 1), dim0_size, dim1_size
-            ));
-        }
+        auto expected_input1 =
+            expected_tensor(input1).same_dim(input2, M - 2, 0).same_dim(input2, M - 1, 1).value();
 
         auto input1_view = input1.view({-1, int(dim0_size), int(dim1_size)});
         auto output_view = shared_empty_like<T>(input1_view, _M_kernel.get_allocator());

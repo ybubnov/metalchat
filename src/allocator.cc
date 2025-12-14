@@ -259,7 +259,7 @@ _HardwareResidentAllocator::allocate(_HardwareResidentAllocator::container_point
     auto deleter = _HardwareCompleteResidenceDeleter{_M_data->rset, _M_mutex, _M_size};
 
     auto deleter_ptr = std::get_deleter<metal::buffer_deleter>(buffer_ptr);
-    deleter_ptr->invoke_before_destroy(deleter);
+    deleter_ptr->invoke_before_destroy(std::move(deleter));
 
     return std::make_shared<container_type>(buffer_ptr);
 }

@@ -28,7 +28,7 @@ struct buffer {
 
 
 struct buffer_deleter {
-    std::vector<buffer::deleter_type> deleters;
+    std::list<buffer::deleter_type> deleters;
 
     buffer_deleter()
     : deleters()
@@ -39,9 +39,9 @@ struct buffer_deleter {
     {}
 
     void
-    invoke_before_destroy(buffer::deleter_type deleter)
+    invoke_before_destroy(buffer::deleter_type&& deleter)
     {
-        deleters.push_back(deleter);
+        deleters.push_back(std::move(deleter));
     }
 
     void

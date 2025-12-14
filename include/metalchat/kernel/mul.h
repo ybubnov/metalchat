@@ -7,6 +7,7 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
+#include <metalchat/tensor/expected.h>
 #include <metalchat/tensor/format.h>
 #include <metalchat/tensor/future.h>
 
@@ -47,17 +48,8 @@ public:
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        if (input1.size(0) != input2.size(0)) {
-            throw std::invalid_argument(std::format(
-                "kernel::hadamard_broadcast: 0-dimension of input tensors are different {} != {}",
-                input1.size(0), input2.size(0)
-            ));
-        }
-        if (input2.size(1) != 1) {
-            throw std::invalid_argument(
-                std::format("kernel::hadamard_broadcast: 2-dimension of input1 tensor must be 1")
-            );
-        }
+        auto expected_input1 = expected_tensor(input1).same_first_dim(input2).value();
+        auto expected_input2 = expected_tensor(input2).same_dim(1, /*expect=*/1).value();
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
         auto num_rows = ceil_div(input1.size(0), BlockSize);
@@ -67,11 +59,6 @@ public:
         auto grid = dim3(ceil_div(num_rows, thread.x) * thread.x, thread.y);
 
         auto output = shared_empty_like<T>(input1, _M_kernel.get_allocator());
-
-        // std::cout << "kernel::hadamard_broadcast: ";
-        // std::cout << " input1=" << input1.sizes();
-        // std::cout << " , input2=" << input2.sizes();
-        // std::cout << ", <" << grid << ", " << thread << ">" << std::endl;
 
         auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(output, input1, input2);
@@ -83,23 +70,13 @@ public:
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        if (input1.size(1) != input2.size(1)) {
-            throw std::invalid_argument(std::format(
-                "kernel::hadamard_broadcast: 1-dimension of input tensors are different {} != {}",
-                input1.size(1), input2.size(1)
-            ));
-        }
+        auto expected_input1 = expected_tensor(input1).same_dim(input2, 1, 1).value();
 
-        // std::cout << "kernel::hadamard_broadcast: ";
-        // std::cout << " input1=" << input1.sizes();
-        // std::cout << " , input2=" << input2.sizes() << std::endl;
-        // std::cout << ", <" << grid << ", " << thread << ">" << std::endl;
-
-        auto input1_view = flatten<2>(input1);
+        auto input1_view = flatten<2>(expected_input1);
         auto input2_view = flatten<2>(input2);
 
         auto output = operator()(input1_view, input2_view);
-        return output.view(input1.shape());
+        return output.view(expected_input1.shape());
     }
 };
 

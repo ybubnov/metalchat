@@ -7,6 +7,7 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
+#include <metalchat/tensor/expected.h>
 #include <metalchat/tensor/future.h>
 
 
@@ -27,16 +28,8 @@ public:
     auto
     operator()(Input input, Weight weight, const float eps = 1e-5)
     {
-        auto data_size = input.numel();
         auto dim_size = input.sizes().back();
-        auto num_rows = data_size / dim_size;
-
-        if (dim_size != weight.size(0)) {
-            throw std::invalid_argument(std::format(
-                "kernel::rmsnorm: dimension of the input should match weight size {} != {}",
-                dim_size, weight.size(0)
-            ));
-        }
+        auto expected_weight = expected_tensor(weight).same_dim(0, /*expect=*/dim_size).value();
 
         auto input_view = flatten<2>(input);
         auto output_view = shared_empty_like<T>(input_view, _M_kernel.get_allocator());
@@ -44,7 +37,8 @@ public:
         auto [grid, thread] = make_kernel_grid_1d(input, BlockSize);
 
         auto task = kernel_task(_M_kernel, grid, thread);
-        auto task_future = task.bind_front(output_view, input_view, weight, scalar<float>(eps));
+        auto task_future =
+            task.bind_front(output_view, input_view, expected_weight, scalar<float>(eps));
 
         auto output = future_tensor(output_view, std::move(task_future));
         return output.view(input.shape());

@@ -7,6 +7,7 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
+#include <metalchat/tensor/expected.h>
 #include <metalchat/tensor/future.h>
 
 
@@ -34,24 +35,13 @@ private:
     auto
     copy(Input input, Output output)
     {
-        if (auto dim_size = output.sizes().back(); dim_size != input.sizes().back()) {
-            throw std::invalid_argument(std::format(
-                "kernel::copy: last dimension should be the same for both tensors {} != {}",
-                input.sizes().back(), dim_size
-            ));
-        }
+        auto expected_input =
+            expected_tensor(input).same_last_dim(output).same_numel(output).value();
 
-        if (auto data_size = output.numel(); data_size != input.numel()) {
-            throw std::invalid_argument(std::format(
-                "kernel::copy: data size should be the same for both tensors {} != {}",
-                input.sizes().back(), data_size
-            ));
-        }
-
-        auto [grid, thread] = make_kernel_grid_2d(input, BlockSize);
+        auto [grid, thread] = make_kernel_grid_2d(expected_input, BlockSize);
 
         auto task = kernel_task(_M_kernel, grid, thread);
-        auto task_future = task.bind_front(output, input);
+        auto task_future = task.bind_front(output, expected_input);
 
         return future_tensor(output, std::move(task_future));
     }
@@ -116,17 +106,18 @@ public:
     auto
     operator()(Output output, Mask mask, T value)
     {
-        // TODO: ensure that output is the same shape as mask.
-        auto [grid, thread] = make_kernel_grid_2d(output, BlockSize);
+        auto expected_output = expected_tensor(output).same_shape(mask).value();
 
-        auto output_view = flatten<2>(output);
+        auto [grid, thread] = make_kernel_grid_2d(expected_output, BlockSize);
+
+        auto output_view = flatten<2>(expected_output);
         auto mask_view = flatten<2>(mask);
 
         auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(output_view, mask_view, scalar(value));
 
-        auto result = future_tensor(output, std::move(task_future));
-        return result.view(output.shape());
+        auto result = future_tensor(expected_output, std::move(task_future));
+        return result.view(expected_output.shape());
     }
 };
 
@@ -169,7 +160,6 @@ public:
     auto
     operator()(Input input, Index index)
     {
-        // TODO:: ensure that input has the same dimensions as index.
         auto [grid, thread] = make_kernel_grid_2d(index, BlockSize);
 
         auto input_view = flatten<2>(input);

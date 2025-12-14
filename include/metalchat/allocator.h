@@ -461,13 +461,6 @@ public:
 
     container_pointer
     allocate(container_pointer&&);
-
-    template <typename T>
-    container_pointer
-    allocate(std::shared_ptr<hardware_memory_container<T>>&& p)
-    {
-        return allocate(std::reinterpret_pointer_cast<container_type>(p));
-    }
 };
 
 
@@ -545,16 +538,14 @@ public:
     allocate(size_type size)
     {
         auto container = _M_resident_alloc.allocate(_M_alloc.allocate(size));
-        // TODO: replace with container rebind.
-        return std::reinterpret_pointer_cast<container_type>(container);
+        return container_traits<container_type>::template rebind<value_type>(container);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
         auto container = _M_resident_alloc.allocate(_M_alloc.allocate(ptr, size));
-        // TODO: replace with container rebind.
-        return std::reinterpret_pointer_cast<container_type>(container);
+        return container_traits<container_type>::template rebind<value_type>(container);
     }
 
 private:
@@ -884,7 +875,7 @@ public:
         using allocator_type = rebind_allocator<T, Allocator>;
 
         auto allocator = allocator_type(alloc);
-        const auto ptr = reinterpret_cast<allocator_type::const_pointer>(data);
+        const auto ptr = static_cast<allocator_type::const_pointer>(data);
 
         return allocator.allocate(ptr, size / sizeof(T));
     }

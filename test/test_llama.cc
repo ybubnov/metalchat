@@ -51,19 +51,11 @@ TEST_CASE("Test make model", "[llama]")
 
     std::cout << input_text;
     std::cout << bpe.decode(id.get()[0, 0]);
-    std::vector<future_tensor<int32_t, 2>> outputs;
 
     for (std::size_t i = input0.size(1); i < 64; i++) {
         auto logits = m(id, i).flatten<2>();
         id = top_p(logits, bf16(0.6f), bf16(0.9f), gpu0);
 
-        // outputs.push_back(id);
         std::cout << bpe.decode(id.get()[0, 0]) << std::flush;
     }
-
-    // for (auto& o : outputs) {
-    //     std::cout << bpe.decode(o.get()[0, 0]) << std::flush;
-    // }
-
-    std::cout << std::endl;
 }

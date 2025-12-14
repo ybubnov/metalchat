@@ -169,8 +169,9 @@ public:
     operator()()
     {
         if (_M_this_thread_ptr != nullptr) {
-            throw std::runtime_error(std::format("kernel_task: the kernel has already been invoked")
-            );
+            throw std::runtime_error(std::format(
+                "kernel_task: the kernel '{}' has already been invoked", _M_kernel.name()
+            ));
         }
 
         _M_this_thread_ptr = _M_kernel.get_accelerator().get_this_thread();
@@ -188,8 +189,9 @@ public:
     operator()(std::function<void()> callback)
     {
         if (_M_this_thread_ptr != nullptr) {
-            throw std::runtime_error(std::format("kernel_task: the kernel has already been invoked")
-            );
+            throw std::runtime_error(std::format(
+                "kernel_task: the kernel '{}' has already been invoked", _M_kernel.name()
+            ));
         }
 
         _M_this_thread_ptr = _M_kernel.get_accelerator().get_this_thread();
@@ -224,7 +226,9 @@ public:
     make_ready_at_thread_exit()
     {
         if (_M_this_thread_ptr == nullptr) {
-            throw std::runtime_error(std::format("kernel_task: task was not invoked"));
+            throw std::runtime_error(
+                std::format("kernel_task: kernel '{}' was not invoked", _M_kernel.name())
+            );
         }
 
         _M_this_thread_ptr->make_ready_at_thread_exit();

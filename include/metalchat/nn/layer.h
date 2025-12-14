@@ -138,6 +138,8 @@ public:
     void
     apply(Function fn) const;
 
+    virtual ~indirect_layer() = default;
+
 private:
     std::shared_ptr<layer_type> _M_value;
 };
@@ -148,13 +150,13 @@ template <typename Layer> indirect_layer(Layer&&) -> indirect_layer<Layer>;
 
 template <typename Layer> class polymorphic_layer {
 public:
-    polymorphic_layer(const std::string& name, const std::shared_ptr<basic_layer>& ptr)
+    polymorphic_layer(const std::string& name, const std::weak_ptr<basic_layer>& ptr)
     : _M_layer(ptr),
       _M_name(name)
     {}
 
     polymorphic_layer()
-    : _M_layer(nullptr),
+    : _M_layer(),
       _M_name()
     {}
 
@@ -166,10 +168,8 @@ public:
     polymorphic_layer<Layer>&
     operator=(indirect_layer<DerivedLayer>&& derived);
 
-    virtual ~polymorphic_layer() {}
-
 private:
-    std::shared_ptr<basic_layer> _M_layer;
+    std::weak_ptr<basic_layer> _M_layer;
     std::string _M_name;
 };
 
@@ -263,7 +263,7 @@ public:
         layer_ptr->initialize();
 
         _M_layers.insert_or_assign(name, layer_ptr);
-        return polymorphic_layer<Base>(name, shared_from_this());
+        return polymorphic_layer<Base>(name, weak_from_this());
     }
 
     template <typename Base> requires std::derived_from<Base, basic_layer>
@@ -271,7 +271,7 @@ public:
     register_polymorphic_layer(const std::string& name)
     {
         _M_layers.insert_or_assign(name, nullptr);
-        return polymorphic_layer<Base>(name, shared_from_this());
+        return polymorphic_layer<Base>(name, weak_from_this());
     }
 
     /// Get upstream layer by name. This method does not perform recursive lookup and only
@@ -441,7 +441,7 @@ public:
         }
     }
 
-    virtual ~basic_layer() {}
+    virtual ~basic_layer() = default;
 
 private:
     parameter_container _M_params;
@@ -543,7 +543,8 @@ template <class... Args>
 auto
 polymorphic_layer<Layer>::operator()(Args&&... args)
 {
-    Layer& layer_impl = dynamic_cast<Layer&>(_M_layer->get_layer(_M_name));
+    auto layer_ptr = _M_layer.lock();
+    Layer& layer_impl = dynamic_cast<Layer&>(layer_ptr->get_layer(_M_name));
     return layer_impl(std::forward<Args>(args)...);
 }
 
@@ -552,7 +553,8 @@ template <typename DerivedLayer> requires std::derived_from<DerivedLayer, Layer>
 polymorphic_layer<Layer>&
 polymorphic_layer<Layer>::operator=(indirect_layer<DerivedLayer>&& derived)
 {
-    _M_layer->register_layer(_M_name, derived);
+    auto layer_ptr = _M_layer.lock();
+    layer_ptr->register_layer(_M_name, derived);
     return *this;
 }
 
