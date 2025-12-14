@@ -13,7 +13,7 @@
 using namespace metalchat;
 
 
-TEST_CASE("SiLU function", "[kernel::hadamard]")
+TEST_CASE("SiLU function", "[kernel::silu]")
 {
     metalchat::hardware_accelerator gpu0;
     kernel::silu<float> silu(gpu0);

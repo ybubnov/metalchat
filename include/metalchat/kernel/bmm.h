@@ -7,6 +7,7 @@
 #include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
 #include <metalchat/kernel.h>
+#include <metalchat/tensor/expected.h>
 #include <metalchat/tensor/future.h>
 
 
@@ -33,22 +34,15 @@ public:
 
         // Batched matmul does not support broadcasting operations, therefore throw an
         // exception, when the number of batches for input tensors are different.
-        if (auto num_weight_batches = weight.size(0); num_batches != num_weight_batches) {
-            throw std::invalid_argument(std::format(
-                "kernel::bmm: batches of the input tensors should be the same {} != {}",
-                num_batches, num_weight_batches
-            ));
-        }
+        auto expected_input =
+            expected_tensor(input)
+                .origin("kernel::bmm")
+                .expect_same_dimension(weight, 0, 0, "batch dimensions of inputs are different")
+                .expect_same_dimension(weight, 2, 1, "inner dimensions of inputs are different")
+                .value();
 
-        if (input.size(2) != weight.size(1)) {
-            throw std::invalid_argument(std::format(
-                "kernel::bmm: matrices are with different inner dimension ({}x{}) and ({}x{})",
-                input.size(1), input.size(2), weight.size(1), weight.size(2)
-            ));
-        }
-
-        auto output =
-            shared_empty<T>({num_batches, input_size1, weight_size2}, _M_kernel.get_allocator());
+        auto alloc = _M_kernel.get_allocator();
+        auto output = shared_empty<T>({num_batches, input_size1, weight_size2}, alloc);
 
         auto grid = dim3(
             ceil_div(input_size1, BlockSize) * BlockSize,
@@ -57,7 +51,7 @@ public:
         auto thread = dim3(BlockSize, BlockSize);
 
         auto task = kernel_task(_M_kernel, grid, thread);
-        auto task_future = task.bind_front(output, input, weight);
+        auto task_future = task.bind_front(output, expected_input, weight);
 
         // A(MxK) @ B(KxN) -> C(MxN)
         return future_tensor(output, std::move(task_future));
