@@ -17,7 +17,7 @@ using namespace metalchat::text;
 std::filesystem::path
 tokenizer_path()
 {
-    return test_fixture_path() / "llama3.2:1b-instruct/original/tokenizer.model";
+    return test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original/tokenizer.model";
 }
 
 

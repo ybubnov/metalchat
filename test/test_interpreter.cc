@@ -18,8 +18,8 @@ using namespace metalchat;
 
 TEST_CASE("Test interpreter", "[llama]")
 {
-    auto repo_path = test_fixture_path() / "llama3.2:1b-instruct";
-    auto tokens_path = repo_path / "original/tokenizer.model";
+    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
+    auto tokens_path = repo_path / "tokenizer.model";
 
     text::bpe tokenizer(tokens_path);
     reference_autoloader loader(repo_path);
@@ -67,7 +67,7 @@ TEST_CASE("Test filebuf interpreter", "[llama]")
 {
     SKIP();
 
-    auto repo_path = test_fixture_path() / "llama3.2:1b-instruct";
+    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct";
     auto tokens_path = repo_path / "original/tokenizer.model";
 
     text::bpe tokenizer(tokens_path);

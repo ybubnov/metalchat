@@ -17,10 +17,11 @@
 using namespace metalchat;
 
 
-TEST_CASE("Test make model", "[llama]")
+TEST_CASE("Test reference implementation inference", "[llama]")
 {
-    auto bpe_path = test_fixture_path() / "llama3.2:1b-instruct" / "original" / "tokenizer.model";
-    auto model_path = test_fixture_path() / "llama3.2:1b-instruct" / "model.safetensors";
+    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct";
+    auto bpe_path = repo_path / "original" / "tokenizer.model";
+    auto model_path = repo_path / "original" / "model.safetensors";
 
     metalchat::text::byte_pair_encoder bpe(bpe_path);
     metalchat::hardware_accelerator gpu0(64);

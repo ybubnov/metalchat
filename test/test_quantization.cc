@@ -86,8 +86,9 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
     };
     model.apply(replace);
 
-    auto bpe_path = test_fixture_path() / "llama3.2:1b-qlora" / "tokenizer.model";
-    auto model_path = test_fixture_path() / "llama3.2:1b-qlora" / "model.safetensors";
+    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct-QLORA_INT4_EO8";
+    auto bpe_path = repo_path / "tokenizer.model";
+    auto model_path = repo_path / "model.safetensors";
 
     metalchat::text::bpe bpe(bpe_path);
     safetensor_document::load(model_path, model);

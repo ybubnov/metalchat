@@ -62,7 +62,8 @@ TEST_CASE("Test model load", "[safetensor]")
     hardware_accelerator gpu0(16);
     nn::indirect_layer<LLama3> m(nn::default_llama3_1b_options(), gpu0);
 
-    auto doc_path = test_fixture_path() / "llama3.2:1b-instruct" / "model.safetensors";
+    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
+    auto doc_path =  repo_path / "model.safetensors";
     auto doc_adapter = llama3_reference_traits<bf16>::document_adaptor();
     auto doc = safetensor_document::open(doc_path, gpu0);
 

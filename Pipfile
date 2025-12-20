@@ -29,4 +29,4 @@ python_version = "3.14"
 sort_pipfile = true
 
 [scripts]
-prepare = {call = "taskfile:prepare_test_fixture()"}
+prepare = {call = "taskfile:prepare_test_fixtures()"}
