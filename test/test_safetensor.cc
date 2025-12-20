@@ -66,7 +66,7 @@ TEST_CASE("Test model load", "[safetensor]")
     auto doc_adapter = llama3_reference_traits<bf16>::document_adaptor();
     auto doc = safetensor_document::open(doc_path, gpu0);
 
-    doc_adapter.adapt(doc);
+    doc = doc_adapter.adapt(doc);
     doc.load(m);
     auto params = m.get_parameters();
 

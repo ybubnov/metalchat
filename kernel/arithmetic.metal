@@ -28,7 +28,7 @@ add(__add_parameters<T> params,
     uint2 threadgroup_size [[threads_per_threadgroup]])
 {
     tensor2<const T> in1(params.input1_layout, params.input1);
-    tensor2<const T> in2(params.input1_layout, params.input2);
+    tensor2<const T> in2(params.input2_layout, params.input2);
     tensor2<T> out(params.output_layout, params.output);
 
     const uint dim_size = in1.size(1);

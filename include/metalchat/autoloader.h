@@ -88,23 +88,13 @@ struct llama3_reference_traits {
     // This adaptor implement \ref safetensor_document_adaptor concept and creates an
     // alias between output and embedding layers.
     struct document_adaptor {
-        void
-        adapt(safetensor_document& document) const
+        safetensor_document
+        adapt(const safetensor_document& document) const
         {
-            document.insert("output.weight", "tok_embeddings.weight");
+            auto doc = document;
+            doc.insert("output.weight", "tok_embeddings.weight");
+            return doc;
         }
-    };
-};
-
-
-struct llama3_huggingface_traits {
-    using layer_type = nn::llama3<bf16>;
-    using options_type = nn::llama3_options;
-    using container_type = hardware_memory_container<bf16>;
-
-    struct document_adaptor {
-        void
-        adapt(safetensor_document& document) const;
     };
 };
 
@@ -152,7 +142,7 @@ template <transformer_traits TransformerTraits> struct autoloader {
         auto document_adaptor = document_adaptor_type();
         auto document = safetensor_document::open(_M_local_path, _M_accelerator);
 
-        document_adaptor.adapt(document);
+        document = document_adaptor.adapt(document);
         document.load(layer);
 
         return transformer<layer_type>(layer);
@@ -168,7 +158,7 @@ template <transformer_traits TransformerTraits> struct autoloader {
         auto document_adaptor = document_adaptor_type();
         auto document = safetensor_document::open(document_stream, alloc);
 
-        document_adaptor.adapt(document);
+        document = document_adaptor.adapt(document);
         document.load(layer);
 
         return transformer<layer_type>(layer);
@@ -181,7 +171,6 @@ private:
 
 
 using reference_autoloader = autoloader<llama3_reference_traits<bf16>>;
-using huggingface_autoloader = autoloader<llama3_huggingface_traits>;
 
 
 } // namespace metalchat

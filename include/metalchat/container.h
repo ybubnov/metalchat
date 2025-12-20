@@ -99,6 +99,8 @@ make_pointer_alias(const std::shared_ptr<T>& ptr1, const std::shared_ptr<U>& ptr
 
 
 struct basic_container {
+    virtual std::size_t
+    size() const = 0;
 
     virtual void*
     data_ptr() = 0;
@@ -122,9 +124,6 @@ template <typename T> struct memory_container : public basic_container {
     /// Get a read access to the underlying container data.
     virtual const_pointer
     data() const = 0;
-
-    virtual std::size_t
-    size() const = 0;
 
     void*
     data_ptr() override

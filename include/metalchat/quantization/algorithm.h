@@ -23,7 +23,9 @@ namespace quantization {
 /// using SourceLayer = nn::linear<bf16>;
 /// using OutputLayer = quantization::lora_linear<bf16>;
 ///
-/// quantization::replace<SourceLayer>(llm, []() { return OutputLayer(); });
+/// quantization::replace<SourceLayer>(llm, [&]() {
+///     return nn:indirect_layer<OutputLayer>(gpu);
+/// });
 /// ```
 template <typename InputLayer, typename Generator, typename Layer>
 requires std::derived_from<InputLayer, nn::basic_layer> && std::derived_from<Layer, nn::basic_layer>

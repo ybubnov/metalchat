@@ -23,7 +23,7 @@ TEST_CASE("Test make model", "[llama]")
     auto model_path = test_fixture_path() / "llama3.2:1b-instruct" / "model.safetensors";
 
     metalchat::text::byte_pair_encoder bpe(bpe_path);
-    metalchat::hardware_accelerator gpu0(1);
+    metalchat::hardware_accelerator gpu0(64);
 
     using LLama3 = nn::llama3<bf16>;
     auto options = nn::default_llama3_1b_options().max_seq_len(16);
@@ -31,7 +31,7 @@ TEST_CASE("Test make model", "[llama]")
 
     auto document = safetensor_document::open(model_path, gpu0);
     auto document_adaptor = llama3_reference_traits<bf16>::document_adaptor();
-    document_adaptor.adapt(document);
+    document = document_adaptor.adapt(document);
     document.load(m);
 
     auto heap_size = std::size_t(512) * 1024 * 1024;

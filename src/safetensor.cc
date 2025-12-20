@@ -94,18 +94,22 @@ safetensor_document::parse_metadata(std::istream& is)
     }
 
     std::string_view header(header_bytes, sizeof(header_bytes));
-
     std::vector<safetensor_metadata> metadata;
-    using metadata_type = std::map<std::string, safetensor_metadata>;
-    auto tensor_metadata = jsoncons::decode_json<metadata_type>(header);
 
-    for (auto [name, meta] : tensor_metadata) {
+    using metadata_type = std::map<std::string, std::string>;
+    using value_type = std::variant<safetensor_metadata, metadata_type>;
+    using header_type = std::map<std::string, value_type>;
+
+    auto tensor_metadata = jsoncons::decode_json<header_type>(header);
+
+    for (auto [name, value] : tensor_metadata) {
         // Shame on designers of safetensor specification, garbage like this should
         // not be presented on the same level as tensor structures.
         if (name == "__metadata__") {
             continue;
         }
 
+        auto meta = std::get<safetensor_metadata>(value);
         meta.name = name;
         metadata.push_back(meta);
     }
@@ -153,30 +157,53 @@ safetensor_document::insert(
 }
 
 
+std::size_t
+safetensor_document::container_offset() const
+{
+    std::size_t offset = 0;
+    if (_M_metadata.size() > 0) {
+        const auto& last = _M_metadata.back();
+        offset = last.data_offsets[1];
+    }
+    return offset;
+}
+
+
+void
+safetensor_document::insert(const safetensor& st)
+{
+    auto sizes = st.sizes();
+    auto offset = container_offset();
+    auto container_ptr = st.container_ptr();
+
+    safetensor_metadata metadata{
+        .name = st.name(),
+        .dtype = st.dtype(),
+        .shape = {sizes.begin(), sizes.end()},
+        .data_offsets = {offset, offset + container_ptr->size()}
+    };
+
+    insert(metadata, container_ptr);
+}
+
+
 void
 safetensor_document::insert(const std::string& name, const basic_tensor& tensor)
 {
     auto sizes = tensor.sizes();
-    auto numel = tensor.numel();
-    const auto& [dtype_name, dtype_size] = _M_typeinfo[tensor.dtype()];
+    auto offset = container_offset();
+    auto container_ptr = tensor.container_ptr();
 
-    std::size_t begin = 0;
-    if (_M_metadata.size() > 0) {
-        const auto& last = _M_metadata.back();
-        begin = last.data_offsets[1];
-    }
-
-    // TODO: Does it make sense to assert that `end` is byte-aligned?
-    std::size_t size = numel * dtype_size / 8;
+    const auto& [dtype_name, _] = _M_typeinfo[tensor.dtype()];
 
     safetensor_metadata metadata{
         .name = name,
         .dtype = dtype_name,
         .shape = {sizes.begin(), sizes.end()},
-        .data_offsets = {begin, begin + size}
+        .data_offsets = {offset, offset + container_ptr->size()}
     };
 
-    insert(metadata, tensor.container_ptr());
+    insert(metadata, container_ptr);
 }
 
 

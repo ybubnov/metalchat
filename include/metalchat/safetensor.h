@@ -122,9 +122,13 @@ public:
     using shape_type = std::vector<std::size_t>;
 
     safetensor(
-        const std::string& name, const shape_type& shape, const container_pointer& container_ptr
+        const std::string& name,
+        const std::string& dtype,
+        const shape_type& shape,
+        const container_pointer& container_ptr
     )
     : _M_name(name),
+      _M_dtype(dtype),
       _M_shape(shape),
       _M_container(container_ptr)
     {}
@@ -133,6 +137,12 @@ public:
     name() const
     {
         return _M_name;
+    }
+
+    const std::string&
+    dtype() const
+    {
+        return _M_dtype;
     }
 
     /// Return the number of dimensions in the tensor.
@@ -171,6 +181,7 @@ public:
 
 private:
     std::string _M_name;
+    std::string _M_dtype;
     shape_type _M_shape;
     container_pointer _M_container;
 };
@@ -426,7 +437,7 @@ public:
     {
         auto metadata = *_M_input;
         auto container_ptr = *_M_container;
-        return value_type(metadata.name, metadata.shape, container_ptr);
+        return value_type(metadata.name, metadata.dtype, metadata.shape, container_ptr);
     }
 
     bool
@@ -445,14 +456,14 @@ public:
 
 template <typename Adaptor>
 concept safetensor_document_adaptor =
-    requires(std::remove_reference_t<Adaptor> const a, safetensor_document& document) {
-        { a.adapt(document) } -> std::same_as<void>;
+    requires(std::remove_reference_t<Adaptor> const a, const safetensor_document& document) {
+        { a.adapt(document) } -> std::same_as<safetensor_document>;
     };
 
 
 struct noop_document_adaptor {
     void
-    adapt(safetensor_document&) {};
+    adapt(const safetensor_document&) {};
 };
 
 
@@ -480,6 +491,11 @@ private:
 
     void
     load(const safetensor& st, basic_tensor& tensor) const;
+
+    /// Returns the current container offset. It's the number of bytes reserved so far
+    /// in the containers metadata.
+    std::size_t
+    container_offset() const;
 
 public:
     using iterator = safetensor_iterator;
@@ -667,6 +683,10 @@ public:
     {
         return open(p, alloc, max_size);
     }
+
+    /// Insert a safetensor into the safetensor document.
+    void
+    insert(const safetensor& st);
 
     /// Insert a tensor into the safetensor document.
     ///
