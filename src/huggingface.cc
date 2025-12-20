@@ -8,7 +8,7 @@ namespace huggingface {
 
 
 safetensor_document
-metallama3_document_adaptor::adapt(const safetensor_document& document) const
+llama3_document_adaptor::adapt(const safetensor_document& document) const
 {
     safetensor_document doc;
 

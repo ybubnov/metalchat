@@ -4,9 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <metalchat/autoloader.h>
 #include <metalchat/huggingface.h>
-#include <metalchat/interpreter.h>
 
 #include "metalchat/testing.h"
 
@@ -17,7 +15,7 @@ TEST_CASE("Test llama3 huggingface model adaptor", "[huggingface]")
 {
     hardware_accelerator gpu0;
     auto document_path = test_fixture_path() / "llama3.2-1b.safetensors";
-    auto document_adaptor = huggingface::metallama3_document_adaptor();
+    auto document_adaptor = huggingface::llama3_document_adaptor();
     auto document = safetensor_document::open(document_path, gpu0);
 
     document = document_adaptor.adapt(document);
