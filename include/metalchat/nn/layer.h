@@ -8,6 +8,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <regex>
 
 #include <metalchat/accelerator.h>
 #include <metalchat/kernel.h>
@@ -680,6 +681,123 @@ public:
 private:
     std::vector<pointer> _M_pointers;
 };
+
+
+template <typename Predicate>
+concept named_layer_predicate = requires(const Predicate predicate) {
+    { predicate(std::declval<named_layer>()) } -> std::same_as<bool>;
+};
+
+
+template <named_layer_predicate... Predicates> struct layer_all {
+    std::tuple<Predicates...> predicates;
+
+    layer_all(Predicates... preds)
+    : predicates(std::make_tuple(preds...))
+    {}
+
+    bool
+    operator()(named_layer layer) const
+    {
+        return invoke_all(layer, std::index_sequence_for<Predicates...>{});
+    }
+
+private:
+    template <std::size_t... PredicateIndices>
+    bool
+    invoke_all(named_layer& layer, std::index_sequence<PredicateIndices...>) const
+    {
+        return (true && ... && invoke<PredicateIndices>(layer));
+    }
+
+    template <std::size_t PredicateIndex>
+    bool
+    invoke(named_layer& layer) const
+    {
+        auto pred = std::get<PredicateIndex>(predicates);
+        return pred(layer);
+    }
+};
+
+
+/// A \ref nn::named_layer_predicate implementation that returns true in case, when the layer
+/// type is possible to dynamically-cast to the specified layer type.
+///
+/// \tparam Layer a layer type that is used to assert possibility of dynamic cast.
+template <typename Layer> struct layer_common_with {
+    bool
+    operator()(named_layer layer) const
+    {
+        return dynamic_pointer_cast<Layer>(layer.ptr) != nullptr;
+    }
+};
+
+
+/// A \ref nn::named_layer_predicate implementation that returns true in case, when the layer
+/// name matches the specified regular expression.
+///
+/// \param regex a regular expression to match the layer name.
+struct layer_name_match {
+    const std::regex re;
+
+    layer_name_match(const std::string& regex)
+    : re(regex)
+    {}
+
+    bool
+    operator()(named_layer layer) const
+    {
+        return std::regex_match(layer.name, re);
+    }
+};
+
+
+/// Replaces all matches of the layers with the specified predicate by replacing them.
+///
+/// Method implements replacement in two phases: (1) traversal through the layers in a search
+/// for matching candidates, (2) replacement of layers through re-registration.
+///
+/// The method is not transactional and might leave the original layer partially processed,
+/// if an exception is encountered during the replacement phase.
+///
+/// \param layer a layer that will be searched for matching layers for replacement.
+/// \param pred a predicate invoked for each layer in a search loop.
+/// \param generator a generator of \ref nn::indirect_layer instances used for replacement.
+///
+/// ```c++
+/// using namespace metalchat;
+///
+/// using LLama3 = nn::llama3<bf16>;
+/// auto gpu = hardware_accelerator()
+/// auto llm = nn::indirect_layer<LLama3>(/* ... */, gpu);
+///
+/// using BasicLinear = nn::basic_linear<bf16>;
+/// using TargetLayer = quantization::lora_linear<bf16>;
+/// auto pred = layer_common_with<BasicLinear>();
+///
+/// replace_layer(llm, pred, [&]() {
+///     return nn:indirect_layer<TargetLayer>(gpu);
+/// });
+/// ```
+template <typename Layer, named_layer_predicate Pred, typename Generator>
+void
+replace_layer(nn::indirect_layer<Layer>& input, Pred pred, Generator generator)
+{
+    std::vector<nn::named_layer> candidates;
+
+    auto find_candidates = [&](nn::named_layer layer) {
+        if (pred(layer)) {
+            candidates.push_back(layer);
+        }
+    };
+
+    input->apply(find_candidates);
+
+    for (auto& layer : candidates) {
+        auto& layer_parent = input.get_parent_layer(layer.path);
+        layer_parent.register_layer(layer.name, generator());
+    }
+}
 
 
 } // namespace nn

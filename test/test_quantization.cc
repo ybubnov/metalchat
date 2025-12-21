@@ -17,8 +17,8 @@ using namespace metalchat;
 
 TEST_CASE("Test replace QLoRa linear", "[quantization]")
 {
+    auto is_basic_linear = nn::layer_common_with<nn::basic_linear<float>>();
     using FeedForward = nn::feed_forward<float>;
-    using BasicLinear = nn::basic_linear<float>;
     using QLoraLinear = quantization::lora_linear<float>;
 
     hardware_accelerator gpu0;
@@ -28,7 +28,7 @@ TEST_CASE("Test replace QLoRa linear", "[quantization]")
     auto params_before = input_layer.get_parameters();
     REQUIRE(params_before.size() == 3);
 
-    quantization::replace<BasicLinear>(input_layer, [&] {
+    replace_layer(input_layer, is_basic_linear, [&] {
         return nn::indirect_layer<QLoraLinear>(1.0, 32, gpu0);
     });
 
@@ -64,27 +64,21 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
     hardware_accelerator gpu0(8);
     nn::indirect_layer<LLama3> model(nn::default_llama3_1b_options(), gpu0);
 
-    using BasicLinear = nn::basic_linear<bf16>;
-    using BasicEmbedding = nn::basic_embedding<bf16>;
+    auto is_basic_linear = nn::layer_common_with<nn::basic_linear<bf16>>();
+    auto is_basic_embedding = nn::layer_common_with<nn::basic_embedding<bf16>>();
+    auto is_output = nn::layer_all(is_basic_linear, nn::layer_name_match("output"));
+
     using QLinear = quantization::linear<bf16>;
     using QLoraLinear = quantization::lora_linear<bf16>;
     using QLoraEmbedding = quantization::lora_embedding<bf16>;
 
-    quantization::replace<BasicLinear>(model, [&] {
+    nn::replace_layer(model, is_basic_linear, [&] {
         return nn::indirect_layer<QLoraLinear>(2.0, 32, gpu0);
     });
-    quantization::replace<BasicEmbedding>(model, [&] {
+    nn::replace_layer(model, is_basic_embedding, [&] {
         return nn::indirect_layer<QLoraEmbedding>(gpu0);
     });
-
-    auto replace = [&](nn::named_layer layer) {
-        auto layer_ptr = dynamic_pointer_cast<BasicLinear>(layer.ptr);
-        if (layer.name == "output" && layer_ptr != nullptr) {
-            auto& layer_parent = model.get_parent_layer(layer.path);
-            layer_parent.register_layer<QLinear>(layer.name);
-        }
-    };
-    model.apply(replace);
+    nn::replace_layer(model, is_output, [&] { return nn::indirect_layer<QLinear>(gpu0); });
 
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct-QLORA_INT4_EO8";
     auto bpe_path = repo_path / "tokenizer.model";
