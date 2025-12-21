@@ -78,7 +78,7 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
     nn::replace_layer(model, is_basic_embedding, [&] {
         return nn::indirect_layer<QLoraEmbedding>(gpu0);
     });
-    nn::replace_layer(model, is_output, [&] { return nn::indirect_layer<QLinear>(gpu0); });
+    nn::replace_layer(model, is_output, nn::indirect_layer<QLinear>(gpu0));
 
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct-QLORA_INT4_EO8";
     auto bpe_path = repo_path / "tokenizer.model";

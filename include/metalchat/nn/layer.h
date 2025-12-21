@@ -22,6 +22,10 @@ namespace nn {
 class basic_layer;
 
 
+template <typename Layer>
+concept layer = std::derived_from<Layer, basic_layer>;
+
+
 struct named_layer {
     std::string path;
     std::string name;
@@ -779,7 +783,7 @@ struct layer_name_match {
 ///     return nn:indirect_layer<TargetLayer>(gpu);
 /// });
 /// ```
-template <typename Layer, named_layer_predicate Pred, typename Generator>
+template <layer Layer, named_layer_predicate Pred, typename Generator>
 void
 replace_layer(nn::indirect_layer<Layer>& input, Pred pred, Generator generator)
 {
@@ -797,6 +801,21 @@ replace_layer(nn::indirect_layer<Layer>& input, Pred pred, Generator generator)
         auto& layer_parent = input.get_parent_layer(layer.path);
         layer_parent.register_layer(layer.name, generator());
     }
+}
+
+
+/// Replaces all matches of the layers with the copy of the provided replacement.
+///
+/// \param layer a layer that will be searched for matching layers for replacement.
+/// \param pred a predicate invoked for each layer in a search loop.
+/// \param replacement a replacement layer that will be copied in each replacement case.
+template <layer Layer, named_layer_predicate Pred, layer Replacement>
+void
+replace_layer(
+    nn::indirect_layer<Layer>& input, Pred pred, nn::indirect_layer<Replacement> replacement
+)
+{
+    return replace_layer(input, pred, [&]() { return replacement; });
 }
 
 
