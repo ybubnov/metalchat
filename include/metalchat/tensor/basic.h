@@ -625,6 +625,12 @@ public:
         return _M_access;
     }
 
+    accessor_type&
+    accessor()
+    {
+        return _M_access;
+    }
+
     /// Returns a reference to the underlying \ref contiguous_container of the tensor.
     container_type&
     container() const

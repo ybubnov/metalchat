@@ -16,17 +16,29 @@ namespace metalchat {
 
 
 template <typename Accessor>
-concept stride_accessor = requires(Accessor acc) {
-    { acc.stride(std::size_t()) } -> std::same_as<std::size_t>;
+concept stride_accessor = requires(const Accessor cacc, Accessor acc) {
+    { cacc.stride(std::size_t()) } -> std::same_as<std::size_t>;
     { acc.set_stride(std::size_t(), std::size_t()) } -> std::same_as<void>;
 };
 
 
 template <typename Accessor>
-concept size_accessor = requires(Accessor acc) {
-    { acc.size(std::size_t()) } -> std::same_as<std::size_t>;
+concept size_accessor = requires(const Accessor cacc, Accessor acc) {
+    { cacc.size(std::size_t()) } -> std::same_as<std::size_t>;
     { acc.set_size(std::size_t(), std::size_t()) } -> std::same_as<void>;
 };
+
+
+template <typename Accessor>
+concept offset_accessor = requires(const Accessor cacc, Accessor acc) {
+    { cacc.offset(std::size_t()) } -> std::same_as<std::size_t>;
+    { acc.set_offset(std::size_t(), std::size_t()) } -> std::same_as<void>;
+};
+
+
+template <typename Accessor>
+concept accessor =
+    stride_accessor<Accessor> && size_accessor<Accessor> && offset_accessor<Accessor>;
 
 
 class tensor_accessor {
@@ -63,16 +75,20 @@ public:
         resize(first, last, *this);
     }
 
+    template <std::size_t N>
+    tensor_accessor(std::size_t (&&sizes)[N])
+    : tensor_accessor(sizes, sizes + N, random_memory_allocator<value_type>())
+    {}
+
     template <std::bidirectional_iterator BidirIt, allocator_t<value_type> Allocator>
     tensor_accessor(BidirIt first, BidirIt last, Allocator&& alloc)
     : tensor_accessor(first, last, alloc)
     {}
 
     // TBD.
-    template <std::bidirectional_iterator BidirIt, typename Accessor>
-    requires stride_accessor<Accessor> && size_accessor<Accessor>
+    template <std::bidirectional_iterator BidirIt, accessor Accessor>
     static void
-    resize(BidirIt first, BidirIt last, Accessor& accessor)
+    resize(BidirIt first, BidirIt last, Accessor& acc)
     {
         auto dim = std::distance(first, last);
         if (dim == 0) {
@@ -80,24 +96,36 @@ public:
         }
 
         --last;
-        accessor.set_offset(dim - 1, 0);
-        accessor.set_stride(dim - 1, 1);
-        accessor.set_size(dim - 1, *last);
+        acc.set_offset(dim - 1, 0);
+        acc.set_stride(dim - 1, 1);
+        acc.set_size(dim - 1, *last);
 
         for (std::size_t i = dim - 2; i < dim; --i) {
             --last;
-            accessor.set_offset(i, 0);
-            accessor.set_size(i, *last);
-            accessor.set_stride(i, accessor.stride(i + 1) * accessor.size(i + 1));
+            acc.set_offset(i, 0);
+            acc.set_size(i, *last);
+            acc.set_stride(i, acc.stride(i + 1) * acc.size(i + 1));
         }
     }
 
-    template <typename Accessor> requires stride_accessor<Accessor> && size_accessor<Accessor>
+    template <accessor Accessor>
     static void
-    resize(const std::span<std::size_t> sizes, Accessor& accessor)
+    resize(const std::span<std::size_t> sizes, Accessor& acc)
     {
-        resize(sizes.begin(), sizes.end(), accessor);
+        resize(sizes.begin(), sizes.end(), acc);
     }
+
+    template <accessor Accessor1, accessor Accessor2>
+    static void
+    resize(const Accessor1& acc1, Accessor2 acc2, std::size_t dim)
+    {
+        for (std::size_t i = 0; i < dim; ++i) {
+            acc2.set_stride(i, acc1.stride(i));
+            acc2.set_size(i, acc1.size(i));
+            acc2.set_offset(i, acc1.offset(i));
+        }
+    }
+
 
     value_type
     size(value_type dim) const

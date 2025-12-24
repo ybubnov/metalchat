@@ -80,6 +80,12 @@ public:
         return _M_value->accessor();
     }
 
+    accessor_type&
+    accessor()
+    {
+        return _M_value->accessor();
+    }
+
     container_type&
     container() const
     {
@@ -90,6 +96,12 @@ public:
     container_ptr() const
     {
         return _M_value->container_ptr();
+    }
+
+    void
+    set_container(const std::shared_ptr<basic_container>& ptr)
+    {
+        _M_value->set_container(ptr);
     }
 
     /// See \ref tensor::data_ptr.
@@ -295,6 +307,12 @@ using shared_tensor = shared_tensor_ptr<tensor<T, N, Container>>;
 
 template <typename T, std::size_t N>
 using shared_hardware_tensor = shared_tensor<T, N, hardware_memory_container<T>>;
+
+
+template <typename T, std::size_t N, contiguous_container Container, std::size_t M>
+struct change_tensor_dimensions<shared_tensor<T, N, Container>, M> {
+    using type = shared_tensor<T, M, Container>;
+};
 
 
 template <typename T, immutable_tensor Tensor, allocator Allocator>

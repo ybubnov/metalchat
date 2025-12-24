@@ -69,7 +69,7 @@ basic_tensor::deduce_view_strides(const std::size_t* sizes, std::size_t count, s
         //
         // A new shape of a view might break the contiguous layout of memory, in this
         // case throw an `invalid_argument` exception to the caller.
-        if (i == 0 || stride(i - 1) != this_numel * base_stride) {
+        if (i == 0 || ((size(i - 1) != 1) && (stride(i - 1) != this_numel * base_stride))) {
             while (view_i >= 0 && (view_numel < this_numel || sizes[view_i] == 1)) {
                 strides[view_i] = view_numel * base_stride;
                 view_numel *= sizes[view_i];

@@ -49,7 +49,7 @@ You have access to the following tools:
 {{ $EXTRA_INSTRUCTIONS }}
 )";
 
-    interp.declare_variable("EXTRA_INSTRUCTIONS", "answer in english");
+    interp.declare_variable("EXTRA_INSTRUCTIONS", "answer in json");
     interp.declare_command(command, [](const command_statement&) -> std::string {
         return R"(113001120)";
     });

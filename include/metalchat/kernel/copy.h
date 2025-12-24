@@ -64,6 +64,19 @@ public:
     {
         return copy(flatten<2>(input), flatten<2>(output));
     }
+
+    /// Creates an output tensor like the input and invokes the kernel.
+    ///
+    /// \param input a tensor to clone the data from.
+    ///
+    /// \return a \ref future_tensor with the data copied from an input tensor.
+    template <immutable_tensor_t<T> Input>
+    auto
+    operator()(Input input)
+    {
+        auto output = shared_empty_like<T>(input, _M_kernel.get_allocator());
+        return operator()(input, output);
+    }
 };
 
 

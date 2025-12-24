@@ -1,6 +1,8 @@
 #include <regex>
 
 #include <metalchat/huggingface/llama.h>
+#include <metalchat/kernel/copy.h>
+#include <metalchat/tensor/accessor.h>
 
 
 namespace metalchat {
@@ -12,7 +14,7 @@ llama3_document_adaptor::adapt(const safetensor_document& document) const
 {
     safetensor_document doc;
 
-    std::vector<std::pair<std::regex, std::string>> mapping = {
+    const std::vector<std::pair<std::regex, std::string>> mapping = {
         {std::regex(R"(model\.(layers\.\d+)\.input_layernorm)"), "$1.attention_norm"},
         {std::regex(R"(model\.(layers\.\d+)\.post_attention_layernorm)"), "$1.ffn_norm"},
         {std::regex(R"(model\.(layers\.\d+)\.mlp\.gate_proj)"), "$1.feed_forward.w1"},

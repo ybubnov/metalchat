@@ -15,6 +15,12 @@
 namespace metalchat {
 
 
+template <typename Adaptor>
+concept indirect_layer_adaptor = requires(std::remove_reference_t<Adaptor> const a) {
+    { a.adapt(nn::indirect_layer<nn::basic_layer>()) } -> std::same_as<void>;
+};
+
+
 template <typename Layer> class transformer {
 public:
     using index_type = std::int32_t;
@@ -82,11 +88,11 @@ struct llama3_reference_traits {
     using options_type = nn::llama3_options;
     using container_type = Container;
 
-    // The original implementation of Llama 3.2 shares the weight of token embeddings
-    // and the output layer, use a shared tensor in order to reduce memory footprint.
-    //
-    // This adaptor implement \ref safetensor_document_adaptor concept and creates an
-    // alias between output and embedding layers.
+    /// The original implementation of Llama 3.2 shares the weight of token embeddings
+    /// and the output layer, use a shared tensor in order to reduce memory footprint.
+    ///
+    /// This adaptor implement \ref safetensor_document_adaptor concept and creates an
+    /// alias between output and embedding layers.
     struct document_adaptor {
         safetensor_document
         adapt(const safetensor_document& document) const
@@ -96,23 +102,36 @@ struct llama3_reference_traits {
             return doc;
         }
     };
+
+    /// The original implementation does not require adaptation of the layer, so this
+    /// layer adaptor does nothing.
+    struct layer_adaptor {
+        layer_adaptor(options_type) {}
+
+        void
+        adapt(nn::indirect_layer<nn::basic_layer>) const
+        {}
+    };
 };
 
 
-template <typename TransformerTraits>
+template <typename Traits>
 concept transformer_traits = requires {
-    typename TransformerTraits::layer_type;
-    typename TransformerTraits::options_type;
-    typename TransformerTraits::document_adaptor;
-    typename TransformerTraits::container_type;
+    typename Traits::layer_type;
+    typename Traits::layer_adaptor;
+    typename Traits::options_type;
+    typename Traits::document_adaptor;
+    typename Traits::container_type;
 
-    contiguous_container<typename TransformerTraits::container_type>;
-    safetensor_document_adaptor<typename TransformerTraits::document_adaptor>;
+    requires contiguous_container<typename Traits::container_type>;
+    requires indirect_layer_adaptor<typename Traits::layer_adaptor>;
+    requires safetensor_document_adaptor<typename Traits::document_adaptor>;
 };
 
 
 template <transformer_traits TransformerTraits> struct autoloader {
     using layer_type = TransformerTraits::layer_type;
+    using layer_adaptor_type = TransformerTraits::layer_adaptor;
     using options_type = TransformerTraits::options_type;
     using container_type = TransformerTraits::container_type;
     using document_adaptor_type = TransformerTraits::document_adaptor;
@@ -145,6 +164,10 @@ template <transformer_traits TransformerTraits> struct autoloader {
         document = document_adaptor.adapt(document);
         document.load(layer);
 
+        auto layer_adaptor = layer_adaptor_type(options);
+        auto layer_base = nn::indirect_layer<nn::basic_layer>(layer.get());
+        layer_adaptor.adapt(layer_base);
+
         return transformer<layer_type>(layer);
     }
 
@@ -160,6 +183,10 @@ template <transformer_traits TransformerTraits> struct autoloader {
 
         document = document_adaptor.adapt(document);
         document.load(layer);
+
+        auto layer_adaptor = layer_adaptor_type(options);
+        auto layer_base = nn::indirect_layer<nn::basic_layer>(layer.get());
+        layer_adaptor.adapt(layer_base);
 
         return transformer<layer_type>(layer);
     }
