@@ -4,8 +4,6 @@
 
 #pragma once
 
-#include <optional>
-
 
 namespace metalchat {
 namespace nn {
@@ -13,26 +11,29 @@ namespace nn {
 
 struct llama3_options {
 public:
-    llama3_options() {}
+    llama3_options();
     llama3_options(const llama3_options&) = default;
 
     llama3_options
-    head_dim(std::optional<std::size_t> head_dim) const noexcept;
+    head_dim(std::size_t value) const noexcept;
 
     llama3_options
-    n_heads(std::optional<std::size_t> n_heads) const noexcept;
+    n_heads(std::size_t value) const noexcept;
 
     llama3_options
-    n_kv_heads(std::optional<std::size_t> n_kv_heads) const noexcept;
+    n_kv_heads(std::size_t value) const noexcept;
 
     llama3_options
-    n_layers(std::optional<std::size_t> n_layers) const noexcept;
+    n_layers(std::size_t value) const noexcept;
 
     llama3_options
-    max_seq_len(std::optional<std::size_t> max_seq_len) const noexcept;
+    max_seq_len(std::size_t value) const noexcept;
 
     llama3_options
-    rope_theta(std::optional<float> rope_theta) const noexcept;
+    rope_theta(float value) const noexcept;
+
+    llama3_options
+    norm_eps(float value) const noexcept;
 
     std::size_t
     head_dim() const noexcept;
@@ -52,6 +53,9 @@ public:
     float
     rope_theta() const noexcept;
 
+    float
+    norm_eps() const noexcept;
+
 private:
     std::size_t _M_head_dim = 0;
     std::size_t _M_n_heads = 0;
@@ -59,24 +63,7 @@ private:
     std::size_t _M_n_layers = 0;
     std::size_t _M_max_seq_len = 0;
     float _M_rope_theta = 0.0f;
-
-    void
-    set_head_dim(std::size_t head_dim);
-
-    void
-    set_n_heads(std::size_t n_heads);
-
-    void
-    set_n_kv_heads(std::size_t n_kv_heads);
-
-    void
-    set_n_layers(std::size_t n_layers);
-
-    void
-    set_max_seq_len(std::size_t max_seq_len);
-
-    void
-    set_rope_theta(float rope_theta);
+    float _M_norm_eps = 0.0f;
 };
 
 

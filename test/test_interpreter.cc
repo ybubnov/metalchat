@@ -22,7 +22,7 @@ TEST_CASE("Test interpreter", "[llama]")
     auto tokens_path = repo_path / "tokenizer.model";
 
     text::bpe tokenizer(tokens_path);
-    reference_autoloader loader(repo_path);
+    reference::llama3_autoloader loader(repo_path);
 
     auto transformer = loader.load(nn::default_llama3_1b_options());
     auto interp = interpreter(transformer, tokenizer);
@@ -72,7 +72,7 @@ TEST_CASE("Test filebuf interpreter", "[llama]")
 
     text::bpe tokenizer(tokens_path);
 
-    using Transformer = llama3_reference_traits<bf16, filebuf_memory_container<bf16>>;
+    using Transformer = reference::llama3_traits<bf16, filebuf_memory_container<bf16>>;
     using Autoloader = autoloader<Transformer>;
     using Allocator = filebuf_memory_allocator<void>;
 

@@ -64,7 +64,7 @@ TEST_CASE("Test model load", "[safetensor]")
 
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
     auto doc_path = repo_path / "model.safetensors";
-    auto doc_adapter = llama3_reference_traits<bf16>::document_adaptor();
+    auto doc_adapter = reference::llama3_document_adaptor();
     auto doc = safetensor_document::open(doc_path, gpu0);
 
     doc = doc_adapter.adapt(doc);

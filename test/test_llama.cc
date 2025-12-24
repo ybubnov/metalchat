@@ -31,7 +31,7 @@ TEST_CASE("Test reference implementation inference", "[llama]")
     nn::indirect_layer<LLama3> m(options, gpu0);
 
     auto document = safetensor_document::open(model_path, gpu0);
-    auto document_adaptor = llama3_reference_traits<bf16>::document_adaptor();
+    auto document_adaptor = reference::llama3_document_adaptor();
     document = document_adaptor.adapt(document);
     document.load(m);
 

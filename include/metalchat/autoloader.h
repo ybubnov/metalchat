@@ -5,6 +5,7 @@
 #pragma once
 
 #include <fstream>
+#include <istream>
 
 #include <metalchat/allocator.h>
 #include <metalchat/nn.h>
@@ -15,13 +16,23 @@
 namespace metalchat {
 
 
+/// A layer adaptor that is used by \ref autoloader to prepare the model for the usage.
+///
+/// Depending on the layer type and type of model distribution, the adaptor could be used to
+/// (1) map weight names from one implementation to another, (2) rebuild a model to load
+/// quantized implementation (QLoRa), etc.
 template <typename Adaptor>
 concept indirect_layer_adaptor = requires(std::remove_reference_t<Adaptor> const a) {
+    /// An `adapt_pre` method is called, immediately after model creation and before loading
+    /// weights from the file.
     { a.adapt_pre(nn::indirect_layer<nn::basic_layer>()) } -> std::same_as<void>;
+
+    /// An `adapt_post` method is called after loading weights from file.
     { a.adapt_post(nn::indirect_layer<nn::basic_layer>()) } -> std::same_as<void>;
 };
 
 
+/// An implementation of \ref indirect_layer_adaptor concept that does nothing.
 template <typename LayerOptions> struct noop_layer_adaptor {
     noop_layer_adaptor(LayerOptions) {}
 
@@ -92,34 +103,6 @@ public:
 private:
     nn::indirect_layer<layer_type> _M_layer;
     sampler_pointer _M_sampler;
-};
-
-
-template <typename T = bf16, contiguous_container Container = hardware_memory_container<T>>
-struct llama3_reference_traits {
-    using value_type = T;
-    using layer_type = nn::llama3<T, Container>;
-    using options_type = nn::llama3_options;
-    using container_type = Container;
-
-    /// The original implementation of Llama 3.2 shares the weight of token embeddings
-    /// and the output layer, use a shared tensor in order to reduce memory footprint.
-    ///
-    /// This adaptor implement \ref safetensor_document_adaptor concept and creates an
-    /// alias between output and embedding layers.
-    struct document_adaptor {
-        safetensor_document
-        adapt(const safetensor_document& document) const
-        {
-            auto doc = document;
-            doc.insert("output.weight", "tok_embeddings.weight");
-            return doc;
-        }
-    };
-
-    /// The original implementation does not require adaptation of the layer, so this
-    /// layer adaptor does nothing.
-    using layer_adaptor = noop_layer_adaptor<options_type>;
 };
 
 
@@ -207,7 +190,45 @@ private:
 };
 
 
-using reference_autoloader = autoloader<llama3_reference_traits<bf16>>;
+namespace reference {
+
+
+struct llama3_document_adaptor {
+    safetensor_document
+    adapt(const safetensor_document& document) const;
+};
+
+
+struct llama3_options_loader {
+    nn::llama3_options
+    load(std::istream&) const;
+};
+
+
+template <typename T = bf16, contiguous_container Container = hardware_memory_container<T>>
+struct llama3_traits {
+    using value_type = T;
+    using layer_type = nn::llama3<T, Container>;
+    using options_type = nn::llama3_options;
+    using container_type = Container;
+
+    /// The original implementation of Llama 3.2 shares the weight of token embeddings
+    /// and the output layer, use a shared tensor in order to reduce memory footprint.
+    ///
+    /// This adaptor implement \ref safetensor_document_adaptor concept and creates an
+    /// alias between output and embedding layers.
+    using document_adaptor = llama3_document_adaptor;
+
+    /// The original implementation does not require adaptation of the layer, so this
+    /// layer adaptor does nothing.
+    using layer_adaptor = noop_layer_adaptor<options_type>;
+};
+
+
+using llama3_autoloader = autoloader<llama3_traits<bf16>>;
+
+
+} // namespace reference
 
 
 } // namespace metalchat

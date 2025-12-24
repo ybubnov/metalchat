@@ -18,7 +18,7 @@ main()
     auto repo_path = std::filesystem::path(std::getenv("METALCHAT_PATH"));
     auto tokens_path = repo_path / "original/tokenizer.model";
 
-    metalchat::reference_autoloader loader(repo_path);
+    metalchat::reference::llama3_autoloader loader(repo_path);
     metalchat::text::bpe tokenizer(tokens_path);
 
     auto options = metalchat::nn::default_llama3_1b_options();
