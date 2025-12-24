@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <istream>
+
 #include <metalchat/autoloader.h>
 #include <metalchat/container.h>
 #include <metalchat/dtype.h>
@@ -28,6 +30,12 @@ namespace huggingface {
 struct llama3_document_adaptor {
     safetensor_document
     adapt(const safetensor_document& document) const;
+};
+
+
+struct llama3_options_loader {
+    nn::llama3_options
+    load(std::istream& is) const;
 };
 
 

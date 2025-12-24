@@ -14,7 +14,7 @@ using namespace metalchat;
 using namespace Catch::Matchers;
 
 
-TEST_CASE("Test options load", "[autoloader]")
+TEST_CASE("Test llama3 options loader", "[reference]")
 {
     const std::string options_json = R"({
       "dim": 2048,

@@ -3,12 +3,14 @@
 // SPDX-FileType: SOURCE
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <metalchat/huggingface.h>
 
 #include "metalchat/testing.h"
 
 using namespace metalchat;
+using namespace Catch::Matchers;
 
 
 TEST_CASE("Test llama3 huggingface model adaptor", "[huggingface]")
@@ -26,4 +28,51 @@ TEST_CASE("Test llama3 huggingface model adaptor", "[huggingface]")
     }
 
     REQUIRE(std::distance(document.begin(), document.end()) == 147);
+}
+
+
+TEST_CASE("Test llama3 options loader", "[huggingface]")
+{
+    // Some parameter are removed from the HuggingFace's configuration for compactness.
+    const std::string options_json = R"({
+      "attention_bias": false,
+      "attention_dropout": 0.0,
+      "head_dim": 64,
+      "hidden_act": "silu",
+      "hidden_size": 2048,
+      "initializer_range": 0.02,
+      "intermediate_size": 8192,
+      "max_position_embeddings": 131072,
+      "mlp_bias": false,
+      "model_type": "llama",
+      "num_attention_heads": 32,
+      "num_hidden_layers": 16,
+      "num_key_value_heads": 8,
+      "pretraining_tp": 1,
+      "rms_norm_eps": 1e-05,
+      "rope_scaling": {
+        "factor": 32.0,
+        "high_freq_factor": 4.0,
+        "low_freq_factor": 1.0,
+        "original_max_position_embeddings": 8192,
+        "rope_type": "llama3"
+      },
+      "rope_theta": 500000.0,
+      "use_cache": true,
+      "vocab_size": 128256
+    })";
+
+    std::stringstream input(options_json);
+
+    huggingface::llama3_options_loader loader;
+    auto options = loader.load(input);
+
+    REQUIRE(options.head_dim() == 64);
+    REQUIRE(options.n_layers() == 16);
+    REQUIRE(options.n_heads() == 32);
+    REQUIRE(options.n_kv_heads() == 8);
+    REQUIRE(options.max_seq_len() == 1024);
+
+    REQUIRE_THAT(options.rope_theta(), WithinRel(500000.0, 0.01));
+    REQUIRE_THAT(options.norm_eps(), WithinRel(1e-5, 0.01));
 }

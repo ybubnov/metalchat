@@ -60,18 +60,16 @@ llama3_document_adaptor::adapt(const safetensor_document& document) const
 nn::llama3_options
 llama3_options_loader::load(std::istream& is) const
 {
-    using options_type = detail::llama3_reference_options;
-    auto options_value = jsoncons::decode_json<options_type>(is);
+    using options_type = metalchat::detail::llama3_reference_options;
+    auto options = jsoncons::decode_json<options_type>(is);
 
-    auto options = nn::llama3_options()
-                       .head_dim(options_value.dim / options_value.n_heads)
-                       .n_layers(options_value.n_layers)
-                       .n_heads(options_value.n_heads)
-                       .n_kv_heads(options_value.n_kv_heads)
-                       .rope_theta(options_value.rope_theta)
-                       .norm_eps(options_value.norm_eps);
-
-    return options;
+    return nn::llama3_options()
+        .head_dim(options.dim / options.n_heads)
+        .n_layers(options.n_layers)
+        .n_heads(options.n_heads)
+        .n_kv_heads(options.n_kv_heads)
+        .rope_theta(options.rope_theta)
+        .norm_eps(options.norm_eps);
 }
 
 
