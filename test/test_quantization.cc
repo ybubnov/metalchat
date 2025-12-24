@@ -4,6 +4,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <metalchat/huggingface.h>
 #include <metalchat/nn/llama.h>
 #include <metalchat/nn/transformer.h>
 #include <metalchat/quantization.h>
@@ -60,25 +61,14 @@ TEST_CASE("Test QLoRa adaptor", "[quantization]")
 TEST_CASE("Test QLoRA inference", "[quantization]")
 {
     using LLama3 = nn::llama3<bf16>;
+    auto options = nn::default_llama3_1b_options();
 
     hardware_accelerator gpu0(8);
-    nn::indirect_layer<LLama3> model(nn::default_llama3_1b_options(), gpu0);
+    nn::indirect_layer<LLama3> model(options, gpu0);
+    nn::indirect_layer<nn::basic_layer> model_base(model.get());
 
-    auto is_basic_linear = nn::layer_common_with<nn::basic_linear<bf16>>();
-    auto is_basic_embedding = nn::layer_common_with<nn::basic_embedding<bf16>>();
-    auto is_output = nn::layer_all(is_basic_linear, nn::layer_name_match("output"));
-
-    using QLinear = quantization::linear<bf16>;
-    using QLoraLinear = quantization::lora_linear<bf16>;
-    using QLoraEmbedding = quantization::lora_embedding<bf16>;
-
-    nn::replace_layer(model, is_basic_linear, [&] {
-        return nn::indirect_layer<QLoraLinear>(2.0, 32, gpu0);
-    });
-    nn::replace_layer(model, is_basic_embedding, [&] {
-        return nn::indirect_layer<QLoraEmbedding>(gpu0);
-    });
-    nn::replace_layer(model, is_output, nn::indirect_layer<QLinear>(gpu0));
+    huggingface::llama3_qlora_layer_adaptor<bf16> model_adaptor(options);
+    model_adaptor.adapt_pre(model_base);
 
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct-QLORA_INT4_EO8";
     auto bpe_path = repo_path / "tokenizer.model";
@@ -86,6 +76,7 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
 
     metalchat::text::bpe bpe(bpe_path);
     safetensor_document::load(model_path, model);
+    model_adaptor.adapt_post(model_base);
 
     auto heap_size = std::size_t(2048) * 1024 * 1024;
     auto alloc0 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);

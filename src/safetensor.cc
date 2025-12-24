@@ -13,6 +13,13 @@ JSONCONS_ALL_MEMBER_TRAITS(metalchat::safetensor_metadata, dtype, shape, data_of
 namespace metalchat {
 
 
+safetensor_document
+noop_document_adaptor::adapt(const safetensor_document& document) const
+{
+    return document;
+}
+
+
 safetensor_document::safetensor_document()
 : _M_metadata(),
   _M_containers(),

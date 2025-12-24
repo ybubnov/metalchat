@@ -461,6 +461,12 @@ concept safetensor_document_adaptor =
     };
 
 
+struct noop_document_adaptor {
+    safetensor_document
+    adapt(const safetensor_document& document) const;
+};
+
+
 /// A document for writing and reading tensors in a `safetensor` format.
 class safetensor_document {
 private:

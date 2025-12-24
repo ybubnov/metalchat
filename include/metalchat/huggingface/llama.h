@@ -8,6 +8,7 @@
 #include <metalchat/container.h>
 #include <metalchat/dtype.h>
 #include <metalchat/nn.h>
+#include <metalchat/quantization.h>
 #include <metalchat/safetensor.h>
 #include <metalchat/tensor/basic.h>
 #include <metalchat/tensor/shared.h>
@@ -46,12 +47,16 @@ template <typename T> struct llama3_layer_adaptor {
     : _M_options(options)
     {}
 
+    void
+    adapt_pre(nn::indirect_layer<nn::basic_layer> layer) const
+    {}
+
     /// Performs permutation of the attention heads within Wq and Wk layers so that the order
     /// of elements as in the Meta's reference implementation.
     ///
     /// \param layer a layer to adapt to the reference implementation.
     void
-    adapt(nn::indirect_layer<nn::basic_layer> layer) const
+    adapt_post(nn::indirect_layer<nn::basic_layer> layer) const
     {
         const std::vector<std::pair<std::regex, std::size_t>> permutations = {
             {std::regex(R"(layers\.(\d+)\.attention\.wk\.weight)"), _M_options.n_kv_heads()},
@@ -130,6 +135,53 @@ private:
 };
 
 
+/// Layer adaptor for Llama3 model with QLoRa quantization distributed through HuggingFace repo.
+///
+/// The adaptor replaces linear layers with \ref quantization::lora_linear, embedding layer with
+/// \ref quantization::lora_embedding and output layer with \ref quantization::linear.
+///
+/// These layers perform on-the-flyte dequantization, which increases compute time due to the need
+/// to reconstruct original weights.
+///
+/// \tparam T a type of the dequantized weights.
+template <typename T> struct llama3_qlora_layer_adaptor {
+    llama3_qlora_layer_adaptor(nn::llama3_options options)
+    : _M_options(options)
+    {}
+
+    /// Adapt the Llama3 model before loading weights. Performs in-place replacement of linear
+    /// and embedding layers.
+    void
+    adapt_pre(nn::indirect_layer<nn::basic_layer> layer) const
+    {
+        auto is_basic_linear = nn::layer_common_with<nn::basic_linear<T>>();
+        auto is_basic_embedding = nn::layer_common_with<nn::basic_embedding<T>>();
+        auto is_output = nn::layer_all(is_basic_linear, nn::layer_name_match("output"));
+
+        using QLinear = quantization::linear<T>;
+        using QLoraEmbedding = quantization::lora_embedding<T>;
+        using QLoraLinear = quantization::lora_linear<T>;
+
+        auto& accelerator = layer.accelerator();
+        nn::indirect_layer<QLinear> linear(accelerator);
+        nn::indirect_layer<QLoraEmbedding> embedding(accelerator);
+
+        nn::replace_layer(layer, is_basic_linear, [&] {
+            return nn::indirect_layer<QLoraLinear>(2.0, 32, accelerator);
+        });
+        nn::replace_layer(layer, is_basic_embedding, embedding);
+        nn::replace_layer(layer, is_output, linear);
+    }
+
+    void
+    adapt_post(nn::indirect_layer<nn::basic_layer> layer) const
+    {}
+
+private:
+    nn::llama3_options _M_options;
+};
+
+
 template <typename T = bf16, contiguous_container Container = hardware_memory_container<T>>
 struct llama3_traits {
     using value_type = T;
@@ -142,7 +194,21 @@ struct llama3_traits {
 };
 
 
+/// TODO: Replace llama3_options with llama3_qlora_options.
+template <typename T = bf16, contiguous_container Container = hardware_memory_container<T>>
+struct llama3_qlora_traits {
+    using value_type = T;
+    using layer_type = nn::llama3<T, Container>;
+    using layer_adaptor = llama3_qlora_layer_adaptor<T>;
+    using options_type = nn::llama3_options;
+    using container_type = Container;
+
+    using document_adaptor = noop_document_adaptor;
+};
+
+
 using llama3_autoloader = autoloader<llama3_traits<bf16>>;
+using llama3_qlora_autoloader = autoloader<llama3_qlora_traits<bf16>>;
 
 
 } // namespace huggingface

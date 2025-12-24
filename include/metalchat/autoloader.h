@@ -17,7 +17,21 @@ namespace metalchat {
 
 template <typename Adaptor>
 concept indirect_layer_adaptor = requires(std::remove_reference_t<Adaptor> const a) {
-    { a.adapt(nn::indirect_layer<nn::basic_layer>()) } -> std::same_as<void>;
+    { a.adapt_pre(nn::indirect_layer<nn::basic_layer>()) } -> std::same_as<void>;
+    { a.adapt_post(nn::indirect_layer<nn::basic_layer>()) } -> std::same_as<void>;
+};
+
+
+template <typename LayerOptions> struct noop_layer_adaptor {
+    noop_layer_adaptor(LayerOptions) {}
+
+    void
+    adapt_pre(nn::indirect_layer<nn::basic_layer>) const
+    {}
+
+    void
+    adapt_post(nn::indirect_layer<nn::basic_layer>) const
+    {}
 };
 
 
@@ -105,13 +119,7 @@ struct llama3_reference_traits {
 
     /// The original implementation does not require adaptation of the layer, so this
     /// layer adaptor does nothing.
-    struct layer_adaptor {
-        layer_adaptor(options_type) {}
-
-        void
-        adapt(nn::indirect_layer<nn::basic_layer>) const
-        {}
-    };
+    using layer_adaptor = noop_layer_adaptor<options_type>;
 };
 
 
@@ -157,6 +165,10 @@ template <transformer_traits TransformerTraits> struct autoloader {
     load(const options_type& options)
     {
         nn::indirect_layer<layer_type> layer(options, _M_accelerator);
+        nn::indirect_layer<nn::basic_layer> layer_base(layer.get());
+
+        layer_adaptor_type layer_adaptor(options);
+        layer_adaptor.adapt_pre(layer_base);
 
         auto document_adaptor = document_adaptor_type();
         auto document = safetensor_document::open(_M_local_path, _M_accelerator);
@@ -164,10 +176,7 @@ template <transformer_traits TransformerTraits> struct autoloader {
         document = document_adaptor.adapt(document);
         document.load(layer);
 
-        auto layer_adaptor = layer_adaptor_type(options);
-        auto layer_base = nn::indirect_layer<nn::basic_layer>(layer.get());
-        layer_adaptor.adapt(layer_base);
-
+        layer_adaptor.adapt_post(layer_base);
         return transformer<layer_type>(layer);
     }
 
@@ -176,6 +185,10 @@ template <transformer_traits TransformerTraits> struct autoloader {
     load(const options_type& options, Allocator alloc = Allocator())
     {
         nn::indirect_layer<layer_type> layer(options, _M_accelerator);
+        nn::indirect_layer<nn::basic_layer> layer_base(layer.get());
+
+        layer_adaptor_type layer_adaptor(options);
+        layer_adaptor.adapt_pre(layer_base);
 
         auto document_stream = std::ifstream(_M_local_path, std::ios::binary);
         auto document_adaptor = document_adaptor_type();
@@ -184,10 +197,7 @@ template <transformer_traits TransformerTraits> struct autoloader {
         document = document_adaptor.adapt(document);
         document.load(layer);
 
-        auto layer_adaptor = layer_adaptor_type(options);
-        auto layer_base = nn::indirect_layer<nn::basic_layer>(layer.get());
-        layer_adaptor.adapt(layer_base);
-
+        layer_adaptor.adapt_post(layer_base);
         return transformer<layer_type>(layer);
     }
 
