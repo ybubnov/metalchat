@@ -14,7 +14,7 @@ sphinx-autobuild = "*"
 sphinx-copybutton = "*"
 sphinx_design = "*"
 sphinx-prompt = "*"
-sphinx-pydata-theme = "*"
+pydata-sphinx-theme = "*"
 
 # Packages, that are require to prepare testdata for unit tests.
 huggingface-hub = ">= 1.0.0, <2.0.0"

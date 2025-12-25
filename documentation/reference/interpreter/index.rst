@@ -10,11 +10,27 @@ Interpreter library
 Assistant
 ---------
 
+.. doxygenclass:: metalchat::interpreter
+   :members:
+
+
 .. doxygenclass:: metalchat::basic_message
    :members:
+
+
+Autoloader
+----------
+
+.. doxygenstruct:: metalchat::autoloader
+   :members:
+
+
+Transformer
+-----------
 
 .. doxygenclass:: metalchat::basic_transformer
    :members:
 
-.. doxygenclass:: metalchat::interpreter
+
+.. doxygenclass:: metalchat::transformer
    :members:

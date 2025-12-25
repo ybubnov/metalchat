@@ -41,6 +41,7 @@ concept accessor =
     stride_accessor<Accessor> && size_accessor<Accessor> && offset_accessor<Accessor>;
 
 
+/// Tensor accessor defines data layout and mechanisms of changing data layout.
 class tensor_accessor {
 public:
     using value_type = std::size_t;
@@ -85,7 +86,7 @@ public:
     : tensor_accessor(first, last, alloc)
     {}
 
-    // TBD.
+    /// TBD.
     template <std::bidirectional_iterator BidirIt, accessor Accessor>
     static void
     resize(BidirIt first, BidirIt last, Accessor& acc)

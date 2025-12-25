@@ -16,15 +16,22 @@ Basic layer
    :members:
 
 
+Indirect layer
+--------------
+
+.. doxygenclass:: metalchat::nn::indirect_layer
+   :members:
+
+
+Polymorphic layer
+-----------------
+
+.. doxygenclass:: metalchat::nn::polymorphic_layer
+   :members:
+
+
 Layer array
 -----------
 
 .. doxygenclass:: metalchat::nn::layer_array
-   :members:
-
-
-Shared layer
-------------
-
-.. doxygenclass:: metalchat::nn::shared_layer_ptr
    :members:

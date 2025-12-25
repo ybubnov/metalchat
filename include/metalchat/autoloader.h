@@ -120,6 +120,7 @@ concept transformer_traits = requires {
 };
 
 
+/// A type that supports creating transformers from the traits.
 template <transformer_traits TransformerTraits> struct autoloader {
     using layer_type = TransformerTraits::layer_type;
     using layer_adaptor_type = TransformerTraits::layer_adaptor;

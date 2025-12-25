@@ -4,4 +4,4 @@ sphinx-autobuild
 sphinx-prompt
 sphinx-copybutton
 sphinx-design
-sphinx-pydata-theme
+pydata-sphinx-theme

@@ -26,10 +26,13 @@ Interpreter library
    :widths: 45 55
 
    * - :cpp:class:`metalchat::interpreter`
-     - A language model adapter to receive and send messages.
+     - A language model adapter to receive, send messages, and execute commands.
 
-   * - :cpp:class:`metalchat::basic_transformer`
-     - A language estimator adapter to predict the next token.
+   * - :cpp:struct:`metalchat::autoloader`
+     - An automation of language model creation.
+
+   * - :cpp:class:`metalchat::transformer`
+     - An adapter to instrument a language model with sampling mechanisms.
 
    * - :cpp:class:`metalchat::text::byte_pair_encoder`
      - Byte-pair encoder.
@@ -42,11 +45,12 @@ Layer library
    :width: 100%
    :widths: 45 55
 
-   * - :cpp:class:`metalchat::basic_layer`
+   * - :cpp:class:`metalchat::nn::basic_layer`
      - A basic building block of neural networks in MetalChat.
 
-   * - :cpp:class:`metalchat::shared_layer_ptr`
-     - A convenience class for a :cpp:class:`metalchat::layer` type to share layer ownership.
+   * - :cpp:class:`metalchat::nn::indirect_layer`
+     - A convenience class for a :cpp:class:`metalchat::nn::basic_layer` type to share layer
+       ownership.
 
    * - :cpp:class:`metalchat::nn::llama3`
      - TBD

@@ -266,7 +266,7 @@ public:
         return _M_result.numel();
     }
 
-    /// See \ref tensor::accessor.
+    /// See \ref tensor_accessor.
     const tensor_accessor&
     accessor() const
     {

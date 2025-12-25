@@ -764,7 +764,7 @@ struct layer_name_match {
 /// The method is not transactional and might leave the original layer partially processed,
 /// if an exception is encountered during the replacement phase.
 ///
-/// \param layer a layer that will be searched for matching layers for replacement.
+/// \param input a layer that will be searched for matching layers for replacement.
 /// \param pred a predicate invoked for each layer in a search loop.
 /// \param generator a generator of \ref nn::indirect_layer instances used for replacement.
 ///
@@ -806,10 +806,10 @@ replace_layer(nn::indirect_layer<Layer>& input, Pred pred, Generator generator)
 
 /// Replaces all matches of the layers with the provided replacement.
 ///
-/// \warn the method assigns a shallow copy of the layer, therefore all replacements will be
+/// \warning the method assigns a shallow copy of the layer, therefore all replacements will be
 /// sharing a pointer to the same layer instance.
 ///
-/// \param layer a layer that will be searched for matching layers for replacement.
+/// \param input a layer that will be searched for matching layers for replacement.
 /// \param pred a predicate invoked for each layer in a search loop.
 /// \param replacement a replacement layer that will be assigned in each replacement case.
 template <layer Layer, named_layer_predicate Pred, layer Replacement>

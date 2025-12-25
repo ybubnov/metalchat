@@ -12,7 +12,7 @@ Empty
 
 .. doxygenfunction:: metalchat::empty(std::size_t (&&sizes)[N])
 
-.. doxygenfunction:: metalchat::empty(std::size_t (&&sizes)[N], Allocator alloc)
+.. .. doxygenfunction:: metalchat::empty(std::size_t (&&sizes)[N], Allocator alloc)
 
 .. doxygenfunction:: metalchat::empty(std::size_t (&&sizes)[N], const hardware_accelerator& accelerator);
 
@@ -20,7 +20,7 @@ Empty
 
 .. doxygenfunction:: metalchat::empty_like(const Tensor& like)
 
-.. doxygenfunction:: metalchat::empty_like(const Tensor& like, Allocator alloc)
+.. .. doxygenfunction:: metalchat::empty_like(const Tensor& like, Allocator alloc)
 
 
 Full

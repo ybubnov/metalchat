@@ -125,12 +125,14 @@ template <typename T> struct memory_container : public basic_container {
     virtual const_pointer
     data() const = 0;
 
+    /// Get a type-erased write access to the underlying container data.
     void*
     data_ptr() override
     {
         return data();
     }
 
+    /// Get a type-erased read access to the underlying container data.
     const void*
     data_ptr() const override
     {

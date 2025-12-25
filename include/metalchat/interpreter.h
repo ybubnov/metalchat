@@ -169,6 +169,22 @@ public:
     ///
     /// \param declaration A command declaration (i.e. JSON Schema by default).
     /// \param command A handler that returns the result of command execution.
+    ///
+    /// ```c++
+    /// auto command = R"({
+    /// "name":"multiply",
+    /// "type": "function",
+    /// "description":"multiply two numbers",
+    /// "parameters":{
+    ///   "a":{"type":"number","description":"first number"},
+    ///   "b":{"type":"number","description":"second number"}
+    /// }})";
+    ///
+    /// interpreter interp(/* ... */);
+    /// interp.declare_command(command, [](const command_statement&) -> std::string {
+    ///    return R"({"result": nan})";
+    /// });
+    /// ```
     void
     declare_command(const std::string& declaration, command_type command);
 
