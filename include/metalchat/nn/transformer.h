@@ -87,9 +87,9 @@ public:
     : basic_layer(accelerator)
     {
         _M_attention = register_layer<Attention>("attention", options);
-        _M_attention_norm = register_layer<RMSNorm>("attention_norm");
+        _M_attention_norm = register_layer<RMSNorm>("attention_norm", options.norm_eps);
         _M_ff = register_layer<FeedForward>("feed_forward");
-        _M_ff_norm = register_layer<RMSNorm>("ffn_norm");
+        _M_ff_norm = register_layer<RMSNorm>("ffn_norm", options.norm_eps);
     }
 
     template <immutable_tensor3_t<T> Input, cache_t<T> Cache>

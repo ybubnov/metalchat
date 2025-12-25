@@ -22,27 +22,28 @@ public:
     using weight_type = tensor<T, 1, Container>;
     using weight_pointer = shared_tensor_ptr<weight_type>;
 
-    rmsnorm(weight_type&& weight, hardware_accelerator accelerator)
+    rmsnorm(weight_type&& weight, float eps, hardware_accelerator accelerator)
     : basic_layer(accelerator),
       _M_weight(std::move(weight)),
-      _M_norm(accelerator)
+      _M_norm(accelerator),
+      _M_eps(eps)
     {
         register_parameter("weight", _M_weight);
     }
 
-    rmsnorm(std::size_t normalized_size, hardware_accelerator accelerator)
-    : rmsnorm(empty<T>({normalized_size}, accelerator), accelerator)
+    rmsnorm(std::size_t normalized_size, float eps, hardware_accelerator accelerator)
+    : rmsnorm(empty<T>({normalized_size}, accelerator), eps, accelerator)
     {}
 
-    rmsnorm(hardware_accelerator accelerator)
-    : rmsnorm(weight_type(), accelerator)
+    rmsnorm(float eps, hardware_accelerator accelerator)
+    : rmsnorm(weight_type(), eps, accelerator)
     {}
 
     template <immutable_tensor_t<T> Input>
     auto
-    operator()(Input input, float eps = 1e-5)
+    operator()(Input input)
     {
-        return _M_norm(input, _M_weight, eps);
+        return _M_norm(input, _M_weight, _M_eps);
     }
 
     friend std::ostream&
@@ -56,6 +57,7 @@ public:
 private:
     weight_pointer _M_weight;
     kernel::rmsnorm<T> _M_norm;
+    float _M_eps;
 };
 
 

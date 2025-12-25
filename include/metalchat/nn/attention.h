@@ -29,6 +29,7 @@ struct attention_options {
     std::size_t max_seq_len;
     std::size_t max_batch_size;
     float rope_theta;
+    float norm_eps;
 
     inline std::size_t
     repeats() const

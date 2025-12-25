@@ -62,7 +62,7 @@ public:
         requires cache_constructible<Cache>
     : basic_layer(accelerator)
     {
-        _M_norm = register_layer<RMSNorm>("norm");
+        _M_norm = register_layer<RMSNorm>("norm", options.norm_eps());
         _M_transforms = register_layer<TransformerArray>("layers");
         _M_caches = register_layer<CacheArray>("caches");
 
@@ -79,7 +79,8 @@ public:
             .n_heads = options.n_heads(),
             .n_kv_heads = options.n_kv_heads(),
             .max_seq_len = options.max_seq_len(),
-            .rope_theta = options.rope_theta()
+            .rope_theta = options.rope_theta(),
+            .norm_eps = options.norm_eps()
         };
 
         for (std::size_t i = 0; i < options.n_layers(); i++) {
