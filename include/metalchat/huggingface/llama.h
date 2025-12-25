@@ -33,6 +33,10 @@ struct llama3_document_adaptor {
 };
 
 
+/// Llama3 options loader for configuration distributed through HuggingFace repository.
+///
+/// The HuggingFace configuration format differs from the format of reference Llama3
+/// implementation, so this loader performs necessary mapping of JSON fields internally.
 struct llama3_options_loader {
     nn::llama3_options
     load(std::istream& is) const;

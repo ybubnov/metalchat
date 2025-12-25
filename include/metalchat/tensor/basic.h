@@ -61,6 +61,10 @@ public:
     virtual std::size_t
     size(std::size_t dim) const = 0;
 
+    /// Sets the size at the specified tensor dimension.
+    ///
+    /// \param dim the target dimension.
+    /// \param size the size to set.
     virtual void
     set_size(std::size_t dim, std::size_t size) = 0;
 
@@ -68,12 +72,16 @@ public:
     virtual const std::span<std::size_t>
     sizes() const = 0;
 
-    /// Returns the stride of the specified tensor dimension.
+    /// Returns the stride at the specified tensor dimension.
     ///
     /// \param dim the dimension for which to retrieve the stride.
     virtual std::size_t
     stride(std::size_t dim) const = 0;
 
+    /// Sets the stride at the specified tensor dimension.
+    ///
+    /// \param dim the target dimension.
+    /// \param stride the stride to set.
     virtual void
     set_stride(std::size_t dim, std::size_t stride) = 0;
 
@@ -87,6 +95,10 @@ public:
     virtual std::size_t
     offset(std::size_t dim) const = 0;
 
+    /// Sets the offset at the specified tensor dimension.
+    ///
+    /// \param dim the target dimension.
+    /// \param offset the offset to set.
     virtual void
     set_offset(std::size_t dim, std::size_t offset) = 0;
 
@@ -407,6 +419,20 @@ public:
     {}
 
 
+    /// Constructs a new tensor with the layout specified by accessor and contents specified in
+    /// a container `data`. The constructor does not validate that all elements of the tensors
+    /// are within the container.
+    ///
+    /// \param access a tensor accessor defining the layout of data in the container.
+    /// \param data initial data of the tensor.
+    ///
+    /// ```c++
+    /// auto alloc = random_memory_allocator<float>();
+    /// auto container_ptr = alloc.allocate(120);
+    ///
+    /// auto accessor = tensor_accessor({3, 4, 10});
+    /// auto T = tensor<float>(accessor, container_ptr);
+    /// ```
     tensor(const accessor_type& access, const container_pointer& data)
     : _M_access(access),
       _M_data(data)
@@ -485,6 +511,10 @@ public:
         return _M_access.stride(dim);
     }
 
+    /// Sets the stride at the specified tensor dimension.
+    ///
+    /// \param dim the target dimension.
+    /// \param stride the stride to set.
     void
     set_stride(std::size_t dim, std::size_t stride)
     {
@@ -521,6 +551,10 @@ public:
         return _M_access.size(dim);
     }
 
+    /// Sets the size at the specified tensor dimension.
+    ///
+    /// \param dim the target dimension.
+    /// \param size the size to set.
     void
     set_size(std::size_t dim, std::size_t size)
     {
@@ -569,6 +603,10 @@ public:
         return _M_access.offset(dim);
     }
 
+    /// Sets the offset at the specified tensor dimension.
+    ///
+    /// \param dim the target dimension.
+    /// \param offset the offset to set.
     void
     set_offset(std::size_t dim, std::size_t offset)
     {

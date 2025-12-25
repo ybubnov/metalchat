@@ -96,6 +96,7 @@ public:
         _M_future_wait = std::make_shared<future_wait_type::element_type>(std::move(future_wait));
     }
 
+    /// Create a future tensor that expects completion of other future tensor.
     template <typename U, std::size_t M>
     future_tensor(result_type result, future_tensor<U, M> future)
     : _M_result(result),
@@ -188,6 +189,7 @@ public:
       _M_future_wait(nullptr)
     {}
 
+    /// A default future tensor constructor.
     future_tensor()
     : _M_result(),
       _M_future_mutex(std::make_shared<std::mutex>()),
