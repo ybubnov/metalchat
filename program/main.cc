@@ -11,6 +11,7 @@
 #include <metalchat/metalchat.h>
 #include <replxx.hxx>
 
+#include "chat.h"
 #include "model.h"
 #include "remote.h"
 
@@ -27,11 +28,8 @@ main(int argc, char** argv)
     app.add_option("--config", config_option)->default_val(config_path);
 
     metalchat::program::remote_command remote(app);
-
-    auto model = app.add_subcommand("model", "Manage language models");
-    auto model_pull = model->add_subcommand("pull", "Download a model from a remote server");
-    auto model_list = model->add_subcommand("list", "List the available models");
-    auto model_remove = model->add_subcommand("remove", "Remove models");
+    metalchat::program::model_command model(app);
+    metalchat::program::chat_command chat(app);
 
     try {
         app.parse(argc, argv);
