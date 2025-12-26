@@ -6,8 +6,12 @@
 
 #include <optional>
 #include <string_view>
+#include <tuple>
+#include <unordered_map>
 
 #include <CLI/CLI.hpp>
+
+#include "hash.h"
 
 
 namespace metalchat {
@@ -31,32 +35,39 @@ struct implementation {
 };
 
 
+struct chat_create_options {
+    std::optional<std::string> name = std::nullopt;
+    std::optional<std::string> system_prompt = std::nullopt;
+    std::string model = "";
+    std::string arch = "";
+    std::string impl = "";
+};
+
+
 class chat {
 public:
-    static constexpr std::string_view default_model =
-        "huggingface.co/meta-llama/Llama-3.2-1B-Instruct/original";
+    using model_version = std::tuple<std::string, std::string>;
 
-    chat();
+    static constexpr std::string_view default_model =
+        "huggingface.co/meta-llama/Llama-3.2-1B-Instruct";
+
+    /// This mapping holds the all supported combinations of the models. If model is not
+    /// within this list, then attempt to create such a model fails.
+    static const std::unordered_map<model_version, int> models;
+
+    chat(const chat_create_options&);
 };
 
 
 class chat_command {
 public:
-    struct create_options {
-        std::optional<std::string> name = std::nullopt;
-        std::optional<std::string> system_prompt = std::nullopt;
-        std::string model = "";
-        std::string arch = "";
-        std::string impl = "";
-    };
-
     chat_command(CLI::App& app);
 
     void
     create();
 
 private:
-    create_options _M_create_options;
+    chat_create_options _M_create_options;
 };
 
 

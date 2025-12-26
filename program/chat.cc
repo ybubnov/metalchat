@@ -5,7 +5,6 @@
 #include <cerrno>
 #include <cstdlib>
 #include <filesystem>
-#include <map>
 
 #include <metalchat/metalchat.h>
 #include <replxx.hxx>
@@ -17,7 +16,20 @@ namespace metalchat {
 namespace program {
 
 
-chat::chat() {}
+chat::model_version
+make_model_version(const std::string_view& arch, const std::string_view& impl)
+{
+    return std::make_tuple(std::string(arch), std::string(impl));
+}
+
+
+const std::unordered_map<chat::model_version, int> chat::models = {
+    {make_model_version(architecture::llama3x2_1b, implementation::reference), 0},
+    {make_model_version(architecture::llama3x2_1b, implementation::huggingface), 0}
+};
+
+
+chat::chat(const chat_create_options&) {}
 
 
 chat_command::chat_command(CLI::App& app)
