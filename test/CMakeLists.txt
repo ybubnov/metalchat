@@ -17,7 +17,7 @@ foreach(metalchat_TEST_SOURCE ${metalchat_TEST_SOURCES})
 
     target_compile_definitions(
         ${metalchat_TEST}
-        PUBLIC METALCHAT_TEST_FIXTURE_DIRECTORY="${PROJECT_SOURCE_DIR}/test_fixture"
+        PUBLIC __lib_metalchat_test_fixture_directory="${PROJECT_SOURCE_DIR}/test_fixture"
     )
 
     # Define a new test from the source file.

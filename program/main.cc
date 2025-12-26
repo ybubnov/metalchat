@@ -5,15 +5,44 @@
 #include <cerrno>
 #include <cstdlib>
 #include <filesystem>
+#include <memory>
 
+#include <CLI/CLI.hpp>
 #include <metalchat/metalchat.h>
 #include <replxx.hxx>
 
+#include "model.h"
+#include "remote.h"
+
+
+static const std::string config_path = "~/.metalchat/config";
+
 
 int
-main()
+main(int argc, char** argv)
 {
+    std::string config_option;
+
+    CLI::App app("A self-sufficient runtime for large language models", "metalchat");
+    app.add_option("--config", config_option)->default_val(config_path);
+
+    metalchat::program::remote_command remote(app);
+
+    auto model = app.add_subcommand("model", "Manage language models");
+    auto model_pull = model->add_subcommand("pull", "Download a model from a remote server");
+    auto model_list = model->add_subcommand("list", "List the available models");
+    auto model_remove = model->add_subcommand("remove", "Remove models");
+
+    try {
+        app.parse(argc, argv);
+    } catch (const CLI::ParseError& e) {
+        return app.exit(e);
+    }
+
+    /*
     replxx::Replxx shell;
+
+    huggingface_repository repo("meta-llama/Llama3.2-1B-Instruct");
 
     auto repo_path = std::filesystem::path(std::getenv("METALCHAT_PATH"));
     auto tokens_path = repo_path / "original/tokenizer.model";
@@ -40,6 +69,7 @@ main()
 
         std::cout << interp.read_text() << std::endl;
     }
+    */
 
     return 0;
 }

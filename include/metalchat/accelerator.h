@@ -15,7 +15,12 @@
 namespace metalchat {
 
 
-static const std::string framework_identifier = "com.cmake.metalchat";
+#ifndef __lib_metalchat_framework_identifier
+#define __lib_metalchat_framework_identifier ""
+#endif
+
+
+static const std::string framework_identifier = __lib_metalchat_framework_identifier;
 
 
 struct _StringHash {

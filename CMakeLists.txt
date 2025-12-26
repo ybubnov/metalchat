@@ -30,12 +30,18 @@ find_package(mbits-mstch CONFIG REQUIRED)
 find_package(metal-cpp CONFIG REQUIRED)
 find_package(rapidhash CONFIG REQUIRED)
 find_package(PCRE2 CONFIG REQUIRED)
+
+# Packages related to the metalchat shell.
+find_package(CLI11)
+find_package(keychain)
 find_package(replxx)
+find_package(toml11)
 
 
 set(metalchat_FRAMEWORK MetalChat)
 set(metalchat_METALLIB metalchat.metallib)
 set(metalchat_MODULEMAP ${CMAKE_CURRENT_SOURCE_DIR}/module.modulemap)
+set(metalchat_IDENTIFIER org.metalchat.framework)
 
 aux_source_directory(src metalchat_SOURCES)
 aux_source_directory(program metalchat_PROGRAM)
@@ -57,11 +63,16 @@ set_target_properties(${metalchat_FRAMEWORK} PROPERTIES
     FRAMEWORK TRUE
     FRAMEWORK_VERSION A
     RESOURCE ${metalchat_METALLIB}
-    MACOSX_FRAMEWORK_IDENTIFIER com.cmake.metalchat
+    MACOSX_FRAMEWORK_IDENTIFIER ${metalchat_IDENTIFIER}
     MACOSX_FRAMEWORK_BUNDLE_NAME ${metalchat_FRAMEWORK}
     MACOSX_FRAMEWORK_BUNDLE_VERSION ${metalchat_LIBRARY_SOVERSION}
     MACOSX_FRAMEWORK_SHORT_VERSION_STRING ${metalchat_LIBRARY_VERSION}
     XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "MetalChat Developer"
+)
+
+target_compile_definitions(
+    ${metalchat_FRAMEWORK}
+    PUBLIC __lib_metalchat_framework_identifier="${metalchat_IDENTIFIER}"
 )
 
 set(metalchat_FRAMEWORK_DIR "$<TARGET_FILE_DIR:${metalchat_FRAMEWORK}>")
@@ -103,10 +114,13 @@ target_link_libraries(${metalchat_FRAMEWORK}
 )
 
 
-if (replxx_FOUND)
+if (replxx_FOUND AND keychain_FOUND AND CLI11_FOUND AND toml11_FOUND)
     add_executable(${CMAKE_PROJECT_NAME} ${metalchat_PROGRAM})
     target_link_libraries(${CMAKE_PROJECT_NAME}
         ${metalchat_FRAMEWORK}
         replxx::replxx
+        keychain::keychain
+        CLI11::CLI11
+        toml11::toml11
     )
 endif()

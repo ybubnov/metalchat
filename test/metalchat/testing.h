@@ -7,13 +7,13 @@
 #include <filesystem>
 
 
-#ifndef METALCHAT_TEST_FIXTURE_DIRECTORY
-#define METALCHAT_TEST_FIXTURE_DIRECTORY "test_fixture"
+#ifndef __lib_metalchat_test_fixture_directory
+#define __lib_metalchat_test_fixture_directory "test_fixture"
 #endif
 
 
 std::filesystem::path
 test_fixture_path()
 {
-    return std::filesystem::path(METALCHAT_TEST_FIXTURE_DIRECTORY);
+    return std::filesystem::path(__lib_metalchat_test_fixture_directory);
 }
