@@ -287,6 +287,17 @@ private:
 ///
 /// This type is used internally within a \ref safetensor_document and does not expose
 /// public API for registering new, unsupported types.
+///
+/// Here is an example of allocating a 128-element container of `int32_t` types in a heap:
+/// ```c++
+/// using Allocator = random_memory_allocator<void>;
+/// safetensor_allocator<Allocator> dynamic_alloc;
+///
+/// auto alloc = Allocator();
+/// auto container_ptr = dynamic_alloc.allocate("I32", 128, alloc);
+/// ```
+///
+/// \tparam Allocator A type-erased allocator used to serve dynamic allocations.
 template <allocator_t<void> Allocator> class safetensor_allocator {
 public:
     /// Type of the allocated container type. All containers are inherited from the
@@ -304,6 +315,7 @@ public:
         register_default_types(std::make_index_sequence<default_types_size>{});
     }
 
+    /// A \ref safetensor_allocator copy constructor.
     safetensor_allocator(const safetensor_allocator&) = default;
 
     /// Allocate an a block of contiguous memory of the specified type and initialize it with
@@ -727,10 +739,13 @@ public:
     /// doc.insert("input.weight", weight);
     /// doc.insert("output.weight", "input.weight");
     /// ```
+    ///
+    /// \param name An alias of the existing safetensor.
+    /// \param source A name of the source tensor (should be present in the safetensor document).
     void
     insert(const std::string& name, const std::string& source);
 
-    /// Insert all registered parameters of the specified layer.
+    /// Insert all registered parameters of the specified layer into the safetensor document.
     ///
     /// This method recursively traverses layer and inserts parameters into the safetensor
     /// document.
@@ -748,6 +763,10 @@ public:
     void
     insert(const nn::basic_layer& layer);
 
+    /// Insert all registered parameters of the indirect layer into the safetensor document.
+    ///
+    /// \tparam Layer A type of the layer to load into.
+    /// \param layer A layer to use.
     template <typename Layer>
     void
     insert(const nn::indirect_layer<Layer>& layer)
@@ -755,7 +774,7 @@ public:
         insert(*layer);
     }
 
-    /// Load memory containers from a safetensor document into a layer.
+    /// Load tensors from a safetensor document into the layer's registered parameters.
     ///
     /// The implementation is identical to the
     /// \ref safetensor_document::load(nn::basic_layer&) const, the difference is that safetensor
@@ -769,6 +788,11 @@ public:
     static void
     load(const std::filesystem::path& p, nn::basic_layer& layer);
 
+    /// Load tensors from a safetensor document into the indirect layer's registered parameters.
+    ///
+    /// \tparam Layer A type of the layer to load into.
+    /// \param p A path to load tensors from.
+    /// \param layer A layer instance to load tensors into.
     template <typename Layer>
     static void
     load(const std::filesystem::path& p, nn::indirect_layer<Layer>& layer)
@@ -776,7 +800,7 @@ public:
         load(p, *layer);
     }
 
-    /// Load memory containers from a safetensor document into a layer.
+    /// Load tensors from a safetensor document into the layer's registered parameters.
     ///
     /// The traverses through all tensors in the \ref safetensor_document and assigns them to
     /// the registered parameters of the specified layer. Method raises an exception, when
@@ -799,6 +823,7 @@ public:
     void
     load(nn::basic_layer& layer) const;
 
+    /// Load tensors from a safetensor document into an indirect layer.
     template <typename Layer>
     void
     load(nn::indirect_layer<Layer>& layer) const
@@ -806,7 +831,7 @@ public:
         load(*layer);
     }
 
-    /// Load memory container from a safetensor document into a tensor.
+    /// Load tensor from a safetensor document into a specified tensor.
     ///
     /// The implementation assigns a new container to the specified tensor (which means that
     /// target tensor might be empty or any arbitrary size), and resets the size of the tensor
@@ -842,6 +867,12 @@ public:
     static void
     save(const std::filesystem::path& p, nn::basic_layer& layer);
 
+    /// Save all registered parameters from the indirect layer into the file at the specified
+    /// location.
+    ///
+    /// \tparam Layer A type of the layer to save
+    /// \param p A path to the file to save tensors.
+    /// \param layer A layer containing parameter to save into the safetensors document.
     template <typename Layer>
     static void
     save(const std::filesystem::path& p, nn::indirect_layer<Layer>& layer)

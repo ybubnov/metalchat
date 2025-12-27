@@ -472,15 +472,16 @@ public:
 /// safe to use this class within a scope.
 ///
 /// Users could explicitly call `hardware_resident_allocator::detach`, when the underlying set is
-/// supposed to be made resident. End of residency will happen automatically, once all allocations
+/// supposed to be made resident. End of residency happens automatically, once all allocations
 /// are removed. Also, allocator makes all containers resident on the object destruction.
 ///
 /// Example:
 /// ```cpp
 /// using namespace metalchat;
 ///
-/// std::shared_ptr<hardware_memory_container<void>> c1;
-/// std::shared_ptr<hardware_memory_container<void>> c2;
+/// using Container = hardware_memory_container<void>;
+/// std::shared_ptr<Container> c1;
+/// std::shared_ptr<Container> c2;
 ///
 /// auto gpu = hardware_accelerator();
 /// {
@@ -500,6 +501,8 @@ public:
 ///
 /// // Containers are deleted, end of the residency happens here.
 /// ```
+///
+/// \tparam Allocator A type of wrapped allocator.
 template <hardware_allocator Allocator> class hardware_resident_allocator {
 public:
     using value_type = Allocator::value_type;
@@ -509,6 +512,11 @@ public:
     using container_type = hardware_memory_container<value_type>;
     using container_pointer = std::shared_ptr<container_type>;
 
+    /// Constructs \ref hardware_resident_allocator from a base allocator.
+    ///
+    /// \param alloc A base allocator. All allocation requests are delegated to this allocator.
+    /// \param device A shared pointer to the Metal device instance.
+    /// \param capacity A maximum number of allocations that residency set could hold.
     hardware_resident_allocator(
         const Allocator& alloc, metal::shared_device device, std::size_t capacity = 256
     )
@@ -516,6 +524,11 @@ public:
       _M_resident_alloc(device, capacity)
     {}
 
+    /// Constructs \ref hardware_resident_allocator from a base allocator.
+    ///
+    /// \param alloc A base allocator. All allocation requests are delegated to this allocator.
+    /// \param device A shared pointer to the Metal device instance.
+    /// \param capacity A maximum number of allocations that residency set could hold.
     hardware_resident_allocator(
         Allocator&& alloc, metal::shared_device device, std::size_t capacity = 256
     )
@@ -523,11 +536,17 @@ public:
       _M_resident_alloc(device, capacity)
     {}
 
+    /// The move constructor of the \ref hardware_resident_allocator.
     hardware_resident_allocator(hardware_resident_allocator&& other) = default;
+
+    /// The **deleted** copy constructor of the \ref hardware_resident_allocator.
     hardware_resident_allocator(const hardware_resident_allocator& other) = delete;
 
     /// Permit allocations to be moved to resident memory and be used idependently
     /// from the given allocator.
+    ///
+    /// Important implementation details:
+    /// 1. Empty residency set is never detached.
     void
     detach()
     {

@@ -4,16 +4,12 @@
 Allocator library
 =================
 
-Allocator concepts
-------------------
+This library provides primitives to efficiently manage dynamic allocation of memory containers
+used for scheduling accelerated kernel execution. Use this library as following:
 
-.. doxygenconcept:: metalchat::allocator
+.. code-block:: c++
 
-.. doxygenconcept:: metalchat::allocator_t
-
-.. doxygenconcept:: metalchat::hardware_allocator
-
-.. doxygenconcept:: metalchat::hardware_allocator_t
+   #include <metalchat/allocator.h>
 
 
 Hardware memory allocator
@@ -94,3 +90,15 @@ Paginated allocator adapter
 
 .. doxygenclass:: metalchat::paginated_allocator_adapter
    :members:
+
+
+Allocator concepts
+------------------
+
+.. doxygenconcept:: metalchat::allocator
+
+.. doxygenconcept:: metalchat::allocator_t
+
+.. doxygenconcept:: metalchat::hardware_allocator
+
+.. doxygenconcept:: metalchat::hardware_allocator_t
