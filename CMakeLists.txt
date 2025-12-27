@@ -35,7 +35,7 @@ find_package(PCRE2 CONFIG REQUIRED)
 find_package(CLI11)
 find_package(keychain)
 find_package(replxx)
-find_package(toml11)
+find_package(SQLiteCpp)
 
 
 set(metalchat_FRAMEWORK MetalChat)
@@ -114,13 +114,13 @@ target_link_libraries(${metalchat_FRAMEWORK}
 )
 
 
-if (replxx_FOUND AND keychain_FOUND AND CLI11_FOUND AND toml11_FOUND)
+if (replxx_FOUND AND keychain_FOUND AND CLI11_FOUND AND SQLiteCpp_FOUND)
     add_executable(${CMAKE_PROJECT_NAME} ${metalchat_PROGRAM})
     target_link_libraries(${CMAKE_PROJECT_NAME}
         ${metalchat_FRAMEWORK}
         replxx::replxx
         keychain::keychain
         CLI11::CLI11
-        toml11::toml11
+        SQLiteCpp
     )
 endif()
