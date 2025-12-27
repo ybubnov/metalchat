@@ -15,6 +15,12 @@
 namespace metalchat {
 
 
+/// The layout of the tensor. This type is used for encoding tensor as a parameter of the
+/// Metal kernel. Tensor layout is passed as a first argument after the pointer to the data
+/// (Metal buffer).
+///
+/// The same structure is available in the Metal library and is used to unpack the memory into
+/// corresponding parts of the layout schema (sizes, strides, offsets).
 template <uint32_t N> struct tensor_layout {
     /// Sizes of a tensor.
     uint32_t sizes[N];

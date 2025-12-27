@@ -8,7 +8,7 @@ Llama inference for Apple Devices
 
    .. grid-item-card:: Open source
 
-      Distributed under a copy-left AGPL license, MetalChat is developed and maintained
+      Distributed under a copy-left GPLv3 license, MetalChat is developed and maintained
       `publicly on GitHub <https://github.com/ybubnov/metalchat>`_.
 
    .. grid-item-card:: Easy to use

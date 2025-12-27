@@ -133,12 +133,15 @@ public:
       _M_container(container_ptr)
     {}
 
+    /// Returns a name of the tensor (a complete path as in the original safetensor document).
     const std::string&
     name() const
     {
         return _M_name;
     }
 
+    /// Returns a data type string representation as in the safetensors specification (`I8`,
+    /// `U8`, `I16`, etc.).
     const std::string&
     dtype() const
     {
@@ -159,6 +162,7 @@ public:
         return std::accumulate(_M_shape.begin(), _M_shape.end(), 1, std::multiplies<std::size_t>());
     }
 
+    /// Returns sizes of the tensor.
     const std::span<std::size_t>
     sizes() const
     {

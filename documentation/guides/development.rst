@@ -59,15 +59,7 @@ environment. Run this command from the project directory root (it will create `b
 
 .. prompt:: bash
 
-   conan install --build=missing --output-folder build --profile:host=metalchat-debug .
-
-Once conan installs necessary dependencies, change the directory to `build`, and launch cmake
-generator like following:
-
-.. prompt:: bash
-
-   cd build
-   cmake -G Ninja -DCMAKE_TOOLCHAIN_FILE=./build/Debug/generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug ..
+   conan build --build=missing --output-folder build --profile:host=metalchat-debug .
 
 
 Building a Library
