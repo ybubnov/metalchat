@@ -67,7 +67,7 @@ public:
     /// Initializes iterator with a pointer to the tensor's container. Therefore tensor iterator
     /// is still valid even after destruction of the original tensor.
     template <immutable_tensor Tensor>
-    tensor_iterator(const Tensor& tensor, std::size_t start)
+    tensor_iterator(const Tensor& tensor, difference_type start)
     : _M_data(tensor.container_ptr()),
       _M_access(tensor.accessor().copy()),
       _M_index(0),
@@ -75,7 +75,7 @@ public:
       _M_numel(tensor.numel()),
       _M_indices({})
     {
-        start = std::min(start, _M_numel);
+        start = std::min(start, static_cast<difference_type>(_M_numel));
         std::tie(_M_index, _M_overflow) = advance(start);
     }
 
@@ -161,8 +161,8 @@ public:
 private:
     container_pointer _M_data;
     tensor_accessor _M_access;
-    std::size_t _M_index;
-    std::size_t _M_overflow;
+    difference_type _M_index;
+    difference_type _M_overflow;
     std::size_t _M_numel;
 
     std::array<std::size_t, N> _M_indices;
@@ -173,37 +173,37 @@ private:
         return static_cast<value_type*>(_M_data->data_ptr())[index];
     }
 
-    std::tuple<std::size_t, std::size_t>
+    std::tuple<difference_type, difference_type>
     next()
     {
         return advance(_M_overflow + 1);
     }
 
-    std::size_t
+    difference_type
     index() const
     {
-        std::size_t ind = 0;
+        difference_type ind = 0;
         for (std::size_t i = 0; i < N; i++) {
             ind = ind + _M_access.stride(i) * _M_indices[i] + _M_access.offset(i);
         }
         return ind;
     }
 
-    std::tuple<std::size_t, std::size_t>
-    advance(std::size_t distance)
+    std::tuple<difference_type, difference_type>
+    advance(difference_type distance)
     {
         for (std::size_t i = N - 1; i < N; i--) {
             auto sum = _M_indices[i] + distance;
             _M_indices[i] = sum % _M_access.size(i);
             distance = sum / _M_access.size(i);
         }
-        return std::make_tuple(index(), std::min(distance, std::size_t(1)));
+        return std::make_tuple(index(), std::min(distance, difference_type(1)));
     }
 };
 
 
 template <immutable_tensor Tensor>
-tensor_iterator(const Tensor&, std::size_t)
+tensor_iterator(const Tensor&, std::ptrdiff_t)
     -> tensor_iterator<typename Tensor::value_type, Tensor::dim()>;
 
 
