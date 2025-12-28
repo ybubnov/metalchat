@@ -16,7 +16,7 @@ Tensor
    :members:
 
 
-Tensor Layout
+Tensor layout
 -------------
 
 .. doxygenstruct:: metalchat::tensor_layout
@@ -27,6 +27,7 @@ Tensor iterator
 ---------------
 
 .. doxygenclass:: metalchat::tensor_iterator
+   :members:
 
 
 Basic tensor

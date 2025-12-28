@@ -221,7 +221,8 @@ private:
     container_pointer _M_offsets;
 
     tensor_accessor(container_pointer sizes, container_pointer strides, container_pointer offsets)
-    : _M_sizes(sizes),
+    : _M_dim(sizes->size()),
+      _M_sizes(sizes),
       _M_strides(strides),
       _M_offsets(offsets)
     {}
