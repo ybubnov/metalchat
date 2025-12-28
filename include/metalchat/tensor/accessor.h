@@ -198,7 +198,7 @@ public:
         auto strides = std::make_shared<container_type>(_M_strides, offset_bytes);
         auto offsets = std::make_shared<container_type>(_M_offsets, offset_bytes);
 
-        return tensor_accessor(sizes, strides, offsets);
+        return tensor_accessor(_M_dim, sizes, strides, offsets);
     }
 
     template <allocator_t<value_type> Allocator = random_memory_allocator<value_type>>
@@ -220,8 +220,13 @@ private:
     container_pointer _M_strides;
     container_pointer _M_offsets;
 
-    tensor_accessor(container_pointer sizes, container_pointer strides, container_pointer offsets)
-    : _M_dim(sizes->size()),
+    tensor_accessor(
+        std::size_t dim,
+        container_pointer sizes,
+        container_pointer strides,
+        container_pointer offsets
+    )
+    : _M_dim(dim),
       _M_sizes(sizes),
       _M_strides(strides),
       _M_offsets(offsets)
