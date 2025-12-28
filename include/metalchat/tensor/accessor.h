@@ -191,14 +191,15 @@ public:
     tensor_accessor
     squeeze() const
     {
+        auto accessor = *this;
         using container_type = offsetted_container_adapter<value_type>;
 
         auto offset_bytes = sizeof(value_type);
-        auto sizes = std::make_shared<container_type>(_M_sizes, offset_bytes);
-        auto strides = std::make_shared<container_type>(_M_strides, offset_bytes);
-        auto offsets = std::make_shared<container_type>(_M_offsets, offset_bytes);
+        accessor._M_sizes = std::make_shared<container_type>(_M_sizes, offset_bytes);
+        accessor._M_strides = std::make_shared<container_type>(_M_strides, offset_bytes);
+        accessor._M_offsets = std::make_shared<container_type>(_M_offsets, offset_bytes);
 
-        return tensor_accessor(_M_dim, sizes, strides, offsets);
+        return accessor;
     }
 
     template <allocator_t<value_type> Allocator = random_memory_allocator<value_type>>
@@ -219,18 +220,6 @@ private:
     container_pointer _M_sizes;
     container_pointer _M_strides;
     container_pointer _M_offsets;
-
-    tensor_accessor(
-        std::size_t dim,
-        container_pointer sizes,
-        container_pointer strides,
-        container_pointer offsets
-    )
-    : _M_dim(dim),
-      _M_sizes(sizes),
-      _M_strides(strides),
-      _M_offsets(offsets)
-    {}
 
     void
     requires_dimension(value_type dim) const
