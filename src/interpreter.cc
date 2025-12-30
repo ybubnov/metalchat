@@ -74,7 +74,7 @@ interpreter::interpreter(
   _M_encoder(encoder),
   _M_max_pos(max_pos),
   _M_start_pos(0),
-  _M_buf(1, encoder.encode(text::special_token::begin_text))
+  _M_buf(1, encoder.encode(text::token::begin_text))
 {
     // Do not escape characters, leave them as is. This is the global configuration,
     // so unfortunately this line changes behaviour for the whole library.
@@ -114,9 +114,9 @@ interpreter::write_header(const std::string& role)
 {
     auto output = std::back_inserter(_M_buf);
 
-    _M_encoder.encode(text::special_token::begin_header, output);
+    _M_encoder.encode(text::token::begin_header, output);
     _M_encoder.encode(role, output);
-    _M_encoder.encode(text::special_token::end_header, output);
+    _M_encoder.encode(text::token::end_header, output);
     _M_encoder.encode("\n\n", output);
 }
 
@@ -129,7 +129,7 @@ interpreter::write(const basic_message& message)
     auto output = std::back_inserter(_M_buf);
     auto content = mustache::render(message.content(), _M_members->vars);
     _M_encoder.encode(content, output);
-    _M_encoder.encode(text::special_token::end_turn, output);
+    _M_encoder.encode(text::token::end_turn, output);
 }
 
 

@@ -15,113 +15,54 @@
 #include <queue>
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <unordered_map>
 #include <vector>
 
 #include <metalchat/container.h>
 #include <metalchat/tensor.h>
+#include <metalchat/text/regexp.h>
 
 
 namespace metalchat {
 namespace text {
 
 
-class regexp_iterator;
-
-
-class regexp {
-public:
-    regexp(const std::string& regex);
-    regexp(const char* regex);
-
-    regexp_iterator
-    begin(const std::string&) const;
-
-    regexp_iterator
-    end() const;
-
-private:
-    struct _RegularExpression;
-    std::shared_ptr<_RegularExpression> _M_impl;
-
-    friend class regexp_iterator;
-};
-
-
-/// Regular expression iterator.
+/// Specifies kind of the token.
 ///
-/// This iterator is used to provide convenient interface to access match group
-/// data. So every match is considered an element of the backing container and
-/// this iterator returns matches sequentially until the last match.
-class regexp_iterator {
-public:
-    using iterator_category = std::forward_iterator_tag;
-    using value_type = std::string;
-    using reference = value_type&;
-    using pointer = value_type*;
-    using difference_type = std::ptrdiff_t;
+/// Tokens are used to transform a natural language sentences into a vector of integers
+/// mapping them to a embedding space of the respective language model. There are specific
+/// kinds of tokens that allow to instruct the model for a specific behaviour.
+using tokenkind = int32_t;
 
-    /// Advance the iterator to the next regular expression match.
-    regexp_iterator&
-    operator++();
 
-    /// Return the current match of the regular expression.
-    ///
-    /// The method throws `std::runtime_error` when it is called on a terminated iterator.
-    value_type
-    operator*();
-
-    /// Compares two regular expression iterators.
-    ///
-    /// The implementation is naive for simplicity reasons, and only compares
-    /// the ends of iterators.
-    bool
-    operator!=(const regexp_iterator&);
-
-    /// Initialize the end-of-match-group iterator.
-    regexp_iterator();
-
-    /// Initializes the iterators, stores the address of `regexp` in data member, and performs
-    /// the finds the first match from the input string to initialize match group members.
-    regexp_iterator(const regexp& regex, const std::string& input);
-
-private:
-    struct _RegularExpressionIterator;
-    std::shared_ptr<_RegularExpressionIterator> _M_impl;
-
-    /// Advance the iterator to the next match group.
-    void
-    next();
-
-    /// Get the current match group value.
-    value_type
-    get();
-
-    friend class regexp;
+struct token {
+    static constexpr tokenkind regular = 1 << 0;
+    static constexpr tokenkind begin_text = 1 << 1;
+    static constexpr tokenkind end_text = 1 << 2;
+    static constexpr tokenkind reserved = 1 << 3;
+    static constexpr tokenkind finetune_right_pad = 1 << 4;
+    static constexpr tokenkind begin_header = 1 << 5;
+    static constexpr tokenkind end_header = 1 << 6;
+    static constexpr tokenkind end_message = 1 << 7;
+    static constexpr tokenkind end_turn = 1 << 8;
+    static constexpr tokenkind ipython = 1 << 9;
 };
 
 
-class base64 {
-public:
-    static std::string
-    decode(const std::string&);
-};
+/// Returns a reserved token string representation for the specified index.
+///
+/// \param index An index of the token.
+std::string
+make_reserved_token(int32_t index);
 
 
-/// Special token is an enumeration of token values used to produce complex prompts for a
-/// language model.
-enum special_token {
-    begin_text,
-    end_text,
-    reserved0,
-    reserved1,
-    finetune_right_pad,
-    reserved2,
-    begin_header,
-    end_header,
-    end_message,
-    end_turn,
-    ipython,
+/// A concept that requires an iterator to dereference a tuple comprised of three elements:
+/// (i) token string representation, (ii) token index, and (iii) type of the token.
+template <typename It, typename T = std::iterator_traits<It>::value_type>
+concept input_token_iterator_t = requires {
+    requires std::input_iterator<It>;
+    requires std::same_as<T, std::tuple<std::string, int32_t, tokenkind>>;
 };
 
 
@@ -154,47 +95,19 @@ enum special_token {
 /// std::cout << string << std::endl;
 /// // output: This is a test sentence.
 /// ```
-template <typename RegularExpression = regexp> class byte_pair_encoder {
+template <typename RegularExpression> class byte_pair_encoder {
 public:
     using string_type = std::string;
 
     /// Type used to indicate position of the token in the model (token dictionary).
     using index_type = int32_t;
 
-    static std::string
-    make_reserved_token(const index_type& token_id)
-    {
-        return std::format("<|reserved_special_token_{}|>", token_id);
-    }
-
-    const std::unordered_map<index_type, std::string> special_tokens = {
-        {special_token::begin_text, "<|begin_of_text|>"},
-        {special_token::end_text, "<|end_of_text|>"},
-        {special_token::reserved0, make_reserved_token(0)},
-        {special_token::reserved1, make_reserved_token(1)},
-        {special_token::finetune_right_pad, "<|finetune_right_pad_id|>"},
-        {special_token::reserved2, make_reserved_token(2)},
-        {special_token::begin_header, "<|start_header_id|>"},
-        {special_token::end_header, "<|end_header_id|>"},
-        {special_token::end_message, "<|eom_id|>"},
-        {special_token::end_turn, "<|eot_id|>"},
-        {special_token::ipython, "<|python_tag|>"},
-    };
-
 private:
-    std::unordered_map<string_type, index_type, _StringHash> _M_fmap;
-    std::unordered_map<index_type, string_type> _M_rmap;
+    std::unordered_map<string_type, index_type, _StringHash> _M_forward_mapping;
+    std::unordered_map<index_type, string_type> _M_inverse_mapping;
+    std::unordered_map<tokenkind, index_type> _M_control_mapping;
 
     std::shared_ptr<RegularExpression> _M_re;
-
-    /// A regular expression string that is used to split the input text into tokens.
-    static constexpr const char* token_regex = (R"((?i:'s|'t|'re|'ve|'m|'ll|'d)|)"
-                                                R"([^\r\n\p{L}\p{N}]?\p{L}+|)"
-                                                R"(\p{N}{1,3}|)"
-                                                R"( ?[^\s\p{L}\p{N}]+[\r\n]*|)"
-                                                R"(\s*[\r\n]+|)"
-                                                R"(\s+(?!\S)|)"
-                                                R"(\s+)");
 
     /// This structure is used in the byte-pair merging algorithm.
     struct token_segment {
@@ -230,7 +143,7 @@ private:
         // Get the priority from the map, when the key is not presented, return a
         // limit of the priority type.
         auto get_priority = [&](const std::string& key) -> index_type {
-            if (auto it = _M_fmap.find(key); it != _M_fmap.end()) {
+            if (auto it = _M_forward_mapping.find(key); it != _M_forward_mapping.end()) {
                 return it->second;
             }
             return priority_limit;
@@ -279,11 +192,6 @@ private:
     }
 
 public:
-    static constexpr index_type pad = -1;
-
-    /// Number of special tokens used to prepare the input for the model.
-    static constexpr const index_type nspecial = 256;
-
     /// The \ref byte_pair_encoder copy constructor.
     byte_pair_encoder(const byte_pair_encoder&) = default;
 
@@ -295,8 +203,9 @@ public:
     /// \param is An input stream containing tokenizer model.
     /// \param token_regex A regular expression to split the input string into tokens.
     byte_pair_encoder(std::istream& is, const std::string& token_regex)
-    : _M_fmap(),
-      _M_rmap(),
+    : _M_forward_mapping(),
+      _M_inverse_mapping(),
+      _M_control_mapping(),
       _M_re(std::make_shared<RegularExpression>(token_regex))
     {
         std::string line;
@@ -308,8 +217,20 @@ public:
             index_type key = std::stoi(value_part);
             string_type value = base64::decode(key_part);
 
-            _M_fmap.insert(std::make_pair(value, key));
-            _M_rmap.insert(std::make_pair(key, value));
+            insert(value, key);
+        }
+    }
+
+    template <input_token_iterator_t InputIt>
+    byte_pair_encoder(InputIt first, InputIt last, const std::string& token_regex)
+    : _M_forward_mapping(),
+      _M_inverse_mapping(),
+      _M_control_mapping(),
+      _M_re(std::make_shared<RegularExpression>(token_regex))
+    {
+        for (auto it = first; it != last; ++it) {
+            auto [key, value, kind] = *it;
+            insert(value, key, kind);
         }
     }
 
@@ -328,32 +249,35 @@ public:
     : byte_pair_encoder(std::ifstream(p, std::ios::binary), token_regex)
     {}
 
-    /// Create an instance of a byte-pair encoder using a base64-encoded token map.
-    ///
-    /// By default, encoder uses regular expression for Meta Llama 3.2 model.
-    ///
-    /// \param p A path to the tokenizer model.
-    byte_pair_encoder(const std::filesystem::path& p)
-    : byte_pair_encoder(p, byte_pair_encoder::token_regex)
-    {}
-
     /// Convenience constructor, interprets `path` argument as path to the tokenizer model.
     ///
     /// \param path A path to the tokenizer model.
-    byte_pair_encoder(const char* path)
-    : byte_pair_encoder(std::filesystem::path(path))
+    byte_pair_encoder(const char* path, const std::string& token_regex)
+    : byte_pair_encoder(std::filesystem::path(path), token_regex)
     {}
 
-    bool
-    is_special(index_type id) const
+    void
+    insert(const std::string& value, index_type key, tokenkind kind = token::regular)
     {
-        return id >= size();
+        _M_forward_mapping.insert(std::make_pair(value, key));
+        _M_inverse_mapping.insert(std::make_pair(key, value));
+
+        if (kind != token::regular) {
+            _M_control_mapping.insert(std::make_pair(kind, key));
+        }
+    }
+
+    void
+    insert_back(const std::string& value, tokenkind kind = token::regular)
+    {
+        auto key = static_cast<index_type>(size());
+        insert(value, key, kind);
     }
 
     std::size_t
     size() const
     {
-        return _M_fmap.size();
+        return _M_forward_mapping.size();
     }
 
     /// Encode the provided string into tokens.
@@ -368,7 +292,7 @@ public:
     {
         for (auto match = _M_re->begin(s); match != _M_re->end(); ++match) {
             auto key = (*match);
-            if (auto it = _M_fmap.find(key); it != _M_fmap.end()) {
+            if (auto it = _M_forward_mapping.find(key); it != _M_forward_mapping.end()) {
                 *output++ = it->second;
             } else {
                 _M_encode_byte_pairs(key, output);
@@ -380,15 +304,14 @@ public:
     ///
     /// Method returns a position of a special token within a tokenizer model.
     index_type
-    encode(const special_token& s) const
+    encode(const tokenkind& kind) const
     {
-        auto index = static_cast<index_type>(s);
-        if (index > nspecial) {
-            throw std::invalid_argument(
-                std::format("byte_pair_encoder: unknown special token '{}'", index)
-            );
+        if (auto it = _M_control_mapping.find(kind); it != _M_control_mapping.end()) {
+            return it->second;
         }
-        return _M_fmap.size() + index;
+        throw std::invalid_argument(
+            std::format("byte_pair_encoder: unknown control token '{}'", kind)
+        );
     }
 
     /// Encode a special token.
@@ -396,9 +319,9 @@ public:
     /// Method encodes the provided special token and pushes the result to the output iterator.
     template <std::output_iterator<index_type> OutputIt>
     void
-    encode(const special_token& s, OutputIt output) const
+    encode(const tokenkind& kind, OutputIt output) const
     {
-        *output++ = encode(s);
+        *output++ = encode(kind);
     }
 
     auto
@@ -416,10 +339,7 @@ public:
     const std::string
     decode(index_type id) const
     {
-        if (auto tok = _M_rmap.find(id); tok != _M_rmap.end()) {
-            return tok->second;
-        }
-        if (auto tok = special_tokens.find(id - _M_rmap.size()); tok != special_tokens.end()) {
+        if (auto tok = _M_inverse_mapping.find(id); tok != _M_inverse_mapping.end()) {
             return tok->second;
         }
         throw std::runtime_error(std::format("byte_pair_encoder: unable to decode id '{}'", id));

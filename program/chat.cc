@@ -58,13 +58,13 @@ chat_command::create()
     replxx::Replxx shell;
 
     auto repo_path = std::filesystem::path(_M_create_options.model);
-    auto tokens_path = repo_path / "tokenizer.model";
+    auto tokenizer_path = repo_path / "tokenizer.model";
 
     metalchat::reference::llama3_autoloader loader(repo_path);
-    metalchat::text::bpe tokenizer(tokens_path);
-
     auto options = metalchat::nn::default_llama3_1b_options();
     auto transformer = loader.load(options);
+
+    auto tokenizer = metalchat::reference::make_tokenizer(tokenizer_path);
     auto interp = metalchat::interpreter(transformer, tokenizer);
 
     for (;;) {

@@ -8,7 +8,7 @@
 #include <metalchat/nn/llama.h>
 #include <metalchat/nn/transformer.h>
 #include <metalchat/quantization.h>
-#include <metalchat/text/bpe.h>
+#include <metalchat/text.h>
 
 #include "metalchat/testing.h"
 
@@ -71,10 +71,10 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
     model_adaptor.adapt_pre(model_base);
 
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct-QLORA_INT4_EO8";
-    auto bpe_path = repo_path / "tokenizer.model";
+    auto tokenizer_path = repo_path / "tokenizer.model";
     auto model_path = repo_path / "model.safetensors";
 
-    metalchat::text::bpe bpe(bpe_path);
+    auto tokenizer = reference::make_tokenizer(tokenizer_path);
     safetensor_document::load(model_path, model);
     model_adaptor.adapt_post(model_base);
 
@@ -86,20 +86,20 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
     auto input_text = std::string("I have a dog called");
 
     std::vector<int32_t> ids;
-    bpe.encode(text::special_token::begin_text, std::back_inserter(ids));
-    bpe.encode(input_text, std::back_inserter(ids));
+    tokenizer.encode(text::token::begin_text, std::back_inserter(ids));
+    tokenizer.encode(input_text, std::back_inserter(ids));
 
     auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));
     auto logit0 = model(input0, 0);
     auto id = top_p(logit0.flatten<2>(), bf16(0.6f), bf16(0.9), gpu0);
 
     std::cout << input_text;
-    std::cout << bpe.decode(id.get()[0, 0]);
+    std::cout << tokenizer.decode(id.get()[0, 0]);
 
     for (std::size_t i = input0.size(1); i < 32; i++) {
         auto logits = model(id, i).flatten<2>();
         id = top_p(logits, bf16(0.6f), bf16(0.9f), gpu0);
 
-        std::cout << bpe.decode(id.get()[0, 0]) << std::flush;
+        std::cout << tokenizer.decode(id.get()[0, 0]) << std::flush;
     }
 }

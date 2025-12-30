@@ -19,11 +19,12 @@ using namespace metalchat;
 TEST_CASE("Test interpreter", "[llama]")
 {
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
-    auto tokens_path = repo_path / "tokenizer.model";
+    auto tokenizer_path = repo_path / "tokenizer.model";
 
-    text::bpe tokenizer(tokens_path);
+    reference::llama3_tokenizer_loader tokenizer_loader(tokenizer_path);
     reference::llama3_autoloader loader(repo_path);
 
+    auto tokenizer = tokenizer_loader.load();
     auto transformer = loader.load(nn::default_llama3_1b_options());
     auto interp = interpreter(transformer, tokenizer);
 
@@ -68,9 +69,9 @@ TEST_CASE("Test filebuf interpreter", "[llama]")
     SKIP();
 
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct";
-    auto tokens_path = repo_path / "original/tokenizer.model";
+    auto tokenizer_path = repo_path / "original/tokenizer.model";
 
-    text::bpe tokenizer(tokens_path);
+    auto tokenizer = reference::make_tokenizer(tokenizer_path);
 
     using Transformer = reference::llama3_traits<bf16, filebuf_memory_container<bf16>>;
     using Autoloader = autoloader<Transformer>;

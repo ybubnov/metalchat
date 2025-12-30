@@ -5,7 +5,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_vector.hpp>
 
-#include <metalchat/text/bpe.h>
+#include <metalchat/autoloader.h>
 
 #include "metalchat/testing.h"
 
@@ -23,7 +23,7 @@ tokenizer_path()
 
 TEST_CASE("Test BPE encode and decode", "[bpe]")
 {
-    byte_pair_encoder tokenizer(tokenizer_path());
+    auto tokenizer = reference::make_tokenizer(tokenizer_path());
 
     auto ids = tokenizer.encode("This is a test sentence.");
     REQUIRE(ids.size(0) == 6);
@@ -36,7 +36,7 @@ TEST_CASE("Test BPE encode and decode", "[bpe]")
     REQUIRE(str == "This is a test sentence.");
 
     std::vector<int32_t> tokens;
-    tokenizer.encode(special_token::begin_text, std::back_inserter(tokens));
+    tokenizer.encode(token::begin_text, std::back_inserter(tokens));
     REQUIRE(tokens.size() == 1);
     REQUIRE(tokens[0] == 128000);
 }
@@ -44,7 +44,7 @@ TEST_CASE("Test BPE encode and decode", "[bpe]")
 
 TEST_CASE("Encode pairs with byte merge", "[bpe]")
 {
-    byte_pair_encoder tokenizer(tokenizer_path());
+    auto tokenizer = reference::make_tokenizer(tokenizer_path());
 
     auto ids = tokenizer.encode("And his name is John Cena.");
 
@@ -57,8 +57,7 @@ TEST_CASE("Encode pairs with byte merge", "[bpe]")
 
 TEST_CASE("Encode ipython word", "[bpe]")
 {
-    byte_pair_encoder tokenizer(tokenizer_path());
-
+    auto tokenizer = reference::make_tokenizer(tokenizer_path());
     auto ids = tokenizer.encode(" ipython");
 
     auto str = tokenizer.decode(ids.data_ptr(), ids.data_ptr() + ids.size(0));
@@ -68,17 +67,17 @@ TEST_CASE("Encode ipython word", "[bpe]")
 
 TEST_CASE("Encode unknown words", "[bpe]")
 {
-    byte_pair_encoder tokenizer(tokenizer_path());
-
+    auto tokenizer = reference::make_tokenizer(tokenizer_path());
     auto ids = tokenizer.encode("This is debatable topic.");
+
     REQUIRE(ids.size(0) > 0);
 }
 
 
-TEST_CASE("Decode special token", "bpe")
+TEST_CASE("Decode control token", "bpe")
 {
-    byte_pair_encoder tokenizer(tokenizer_path());
-
+    auto tokenizer = reference::make_tokenizer(tokenizer_path());
     auto token = tokenizer.decode(128001);
+
     REQUIRE(token == "<|end_of_text|>");
 }

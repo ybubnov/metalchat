@@ -53,9 +53,9 @@ public:
     void
     encode(const text::bpe& encoder, OutputIt output) const
     {
-        encoder.encode(text::special_token::begin_header, output);
+        encoder.encode(text::token::begin_header, output);
         encoder.encode(_M_role, output);
-        encoder.encode(text::special_token::end_header, output);
+        encoder.encode(text::token::end_header, output);
         encoder.encode("\n\n", output);
         encoder.encode(_M_content, output);
     }
@@ -294,23 +294,16 @@ private:
         auto stream = flush();
         auto token = stream.get()[0, 0];
 
-        auto end = index_type(0);
-        end |= bitset_token_cast(_M_encoder.encode(text::special_token::end_turn));
-        end |= bitset_token_cast(_M_encoder.encode(text::special_token::end_message));
+        auto end_turn = _M_encoder.encode(text::token::end_turn);
+        auto end_message = _M_encoder.encode(text::token::end_message);
 
-        while (!(_M_encoder.is_special(token) && (bitset_token_cast(token) & end))) {
+        while (token != end_turn && token != end_message) {
             *it++ = _M_encoder.decode(token);
             stream = _M_transformer->transform(stream, _M_start_pos++);
             token = stream.get()[0, 0];
         }
 
         return stream;
-    }
-
-    index_type
-    bitset_token_cast(index_type id) const
-    {
-        return (1 << (id - _M_encoder.size()));
     }
 };
 
