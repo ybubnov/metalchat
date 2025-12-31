@@ -10,6 +10,7 @@ XML_PROGRAMLISTING = YES
 
 MACRO_EXPANSION = YES
 EXPAND_ONLY_PREDEF = YES
+EXTRACT_STATIC = YES
 
 ALIASES = "rst=\verbatim embed:rst"
 ALIASES += "endrst=\endverbatim"

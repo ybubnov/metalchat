@@ -253,10 +253,16 @@ public:
     /// Convenience constructor, interprets `path` argument as path to the tokenizer model.
     ///
     /// \param path A path to the tokenizer model.
+    /// \param token_regex A regular expression to split the input string into tokens.
     byte_pair_encoder(const char* path, const std::string& token_regex)
     : byte_pair_encoder(std::filesystem::path(path), token_regex)
     {}
 
+    /// Insert a new token-pair into the encoder.
+    ///
+    /// \param value A string representation of a token.
+    /// \param key Target encoding of a token (a position in the token embedding).
+    /// \param kind A type of the token, used for special token binding.
     void
     insert(const std::string& value, index_type key, tokenkind kind = token::regular)
     {
@@ -268,6 +274,10 @@ public:
         }
     }
 
+    /// Insert a new token by binding it to the last position (in the token embedding).
+    ///
+    /// \param value A string representation of a token.
+    /// \param kind A type of the token, used for special token binding.
     void
     insert_back(const std::string& value, tokenkind kind = token::regular)
     {
@@ -275,6 +285,7 @@ public:
         insert(value, key, kind);
     }
 
+    /// Returns the number of all available tokens in the encoder.
     std::size_t
     size() const
     {
@@ -303,9 +314,11 @@ public:
 
     /// Encode a special token.
     ///
-    /// Method returns a position of a special token within a tokenizer model.
+    /// Method returns a position of a special token within a tokenizer model. When a token is
+    /// a `token::regular` kind, then method raises an exception. Regular token encoding is
+    /// available through \ref encode(const std::string&, OutputIt) const method.
     index_type
-    encode(const tokenkind& kind) const
+    encode(tokenkind kind) const
     {
         if (auto it = _M_control_mapping.find(kind); it != _M_control_mapping.end()) {
             return it->second;
@@ -320,7 +333,7 @@ public:
     /// Method encodes the provided special token and pushes the result to the output iterator.
     template <std::output_iterator<index_type> OutputIt>
     void
-    encode(const tokenkind& kind, OutputIt output) const
+    encode(tokenkind kind, OutputIt output) const
     {
         *output++ = encode(kind);
     }

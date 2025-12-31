@@ -17,3 +17,7 @@ dl.enumerator {
     font-style: italic;
     font-weight: normal;
 }
+
+dl.cpp.var {
+    margin-bottom: 0;
+};

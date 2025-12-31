@@ -18,7 +18,7 @@
 namespace metalchat {
 
 
-/// A layer adaptor that is used by \ref autoloader to prepare the model for the usage.
+/// A layer adaptor that is used by autoloader to prepare the model for the usage.
 ///
 /// Depending on the layer type and type of model distribution, the adaptor could be used to
 /// (1) map weight names from one implementation to another, (2) rebuild a model to load
@@ -208,6 +208,10 @@ struct llama3_options_loader {
 };
 
 
+/// Reference implementation of the Llama3 tokenizer.
+///
+/// This loader implements loading of a tokenizer model in a reference (tiktoken) format. It
+/// expects that `load` methods receives a file in a tiktoken format.
 struct llama3_tokenizer_loader {
     using tokenizer_type = text::byte_pair_encoder<text::regexp>;
 
@@ -223,15 +227,33 @@ struct llama3_tokenizer_loader {
          R"(\s+)");
     // clang-format on
 
+    /// Load a tokenizer from the input stream.
+    ///
+    /// \param is An input stream containing tokenizer model (tiktoken format).
+    /// \param token_regex A regular expression used to split a string into tokens.
     tokenizer_type
     load(std::istream& is, const std::string& token_regex) const;
 
+    /// Load a tokenizer from the local file.
+    ///
+    /// \param p A path to the file containing tokenizer model (tiktoken format).
+    /// \param token_regex A regular expression used to split a string into tokens.
     tokenizer_type
     load(const std::filesystem::path& p, const std::string& token_regex) const;
 
+    /// Load a tokenizer from the input stream.
+    ///
+    /// The implementation uses a \ref default_regex to split sentence into tokens.
+    ///
+    /// See also \ref load(std::istream&, const std::string&) const.
     tokenizer_type
     load(std::istream& is) const;
 
+    /// Load a tokenizer from the local file.
+    ///
+    /// The implementation uses a \ref default_regex to split sentence into tokens.
+    ///
+    /// See also \ref load(const std::filesystem::path&, const std::string&) const.
     tokenizer_type
     load(const std::filesystem::path& p) const;
 
