@@ -21,10 +21,9 @@ TEST_CASE("Test interpreter", "[llama]")
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
     auto tokenizer_path = repo_path / "tokenizer.model";
 
-    reference::llama3_tokenizer_loader tokenizer_loader(tokenizer_path);
     reference::llama3_autoloader loader(repo_path);
 
-    auto tokenizer = tokenizer_loader.load();
+    auto tokenizer = reference::make_tokenizer(tokenizer_path);
     auto transformer = loader.load(nn::default_llama3_1b_options());
     auto interp = interpreter(transformer, tokenizer);
 

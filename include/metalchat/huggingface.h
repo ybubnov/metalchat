@@ -5,3 +5,4 @@
 #pragma once
 
 #include <metalchat/huggingface/llama.h>
+#include <metalchat/huggingface/text.h>

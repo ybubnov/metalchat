@@ -208,65 +208,40 @@ struct llama3_options_loader {
 };
 
 
-template <typename RegularExpression = text::regexp> class llama3_tokenizer_loader {
-public:
-    using tokenizer_type = text::byte_pair_encoder<RegularExpression>;
+struct llama3_tokenizer_loader {
+    using tokenizer_type = text::byte_pair_encoder<text::regexp>;
 
     /// A regular expression string that is used to split the input text into tokens.
-    static constexpr std::string_view default_regex = (R"((?i:'s|'t|'re|'ve|'m|'ll|'d)|)"
-                                                       R"([^\r\n\p{L}\p{N}]?\p{L}+|)"
-                                                       R"(\p{N}{1,3}|)"
-                                                       R"( ?[^\s\p{L}\p{N}]+[\r\n]*|)"
-                                                       R"(\s*[\r\n]+|)"
-                                                       R"(\s+(?!\S)|)"
-                                                       R"(\s+)");
-
-    llama3_tokenizer_loader(const std::filesystem::path& local_path)
-    : _M_local_path(local_path)
-    {}
-
-    tokenizer_type
-    load(const std::string& token_regex) const
-    {
-        tokenizer_type bpe(_M_local_path, token_regex);
-        insert_control_tokens(bpe);
-        return bpe;
-    }
+    // clang-format off
+    static constexpr std::string_view default_regex =
+        (R"((?i:'s|'t|'re|'ve|'m|'ll|'d)|)"
+         R"([^\r\n\p{L}\p{N}]?\p{L}+|)"
+         R"(\p{N}{1,3}|)"
+         R"( ?[^\s\p{L}\p{N}]+[\r\n]*|)"
+         R"(\s*[\r\n]+|)"
+         R"(\s+(?!\S)|)"
+         R"(\s+)");
+    // clang-format on
 
     tokenizer_type
-    load() const
-    {
-        return load(std::string(default_regex));
-    }
+    load(std::istream& is, const std::string& token_regex) const;
 
-    void
-    insert_control_tokens(tokenizer_type& bpe) const
-    {
-        bpe.insert_back("<|begin_of_text|>", text::token::begin_text);
-        bpe.insert_back("<|end_of_text|>", text::token::end_text);
-        bpe.insert_back(text::make_reserved_token(0), text::token::reserved);
-        bpe.insert_back(text::make_reserved_token(1), text::token::reserved);
-        bpe.insert_back("<|finetune_right_pad_id|>", text::token::finetune_right_pad);
-        bpe.insert_back(text::make_reserved_token(2), text::token::reserved);
-        bpe.insert_back("<|start_header_id|>", text::token::begin_header);
-        bpe.insert_back("<|end_header_id|>", text::token::end_header);
-        bpe.insert_back("<|eom_id|>", text::token::end_message);
-        bpe.insert_back("<|eot_id|>", text::token::end_turn);
-        bpe.insert_back("<|python_tag|>", text::token::ipython);
-    }
+    tokenizer_type
+    load(const std::filesystem::path& p, const std::string& token_regex) const;
 
-private:
-    std::filesystem::path _M_local_path;
+    tokenizer_type
+    load(std::istream& is) const;
+
+    tokenizer_type
+    load(const std::filesystem::path& p) const;
+
+    static void
+    insert_control_tokens(tokenizer_type& bpe);
 };
 
 
-template <typename RegularExpression = text::regexp>
-text::byte_pair_encoder<RegularExpression>
-make_tokenizer(const std::filesystem::path& local_path)
-{
-    llama3_tokenizer_loader<RegularExpression> loader(local_path);
-    return loader.load();
-}
+text::byte_pair_encoder<text::regexp>
+make_tokenizer(const std::filesystem::path& local_path);
 
 
 template <typename T = bf16, contiguous_container Container = hardware_memory_container<T>>

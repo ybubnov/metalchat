@@ -76,3 +76,50 @@ TEST_CASE("Test llama3 options loader", "[huggingface]")
     REQUIRE_THAT(options.rope_theta(), WithinRel(500000.0, 0.01));
     REQUIRE_THAT(options.norm_eps(), WithinRel(1e-5, 0.01));
 }
+
+
+TEST_CASE("Test llama3 tokenizer loader", "[huggingface]")
+{
+    const std::string tokenizer_json = R"({
+      "version": "1.0",
+      "truncation": null,
+      "padding": null,
+      "added_tokens": [],
+      "normalizer": null,
+      "pre_tokenizer": {
+        "type": "Sequence",
+        "pretokenizers": [
+          {
+            "type": "Split",
+            "pattern": {
+              "Regex": "(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\\r\\n\\p{L}\\p{N}]?\\p{L}+|\\p{N}{1,3}| ?[^\\s\\p{L}\\p{N}]+[\\r\\n]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+"
+            },
+            "behavior": "Isolated",
+            "invert": false
+          },
+          {"type": "ByteLevel", "add_prefix_space": false, "trim_offsets": true, "use_regex": false}
+        ]
+      },
+      "model": {
+        "type": "BPE",
+        "dropout": null,
+        "unk_token": null,
+        "continuing_subword_prefix": null,
+        "end_of_word_suffix": null,
+        "fuse_unk": false,
+        "byte_fallback": false,
+        "ignore_merges": true,
+        "vocab": {"!": 0, "\"": 1, "#": 2, "$": 3, "%": 4},
+        "merges": []
+      }
+    })";
+
+    std::stringstream input(tokenizer_json);
+
+    huggingface::llama3_tokenizer_loader loader;
+    auto tokenizer = loader.load(input);
+
+    REQUIRE(tokenizer.size() == 16);
+    REQUIRE(tokenizer.decode(4) == "%");
+    REQUIRE(tokenizer.encode("#")[0] == 2);
+}

@@ -195,6 +195,13 @@ public:
     /// The \ref byte_pair_encoder copy constructor.
     byte_pair_encoder(const byte_pair_encoder&) = default;
 
+    byte_pair_encoder(const std::string& token_regex)
+    : _M_forward_mapping(),
+      _M_inverse_mapping(),
+      _M_control_mapping(),
+      _M_re(std::make_shared<RegularExpression>(token_regex))
+    {}
+
     /// Create an instance of a byte-pair encoder using a base64-encoded token map.
     ///
     /// This constructor reads token map from the specified input stream line-by-line and
@@ -203,10 +210,7 @@ public:
     /// \param is An input stream containing tokenizer model.
     /// \param token_regex A regular expression to split the input string into tokens.
     byte_pair_encoder(std::istream& is, const std::string& token_regex)
-    : _M_forward_mapping(),
-      _M_inverse_mapping(),
-      _M_control_mapping(),
-      _M_re(std::make_shared<RegularExpression>(token_regex))
+    : byte_pair_encoder(token_regex)
     {
         std::string line;
         while (std::getline(is, line)) {
@@ -223,10 +227,7 @@ public:
 
     template <input_token_iterator_t InputIt>
     byte_pair_encoder(InputIt first, InputIt last, const std::string& token_regex)
-    : _M_forward_mapping(),
-      _M_inverse_mapping(),
-      _M_control_mapping(),
-      _M_re(std::make_shared<RegularExpression>(token_regex))
+    : byte_pair_encoder(token_regex)
     {
         for (auto it = first; it != last; ++it) {
             auto [key, value, kind] = *it;
@@ -259,11 +260,11 @@ public:
     void
     insert(const std::string& value, index_type key, tokenkind kind = token::regular)
     {
-        _M_forward_mapping.insert(std::make_pair(value, key));
-        _M_inverse_mapping.insert(std::make_pair(key, value));
+        _M_forward_mapping.insert_or_assign(value, key);
+        _M_inverse_mapping.insert_or_assign(key, value);
 
         if (kind != token::regular) {
-            _M_control_mapping.insert(std::make_pair(kind, key));
+            _M_control_mapping.insert_or_assign(kind, key);
         }
     }
 
