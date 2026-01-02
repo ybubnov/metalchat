@@ -6,9 +6,9 @@
 #include <catch2/matchers/catch_matchers_vector.hpp>
 
 #include <metalchat/accelerator.h>
-#include <metalchat/autoloader.h>
 #include <metalchat/functional.h>
 #include <metalchat/nn.h>
+#include <metalchat/reference.h>
 #include <metalchat/tensor.h>
 
 #include "metalchat/testing.h"

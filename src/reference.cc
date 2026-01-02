@@ -4,8 +4,8 @@
 
 #include <jsoncons/json.hpp>
 
-#include <metalchat/autoloader.h>
 #include <metalchat/nn/options.h>
+#include <metalchat/reference.h>
 
 
 namespace metalchat {
@@ -73,16 +73,16 @@ llama3_options_loader::load(std::istream& is) const
 }
 
 
-llama3_tokenizer_loader::tokenizer_type
+llama3_tokenizer_loader::type
 llama3_tokenizer_loader::load(std::istream& is, const std::string& token_regex) const
 {
-    tokenizer_type tokenizer(is, token_regex);
+    type tokenizer(is, token_regex);
     insert_control_tokens(tokenizer);
     return tokenizer;
 }
 
 
-llama3_tokenizer_loader::tokenizer_type
+llama3_tokenizer_loader::type
 llama3_tokenizer_loader::load(const std::filesystem::path& p, const std::string& token_regex) const
 {
     std::ifstream file(p, std::ios::binary | std::ios::in);
@@ -96,14 +96,14 @@ llama3_tokenizer_loader::load(const std::filesystem::path& p, const std::string&
 }
 
 
-llama3_tokenizer_loader::tokenizer_type
+llama3_tokenizer_loader::type
 llama3_tokenizer_loader::load(std::istream& is) const
 {
     return load(is, std::string(default_regex));
 }
 
 
-llama3_tokenizer_loader::tokenizer_type
+llama3_tokenizer_loader::type
 llama3_tokenizer_loader::load(const std::filesystem::path& p) const
 {
     return load(p, std::string(default_regex));
@@ -111,7 +111,7 @@ llama3_tokenizer_loader::load(const std::filesystem::path& p) const
 
 
 void
-llama3_tokenizer_loader::insert_control_tokens(tokenizer_type& tokenizer)
+llama3_tokenizer_loader::insert_control_tokens(type& tokenizer)
 {
     tokenizer.insert_back("<|begin_of_text|>", text::token::begin_text);
     tokenizer.insert_back("<|end_of_text|>", text::token::end_text);
@@ -124,14 +124,6 @@ llama3_tokenizer_loader::insert_control_tokens(tokenizer_type& tokenizer)
     tokenizer.insert_back("<|eom_id|>", text::token::end_message);
     tokenizer.insert_back("<|eot_id|>", text::token::end_turn);
     tokenizer.insert_back("<|python_tag|>", text::token::ipython);
-}
-
-
-text::byte_pair_encoder<text::regexp>
-make_tokenizer(const std::filesystem::path& local_path)
-{
-    llama3_tokenizer_loader loader;
-    return loader.load(local_path);
 }
 
 

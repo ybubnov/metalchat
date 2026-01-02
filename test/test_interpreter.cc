@@ -5,10 +5,11 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <metalchat/allocator.h>
-#include <metalchat/autoloader.h>
 #include <metalchat/command.h>
 #include <metalchat/interpreter.h>
 #include <metalchat/nn.h>
+#include <metalchat/reference.h>
+#include <metalchat/repository.h>
 
 #include "metalchat/testing.h"
 
@@ -19,12 +20,12 @@ using namespace metalchat;
 TEST_CASE("Test interpreter", "[llama]")
 {
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
-    auto tokenizer_path = repo_path / "tokenizer.model";
 
-    reference::llama3_autoloader loader(repo_path);
+    auto repository = filesystem_repository<reference::llama3>(repo_path);
+    auto options = nn::default_llama3_1b_options();
+    auto tokenizer = repository.retrieve_tokenizer("tokenizer.model");
+    auto transformer = repository.retrieve_transformer("model.safetensors", options);
 
-    auto tokenizer = reference::make_tokenizer(tokenizer_path);
-    auto transformer = loader.load(nn::default_llama3_1b_options());
     auto interp = interpreter(transformer, tokenizer);
 
     auto command = R"({
@@ -67,18 +68,17 @@ TEST_CASE("Test filebuf interpreter", "[llama]")
 {
     SKIP();
 
-    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct";
-    auto tokenizer_path = repo_path / "original/tokenizer.model";
-
-    auto tokenizer = reference::make_tokenizer(tokenizer_path);
+    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
 
     using Transformer = reference::llama3_traits<bf16, filebuf_memory_container<bf16>>;
-    using Autoloader = autoloader<Transformer>;
+    using Repository = filesystem_repository<Transformer>;
     using Allocator = filebuf_memory_allocator<void>;
 
-    Autoloader loader(repo_path);
+    Repository repository(repo_path);
     auto options = nn::default_llama3_1b_options();
-    auto transformer = loader.load(options, Allocator());
+    auto tokenizer = repository.retrieve_tokenizer("tokenizer.model");
+    auto transformer = repository.retrieve_transformer("model.safetensors", options, Allocator());
+
     auto interp = interpreter(transformer, tokenizer);
 
     interp.write(basic_message("system", "You are a helpful assistant"));

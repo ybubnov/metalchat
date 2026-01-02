@@ -4,8 +4,8 @@
 
 #include <mstch/mstch.hpp>
 
-#include <metalchat/autoloader.h>
 #include <metalchat/interpreter.h>
+#include <metalchat/transformer.h>
 
 #include "metal_impl.h"
 

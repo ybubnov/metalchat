@@ -4,9 +4,9 @@
 
 #include <jsoncons/json.hpp>
 
-#include <metalchat/huggingface/llama.h>
-#include <metalchat/huggingface/text.h>
+#include <metalchat/huggingface.h>
 #include <metalchat/kernel/copy.h>
+#include <metalchat/reference.h>
 #include <metalchat/tensor/accessor.h>
 
 
@@ -177,7 +177,7 @@ llama3_document_adaptor::adapt(const safetensor_document& document) const
 }
 
 
-llama3_tokenizer_loader::tokenizer_type
+llama3_tokenizer_loader::type
 llama3_tokenizer_loader::load(std::istream& is) const
 {
     using model_type = metalchat::detail::hf::tokenizer;
@@ -194,7 +194,7 @@ llama3_tokenizer_loader::load(std::istream& is) const
         }
     }
 
-    llama3_tokenizer_loader::tokenizer_type tokenizer(token_regex);
+    llama3_tokenizer_loader::type tokenizer(token_regex);
     for (const auto& [value, key] : model_file.model.vocab) {
         tokenizer.insert(value, key, text::token::regular);
     }
@@ -204,7 +204,7 @@ llama3_tokenizer_loader::load(std::istream& is) const
 }
 
 
-llama3_tokenizer_loader::tokenizer_type
+llama3_tokenizer_loader::type
 llama3_tokenizer_loader::load(const std::filesystem::path& p) const
 {
     std::ifstream file(p, std::ios::binary | std::ios::in);

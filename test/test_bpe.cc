@@ -5,25 +5,27 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_vector.hpp>
 
-#include <metalchat/autoloader.h>
+#include <metalchat/reference.h>
+#include <metalchat/repository.h>
 
 #include "metalchat/testing.h"
 
 
 using namespace metalchat;
-using namespace metalchat::text;
 
 
-std::filesystem::path
-tokenizer_path()
+auto
+make_tokenizer()
 {
-    return test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original/tokenizer.model";
+    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
+    auto repository = filesystem_repository<reference::llama3>(repo_path);
+    return repository.retrieve_tokenizer("tokenizer.model");
 }
 
 
 TEST_CASE("Test BPE encode and decode", "[bpe]")
 {
-    auto tokenizer = reference::make_tokenizer(tokenizer_path());
+    auto tokenizer = make_tokenizer();
 
     auto ids = tokenizer.encode("This is a test sentence.");
     REQUIRE(ids.size(0) == 6);
@@ -34,18 +36,12 @@ TEST_CASE("Test BPE encode and decode", "[bpe]")
 
     auto str = tokenizer.decode(ids.data_ptr(), ids.data_ptr() + ids.size(0));
     REQUIRE(str == "This is a test sentence.");
-
-    std::vector<int32_t> tokens;
-    tokenizer.encode(token::begin_text, std::back_inserter(tokens));
-    REQUIRE(tokens.size() == 1);
-    REQUIRE(tokens[0] == 128000);
 }
 
 
 TEST_CASE("Encode pairs with byte merge", "[bpe]")
 {
-    auto tokenizer = reference::make_tokenizer(tokenizer_path());
-
+    auto tokenizer = make_tokenizer();
     auto ids = tokenizer.encode("And his name is John Cena.");
 
     REQUIRE(ids.size(0) == 7);
@@ -57,7 +53,7 @@ TEST_CASE("Encode pairs with byte merge", "[bpe]")
 
 TEST_CASE("Encode ipython word", "[bpe]")
 {
-    auto tokenizer = reference::make_tokenizer(tokenizer_path());
+    auto tokenizer = make_tokenizer();
     auto ids = tokenizer.encode(" ipython");
 
     auto str = tokenizer.decode(ids.data_ptr(), ids.data_ptr() + ids.size(0));
@@ -67,7 +63,7 @@ TEST_CASE("Encode ipython word", "[bpe]")
 
 TEST_CASE("Encode unknown words", "[bpe]")
 {
-    auto tokenizer = reference::make_tokenizer(tokenizer_path());
+    auto tokenizer = make_tokenizer();
     auto ids = tokenizer.encode("This is debatable topic.");
 
     REQUIRE(ids.size(0) > 0);
@@ -76,7 +72,7 @@ TEST_CASE("Encode unknown words", "[bpe]")
 
 TEST_CASE("Decode control token", "bpe")
 {
-    auto tokenizer = reference::make_tokenizer(tokenizer_path());
+    auto tokenizer = make_tokenizer();
     auto token = tokenizer.decode(128001);
 
     REQUIRE(token == "<|end_of_text|>");

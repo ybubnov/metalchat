@@ -13,6 +13,7 @@
 #include <metalchat/nn.h>
 #include <metalchat/tensor.h>
 #include <metalchat/text.h>
+#include <metalchat/transformer.h>
 
 
 namespace metalchat {
@@ -66,46 +67,6 @@ private:
 };
 
 
-class basic_transformer {
-public:
-    using index_type = int32_t;
-    using tensor_type = future_tensor<index_type, 2>;
-
-    virtual tensor_type
-    transform(tensor_type, std::size_t start_pos) = 0;
-
-    virtual hardware_accelerator&
-    accelerator() = 0;
-};
-
-
-template <typename Transformer> class transformer_wrapper : public basic_transformer {
-public:
-    transformer_wrapper(Transformer&& transformer)
-    : _M_transformer(std::move(transformer))
-    {}
-
-    transformer_wrapper(const Transformer& transformer)
-    : _M_transformer(transformer)
-    {}
-
-    tensor_type
-    transform(tensor_type input, std::size_t start_pos)
-    {
-        return _M_transformer.transform(input, start_pos);
-    }
-
-    hardware_accelerator&
-    accelerator()
-    {
-        return _M_transformer.get_layer().accelerator();
-    }
-
-private:
-    Transformer _M_transformer;
-};
-
-
 class interpreter {
 private:
     struct _Members;
@@ -150,7 +111,7 @@ public:
 
     template <typename Transformer>
     interpreter(const Transformer& transformer, const text::bpe& encoder, std::size_t max_pos = -1)
-    : interpreter(warp(transformer), encoder, max_pos)
+    : interpreter(wrap(transformer), encoder, max_pos)
     {}
 
     interpreter(

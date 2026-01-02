@@ -5,10 +5,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <metalchat/accelerator.h>
-#include <metalchat/autoloader.h>
 #include <metalchat/functional.h>
-#include <metalchat/kernel/sort.h>
-#include <metalchat/nn/llama.h>
+#include <metalchat/reference.h>
+#include <metalchat/repository.h>
 #include <metalchat/tensor.h>
 #include <metalchat/text.h>
 
@@ -19,21 +18,16 @@ using namespace metalchat;
 
 TEST_CASE("Test reference implementation inference", "[llama]")
 {
-    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct";
-    auto tokenizer_path = repo_path / "original" / "tokenizer.model";
-    auto model_path = repo_path / "original" / "model.safetensors";
+    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
 
-    auto tokenizer = reference::make_tokenizer(tokenizer_path);
-    metalchat::hardware_accelerator gpu0(64);
+    auto gpu0 = metalchat::hardware_accelerator(64);
+    auto repository = filesystem_repository<reference::llama3>(repo_path, gpu0);
 
-    using LLama3 = nn::llama3<bf16>;
     auto options = nn::default_llama3_1b_options().max_seq_len(16);
-    nn::indirect_layer<LLama3> m(options, gpu0);
+    auto transformer = repository.retrieve_transformer("model.safetensors", options);
+    auto m = transformer.get_layer();
 
-    auto document = safetensor_document::open(model_path, gpu0);
-    auto document_adaptor = reference::llama3_document_adaptor();
-    document = document_adaptor.adapt(document);
-    document.load(m);
+    auto tokenizer = repository.retrieve_tokenizer("tokenizer.model");
 
     auto heap_size = std::size_t(512) * 1024 * 1024;
     auto alloc0 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);

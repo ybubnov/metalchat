@@ -7,7 +7,7 @@
 
 #include <sstream>
 
-#include <metalchat/autoloader.h>
+#include <metalchat/reference.h>
 
 
 using namespace metalchat;

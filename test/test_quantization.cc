@@ -8,6 +8,7 @@
 #include <metalchat/nn/llama.h>
 #include <metalchat/nn/transformer.h>
 #include <metalchat/quantization.h>
+#include <metalchat/reference.h>
 #include <metalchat/text.h>
 
 #include "metalchat/testing.h"
@@ -74,7 +75,8 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
     auto tokenizer_path = repo_path / "tokenizer.model";
     auto model_path = repo_path / "model.safetensors";
 
-    auto tokenizer = reference::make_tokenizer(tokenizer_path);
+    reference::llama3_tokenizer_loader tokenizer_loader;
+    auto tokenizer = tokenizer_loader.load(tokenizer_path);
     safetensor_document::load(model_path, model);
     model_adaptor.adapt_post(model_base);
 
