@@ -85,6 +85,13 @@ No-copy allocator
    :members:
 
 
+File-buffered memory allocator
+------------------------------
+
+.. doxygenstruct:: metalchat::filebuf_memory_allocator
+   :members:
+
+
 Paginated allocator adapter
 ---------------------------
 

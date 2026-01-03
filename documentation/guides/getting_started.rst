@@ -3,9 +3,9 @@ Getting started
 
 .. warning::
 
-   Work in progress.
+   Work is in progress.
 
-In this guide will walk through the most basic usage of the library, precisely - how to build a
+This guide walks through the most basic usage of the library, precisely - how to build a
 simple chat application with `metalchat` library.
 
 Downloading a model
