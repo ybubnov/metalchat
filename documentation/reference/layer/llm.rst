@@ -1,8 +1,7 @@
 Language models
 ===============
 
-These are the building blocks of language models. In order to use them, include the header like
-in the example below:
+These are the building blocks of language models. This library could be used like following:
 
 .. code-block:: c++
 

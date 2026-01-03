@@ -2,7 +2,7 @@ String tokenization
 ===================
 
 These are the building blocks of the tokenization mechanism: chopping the input character sequence
-into the grouped units of characters. In order to use this library, use the following import:
+into the grouped units of characters. This library could be used like following:
 
 .. code-block:: c++
 

@@ -1,10 +1,12 @@
 Container library
 =================
 
-Container concepts
-------------------
+This library provides basic building blocks to manage memory backing tensor locations. This
+library could be used like following:
 
-.. doxygenconcept:: metalchat::contiguous_container
+.. code-block:: c++
+
+   #include <metalchat/container.h>
 
 
 Memory container
@@ -46,4 +48,29 @@ File buffer container
 ---------------------
 
 .. doxygenstruct:: metalchat::filebuf_memory_container
+   :members:
+
+
+Offsetted container adapter
+---------------------------
+
+.. doxygenclass:: metalchat::offsetted_container_adapter
+   :members:
+
+
+Container concepts
+------------------
+
+.. doxygenconcept:: metalchat::contiguous_container
+
+.. doxygenstruct:: metalchat::container_remove_type
+   :members:
+
+.. doxygenstruct:: metalchat::container_offset
+   :members:
+
+.. doxygenstruct:: metalchat::container_rebind
+   :members:
+
+.. doxygenstruct:: metalchat::container_traits
    :members:

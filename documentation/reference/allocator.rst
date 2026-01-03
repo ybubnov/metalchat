@@ -5,7 +5,7 @@ Allocator library
 =================
 
 This library provides primitives to efficiently manage dynamic allocation of memory containers
-used for scheduling accelerated kernel execution. Use this library as following:
+used for scheduling accelerated kernel execution. This library could be used like following:
 
 .. code-block:: c++
 
