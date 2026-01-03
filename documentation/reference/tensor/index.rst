@@ -1,6 +1,16 @@
 Tensor library
 ==============
 
+This is the fundamental library of MetalChat. It provides a convenient interface for management
+of multi-dimensional matrices. In order to use it, import it like following:
+
+.. code-block:: c++
+
+   #include <metalchat/tensor.h>
+
+   using namespace metalchat;
+
+
 .. toctree::
    :hidden:
 

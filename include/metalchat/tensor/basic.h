@@ -122,15 +122,21 @@ protected:
 };
 
 
+namespace detail {
+
+
 template <typename T>
 std::size_t
-__largest_nested_size(std::initializer_list<std::initializer_list<T>> data)
+largest_nested_size(std::initializer_list<std::initializer_list<T>> data)
 {
     auto it = std::max_element(data.begin(), data.end(), [](auto a, auto b) {
         return a.size() < b.size();
     });
     return it->size();
 }
+
+
+} // namespace detail
 
 
 /// A multi-dimensional matrix containing elements of a single data type.
@@ -261,7 +267,7 @@ public:
     /// //  [3.0, 4.0, 0.0]], sizes=(2, 3)
     /// ```
     tensor(std::initializer_list<std::initializer_list<T>> data) requires(N == 2)
-    : tensor({data.size(), __largest_nested_size(data)}, random_memory_allocator<T>())
+    : tensor({data.size(), detail::largest_nested_size(data)}, random_memory_allocator<T>())
     {
         auto elements = std::data(data);
 

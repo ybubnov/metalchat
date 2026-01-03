@@ -86,9 +86,9 @@ concept input_token_iterator_t = requires {
 ///
 /// Consider the following basic example:
 /// ```c++
-/// using namespace metalchat;
+/// using namespace metalchat::text;
 ///
-/// byte_pair_encoder tokenizer("tokenizer.model");
+/// byte_pair_encoder<text::regexp> tokenizer("tokenizer.model");
 /// auto tokens = tokenizer.encode("This is a test sentence.");
 /// auto string = tokenizer.decode(tokens.begin(), tokens.end());
 ///

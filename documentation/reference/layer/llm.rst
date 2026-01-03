@@ -1,9 +1,18 @@
-Large language models
-=====================
+Language models
+===============
+
+These are the building blocks of language models. In order to use them, include the header like
+in the example below:
+
+.. code-block:: c++
+
+   #include <metalchat/nn.h>
+
+   using namespace metalchat::nn;
 
 
-Meta Llama
-----------
+Meta Llama 3
+------------
 
 .. doxygenclass:: metalchat::nn::llama3
    :members:

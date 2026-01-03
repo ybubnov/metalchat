@@ -7,8 +7,8 @@ Interpreter library
    tokens
 
 
-Assistant
----------
+Interpreter
+-----------
 
 .. doxygenclass:: metalchat::interpreter
    :members:
@@ -18,10 +18,10 @@ Assistant
    :members:
 
 
-Autoloader
+Repository
 ----------
 
-.. doxygenstruct:: metalchat::autoloader
+.. doxygenstruct:: metalchat::filesystem_repository
    :members:
 
 

@@ -1,84 +1,43 @@
-Getting Started
+Getting started
 ===============
+
+.. warning::
+
+   Work in progress.
 
 In this guide will walk through the most basic usage of the library, precisely - how to build a
 simple chat application with `metalchat` library.
 
-Prerequisites to walk through this guide is like in the table below:
-
-.. list-table:: Minimum Requirements
-   :widths: 35 65
-
-   * - Operating System
-     - MacOS 15
-   * - CPU
-     - Apple M1
-   * - Metal Framework Version
-     - 3.2
-
-Downloading a Model
+Downloading a model
 ^^^^^^^^^^^^^^^^^^^
 
 In our application we will show how programmatically to send questions to a Llama 3.2 chat. For
-this purpose you will need a copy of the model weights and model vocabulary in the
-`tiktoken <https://github.com/openai/tiktoken>`_ format. Both of those could downloaded from the
-official `Llama website <https://www.llama.com/llama-downloads/>`_. For the purpose of this guide
-we would need *Instruct* type of the model, which is trained to answer questions in chat format.
+this purpose you will need a copy of the model weights and model vocabulary. Both of those could
+by downloaded from the
+`HuggingFace repository <https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct>`_. For the
+purpose of this guide we would need *Instruct* type of the model, which is trained to answer
+questions in chat format.
 
-Meta distributes Llama weights in PyTorch tensor format, which is not supported by `metalchat`.
-In order to use Llama weights, we need to convert them to
-`safetensor <https://huggingface.co/docs/safetensors/index>`_ format.
-
-Here is an example Python script showing how it code be done:
-
-.. code-block:: python
-   :caption: convert.py
-   :linenos:
-   :emphasize-lines: 6
-
-   import torch
-   import sys
-   from safetensors.torch import save_file
-
-   tensors = torch.load(sys.argv[1], "cpu", weights_only=True)
-   del tensors["output.weight"]
-   save_file(tensors, "instruct.safetensors")
-
-
-.. prompt:: bash
-
-   python convert.py consolidated.00.pth
-
-
-Please, note the highlighted line that instructs that output weight should be deleted. This tensor
-for performance reasons is a reference to the embedding tensor of the same model. Safetensors do
-not support references due to memory safety concerns, so in order to make this model work with
-`metalchat`, we need to explicitly delete it from the output tensors (it's just a reference,
-original tensor shared between embedding layer and output layer remains untouched).
-
-Writing an Application
+Writing an application
 ^^^^^^^^^^^^^^^^^^^^^^
 
-The next step is to write a C++ application. In the example below we use method
-`construct_llama3_1b` that uses various optimizations to load model, and uses default Llama 3.2
-configuration.
-
-At the highlighted line in the code snipped below we use model weights converted in the previous
-section.
+The next step is to write a C++ application. In the example below we use a performance-optimized
+implementation of the Llama 3.2 inference with default top-p sampling.
 
 .. code-block:: c++
    :caption: main.cc
-   :linenos:
-   :emphasize-lines: 5
 
    #include <metalchat/metalchat.h>
 
    int main()
    {
-       std::filesystem::path weights_path("instruct.safetensors");
-       std::filesystem::path tokens_path("tokenizer.model");
+       using Transformer = metalchat::huggingface::llama3;
+       metalchat::filesystem_repository<Transformer> repository("./Llama-3.2-1B-Instruct");
 
-       auto chat = metalchat::text::make_llama3_1b(weights_path, tokens_path);
+       auto tokenizer = repository.retrieve_tokenizer();
+       auto transformer = repository.retreive_transformer();
+
+       metalchat::interpreter chat(transformer, tokenizer);
 
        chat.send(metalchat::basic_message("system", "You are a helpful assistant"));
        chat.send(metalchat::basic_message("user", "What is the capital of France?"));
@@ -89,7 +48,7 @@ section.
    }
 
 
-Building an Executable
+Building an executable
 ^^^^^^^^^^^^^^^^^^^^^^
 
 The last step is building the executable to launch a Llama-based chat and receive an answer

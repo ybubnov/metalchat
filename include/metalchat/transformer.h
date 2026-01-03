@@ -59,6 +59,7 @@ concept tokenizer_loader = requires(std::remove_reference_t<Loader> const l, std
 };
 
 
+/// The requirements for a transformer declaration.
 template <typename Traits>
 concept transformer_traits = requires {
     typename Traits::layer_type;
@@ -75,17 +76,35 @@ concept transformer_traits = requires {
 };
 
 
+/// Requirement of the `transformer_location` constant expression presence.
+///
+/// This concept is used in the repository implementation enabling methods for
+/// retrieval of transformer instances from a default location within a repository.
 template <typename Traits>
 concept has_transformer_location = requires {
     typename Traits::transformer_location;
     requires std::same_as<typename Traits::transformer_location, std::string_view>;
 };
 
-
+/// Requirement of the `options_location` constant expression presence.
+///
+/// This concept is used in the repository implementation enabling methods for
+/// retrieval of option instances from a default location within a repository.
 template <typename Traits>
 concept has_options_location = requires {
     typename Traits::options_location;
     requires std::same_as<typename Traits::options_location, std::string_view>;
+};
+
+
+/// Requirement of the `tokenizer_location` constant expression presence.
+///
+/// This concept is used in the repository implementation enabling methods for
+/// retrieval of tokenizer instances from a default location within a repository.
+template <typename Traits>
+concept has_tokenizer_location = requires {
+    typename Traits::tokenizer_location;
+    requires std::same_as<typename Traits::tokenizer_location, std::string_view>;
 };
 
 

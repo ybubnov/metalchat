@@ -1,22 +1,21 @@
-Development
-===========
+Building from source
+====================
 
 In this guide we will walk through the configuration of development environment: installation of
 necessary tools and packagase, and configuring buids.
 
-Prerequisites to walk through this guide is like in the table below:
+Obtaining source code
+^^^^^^^^^^^^^^^^^^^^^
 
-.. list-table:: Minimum Requirements
-   :widths: 35 65
+The source code of the project is served on GitHub, and could be retrieved in the following way:
 
-   * - Operating System
-     - MacOS 15
-   * - CPU
-     - Apple M1
-   * - Metal Framework Version
-     - 3.2
+.. prompt:: bash
 
-Creating an Environment
+   git clone https://github.com/ybubnov/metalchat
+   cd metalchat
+
+
+Creating an environment
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 The building of the library and tests is implemented using a `conan <https://conan.io/>`_ to
@@ -31,7 +30,7 @@ you could install them like following:
    brew install cmake conan ninja
 
 
-Configuring a Development Build
+Configuring a development build
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 On the next step you need to setup conan profile, usually a default conan profile would work
@@ -62,7 +61,7 @@ environment. Run this command from the project directory root (it will create `b
    conan build --build=missing --output-folder build --profile:host=metalchat-debug .
 
 
-Building a Library
+Building a library
 ^^^^^^^^^^^^^^^^^^
 
 On the last step, compile the library and all related unit tests, and then optionally launch unit

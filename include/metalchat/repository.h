@@ -14,7 +14,8 @@
 namespace metalchat {
 
 
-/// A type that supports creating transformers from the traits.
+/// A filesystem-based read-only repository used to retrieve language transformer building blocks
+/// (layer options, layer, and string tokenizer).
 template <transformer_traits TransformerTraits> struct filesystem_repository {
     using layer_type = TransformerTraits::layer_type;
     using layer_adaptor_type = TransformerTraits::layer_adaptor;
@@ -71,6 +72,13 @@ template <transformer_traits TransformerTraits> struct filesystem_repository {
 
         tokenizer_loader loader;
         return loader.load(tokenizer_stream);
+    }
+
+    tokenizer_type
+    retrieve_tokenizer() const requires has_tokenizer_location<TransformerTraits>
+    {
+        const std::filesystem::path p(typename TransformerTraits::tokenizer_location);
+        return retrieve_tokenizer(p);
     }
 
     transformer_type

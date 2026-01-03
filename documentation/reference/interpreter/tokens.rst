@@ -1,6 +1,16 @@
 String tokenization
 ===================
 
+These are the building blocks of the tokenization mechanism: chopping the input character sequence
+into the grouped units of characters. In order to use this library, use the following import:
+
+.. code-block:: c++
+
+    #include <metalchat/text.h>
+
+    using namespace metalchat::text;
+
+
 Byte pair encoder
 -----------------
 
@@ -27,3 +37,17 @@ Byte pair encoder
 .. doxygenvariable:: metalchat::text::token::end_message
 .. doxygenvariable:: metalchat::text::token::end_turn
 .. doxygenvariable:: metalchat::text::token::ipython
+
+
+Regular expression
+------------------
+
+The implementation of regular expressions from the standard C++ library does not support Perl
+syntax, used in the Tiktoken library. This implementation uses Perl Compatible Regular Expressions
+library (`PCRE <https://www.pcre.org/>`_) to make available Perl syntax.
+
+.. doxygenclass:: metalchat::text::regexp
+   :members:
+
+.. doxygenclass:: metalchat::text::regexp_iterator
+   :members:

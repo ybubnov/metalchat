@@ -1,4 +1,4 @@
-Installing metalchat
+Installing MetalChat
 ====================
 
-TBD.
+TBD

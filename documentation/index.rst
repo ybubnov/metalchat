@@ -3,6 +3,20 @@
 Llama inference for Apple Devices
 =================================
 
+MetalChat is a `Metal <https://developer.apple.com/metal/>`_-accelerated C++ framework and command
+line interpreter for inference of `Meta Llama <https://www.llama.com/>`_ models. MetalChat is
+designed as a full-stack framework, allowing to provide access to both low-level GPU kernels and
+high-level LLM interpreter API.
+
+.. toctree::
+   :hidden:
+
+   Install <install>
+   User Guide <guides/index>
+   Development <development/index>
+   Reference <reference/index>
+   Sponsor <https://github.com/sponsors/ybubnov>
+
 .. grid:: 1 2 2 3
    :gutter: 3
 
@@ -11,14 +25,11 @@ Llama inference for Apple Devices
       Distributed under a copy-left GPLv3 license, MetalChat is developed and maintained
       `publicly on GitHub <https://github.com/ybubnov/metalchat>`_.
 
-   .. grid-item-card:: Easy to use
+   .. grid-item-card:: Lightweight
 
-      MetalChat high level API makes it accessible and productive for programmers
-      from any background and or experience level.
+      MetalChat supports only Apple hardware with little external dependencies.
 
-.. toctree::
-   :hidden:
+   .. grid-item-card:: HuggingFace compatible
 
-   Install <install>
-   User Guide <guides/index>
-   Reference <reference/index>
+      MetalChat supports Llama models distributed through
+      `HuggingFace Hub <https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct>`_ out of the box.

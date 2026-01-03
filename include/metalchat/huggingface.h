@@ -231,6 +231,10 @@ template <typename T, contiguous_container Container> struct llama3_traits {
     using document_adaptor = llama3_document_adaptor;
     using tokenizer_type = text::byte_pair_encoder<text::regexp>;
     using tokenizer_loader = llama3_tokenizer_loader;
+
+    static constexpr std::string_view tokenizer_location = "tokenizer.json";
+    static constexpr std::string_view options_location = "config.json";
+    static constexpr std::string_view transformer_location = "model.safetensors";
 };
 
 
