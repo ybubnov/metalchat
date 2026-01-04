@@ -134,7 +134,7 @@ public:
     void
     close();
 
-    /// Destructor that ensures proper cleanup of file resources.
+    /// The \ref basic_memfile destructor.
     ~basic_memfile();
 
 private:
@@ -164,13 +164,11 @@ private:
 ///
 /// Example usage:
 /// ```c++
-/// auto file_ptr = std::make_shared<basic_memfile>("data.bin");
-/// file_ptr->declare_mapped();
+/// auto ptr1 = std::make_shared<int>(1);
+/// auto ptr2 = std::make_shared<float>(2.0f);
 ///
-/// auto container_ptr = std::make_shared<spanbuf>(file_ptr->data(), file_ptr->size());
-///
-/// // Keep file alive as long as buffer exists
-/// auto alias_ptr = make_pointer_alias(container_ptr, file_ptr);
+/// // Keep ptr2 alive as long as buffer exists
+/// auto alias_ptr = make_pointer_alias(ptr1, ptr2);
 /// ```
 template <typename T, typename U>
 std::shared_ptr<T>
@@ -202,21 +200,19 @@ struct basic_container {
     virtual const void*
     data_ptr() const = 0;
 
-    /// Virtual destructor for proper cleanup.
+    /// The \ref basic_container virtual destructor.
     virtual ~basic_container() = default;
 };
 
 
-/// Typed memory container interface.
-///
-/// Extends basic_container with type-safe access to contiguous memory. All memory containers
-/// in the library derive from this template.
+/// Typed memory container interface. Extends \ref basic_container with type-safe access to
+/// contiguous memory. All memory containers in the library derive from this template.
 ///
 /// \tparam T The value type stored in the container.
 ///
 /// Example usage:
 /// ```c++
-/// class some_container : public memory_container<float> {
+/// class custom_container : public memory_container<float> {
 /// private:
 ///     std::vector<float> _M_data;
 ///
@@ -271,14 +267,13 @@ template <typename T> struct memory_container : public basic_container {
         return data();
     }
 
-    /// Virtual destructor for proper cleanup.
+    /// The \ref memory_container virtual destructor.
     virtual ~memory_container() = default;
 };
 
 
-/// Concept defining requirements for contiguous memory containers.
-///
-/// A container satisfies this concept if it:
+/// Concept defining requirements for contiguous memory containers. A container satisfies this
+/// concept if it:
 /// - Derives from memory_container<T>.
 /// - Defines `value_type`, `pointer`, `const_pointer`, and `storage_type`.
 /// - Provides a `storage()` method returning const reference to `storage_type`.
@@ -574,22 +569,19 @@ template <typename T> struct container_offset<random_memory_container<T>> {
 };
 
 
-/// Container backed by std::vector.
-///
-/// Wraps a std::vector providing container interface. The vector is moved into the container,
-/// ensuring efficient memory ownership transfer.
+/// Container backed by std::vector. Wraps a std::vector providing container interface.
 ///
 /// \tparam T The value type.
 ///
 /// Example usage:
 /// ```c++
-/// std::vector<int> vec = {1, 2, 3, 4, 5};
+/// auto storage = std::vector<int>({1, 2, 3, 4, 5});
 ///
 /// using Container = vector_memory_container<int>;
-/// auto container = std::make_shared<Container>(std::move(vec));
+/// auto container = std::make_shared<Container>(std::move(storage));
 ///
-/// int* data = container->data();
-/// std::size_t byte_size = container->size(); // Returns sizeof(int) * 5
+/// auto data_ptr = container->data();
+/// auto data_size = container->size();
 /// ```
 template <typename T> struct vector_memory_container : public memory_container<T> {
 public:
@@ -778,8 +770,8 @@ template <typename T> struct container_offset<hardware_memory_container<T>> {
 /// using Container = scalar_memory_container<double>;
 /// auto container = std::make_shared<Container>(3.14159);
 ///
-/// double* ptr = container->data();
-/// std::size_t size = container->size(); // Returns sizeof(double)
+/// auto data_ptr = container->data();
+/// auto data_size = container->size();
 /// ```
 template <typename T> struct scalar_memory_container : public memory_container<T> {
 public:
@@ -832,13 +824,13 @@ private:
 ///
 /// Example usage:
 /// ```c++
-/// std::vector<float> data = {1.0f, 2.0f, 3.0f};
+/// auto storage = std::vector<float>({1.0f, 2.0f, 3.0f});
 ///
 /// using Container = filebuf_memory_container<float>;
 /// auto container = std::make_shared<Container>(data.data(), data.size() * sizeof(float));
 ///
-/// // Data is written to file, not mapped yet.
-/// float* ptr = container->data(); // Maps file to memory
+/// // Maps file to memory.
+/// auto data_ptr = container->data();
 ///
 /// // Evict from memory when not needed.
 /// container->park();
@@ -988,21 +980,26 @@ template <typename T> struct container_offset<filebuf_memory_container<T>> {
 ///
 /// This adapter wraps an existing memory_container and provides an offsetted view without
 /// copying data. Unlike container-specific offset implementations, this works with any
-/// \ref memory_container subclass.
+/// \ref memory_container subclass. The \ref offsetted_container_adapter shares ownership
+/// of the wrapped memory container.
 ///
 /// \tparam T The value type.
 ///
 /// Example usage:
 /// ```c++
 /// using Container = vector_memory_container<int>;
-/// auto container = std::make_shared<Container>(std::vector<int>{1, 2, 3, 4, 5});
+/// auto storage = std::vector<int32_t>({1, 2, 3, 4, 5});
+/// auto container_ptr = std::make_shared<Container>(storage);
 ///
 /// // Create view starting at byte offset 8 (skipping first 2 integers)
-/// using ContainerView = offsetted_container_adapter<int>;
-/// auto offset_view = std::make_shared<ContainerView>(container, 8);
+/// using View = offsetted_container_adapter<int32_t>;
+/// auto view = std::make_shared<View>(container_ptr, 8);
 ///
-/// int* data = offset_view->data(); // Points to element [2]
-/// std::size_t size = offset_view->size(); // Returns size minus 8 bytes
+/// // Points to element `storage[2]`.
+/// int* p = container_view->data();
+///
+/// // Returns size of `storage` minus 8 bytes (2 integers).
+/// std::size_t size = container_view->size();
 /// ```
 template <typename T> class offsetted_container_adapter : public memory_container<T> {
 public:

@@ -8,15 +8,6 @@ line interpreter for inference of `Meta Llama <https://www.llama.com/>`_ models.
 designed as a full-stack framework, allowing to provide access to both low-level GPU kernels and
 high-level LLM interpreter API.
 
-.. toctree::
-   :hidden:
-
-   Install <install>
-   User Guide <guides/index>
-   Development <development/index>
-   Reference <reference/index>
-   Sponsor <https://github.com/sponsors/ybubnov>
-
 .. grid:: 1 2 2 3
    :gutter: 3
 
@@ -33,3 +24,44 @@ high-level LLM interpreter API.
 
       MetalChat supports Llama models distributed through
       `HuggingFace Hub <https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct>`_ out of the box.
+
+
+User Guide
+^^^^^^^^^^
+
+Information about installation and usage of the MetalChat library.
+
+
+.. toctree::
+   :maxdepth: 2
+
+   User Guide <guides/index>
+
+
+Development notes and contribution guide
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Information about the development principles of this library and how you can contribute.
+
+
+.. toctree::
+   :maxdepth: 2
+
+   Development <development/index>
+
+
+MetalChat reference
+^^^^^^^^^^^^^^^^^^^
+
+The interface exposed by the `MetalChat` library.
+
+.. toctree::
+   :maxdepth: 2
+
+   Reference <reference/index>
+
+
+.. toctree::
+   :hidden:
+
+   Sponsor <https://github.com/sponsors/ybubnov>

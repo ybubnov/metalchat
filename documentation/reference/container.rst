@@ -13,7 +13,7 @@ Memory container
 ----------------
 
 .. doxygenstruct:: metalchat::memory_container
-   :members:
+ :members:
 
 
 Hardware memory container

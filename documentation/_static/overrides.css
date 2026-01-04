@@ -1,3 +1,11 @@
+html[data-theme=light] {
+    --function-link-color: #ad7c37;
+}
+
+html[data-theme=dark] {
+    --function-link-color: #fdd687;
+}
+
 .bd-sidebar-primary {
     width: 250px;
 }
@@ -12,9 +20,24 @@ dl.enumerator {
     margin-bottom: 0 !important;
 }
 
+dl.cpp dd {
+    margin-left: 0rem !important;
+}
+
+.cpp .sig {
+    font-size: 0.9rem;
+    font-style: normal;
+}
+
+.sig-name {
+    font-size: 0.9rem;
+}
+
+.cpp .function .sig-name {
+    color: var(--function-link-color);
+}
 
 .cpp .function .k {
-    font-style: italic;
     font-weight: normal;
 }
 
