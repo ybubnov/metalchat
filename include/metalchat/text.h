@@ -5,4 +5,5 @@
 #pragma once
 
 #include <metalchat/text/bpe.h>
+#include <metalchat/text/gpt.h>
 #include <metalchat/text/regexp.h>

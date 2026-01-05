@@ -77,7 +77,7 @@ template <transformer_traits TransformerTraits> struct filesystem_repository {
     tokenizer_type
     retrieve_tokenizer() const requires has_tokenizer_location<TransformerTraits>
     {
-        const std::filesystem::path p(typename TransformerTraits::tokenizer_location);
+        const std::filesystem::path p(TransformerTraits::tokenizer_location);
         return retrieve_tokenizer(p);
     }
 
@@ -104,8 +104,8 @@ template <transformer_traits TransformerTraits> struct filesystem_repository {
     retrieve_transformer(const options_type& options)
         requires has_transformer_location<TransformerTraits>
     {
-        const std::filesystem::path p(typename TransformerTraits::transformer_location);
-        return retrieve_transformer(p);
+        const std::filesystem::path p(TransformerTraits::transformer_location);
+        return retrieve_transformer(p, options);
     }
 
     transformer_type
@@ -148,7 +148,7 @@ template <transformer_traits TransformerTraits> struct filesystem_repository {
     retrieve_transformer(const options_type& options, Allocator alloc = Allocator())
         requires has_transformer_location<TransformerTraits>
     {
-        const std::filesystem::path p(typename TransformerTraits::transformer_location);
+        const std::filesystem::path p(TransformerTraits::transformer_location);
         return retrieve_transformer(p, options, alloc);
     }
 

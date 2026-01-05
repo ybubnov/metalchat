@@ -60,9 +60,8 @@ chat_command::create()
     auto repo_path = std::filesystem::path(_M_create_options.model);
     auto repository = filesystem_repository<huggingface::llama3>(repo_path);
 
-    auto options = repository.retrieve_options("config.json");
-    auto tokenizer = repository.retrieve_tokenizer("tokenizer.json");
-    auto transformer = repository.retrieve_transformer("model.safetensors", options);
+    auto tokenizer = repository.retrieve_tokenizer();
+    auto transformer = repository.retrieve_transformer();
 
     auto interp = metalchat::interpreter(transformer, tokenizer);
 

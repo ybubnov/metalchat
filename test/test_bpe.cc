@@ -7,6 +7,7 @@
 
 #include <metalchat/reference.h>
 #include <metalchat/repository.h>
+#include <metalchat/text/gpt.h>
 
 #include "metalchat/testing.h"
 
@@ -20,6 +21,31 @@ make_tokenizer()
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
     auto repository = filesystem_repository<reference::llama3>(repo_path);
     return repository.retrieve_tokenizer("tokenizer.model");
+}
+
+
+TEST_CASE("Test GPT-2 codec", "[gpt2]")
+{
+    text::gpt2_codec codec;
+    auto output = codec.encode("    Hello  \x80");
+    auto input = codec.decode(output);
+    REQUIRE(output == "ĠĠĠĠHelloĠĠĢ");
+    REQUIRE(input == "    Hello  \x80");
+}
+
+
+TEST_CASE("TEST GPT-2 to Reference", "[gpt2]")
+{
+    auto tokenizer = make_tokenizer();
+    text::gpt2_codec codec;
+
+    auto str = tokenizer.decode(125579);
+    REQUIRE(str == " استاندارد");
+
+    auto output = codec.encode(str);
+    REQUIRE(output == "ĠØ§Ø³ØªØ§ÙĨØ¯Ø§Ø±Ø¯");
+    auto input = codec.decode(output);
+    REQUIRE(input == " استاندارد");
 }
 
 

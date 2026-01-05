@@ -194,9 +194,12 @@ llama3_tokenizer_loader::load(std::istream& is) const
         }
     }
 
+    text::gpt2_codec codec;
     llama3_tokenizer_loader::type tokenizer(token_regex);
+
     for (const auto& [value, key] : model_file.model.vocab) {
-        tokenizer.insert(value, key, text::token::regular);
+        auto val = codec.decode(value);
+        tokenizer.insert(val, key, text::token::regular);
     }
 
     loader_type::insert_control_tokens(tokenizer);

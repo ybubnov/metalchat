@@ -82,8 +82,9 @@ concept transformer_traits = requires {
 /// retrieval of transformer instances from a default location within a repository.
 template <typename Traits>
 concept has_transformer_location = requires {
-    typename Traits::transformer_location;
-    requires std::same_as<typename Traits::transformer_location, std::string_view>;
+    Traits::transformer_location;
+
+    requires std::same_as<decltype(Traits::transformer_location), std::string_view const>;
 };
 
 /// Requirement of the `options_location` constant expression presence.
@@ -92,8 +93,9 @@ concept has_transformer_location = requires {
 /// retrieval of option instances from a default location within a repository.
 template <typename Traits>
 concept has_options_location = requires {
-    typename Traits::options_location;
-    requires std::same_as<typename Traits::options_location, std::string_view>;
+    Traits::options_location;
+
+    requires std::same_as<decltype(Traits::options_location), std::string_view const>;
 };
 
 
@@ -103,8 +105,9 @@ concept has_options_location = requires {
 /// retrieval of tokenizer instances from a default location within a repository.
 template <typename Traits>
 concept has_tokenizer_location = requires {
-    typename Traits::tokenizer_location;
-    requires std::same_as<typename Traits::tokenizer_location, std::string_view>;
+    Traits::tokenizer_location;
+
+    requires std::same_as<decltype(Traits::tokenizer_location), std::string_view const>;
 };
 
 
