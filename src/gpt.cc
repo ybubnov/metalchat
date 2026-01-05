@@ -25,10 +25,6 @@ gpt2_codec::gpt2_codec()
     std::queue<range_type> ranges({{0x21, 0x7e}, {0xa1, 0xac}, {0xae, 0xff}});
     std::size_t offset = 0;
 
-    auto range_contains = [](std::size_t v, const range_type& r) -> bool {
-        return v >= r.first && v <= r.second;
-    };
-
     constexpr std::size_t cardinality = 1 << std::numeric_limits<char8_t>::digits;
 
     for (std::size_t i = 0; i < cardinality; i++) {
