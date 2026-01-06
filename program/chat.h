@@ -10,9 +10,9 @@
 #include <tuple>
 #include <unordered_map>
 
-#include <CLI/CLI.hpp>
 #include <metalchat/metalchat.h>
 
+#include "command.h"
 #include "hash.h"
 
 
@@ -62,9 +62,9 @@ public:
 };
 
 
-class chat_command {
+class chat_command : public basic_command {
 public:
-    chat_command(CLI::App& app);
+    chat_command(basic_command& command);
 
     void
     create();

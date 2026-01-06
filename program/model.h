@@ -4,27 +4,16 @@
 
 #pragma once
 
-#include <string>
-
-#include <CLI/CLI.hpp>
+#include "command.h"
 
 
 namespace metalchat {
 namespace program {
 
 
-class local_model {};
-
-
-class git_model {
+class model_command : public basic_command {
 public:
-    git_model(const std::string& repo);
-};
-
-
-class model_command {
-public:
-    model_command(CLI::App&);
+    model_command(basic_command& parent);
 
     void
     pull();
@@ -34,6 +23,11 @@ public:
 
     void
     remove();
+
+private:
+    parser_type _M_pull;
+    parser_type _M_list;
+    parser_type _M_remove;
 };
 
 

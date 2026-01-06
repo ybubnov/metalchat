@@ -68,8 +68,7 @@ class MetalChat(ConanFile):
         if self.options.build_executable:
             self.requires("replxx/[>=0.0.4 <1.0.0]")
             self.requires("keychain/[>=1.3.0 <2.0.0]")
-            self.requires("cli11/[>=2.6.0 <3.0.0]")
-            self.requires("sqlitecpp/[>=3.0.0 <4.0.0]")
+            self.requires("argparse/[>=3.2 <4.0.0]")
 
     def build_requirements(self):
         self.tool_requires("cmake/[>=3.31.0]")

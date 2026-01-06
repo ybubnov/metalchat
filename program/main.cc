@@ -2,32 +2,22 @@
 // SPDX-FileCopyrightText: 2025 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
-#include <CLI/CLI.hpp>
-
-#include "chat.h"
-#include "config.h"
-#include "model.h"
-#include "remote.h"
+#include "program.h"
 
 
-static const std::string program_path = ".metalchat";
+namespace mcp = metalchat::program;
 
 
 int
 main(int argc, char** argv)
 {
-    std::string config_option;
-
-    CLI::App app("A self-sufficient runtime for large language models", "metalchat");
-
-    metalchat::program::remote_command remote(app);
-    metalchat::program::model_command model(app);
-    metalchat::program::chat_command chat(app);
+    mcp::program program;
 
     try {
-        app.parse(argc, argv);
-    } catch (const CLI::ParseError& e) {
-        return app.exit(e);
+        program.handle(argc, argv);
+    } catch (const std::exception& e) {
+        std::cout << e.what() << std::endl;
+        std::exit(1);
     }
 
     return 0;

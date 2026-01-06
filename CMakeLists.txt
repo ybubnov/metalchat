@@ -32,10 +32,9 @@ find_package(rapidhash CONFIG REQUIRED)
 find_package(PCRE2 CONFIG REQUIRED)
 
 # Packages related to the metalchat shell.
-find_package(CLI11)
+find_package(argparse)
 find_package(keychain)
 find_package(replxx)
-find_package(SQLiteCpp)
 
 
 set(metalchat_FRAMEWORK MetalChat)
@@ -114,13 +113,12 @@ target_link_libraries(${metalchat_FRAMEWORK}
 )
 
 
-if (replxx_FOUND AND keychain_FOUND AND CLI11_FOUND AND SQLiteCpp_FOUND)
+if (replxx_FOUND AND keychain_FOUND AND argparse_FOUND)
     add_executable(${CMAKE_PROJECT_NAME} ${metalchat_PROGRAM})
     target_link_libraries(${CMAKE_PROJECT_NAME}
         ${metalchat_FRAMEWORK}
+        argparse::argparse
         replxx::replxx
         keychain::keychain
-        CLI11::CLI11
-        SQLiteCpp
     )
 endif()

@@ -9,17 +9,21 @@ namespace metalchat {
 namespace program {
 
 
-model_command::model_command(CLI::App& app)
+model_command::model_command(basic_command& parent)
+: basic_command("model", parent),
+  _M_pull("pull"),
+  _M_list("list"),
+  _M_remove("remove")
 {
-    auto model = app.add_subcommand("model", "Manage language models");
-    auto model_pull = model->add_subcommand("pull", "Download a model from a remote server");
-    model_pull->callback([&]() { pull(); });
+    _M_command.add_description("manage language models");
 
-    auto model_list = model->add_subcommand("list", "List the available models");
-    model_list->callback([&]() { list(); });
+    _M_pull.add_description("download a model from a remote server");
+    _M_list.add_description("list the available models");
+    _M_remove.add_description("remove matching models");
 
-    auto model_remove = model->add_subcommand("remove", "Remove models");
-    model_remove->callback([&]() { remove(); });
+    push_handler(_M_pull, [&] { pull(); });
+    push_handler(_M_list, [&] { list(); });
+    push_handler(_M_remove, [&] { remove(); });
 }
 
 
@@ -36,9 +40,6 @@ model_command::list()
 void
 model_command::remove()
 {}
-
-
-git_model::git_model(const std::string& repo) {}
 
 
 } // namespace program
