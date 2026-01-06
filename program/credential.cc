@@ -76,11 +76,16 @@ credential_command::credential_command(basic_command& parent)
         .default_value(std::string("https"))
         .choices("https")
         .store_into(_M_credential.protocol);
-    _M_add.add_argument("-H", "--host")
+    _M_add.add_argument("-H", "--hostname")
         .help("the remote hostname for a network credential")
-        .metavar("HOST")
+        .metavar("HOSTNAME")
         .required()
         .store_into(_M_credential.hostname);
+    _M_add.add_argument("-u", "--username")
+        .help("the credential's username")
+        .metavar("USERNAME")
+        .required()
+        .store_into(_M_credential.username);
     _M_add.add_argument("-c", "--credential")
         .help("the pre-encoded credential, suitable for protocol")
         .metavar("CREDENTIAL")
@@ -90,10 +95,13 @@ credential_command::credential_command(basic_command& parent)
     _M_list.add_description("list the available credentials");
 
     _M_remove.add_description("remove any stored matching credentials");
-    _M_remove.add_argument("-H,--host")
+    _M_remove.add_argument("-p", "--protocol")
+        .help("the protocol over which the credential will be used")
+        .metavar("PROTOCOL")
+        .store_into(_M_credential.protocol);
+    _M_remove.add_argument("-H", "--hostname")
         .help("a remote hostname to matching the credentials")
-        .metavar("HOST")
-        .required()
+        .metavar("HOSTNAME")
         .store_into(_M_credential.hostname);
 
     push_handler(_M_add, [&] { add(); });
