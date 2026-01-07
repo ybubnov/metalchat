@@ -20,6 +20,12 @@ struct credential {
     std::string hostname;
     std::string username;
     std::string credential;
+
+    std::string
+    url() const
+    {
+        return protocol + "://" + hostname;
+    }
 };
 
 
@@ -39,9 +45,8 @@ public:
     void
     store(const credential& cred) const;
 
-    template <typename OutputIt, typename UnaryPred>
     void
-    load_if(OutputIt output, UnaryPred pred) const
+    load(credential& cred) const
     {}
 
 private:
@@ -57,13 +62,13 @@ public:
     credential_command(basic_command& parent);
 
     void
-    add();
+    add(const command_context&);
 
     void
-    list();
+    list(const command_context&);
 
     void
-    remove();
+    remove(const command_context&);
 
 private:
     parser_type _M_add;

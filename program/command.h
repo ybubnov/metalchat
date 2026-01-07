@@ -10,16 +10,23 @@
 
 #include <argparse/argparse.hpp>
 
+#include "config.h"
+
 
 namespace metalchat {
 namespace program {
+
+
+struct command_context {
+    tomlfile<config> config_file;
+};
 
 
 class basic_command {
 public:
     using parser_type = argparse::ArgumentParser;
     using parser_reference = std::reference_wrapper<parser_type>;
-    using handler_type = std::function<void()>;
+    using handler_type = std::function<void(const command_context&)>;
 
     basic_command(const std::string& name);
     basic_command(const std::string& name, basic_command& parent);
@@ -31,11 +38,15 @@ public:
     push_handler(basic_command& command);
 
     void
-    handle() const;
+    handle(const command_context& context) const;
 
 protected:
     parser_type _M_command;
-    std::vector<std::pair<parser_reference, handler_type>> _M_handlers;
+
+    template <typename Key, typename Value>
+    using container_type = std::vector<std::pair<Key, Value>>;
+
+    container_type<parser_reference, handler_type> _M_handlers;
 };
 
 

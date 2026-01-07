@@ -16,13 +16,13 @@ public:
     model_command(basic_command& parent);
 
     void
-    pull();
+    pull(const command_context&);
 
     void
-    list();
+    list(const command_context&);
 
     void
-    remove();
+    remove(const command_context&);
 
 private:
     parser_type _M_pull;

@@ -21,24 +21,24 @@ model_command::model_command(basic_command& parent)
     _M_list.add_description("list the available models");
     _M_remove.add_description("remove matching models");
 
-    push_handler(_M_pull, [&] { pull(); });
-    push_handler(_M_list, [&] { list(); });
-    push_handler(_M_remove, [&] { remove(); });
+    push_handler(_M_pull, [&](const command_context& c) { pull(c); });
+    push_handler(_M_list, [&](const command_context& c) { list(c); });
+    push_handler(_M_remove, [&](const command_context& c) { remove(c); });
 }
 
 
 void
-model_command::pull()
+model_command::pull(const command_context& context)
 {}
 
 
 void
-model_command::list()
+model_command::list(const command_context& context)
 {}
 
 
 void
-model_command::remove()
+model_command::remove(const command_context& context)
 {}
 
 
