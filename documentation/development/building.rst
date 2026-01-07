@@ -68,8 +68,8 @@ we need a C++ compiler with 23 standard support.
    os=Macos
 
 
-Building a library
-^^^^^^^^^^^^^^^^^^
+Building binaries
+^^^^^^^^^^^^^^^^^
 
 After that you could use this profile to install missing C++ dependencies and create a build
 environment. Run this command from the project directory root (it will create `build` directory):
@@ -85,6 +85,12 @@ Optionally, you could build a framework without running tests:
 
    conan build --build=missing --profile:host=metalchat-debug -c tools.build:skip_test=True
 
+Conan builds both, a framework and executable command-line program. The build of the program
+could be disable using conan package option `build_executable`:
+
+.. prompt:: bash
+
+   conan build --build=missing --profile:host=metalchat-build -o build_executable=False
 
 Building a conan package
 ^^^^^^^^^^^^^^^^^^^^^^^^

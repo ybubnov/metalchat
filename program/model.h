@@ -28,6 +28,10 @@ private:
     parser_type _M_pull;
     parser_type _M_list;
     parser_type _M_remove;
+
+    std::string _M_repository;
+    std::string _M_arch;
+    std::string _M_name;
 };
 
 

@@ -13,11 +13,24 @@ model_command::model_command(basic_command& parent)
 : basic_command("model", parent),
   _M_pull("pull"),
   _M_list("list"),
-  _M_remove("remove")
+  _M_remove("remove"),
+  _M_repository(),
+  _M_arch()
 {
     _M_command.add_description("manage language models");
 
     _M_pull.add_description("download a model from a remote server");
+    _M_pull.add_argument("repository")
+        .help("the repository to pull the image from")
+        .required()
+        .store_into(_M_repository);
+    _M_pull.add_argument("name").help("the name of the model").required().store_into(_M_name);
+    _M_pull.add_argument("-a", "--arch")
+        .help("a model architecture")
+        .choices("llama3")
+        .default_value(std::string("llama3"))
+        .nargs(1)
+        .store_into(_M_arch);
     _M_list.add_description("list the available models");
     _M_remove.add_description("remove matching models");
 

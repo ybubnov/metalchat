@@ -97,8 +97,9 @@ credential_command::credential_command(basic_command& parent)
     _M_add.add_argument("-p", "--protocol")
         .help("the protocol over which the credential will be used")
         .metavar("<protocol>")
-        .default_value(std::string("https"))
         .choices("https")
+        .default_value(std::string("https"))
+        .nargs(1)
         .store_into(_M_credential.protocol);
     _M_add.add_argument("-H", "--hostname")
         .help("the remote hostname for a network credential")
@@ -164,8 +165,8 @@ credential_command::list(const command_context& context)
         }
         for (const auto& [url, c] : config.credential.value()) {
             std::cout << std::left;
-            std::cout << std::setw(url_size) << url << ' ';
-            std::cout << std::setw(username_size) << c.username << ' ';
+            std::cout << std::setw(url_size) << url << '\t';
+            std::cout << std::setw(username_size) << c.username << '\t';
             std::cout << c.provider << std::endl;
         }
     }
