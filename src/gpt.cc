@@ -59,7 +59,7 @@ gpt2_codec::encode(const std::string& input) const
     std::basic_stringstream<char16_t> output;
 
     const auto bytes = reinterpret_cast<const char8_t*>(input.data());
-    const auto bytes_size = input.size() / sizeof(char);
+    const auto bytes_size = input.size() * sizeof(char);
 
     for (std::size_t i = 0; i < bytes_size; i++) {
         auto byte = bytes[i];

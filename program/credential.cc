@@ -18,18 +18,18 @@ namespace metalchat {
 namespace program {
 
 
-credential_repository::credential_repository(const std::string& package)
+keychain_provider::keychain_provider(const std::string& package)
 : _M_package(package)
 {}
 
 
-credential_repository::credential_repository()
-: credential_repository("org.metalchat.program")
+keychain_provider::keychain_provider()
+: keychain_provider("org.metalchat.program")
 {}
 
 
 std::string
-credential_repository::username() const
+keychain_provider::system_username() const
 {
     auto namesize = sysconf(_SC_LOGIN_NAME_MAX);
     if (namesize == -1) {
@@ -47,16 +47,40 @@ credential_repository::username() const
 
 
 void
-credential_repository::store(const credential& cred) const
+keychain_provider::store(const std::string& url, const std::string& secret) const
 {
     keychain::Error kerr;
-    keychain::setPassword(_M_package, cred.url(), username(), cred.credential, kerr);
+    keychain::setPassword(_M_package, url, system_username(), secret, kerr);
 
     if (kerr) {
         throw std::runtime_error(
             std::format("credential: failed saving credential, {}", kerr.message)
         );
     }
+}
+
+
+std::string
+keychain_provider::load(const std::string& url) const
+{
+    keychain::Error kerr;
+    auto secret = keychain::getPassword(_M_package, url, system_username(), kerr);
+    if (kerr) {
+        throw std::runtime_error(
+            std::format("keychain: failed retrieving credential, {}", kerr.message)
+        );
+    }
+
+    return secret;
+}
+
+
+void
+keychain_provider::remove(const std::string& url) const
+{
+    // Ignore deletion errors.
+    keychain::Error kerr;
+    keychain::deletePassword(_M_package, url, system_username(), kerr);
 }
 
 
@@ -86,11 +110,11 @@ credential_command::credential_command(basic_command& parent)
         .metavar("<username>")
         .required()
         .store_into(_M_credential.username);
-    _M_add.add_argument("-c", "--credential")
+    _M_add.add_argument("-s", "--secret")
         .help("the pre-encoded credential, suitable for protocol")
-        .metavar("<credential>")
+        .metavar("<secret>")
         .required()
-        .store_into(_M_credential.credential);
+        .store_into(_M_credential.secret);
 
     _M_list.add_description("list the available credentials");
 
@@ -113,11 +137,15 @@ credential_command::credential_command(basic_command& parent)
 void
 credential_command::add(const command_context& context)
 {
-    auto config = context.config_file.read();
-    auto credential =
-        credential_config{.username = _M_credential.username, .provider = "@keychain"};
+    credential_config credential = {.username = _M_credential.username, .provider = "@keychain"};
 
-    config.push_credential(_M_credential.url(), credential);
+    keychain_provider provider;
+    auto config = context.config_file.read();
+    auto url = _M_credential.url();
+
+    config.push_credential(url, credential);
+    provider.store(url, _M_credential.secret);
+
     context.config_file.write(config);
 }
 
@@ -174,8 +202,10 @@ credential_command::remove(const command_context& context)
     }
 
     if (!candidates.empty()) {
+        keychain_provider provider;
         for (const auto& cred_url : candidates) {
             config.pop_credential(cred_url);
+            provider.remove(cred_url);
         }
         context.config_file.write(config);
     }

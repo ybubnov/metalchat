@@ -19,7 +19,7 @@ struct credential {
     std::string protocol;
     std::string hostname;
     std::string username;
-    std::string credential;
+    std::string secret;
 
     std::string
     url() const
@@ -33,25 +33,33 @@ struct credential {
 ///
 /// The repository uses a configuration to store credentials parameters, like protocol,
 /// hostname, etc. but stores credential secret in Keychain Access.
-class credential_repository {
+class keychain_provider {
 public:
-    credential_repository();
-    credential_repository(const std::string& package);
+    keychain_provider();
+    keychain_provider(const std::string& package);
 
     /// Store the credential into the Keychain Access.
     ///
     /// The method queries OS user that launched a program to store the credential.
-    /// The `OutputIt` is updated with the instances of \ref credential type.
     void
-    store(const credential& cred) const;
+    store(const std::string& url, const std::string& secret) const;
 
+    /// Load the secret from the Keychain Access.
+    ///
+    /// The method queries OS user that launched a program and load a secret from the
+    /// Keychain Access repository for the specified URL.
+    std::string
+    load(const std::string& url) const;
+
+    /// Remove the secret store in the Keychain Access.
+    ///
+    /// Method does not throw errors, when key is missing from the Keychain Access.
     void
-    load(credential& cred) const
-    {}
+    remove(const std::string& url) const;
 
 private:
     std::string
-    username() const;
+    system_username() const;
 
     std::string _M_package;
 };
