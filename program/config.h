@@ -68,10 +68,17 @@ namespace program {
 
 template <typename T> class tomlfile {
 public:
+    /// Constructs a \ref tomlfile instance that is located in a specified path.
     tomlfile(const std::filesystem::path& p)
     : _M_path(p)
     {}
 
+    /// Writes a toml-encodable object into a file.
+    ///
+    /// The implementation removes trailing new line symbols from the output
+    /// and also uses implicit formatting for all top-level tables (if exist).
+    ///
+    /// \param t An toml-encodable object to write into a file.
     void
     write(const T& t) const
     {

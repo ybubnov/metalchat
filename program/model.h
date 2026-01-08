@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <toml.hpp>
+
 #include "command.h"
 
 
@@ -16,6 +18,22 @@ struct architecture {
     static constexpr std::string_view llama3x2_3b = "llama3.2:3b";
 };
 
+
+struct manifest {
+    std::string arch;
+    bool sharded;
+};
+
+
+} // namespace program
+} // namespace metalchat
+
+
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::program::manifest, arch, sharded);
+
+
+namespace metalchat {
+namespace program {
 
 class model_command : public basic_command {
 public:
