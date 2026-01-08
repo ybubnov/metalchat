@@ -27,7 +27,8 @@ model_command::model_command(basic_command& parent)
     _M_pull.add_argument("name").help("the name of the model").required().store_into(_M_name);
     _M_pull.add_argument("-a", "--arch")
         .help("a model architecture")
-        .choices("llama3")
+        .choices(std::string(architecture::llama3x2_1b), std::string(architecture::llama3x2_3b))
+
         .default_value(std::string("llama3"))
         .nargs(1)
         .store_into(_M_arch);

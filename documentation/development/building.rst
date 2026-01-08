@@ -24,7 +24,7 @@ as a build system.
 
 These building instruments are installed by the conan itself, and therefore do not require manual
 installation. The primary way of building the framework is using the Python environment. You can
-the Python environment in the following steps:
+configure the Python environment in the following steps:
 
 1. Install `pipenv` instrument:
 

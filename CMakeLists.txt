@@ -32,8 +32,8 @@ find_package(rapidhash CONFIG REQUIRED)
 find_package(PCRE2 CONFIG REQUIRED)
 
 # Packages related to the metalchat shell.
-find_package(ada)
 find_package(argparse)
+find_package(curl)
 find_package(keychain)
 find_package(replxx)
 find_package(toml11)
@@ -115,12 +115,12 @@ target_link_libraries(${metalchat_FRAMEWORK}
 )
 
 
-if (replxx_FOUND AND keychain_FOUND AND argparse_FOUND AND toml11_FOUND AND ada_FOUND)
+if (argparse_FOUND AND curl_FOUND AND keychain_FOUND AND replxx_FOUND AND toml11_FOUND)
     add_executable(${CMAKE_PROJECT_NAME} ${metalchat_PROGRAM})
     target_link_libraries(${CMAKE_PROJECT_NAME}
         ${metalchat_FRAMEWORK}
-        ada::ada
         argparse::argparse
+        curl
         keychain::keychain
         replxx::replxx
         toml11::toml11

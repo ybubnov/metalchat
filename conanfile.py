@@ -66,8 +66,8 @@ class MetalChat(ConanFile):
         self.requires("pcre2/[>=10.30 <11.0]")
 
         if self.options.build_executable:
-            self.requires("ada/[>=3.0.0 <4.0.0]")
             self.requires("argparse/[>=3.2 <4.0.0]")
+            self.requires("libcurl/[>=8.17.0 <9.0.0]")
             self.requires("keychain/[>=1.3.0 <2.0.0]")
             self.requires("replxx/[>=0.0.4 <1.0.0]")
             self.requires("toml11/[>=4.0.0 <5.0.0]")

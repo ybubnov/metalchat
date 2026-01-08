@@ -16,19 +16,6 @@ namespace metalchat {
 namespace program {
 
 
-chat::version_type
-make_chat_version(const std::string_view& arch, const std::string_view& impl)
-{
-    return std::make_tuple(std::string(arch), std::string(impl));
-}
-
-
-const std::unordered_map<chat::version_type, chat::constructor_type> chat::versions = {
-    {make_chat_version(architecture::llama3x2_1b, implementation::reference), nullptr},
-    {make_chat_version(architecture::llama3x2_1b, implementation::huggingface), nullptr}
-};
-
-
 chat::chat(const chat_create_options&) {}
 
 

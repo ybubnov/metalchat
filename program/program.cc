@@ -19,7 +19,8 @@ program::program()
     _M_command.add_argument("-f", "--file")
         .help("read configuration file only from this location")
         .metavar("<config-file>")
-        .default_value(std::string(default_config_path));
+        .default_value(std::string(default_config_path))
+        .nargs(1);
 }
 
 

@@ -8,10 +8,10 @@
 #include <regex>
 #include <unistd.h>
 
-#include <ada.h>
 #include <keychain/keychain.h>
 
 #include "credential.h"
+#include "http.h"
 
 
 namespace metalchat {
@@ -187,14 +187,14 @@ credential_command::remove(const command_context& context)
         std::bitset<8> expect = 0;
         std::bitset<8> actual = 0;
 
-        auto url = ada::parse(cred_url);
+        auto u = url(cred_url);
         if (!_M_credential.protocol.empty()) {
             expect |= 1;
-            actual |= (url->get_protocol() == (_M_credential.protocol + ":"));
+            actual |= (u.protocol() == (_M_credential.protocol));
         }
         if (!_M_credential.hostname.empty()) {
             expect |= 1 << 1;
-            actual |= ((url->get_hostname() == _M_credential.hostname) << 1);
+            actual |= ((u.host() == _M_credential.hostname) << 1);
         }
 
         if ((actual ^ expect).none()) {

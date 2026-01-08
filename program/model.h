@@ -11,6 +11,12 @@ namespace metalchat {
 namespace program {
 
 
+struct architecture {
+    static constexpr std::string_view llama3x2_1b = "llama3.2:1b";
+    static constexpr std::string_view llama3x2_3b = "llama3.2:3b";
+};
+
+
 class model_command : public basic_command {
 public:
     model_command(basic_command& parent);
