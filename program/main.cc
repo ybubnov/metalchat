@@ -5,13 +5,10 @@
 #include "program.h"
 
 
-namespace mcp = metalchat::program;
-
-
 int
 main(int argc, char** argv)
 {
-    mcp::program program;
+    metalchat::workspace::program program;
 
     try {
         program.handle(argc, argv);

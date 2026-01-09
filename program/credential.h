@@ -8,7 +8,7 @@
 
 
 namespace metalchat {
-namespace program {
+namespace workspace {
 
 
 struct credential {
@@ -83,5 +83,5 @@ private:
 };
 
 
-} // namespace program
+} // namespace workspace
 } // namespace metalchat

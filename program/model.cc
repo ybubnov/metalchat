@@ -7,7 +7,7 @@
 
 
 namespace metalchat {
-namespace program {
+namespace workspace {
 
 
 std::string architecture::llama3 = "llama3";
@@ -71,6 +71,9 @@ model_command::pull(const command_context& context)
     auto repo_path = context.root_path / default_path / _M_name;
     auto manifest_path = repo_path / manifest_name;
 
+    url u(_M_repository);
+    std::cout << "Pulling from '" << u.string() << "'..." << std::endl;
+
     if (std::filesystem::exists(repo_path)) {
         throw std::invalid_argument(std::format("pull: model '{}' already exists", _M_name));
     }
@@ -119,5 +122,5 @@ model_command::remove(const command_context& context)
 }
 
 
-} // namespace program
+} // namespace workspace
 } // namespace metalchat

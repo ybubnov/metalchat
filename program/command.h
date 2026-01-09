@@ -14,7 +14,7 @@
 
 
 namespace metalchat {
-namespace program {
+namespace workspace {
 
 
 struct command_context {
@@ -51,5 +51,5 @@ protected:
 };
 
 
-} // namespace program
+} // namespace workspace
 } // namespace metalchat

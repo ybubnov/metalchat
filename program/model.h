@@ -10,7 +10,7 @@
 
 
 namespace metalchat {
-namespace program {
+namespace workspace {
 
 
 struct architecture {
@@ -42,18 +42,18 @@ struct manifest {
 };
 
 
-} // namespace program
+} // namespace workspace
 } // namespace metalchat
 
 
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(
-    metalchat::program::model, variant, repository, architecture, partitioning
+    metalchat::workspace::model, variant, repository, architecture, partitioning
 );
-TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::program::manifest, model);
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::workspace::manifest, model);
 
 
 namespace metalchat {
-namespace program {
+namespace workspace {
 
 
 class model_command : public basic_command {
@@ -84,5 +84,5 @@ private:
 };
 
 
-} // namespace program
+} // namespace workspace
 } // namespace metalchat

@@ -9,7 +9,7 @@
 
 
 namespace metalchat {
-namespace program {
+namespace workspace {
 
 
 program::program()
@@ -46,5 +46,5 @@ program::handle(int argc, char** argv)
 }
 
 
-} // namespace program
+} // namespace workspace
 } // namespace metalchat

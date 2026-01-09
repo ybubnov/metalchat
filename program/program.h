@@ -10,7 +10,7 @@
 
 
 namespace metalchat {
-namespace program {
+namespace workspace {
 
 
 /// This is the main entrypoint of the metalchat command line program.
@@ -32,5 +32,5 @@ private:
 };
 
 
-} // namespace program
+} // namespace workspace
 } // namespace metalchat

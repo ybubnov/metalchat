@@ -13,7 +13,7 @@
 
 
 namespace metalchat {
-namespace program {
+namespace workspace {
 
 
 keychain_provider::keychain_provider(const std::string& package)
@@ -22,7 +22,7 @@ keychain_provider::keychain_provider(const std::string& package)
 
 
 keychain_provider::keychain_provider()
-: keychain_provider("org.metalchat.program")
+: keychain_provider("org.metalchat.workspace")
 {}
 
 
@@ -213,5 +213,5 @@ credential_command::remove(const command_context& context)
 }
 
 
-} // namespace program
+} // namespace workspace
 } // namespace metalchat

@@ -16,7 +16,7 @@
 
 
 namespace metalchat {
-namespace program {
+namespace workspace {
 
 
 struct chat_create_options {
@@ -46,5 +46,5 @@ private:
 };
 
 
-} // namespace program
+} // namespace workspace
 } // namespace metalchat
