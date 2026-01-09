@@ -13,7 +13,7 @@
 
 
 namespace metalchat {
-namespace workspace {
+namespace internal {
 
 
 chat::chat(const chat_create_options&) {}
@@ -71,5 +71,5 @@ chat_command::create()
 }
 
 
-} // namespace workspace
+} // namespace internal
 } // namespace metalchat

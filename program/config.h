@@ -15,7 +15,7 @@
 
 
 namespace metalchat {
-namespace workspace {
+namespace internal {
 
 
 struct credential_config {
@@ -54,16 +54,16 @@ struct config {
     }
 };
 
-} // namespace workspace
+} // namespace internal
 } // namespace metalchat
 
 
-TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::workspace::credential_config, username, provider);
-TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::workspace::config, credential);
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::internal::credential_config, username, provider);
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::internal::config, credential);
 
 
 namespace metalchat {
-namespace workspace {
+namespace internal {
 
 
 using tomlmode = std::size_t;
@@ -152,5 +152,5 @@ private:
 };
 
 
-} // namespace workspace
+} // namespace internal
 } // namespace metalchat

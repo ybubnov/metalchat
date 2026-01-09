@@ -12,7 +12,7 @@
 
 
 namespace metalchat {
-namespace workspace {
+namespace internal {
 
 
 class url {
@@ -96,5 +96,5 @@ private:
 };
 
 
-} // namespace workspace
+} // namespace internal
 } // namespace metalchat
