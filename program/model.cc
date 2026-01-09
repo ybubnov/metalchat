@@ -10,8 +10,7 @@ namespace metalchat {
 namespace program {
 
 
-std::string architecture::llama3_2 = "llama3.2";
-
+std::string architecture::llama3 = "llama3";
 std::string variant::huggingface = "huggingface";
 
 std::string partitioning::sharded = "sharded";
@@ -37,8 +36,8 @@ model_command::model_command(basic_command& parent)
     _M_pull.add_argument("-a", "--arch")
         .help("a model architecture")
         .metavar("<architecture>")
-        .choices(architecture::llama3_2)
-        .default_value(architecture::llama3_2)
+        .choices(architecture::llama3)
+        .default_value(architecture::llama3)
         .nargs(1)
         .store_into(_M_arch);
     _M_pull.add_argument("-p", "--partitioning")
@@ -69,17 +68,16 @@ model_command::pull(const command_context& context)
     // std::ostream_iterator<char> output(local_file);
     // remote_file.read(output);
 
-    auto root_path = context.config_file.path().parent_path();
-    auto repo_path = root_path / default_path / _M_name;
-    auto manifest_path = repo_path / "manifest.toml";
+    auto repo_path = context.root_path / default_path / _M_name;
+    auto manifest_path = repo_path / manifest_name;
 
     if (std::filesystem::exists(repo_path)) {
         throw std::invalid_argument(std::format("pull: model '{}' already exists", _M_name));
     }
 
-    manifest m = {
+    manifest manifest_document = {
         .model =
-            {.variant = "huggingface",
+            {.variant = variant::huggingface,
              .repository = _M_repository,
              .architecture = _M_arch,
              .partitioning = _M_partitioning}
@@ -88,18 +86,37 @@ model_command::pull(const command_context& context)
     std::filesystem::create_directories(repo_path);
 
     tomlfile<manifest> manifest_file(manifest_path, tomlformat::multiline);
-    manifest_file.write(m);
+    manifest_file.write(manifest_document);
 }
 
 
 void
 model_command::list(const command_context& context)
-{}
+{
+    auto root_path = context.root_path / default_path;
+
+    for (auto const& repo_path : std::filesystem::directory_iterator(root_path)) {
+        if (!std::filesystem::is_directory(repo_path)) {
+            continue;
+        }
+
+        auto manifest_path = repo_path.path() / manifest_name;
+        auto manifest_document = tomlfile<manifest>::read(repo_path / manifest_path);
+
+        std::cout << repo_path.path().filename().string() << '\t';
+        std::cout << manifest_document.model.architecture << '\t';
+        std::cout << manifest_document.model.partitioning << '\t';
+        std::cout << manifest_document.model.repository << std::endl;
+    }
+}
 
 
 void
 model_command::remove(const command_context& context)
-{}
+{
+    auto repo_path = context.root_path / default_path / _M_name;
+    std::filesystem::remove_all(repo_path);
+}
 
 
 } // namespace program

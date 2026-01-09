@@ -14,7 +14,7 @@ namespace program {
 
 
 struct architecture {
-    static std::string llama3_2;
+    static std::string llama3;
 };
 
 
@@ -59,6 +59,7 @@ namespace program {
 class model_command : public basic_command {
 public:
     static constexpr std::string_view default_path = "models";
+    static constexpr std::string_view manifest_name = "manifest.toml";
 
     model_command(basic_command& parent);
 

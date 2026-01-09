@@ -45,7 +45,7 @@ struct config {
     pop_credential(const std::string& url)
     {
         if (credential.has_value()) {
-            auto creds = credential.value_or(credential_table::value_type());
+            auto creds = credential.value();
             if (auto it = creds.find(url); it != creds.end()) {
                 creds.erase(it);
             }
@@ -67,6 +67,7 @@ namespace program {
 
 
 using tomlmode = std::size_t;
+
 
 struct tomlformat {
     static constexpr tomlmode implicit = 1 << 0;

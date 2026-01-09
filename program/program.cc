@@ -37,12 +37,10 @@ program::handle(int argc, char** argv)
         config_path = std::string(std::getenv("HOME")) + config_path.substr(1);
     }
 
-    auto parent_path = std::filesystem::path(config_path).parent_path();
-    if (!std::filesystem::exists(parent_path)) {
-        std::filesystem::create_directories(parent_path);
-    }
+    auto root_path = std::filesystem::path(config_path).parent_path();
+    std::filesystem::create_directories(root_path);
 
-    command_context context{.config_file = tomlfile<config>(config_path)};
+    command_context context{.root_path = root_path, .config_file = tomlfile<config>(config_path)};
 
     basic_command::handle(context);
 }

@@ -18,6 +18,7 @@ namespace program {
 
 
 struct command_context {
+    std::filesystem::path root_path;
     tomlfile<config> config_file;
 };
 
