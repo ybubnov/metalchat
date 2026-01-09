@@ -66,12 +66,27 @@ namespace metalchat {
 namespace program {
 
 
+using tomlmode = std::size_t;
+
+struct tomlformat {
+    static constexpr tomlmode implicit = 1 << 0;
+    static constexpr tomlmode multiline = 1 << 1;
+};
+
+
 template <typename T> class tomlfile {
 public:
     /// Constructs a \ref tomlfile instance that is located in a specified path.
-    tomlfile(const std::filesystem::path& p)
-    : _M_path(p)
+    tomlfile(const std::filesystem::path& p, tomlmode m = tomlformat::implicit)
+    : _M_path(p),
+      _M_mode(m)
     {}
+
+    const std::filesystem::path&
+    path() const
+    {
+        return _M_path;
+    }
 
     /// Writes a toml-encodable object into a file.
     ///
@@ -84,7 +99,7 @@ public:
     {
         auto toml_document = toml::value(t);
 
-        if (toml_document.is_table()) {
+        if (toml_document.is_table() and (_M_mode & tomlformat::implicit)) {
             auto& table_ref = toml_document.as_table();
 
             for (auto& [name, child] : table_ref) {
@@ -102,7 +117,7 @@ public:
         }
 
         std::ofstream file_stream(_M_path, std::ios::binary | std::ios::trunc);
-        file_stream << toml_bytes_view;
+        file_stream << toml_bytes_view << '\n';
     }
 
     static void
@@ -132,6 +147,7 @@ public:
 
 private:
     std::filesystem::path _M_path;
+    tomlmode _M_mode;
 };
 
 

@@ -4,8 +4,6 @@
 
 #include <format>
 #include <iostream>
-#include <limits.h>
-#include <regex>
 #include <unistd.h>
 
 #include <keychain/keychain.h>
@@ -155,20 +153,22 @@ void
 credential_command::list(const command_context& context)
 {
     auto config = context.config_file.read();
-    if (config.credential.has_value()) {
-        std::size_t url_size = 0;
-        std::size_t username_size = 0;
+    if (!config.credential.has_value()) {
+        return;
+    }
 
-        for (const auto& [url, c] : config.credential.value()) {
-            url_size = std::max(url_size, url.size());
-            username_size = std::max(username_size, c.username.size());
-        }
-        for (const auto& [url, c] : config.credential.value()) {
-            std::cout << std::left;
-            std::cout << std::setw(url_size) << url << '\t';
-            std::cout << std::setw(username_size) << c.username << '\t';
-            std::cout << c.provider << std::endl;
-        }
+    std::size_t url_size = 0;
+    std::size_t username_size = 0;
+
+    for (const auto& [url, c] : config.credential.value()) {
+        url_size = std::max(url_size, url.size());
+        username_size = std::max(username_size, c.username.size());
+    }
+    for (const auto& [url, c] : config.credential.value()) {
+        std::cout << std::left;
+        std::cout << std::setw(url_size) << url << '\t';
+        std::cout << std::setw(username_size) << c.username << '\t';
+        std::cout << c.provider << std::endl;
     }
 }
 

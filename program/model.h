@@ -14,14 +14,31 @@ namespace program {
 
 
 struct architecture {
-    static std::string llama3x2_1b;
-    static std::string llama3x2_3b;
+    static std::string llama3_2;
+};
+
+
+struct partitioning {
+    static std::string consolidated;
+    static std::string sharded;
+};
+
+
+struct variant {
+    static std::string huggingface;
+};
+
+
+struct model {
+    std::string variant;
+    std::string repository;
+    std::string architecture;
+    std::string partitioning;
 };
 
 
 struct manifest {
-    std::string architecture;
-    bool sharded;
+    model model;
 };
 
 
@@ -29,14 +46,20 @@ struct manifest {
 } // namespace metalchat
 
 
-TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::program::manifest, architecture, sharded);
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(
+    metalchat::program::model, variant, repository, architecture, partitioning
+);
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::program::manifest, model);
 
 
 namespace metalchat {
 namespace program {
 
+
 class model_command : public basic_command {
 public:
+    static constexpr std::string_view default_path = "models";
+
     model_command(basic_command& parent);
 
     void
@@ -54,6 +77,7 @@ private:
     parser_type _M_remove;
 
     std::string _M_repository;
+    std::string _M_partitioning;
     std::string _M_arch;
     std::string _M_name;
 };
