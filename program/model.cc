@@ -3,10 +3,15 @@
 // SPDX-FileType: SOURCE
 
 #include "model.h"
+#include "http.h"
 
 
 namespace metalchat {
 namespace program {
+
+
+std::string architecture::llama3x2_1b = "llama3.2:1b";
+std::string architecture::llama3x2_3b = "llama3.2:3b";
 
 
 model_command::model_command(basic_command& parent)
@@ -27,9 +32,8 @@ model_command::model_command(basic_command& parent)
     _M_pull.add_argument("name").help("the name of the model").required().store_into(_M_name);
     _M_pull.add_argument("-a", "--arch")
         .help("a model architecture")
-        .choices(std::string(architecture::llama3x2_1b), std::string(architecture::llama3x2_3b))
-
-        .default_value(std::string("llama3"))
+        .choices(architecture::llama3x2_1b, architecture::llama3x2_3b)
+        .default_value(architecture::llama3x2_1b)
         .nargs(1)
         .store_into(_M_arch);
     _M_list.add_description("list the available models");
@@ -43,7 +47,13 @@ model_command::model_command(basic_command& parent)
 
 void
 model_command::pull(const command_context& context)
-{}
+{
+    std::ofstream local_file("index.html", std::ios::binary | std::ios::trunc);
+    httpfile remote_file("http://localhost:8000/index.html");
+
+    std::ostream_iterator<char> output(local_file);
+    remote_file.read(output);
+}
 
 
 void

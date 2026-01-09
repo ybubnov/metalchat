@@ -18,7 +18,7 @@ namespace program {
 /// On creation, this method registers all of the necessary sub-commands and their handlers.
 class program : public basic_command {
 public:
-    static constexpr std::string_view default_config_path = ".metalchat/config";
+    static constexpr std::string_view default_config_path = "~/.metalchat/config.toml";
 
     program();
 

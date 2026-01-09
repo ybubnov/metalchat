@@ -14,13 +14,13 @@ namespace program {
 
 
 struct architecture {
-    static constexpr std::string_view llama3x2_1b = "llama3.2:1b";
-    static constexpr std::string_view llama3x2_3b = "llama3.2:3b";
+    static std::string llama3x2_1b;
+    static std::string llama3x2_3b;
 };
 
 
 struct manifest {
-    std::string arch;
+    std::string architecture;
     bool sharded;
 };
 
@@ -29,7 +29,7 @@ struct manifest {
 } // namespace metalchat
 
 
-TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::program::manifest, arch, sharded);
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::program::manifest, architecture, sharded);
 
 
 namespace metalchat {
