@@ -9,7 +9,7 @@
 
 
 namespace metalchat {
-namespace internal {
+namespace runtime {
 
 
 program::program()
@@ -46,5 +46,5 @@ program::handle(int argc, char** argv)
 }
 
 
-} // namespace internal
+} // namespace runtime
 } // namespace metalchat

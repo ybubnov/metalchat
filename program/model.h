@@ -10,7 +10,7 @@
 
 
 namespace metalchat {
-namespace internal {
+namespace runtime {
 
 
 struct architecture {
@@ -42,18 +42,18 @@ struct manifest {
 };
 
 
-} // namespace internal
+} // namespace runtime
 } // namespace metalchat
 
 
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(
-    metalchat::internal::model, variant, repository, architecture, partitioning
+    metalchat::runtime::model, variant, repository, architecture, partitioning
 );
-TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::internal::manifest, model);
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::runtime::manifest, model);
 
 
 namespace metalchat {
-namespace internal {
+namespace runtime {
 
 
 class model_command : public basic_command {
@@ -84,5 +84,5 @@ private:
 };
 
 
-} // namespace internal
+} // namespace runtime
 } // namespace metalchat

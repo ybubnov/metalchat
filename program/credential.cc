@@ -13,7 +13,7 @@
 
 
 namespace metalchat {
-namespace internal {
+namespace runtime {
 
 
 keychain_provider::keychain_provider(const std::string& package)
@@ -22,7 +22,7 @@ keychain_provider::keychain_provider(const std::string& package)
 
 
 keychain_provider::keychain_provider()
-: keychain_provider("org.metalchat.internal")
+: keychain_provider("org.metalchat.runtime")
 {}
 
 
@@ -213,5 +213,5 @@ credential_command::remove(const command_context& context)
 }
 
 
-} // namespace internal
+} // namespace runtime
 } // namespace metalchat

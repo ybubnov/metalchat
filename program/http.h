@@ -12,7 +12,7 @@
 
 
 namespace metalchat {
-namespace internal {
+namespace runtime {
 
 
 class url {
@@ -96,5 +96,5 @@ private:
 };
 
 
-} // namespace internal
+} // namespace runtime
 } // namespace metalchat

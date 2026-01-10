@@ -8,7 +8,7 @@
 int
 main(int argc, char** argv)
 {
-    metalchat::internal::program program;
+    metalchat::runtime::program program;
 
     try {
         program.handle(argc, argv);

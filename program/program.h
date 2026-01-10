@@ -10,7 +10,7 @@
 
 
 namespace metalchat {
-namespace internal {
+namespace runtime {
 
 
 /// This is the main entrypoint of the metalchat command line program.
@@ -32,5 +32,5 @@ private:
 };
 
 
-} // namespace internal
+} // namespace runtime
 } // namespace metalchat

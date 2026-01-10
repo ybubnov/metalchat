@@ -13,7 +13,7 @@
 
 
 namespace metalchat {
-namespace internal {
+namespace runtime {
 
 
 chat::chat(const chat_create_options&) {}
@@ -71,5 +71,5 @@ chat_command::create()
 }
 
 
-} // namespace internal
+} // namespace runtime
 } // namespace metalchat

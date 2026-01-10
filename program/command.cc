@@ -6,7 +6,7 @@
 
 
 namespace metalchat {
-namespace internal {
+namespace runtime {
 
 
 basic_command::basic_command(const std::string& name)
@@ -48,5 +48,5 @@ basic_command::handle(const command_context& context) const
 }
 
 
-} // namespace internal
+} // namespace runtime
 } // namespace metalchat

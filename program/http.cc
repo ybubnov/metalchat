@@ -8,7 +8,7 @@
 
 
 namespace metalchat {
-namespace internal {
+namespace runtime {
 
 
 url::url(const std::string& u)
@@ -82,5 +82,5 @@ httpfile::httpfile(const std::string& u)
 httpfile::~httpfile() { curl_global_cleanup(); }
 
 
-} // namespace internal
+} // namespace runtime
 } // namespace metalchat

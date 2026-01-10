@@ -7,7 +7,7 @@
 
 
 namespace metalchat {
-namespace internal {
+namespace runtime {
 
 
 std::string architecture::llama3 = "llama3";
@@ -122,5 +122,5 @@ model_command::remove(const command_context& context)
 }
 
 
-} // namespace internal
+} // namespace runtime
 } // namespace metalchat

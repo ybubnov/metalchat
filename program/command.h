@@ -14,7 +14,7 @@
 
 
 namespace metalchat {
-namespace internal {
+namespace runtime {
 
 
 struct command_context {
@@ -51,5 +51,5 @@ protected:
 };
 
 
-} // namespace internal
+} // namespace runtime
 } // namespace metalchat
