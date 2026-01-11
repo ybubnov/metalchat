@@ -6,7 +6,10 @@
 
 #include <filesystem>
 #include <format>
+#include <functional>
 #include <iostream>
+#include <iterator>
+#include <unordered_map>
 
 #include <curl/curl.h>
 
@@ -17,7 +20,7 @@ namespace runtime {
 
 class url {
 public:
-    using native_handle_type = std::shared_ptr<CURLU>;
+    using native_handle_type = CURLU;
 
     url(const std::string& u);
 
@@ -28,29 +31,41 @@ public:
     host() const;
 
     std::string
+    base() const;
+
+    std::string
+    path() const;
+
+    std::string
     string() const;
 
-    const native_handle_type
+    const std::shared_ptr<native_handle_type>
     native_handle() const;
+
+    friend url
+    operator/(const url& lhs, const std::string& p);
 
 private:
     std::string
     part(CURLUPart p) const;
 
-    native_handle_type _M_url;
+    std::shared_ptr<native_handle_type> _M_url;
 };
 
 
 /// The class represents an abstraction of a remote file located at the specified url.
 ///
 /// The implementation uses libcurl to query the remote file. It's a stateless implementation
-/// of the remote object, meaning that if \ref httpfile points to a dynamic file, it's size
+/// of the remote object, meaning that if \ref http_file points to a dynamic file, it's size
 /// might change as well.
-class httpfile {
+class http_file {
 public:
-    httpfile(const url& u);
-    httpfile(const std::string& u);
-    ~httpfile();
+    http_file(const url& u);
+    http_file(const std::string& u);
+    ~http_file();
+
+    http_file&
+    set_header(const std::string& key, const std::string& value);
 
     template <std::output_iterator<char> OutputIt>
     void
@@ -59,9 +74,17 @@ public:
         std::shared_ptr<CURL> curl(curl_easy_init(), curl_easy_cleanup);
         if (curl == nullptr) {
             throw std::runtime_error(
-                std::format("httpfile: failed initializing reader for '{}'", _M_url.string())
+                std::format("http_file: failed initializing reader for '{}'", _M_url.string())
             );
         }
+
+        struct curl_slist* headers_ptr = nullptr;
+        for (const auto& [k, v] : _M_headers) {
+            auto header = k + ": " + v;
+            headers_ptr = curl_slist_append(headers_ptr, header.c_str());
+        }
+
+        std::shared_ptr<curl_slist> headers(headers_ptr, curl_slist_free_all);
 
         auto url = _M_url.string();
         curl_easy_setopt(curl.get(), CURLOPT_URL, url.data());
@@ -69,11 +92,13 @@ public:
         curl_easy_setopt(curl.get(), CURLOPT_NOPROGRESS, 1l);
         curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, read_cb<OutputIt>);
         curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &output);
+        curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1l);
+        curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers.get());
 
         auto error = curl_easy_perform(curl.get());
         if (error) {
             throw std::runtime_error(
-                std::format("httpfile: failed reading a remote url '{}'", _M_url.string())
+                std::format("http_file: failed reading a remote url '{}'", _M_url.string())
             );
         }
     }
@@ -93,6 +118,32 @@ private:
     }
 
     url _M_url;
+    std::unordered_map<std::string, std::string> _M_headers;
+};
+
+
+using http_middlware = std::function<void(http_file&)>;
+
+
+class http_filesystem {
+public:
+    http_filesystem(const url& base, http_middlware&& middleware);
+    http_filesystem(const url& base);
+
+    template <std::output_iterator<char> OutputIt>
+    void
+    read(const std::string& path, OutputIt output) const
+    {
+        http_file file(_M_url / path);
+        if (_M_middleware) {
+            _M_middleware(file);
+        }
+        file.read(output);
+    }
+
+private:
+    url _M_url;
+    http_middlware _M_middleware;
 };
 
 

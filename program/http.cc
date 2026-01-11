@@ -21,7 +21,7 @@ url::url(const std::string& u)
 }
 
 
-const url::native_handle_type
+const std::shared_ptr<url::native_handle_type>
 url::native_handle() const
 {
     return _M_url;
@@ -59,27 +59,70 @@ url::host() const
 
 
 std::string
+url::base() const
+{
+    return std::format("{}://{}", protocol(), host());
+}
+
+
+std::string
+url::path() const
+{
+    return part(CURLUPART_PATH);
+}
+
+
+std::string
 url::string() const
 {
     return part(CURLUPART_URL);
 }
 
 
-httpfile::httpfile(const url& u)
-: _M_url(u)
+url
+operator/(const url& lhs, const std::string& p)
+{
+    return url(lhs.string() + "/" + p);
+}
+
+
+http_file::http_file(const url& u)
+: _M_url(u),
+  _M_headers()
 {
     auto error = curl_global_init(CURL_GLOBAL_ALL);
     if (error) {
-        throw std::runtime_error("httpfile: unable to initialize file");
+        throw std::runtime_error("http_file: unable to initialize file");
     }
 }
 
-httpfile::httpfile(const std::string& u)
-: httpfile(url(u))
+
+http_file::http_file(const std::string& u)
+: http_file(url(u))
 {}
 
 
-httpfile::~httpfile() { curl_global_cleanup(); }
+http_file&
+http_file::set_header(const std::string& key, const std::string& value)
+{
+    _M_headers.insert_or_assign(key, value);
+    return *this;
+}
+
+
+http_file::~http_file() { curl_global_cleanup(); }
+
+
+http_filesystem::http_filesystem(const url& base, http_middlware&& middleware)
+: _M_url(base),
+  _M_middleware(std::move(middleware))
+{}
+
+
+http_filesystem::http_filesystem(const url& base)
+: _M_url(base),
+  _M_middleware(nullptr)
+{}
 
 
 } // namespace runtime

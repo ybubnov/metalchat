@@ -11,20 +11,6 @@ namespace metalchat {
 namespace runtime {
 
 
-struct credential {
-    std::string protocol;
-    std::string hostname;
-    std::string username;
-    std::string secret;
-
-    std::string
-    url() const
-    {
-        return protocol + "://" + hostname;
-    }
-};
-
-
 /// A credential repository that keeps secrets in Keychain Access.
 ///
 /// The repository uses a configuration to store credentials parameters, like protocol,
@@ -79,7 +65,10 @@ private:
     parser_type _M_list;
     parser_type _M_remove;
 
-    credential _M_credential;
+    std::string _M_protocol;
+    std::string _M_hostname;
+    std::string _M_username;
+    std::string _M_secret;
 };
 
 

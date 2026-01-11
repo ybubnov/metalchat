@@ -87,7 +87,10 @@ credential_command::credential_command(basic_command& parent)
   _M_add("add"),
   _M_list("list"),
   _M_remove("remove"),
-  _M_credential()
+  _M_protocol(),
+  _M_hostname(),
+  _M_username(),
+  _M_secret()
 {
     _M_command.add_description("retrieve and store user credentials");
 
@@ -98,22 +101,22 @@ credential_command::credential_command(basic_command& parent)
         .choices("https")
         .default_value(std::string("https"))
         .nargs(1)
-        .store_into(_M_credential.protocol);
+        .store_into(_M_protocol);
     _M_add.add_argument("-H", "--hostname")
         .help("the remote hostname for a network credential")
         .metavar("<hostname>")
         .required()
-        .store_into(_M_credential.hostname);
+        .store_into(_M_hostname);
     _M_add.add_argument("-u", "--username")
         .help("the credential's username")
         .metavar("<username>")
         .required()
-        .store_into(_M_credential.username);
+        .store_into(_M_username);
     _M_add.add_argument("-s", "--secret")
         .help("the pre-encoded credential, suitable for protocol")
         .metavar("<secret>")
         .required()
-        .store_into(_M_credential.secret);
+        .store_into(_M_secret);
 
     _M_list.add_description("list the available credentials");
 
@@ -121,11 +124,11 @@ credential_command::credential_command(basic_command& parent)
     _M_remove.add_argument("-p", "--protocol")
         .help("the protocol over which the credential will be used")
         .metavar("<protocol>")
-        .store_into(_M_credential.protocol);
+        .store_into(_M_protocol);
     _M_remove.add_argument("-H", "--hostname")
         .help("a remote hostname to matching the credentials")
         .metavar("<hostname>")
-        .store_into(_M_credential.hostname);
+        .store_into(_M_hostname);
 
     push_handler(_M_add, [&](const command_context& c) { add(c); });
     push_handler(_M_list, [&](const command_context& c) { list(c); });
@@ -136,14 +139,14 @@ credential_command::credential_command(basic_command& parent)
 void
 credential_command::add(const command_context& context)
 {
-    credential_config credential = {.username = _M_credential.username, .provider = "@keychain"};
+    credential spec = {.username = _M_username, .provider = "@keychain"};
 
     keychain_provider provider;
     auto config = context.config_file.read();
-    auto url = _M_credential.url();
+    auto url = _M_protocol + "://" + _M_hostname;
 
-    config.push_credential(url, credential);
-    provider.store(url, _M_credential.secret);
+    config.push_credential(url, spec);
+    provider.store(url, _M_secret);
 
     context.config_file.write(config);
 }
@@ -188,13 +191,13 @@ credential_command::remove(const command_context& context)
         std::bitset<8> actual = 0;
 
         auto u = url(cred_url);
-        if (!_M_credential.protocol.empty()) {
+        if (!_M_protocol.empty()) {
             expect |= 1;
-            actual |= (u.protocol() == (_M_credential.protocol));
+            actual |= (u.protocol() == (_M_protocol));
         }
-        if (!_M_credential.hostname.empty()) {
+        if (!_M_hostname.empty()) {
             expect |= 1 << 1;
-            actual |= ((u.host() == _M_credential.hostname) << 1);
+            actual |= ((u.host() == _M_hostname) << 1);
         }
 
         if ((actual ^ expect).none()) {

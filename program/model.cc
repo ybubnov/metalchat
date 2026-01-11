@@ -2,8 +2,11 @@
 // SPDX-FileCopyrightText: 2025 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
-#include "model.h"
+#include <metalchat/huggingface.h>
+#include <metalchat/repository.h>
+
 #include "http.h"
+#include "model.h"
 
 
 namespace metalchat {
@@ -62,17 +65,8 @@ model_command::model_command(basic_command& parent)
 void
 model_command::pull(const command_context& context)
 {
-    // std::ofstream local_file("index.html", std::ios::binary | std::ios::trunc);
-    // httpfile remote_file("http://localhost:8000/index.html");
-
-    // std::ostream_iterator<char> output(local_file);
-    // remote_file.read(output);
-
     auto repo_path = context.root_path / default_path / _M_name;
     auto manifest_path = repo_path / manifest_name;
-
-    url u(_M_repository);
-    std::cout << "Pulling from '" << u.string() << "'..." << std::endl;
 
     if (std::filesystem::exists(repo_path)) {
         throw std::invalid_argument(std::format("pull: model '{}' already exists", _M_name));
@@ -86,7 +80,14 @@ model_command::pull(const command_context& context)
              .partitioning = _M_partitioning}
     };
 
-    std::filesystem::create_directories(repo_path);
+    url u(_M_repository);
+    std::cout << "Pulling from '" << u.string() << "'..." << std::endl;
+
+    using http_repository = huggingface_repository<huggingface::llama3, http_filesystem>;
+
+    http_filesystem filesystem(u.string());
+    http_repository repository(u.path(), repo_path, filesystem);
+    repository.clone();
 
     tomlfile<manifest> manifest_file(manifest_path, tomlformat::multiline);
     manifest_file.write(manifest_document);

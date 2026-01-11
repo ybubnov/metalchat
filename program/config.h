@@ -18,7 +18,7 @@ namespace metalchat {
 namespace runtime {
 
 
-struct credential_config {
+struct credential {
     std::string username;
     std::string provider;
 };
@@ -28,13 +28,13 @@ struct config {
     template <typename Key, typename Value>
     using optional_table = std::optional<std::map<Key, Value>>;
 
-    using credential_table = optional_table<std::string, credential_config>;
+    using credential_table = optional_table<std::string, credential>;
 
     /// Credentials contain a list of remotes to download models.
     credential_table credential;
 
     void
-    push_credential(const std::string& url, const credential_config& c)
+    push_credential(const std::string& url, const struct credential& c)
     {
         auto creds = credential.value_or(credential_table::value_type());
         creds.insert_or_assign(url, c);
@@ -58,7 +58,7 @@ struct config {
 } // namespace metalchat
 
 
-TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::runtime::credential_config, username, provider);
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::runtime::credential, username, provider);
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::runtime::config, credential);
 
 

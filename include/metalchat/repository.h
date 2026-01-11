@@ -5,6 +5,7 @@
 #pragma once
 
 #include <filesystem>
+#include <iostream>
 #include <string>
 
 #include <metalchat/accelerator.h>
@@ -36,6 +37,12 @@ template <transformer_traits TransformerTraits> struct filesystem_repository {
     filesystem_repository(const std::filesystem::path& repo_path)
     : filesystem_repository(repo_path, hardware_accelerator())
     {}
+
+    const std::filesystem::path&
+    path() const
+    {
+        return _M_repo_path;
+    }
 
     options_type
     retrieve_options(const std::filesystem::path& p) const
@@ -162,6 +169,103 @@ template <transformer_traits TransformerTraits> struct filesystem_repository {
 private:
     std::filesystem::path _M_repo_path;
     hardware_accelerator _M_accelerator;
+};
+
+
+template <typename FileSystem>
+concept readonly_filesystem =
+    requires(FileSystem const fs, const std::string& filename, std::ostream_iterator<char> output) {
+        { fs.read(filename, output) } -> std::same_as<void>;
+    };
+
+
+template <transformer_traits TransformerTraits, readonly_filesystem FileSystem>
+struct huggingface_repository {
+    using layer_type = TransformerTraits::layer_type;
+    using layer_adaptor_type = TransformerTraits::layer_adaptor;
+    using options_type = TransformerTraits::options_type;
+    using options_loader = TransformerTraits::options_loader;
+    using tokenizer_type = TransformerTraits::tokenizer_type;
+    using tokenizer_loader = TransformerTraits::tokenizer_loader;
+    using container_type = TransformerTraits::container_type;
+    using document_adaptor_type = TransformerTraits::document_adaptor;
+
+    using transformer_type = transformer<layer_type>;
+
+    huggingface_repository(
+        const std::string& id,
+        const std::string& revision,
+        const std::filesystem::path& p,
+        FileSystem fs = FileSystem()
+    )
+    : _M_id(id),
+      _M_revision(revision),
+      _M_fs(fs),
+      _M_repo(p)
+    {}
+
+    huggingface_repository(
+        const std::string& id, const std::filesystem::path& p, FileSystem fs = FileSystem()
+    )
+    : huggingface_repository(id, resolve_revision(id, fs), p, fs)
+    {}
+
+    void
+    clone() const
+    {
+        clone_file("config.json");
+        clone_file("tokenizer.json");
+        clone_file("model.safetensors");
+    }
+
+    tokenizer_type
+    retrieve_tokenizer() const
+    {
+        return _M_repo.retrieve_tokenizer("tokenizer.json");
+    }
+
+    options_type
+    retrieve_options() const
+    {
+        return _M_repo.retrieve_options("config.json");
+    }
+
+    transformer_type
+    retrieve_transformer()
+    {
+        return _M_repo.retrieve_transformer("model.safetensors", retrieve_options());
+    }
+
+private:
+    void
+    clone_file(const std::string& filename) const
+    {
+        std::filesystem::create_directories(_M_repo.path());
+        const auto filepath = _M_repo.path() / filename;
+
+        std::ofstream filestream(filepath, std::ios::trunc | std::ios::binary);
+        std::ostream_iterator<char> fileoutput(filestream);
+
+        _M_fs.read(link_to(filename), fileoutput);
+    }
+
+    std::string
+    link_to(const std::string& resource) const
+    {
+        return std::format("resolve/{}/{}", _M_revision, resource);
+    }
+
+    static std::string
+    resolve_revision(const std::string& id, const FileSystem& fs)
+    {
+        // TODO: Resolve the model revision using /api/models/:model_id.
+        return "main";
+    }
+
+    std::string _M_id;
+    std::string _M_revision;
+    FileSystem _M_fs;
+    filesystem_repository<TransformerTraits> _M_repo;
 };
 
 

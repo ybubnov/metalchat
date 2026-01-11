@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2025 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
+#pragma once
+
 #include <string_view>
 
 #include "chat.h"
