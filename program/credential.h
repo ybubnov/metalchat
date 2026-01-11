@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include "command.h"
 
 
@@ -30,8 +32,8 @@ public:
     ///
     /// The method queries OS user that launched a program and load a secret from the
     /// Keychain Access repository for the specified URL.
-    std::string
-    load(const std::string& url) const;
+    std::optional<std::string>
+    load(const std::string& url);
 
     /// Remove the secret store in the Keychain Access.
     ///
@@ -44,6 +46,7 @@ private:
     system_username() const;
 
     std::string _M_package;
+    std::unordered_map<std::string, std::string> _M_cache;
 };
 
 

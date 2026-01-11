@@ -67,6 +67,9 @@ public:
     http_file&
     set_header(const std::string& key, const std::string& value);
 
+    const url&
+    location() const;
+
     template <std::output_iterator<char> OutputIt>
     void
     read(OutputIt output) const
@@ -94,13 +97,25 @@ public:
         curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &output);
         curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1l);
         curl_easy_setopt(curl.get(), CURLOPT_HTTPHEADER, headers.get());
+        curl_easy_setopt(curl.get(), CURLOPT_FAILONERROR, 1l);
 
         auto error = curl_easy_perform(curl.get());
-        if (error) {
-            throw std::runtime_error(
-                std::format("http_file: failed reading a remote url '{}'", _M_url.string())
-            );
+        if (error == CURLE_OK) {
+            return;
         }
+
+        long response_code = 0;
+        curl_easy_getinfo(curl.get(), CURLINFO_RESPONSE_CODE, &response_code);
+
+        std::string error_text;
+        if (response_code != 0) {
+            error_text = std::format("http_file: {}\n", response_code);
+        }
+
+        error_text = std::format("{}http_file: {}", error_text, _M_url.string());
+        error_text = std::format("{}\nhttp_file: {}", error_text, curl_easy_strerror(error));
+
+        throw std::runtime_error(error_text);
     }
 
 private:

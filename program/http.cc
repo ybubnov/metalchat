@@ -86,7 +86,7 @@ operator/(const url& lhs, const std::string& p)
 }
 
 
-http_file::http_file(const url& u)
+http_file::http_file(const class url& u)
 : _M_url(u),
   _M_headers()
 {
@@ -100,6 +100,13 @@ http_file::http_file(const url& u)
 http_file::http_file(const std::string& u)
 : http_file(url(u))
 {}
+
+
+const url&
+http_file::location() const
+{
+    return _M_url;
+}
 
 
 http_file&

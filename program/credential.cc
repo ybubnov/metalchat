@@ -17,7 +17,8 @@ namespace runtime {
 
 
 keychain_provider::keychain_provider(const std::string& package)
-: _M_package(package)
+: _M_package(package),
+  _M_cache()
 {}
 
 
@@ -58,18 +59,30 @@ keychain_provider::store(const std::string& url, const std::string& secret) cons
 }
 
 
-std::string
-keychain_provider::load(const std::string& url) const
+std::optional<std::string>
+keychain_provider::load(const std::string& url)
 {
+    if (auto it = _M_cache.find(url); it != _M_cache.end()) {
+        return it->second;
+    }
+
     keychain::Error kerr;
     auto secret = keychain::getPassword(_M_package, url, system_username(), kerr);
+
+    if (kerr.type == keychain::ErrorType::NotFound) {
+        return std::nullopt;
+    }
+
     if (kerr) {
         throw std::runtime_error(
             std::format("keychain: failed retrieving credential, {}", kerr.message)
         );
     }
 
-    return secret;
+    auto secret_pair = std::make_pair(url, secret);
+    _M_cache.insert(secret_pair);
+
+    return secret_pair.second;
 }
 
 

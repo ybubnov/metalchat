@@ -5,6 +5,7 @@
 #include <metalchat/huggingface.h>
 #include <metalchat/repository.h>
 
+#include "credential.h"
 #include "http.h"
 #include "model.h"
 
@@ -84,9 +85,18 @@ model_command::pull(const command_context& context)
     std::cout << "Pulling from '" << u.string() << "'..." << std::endl;
 
     using http_repository = huggingface_repository<huggingface::llama3, http_filesystem>;
+    auto http_auth = [](http_file& file) {
+        keychain_provider secrets;
 
-    http_filesystem filesystem(u.string());
+        auto base_url = file.location().base();
+        if (auto secret = secrets.load(base_url); secret) {
+            file.set_header("Authorization", std::format("Bearer {}", secret.value()));
+        }
+    };
+
+    http_filesystem filesystem(u.string(), std::move(http_auth));
     http_repository repository(u.path(), repo_path, filesystem);
+
     repository.clone();
 
     tomlfile<manifest> manifest_file(manifest_path, tomlformat::multiline);
