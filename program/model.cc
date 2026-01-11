@@ -85,9 +85,9 @@ model_command::pull(const command_context& context)
     std::cout << "Pulling from '" << u.string() << "'..." << std::endl;
 
     using http_repository = huggingface_repository<huggingface::llama3, http_filesystem>;
-    auto http_auth = [](http_file& file) {
-        keychain_provider secrets;
+    keychain_provider secrets;
 
+    auto http_auth = [&](http_file& file) {
         auto base_url = file.location().base();
         if (auto secret = secrets.load(base_url); secret) {
             file.set_header("Authorization", std::format("Bearer {}", secret.value()));
