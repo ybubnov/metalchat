@@ -116,6 +116,7 @@ target_link_libraries(${metalchat_FRAMEWORK}
 
 
 if (argparse_FOUND AND curl_FOUND AND keychain_FOUND AND replxx_FOUND AND toml11_FOUND)
+
     add_executable(${CMAKE_PROJECT_NAME} ${metalchat_PROGRAM})
     target_link_libraries(${CMAKE_PROJECT_NAME}
         ${metalchat_FRAMEWORK}

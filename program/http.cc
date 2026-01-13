@@ -120,15 +120,15 @@ http_file::set_header(const std::string& key, const std::string& value)
 http_file::~http_file() { curl_global_cleanup(); }
 
 
-http_filesystem::http_filesystem(const url& base, http_middlware&& middleware)
+http_filesystem::http_filesystem(const url& base)
 : _M_url(base),
-  _M_middleware(std::move(middleware))
+  _M_middleware()
 {}
 
 
-http_filesystem::http_filesystem(const url& base)
+http_filesystem::http_filesystem(const url& base, const http_middleware& middleware)
 : _M_url(base),
-  _M_middleware(nullptr)
+  _M_middleware({middleware})
 {}
 
 

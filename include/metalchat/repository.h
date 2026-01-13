@@ -174,7 +174,7 @@ private:
 
 template <typename FileSystem>
 concept readonly_filesystem =
-    requires(FileSystem const fs, const std::string& filename, std::ostream_iterator<char> output) {
+    requires(FileSystem const fs, const std::string& filename, std::ostream& output) {
         { fs.read(filename, output) } -> std::same_as<void>;
     };
 
@@ -244,9 +244,7 @@ private:
         const auto filepath = _M_repo.path() / filename;
 
         std::ofstream filestream(filepath, std::ios::trunc | std::ios::binary);
-        std::ostream_iterator<char> fileoutput(filestream);
-
-        _M_fs.read(link_to(filename), fileoutput);
+        _M_fs.read(link_to(filename), filestream);
     }
 
     std::string

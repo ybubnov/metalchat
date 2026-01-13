@@ -84,17 +84,12 @@ model_command::pull(const command_context& context)
     url u(_M_repository);
     std::cout << "Pulling from '" << u.string() << "'..." << std::endl;
 
-    using http_repository = huggingface_repository<huggingface::llama3, http_filesystem>;
-    keychain_provider secrets;
+    using filesystem_type = http_tracking_filesystem;
+    using transformer_type = huggingface::llama3;
+    using http_repository = huggingface_repository<transformer_type, filesystem_type>;
 
-    auto http_auth = [&](http_file& file) {
-        auto base_url = file.location().base();
-        if (auto secret = secrets.load(base_url); secret) {
-            file.set_header("Authorization", std::format("Bearer {}", secret.value()));
-        }
-    };
-
-    http_filesystem filesystem(u.string(), std::move(http_auth));
+    http_bearer_auth<keychain_provider> http_auth;
+    http_tracking_filesystem filesystem(u, http_auth);
     http_repository repository(u.path(), repo_path, filesystem);
 
     repository.clone();
