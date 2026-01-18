@@ -72,7 +72,6 @@ keychain_provider::load(const std::string& url)
     if (kerr.type == keychain::ErrorType::NotFound) {
         return std::nullopt;
     }
-
     if (kerr) {
         throw std::runtime_error(
             std::format("keychain: failed retrieving credential, {}", kerr.message)
@@ -81,7 +80,6 @@ keychain_provider::load(const std::string& url)
 
     auto secret_pair = std::make_pair(url, secret);
     _M_cache.insert(secret_pair);
-
     return secret_pair.second;
 }
 

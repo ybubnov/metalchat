@@ -15,7 +15,8 @@ namespace runtime {
 program::program()
 : basic_command("metalchat"),
   _M_credential(*this),
-  _M_model(*this)
+  _M_model(*this),
+  _M_stdin("-")
 {
     auto config_path = std::filesystem::path("~") / default_path / default_config_path;
 
@@ -25,6 +26,16 @@ program::program()
         .metavar("<config-file>")
         .default_value(config_path.string())
         .nargs(1);
+
+    _M_stdin.add_description("read from stdin and run default model");
+    push_handler(_M_stdin, [&](const command_context& c) { handle_stdin(c); });
+}
+
+
+void
+program::handle_stdin(const command_context& c)
+{
+    std::cout << "reading from stdin" << std::endl;
 }
 
 
@@ -41,7 +52,6 @@ program::handle(int argc, char** argv)
     std::filesystem::create_directories(root_path);
 
     command_context context{.root_path = root_path, .config_file = tomlfile<config>(config_path)};
-
     basic_command::handle(context);
 }
 

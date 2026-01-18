@@ -28,7 +28,12 @@ public:
     void
     handle(int argc, char** argv);
 
+    void
+    handle_stdin(const command_context&);
+
 private:
+    parser_type _M_stdin;
+
     credential_command _M_credential;
     model_command _M_model;
 };
