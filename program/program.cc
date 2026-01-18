@@ -35,7 +35,39 @@ program::program()
 void
 program::handle_stdin(const command_context& c)
 {
-    std::cout << "reading from stdin" << std::endl;
+    auto root_path = c.root_path / "models";
+    std::filesystem::path repo_path;
+
+    for (auto const& filesystem_entry : std::filesystem::directory_iterator(root_path)) {
+        if (!std::filesystem::is_directory(filesystem_entry)) {
+            continue;
+        }
+        repo_path = filesystem_entry.path();
+        break;
+    }
+
+    auto repository = filesystem_repository<huggingface::llama3>(repo_path);
+
+    auto tokenizer = repository.retrieve_tokenizer();
+    auto transformer = repository.retrieve_transformer();
+    auto interp = metalchat::interpreter(transformer, tokenizer);
+
+    const auto g = std::cin.tellg();
+    const std::size_t max_input_size = 1024;
+    std::string input(max_input_size, '\0');
+
+    if (std::cin.read(input.data(), max_input_size)) {
+        std::cout << "failed reading from stdin" << std::endl;
+        std::exit(1);
+    }
+    input = std::string(input.c_str(), std::cin.gcount());
+
+    interp.write(basic_message("system", "You are a helpful assistant"));
+    interp.write(basic_message("user", input));
+
+    // TODO: ensure that encoded context does not exceed the model limit.
+    std::ostream_iterator<std::string> content_iterator(std::cout << std::unitbuf);
+    interp.read(content_iterator);
 }
 
 

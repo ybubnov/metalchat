@@ -178,13 +178,19 @@ public:
     basic_message
     read()
     {
-        write_header("assistant");
-
         std::stringstream content;
         std::ostream_iterator<std::string> content_iterator(content);
 
         read(content_iterator);
         return basic_message("assistant", content.str());
+    }
+
+    template <std::output_iterator<std::string> OutputIt>
+    void
+    read(OutputIt output)
+    {
+        write_header("assistant");
+        read_until(output);
     }
 
     basic_message
@@ -193,15 +199,9 @@ public:
         basic_message message("assistant");
 
         do {
-            write_header("assistant");
+            message = read();
 
-            std::stringstream content;
-            std::ostream_iterator<std::string> content_iterator(content);
-
-            read(content_iterator);
-            message = basic_message("assistant", content.str());
-
-            auto command_statement = _M_command_scanner->scan(content.str());
+            auto command_statement = _M_command_scanner->scan(message.content());
             if (command_statement.has_value()) {
                 auto& statement = command_statement.value();
                 auto& command = _M_commands[statement.get_name()];
@@ -250,7 +250,7 @@ private:
 
     template <std::output_iterator<std::string> OutputIt>
     tensor_type
-    read(OutputIt it)
+    read_until(OutputIt it)
     {
         auto stream = flush();
         auto token = stream.get()[0, 0];

@@ -56,15 +56,6 @@ namespace metalchat {
 namespace runtime {
 
 
-class consolidated_repository_resolver {
-public:
-    consolidated_repository_resolver(std::initializer_list<std::string>);
-
-    std::optional<std::string>
-    next();
-};
-
-
 class model_command : public basic_command {
 public:
     static constexpr std::string_view default_path = "models";

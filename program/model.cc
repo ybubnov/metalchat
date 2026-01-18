@@ -104,15 +104,15 @@ model_command::list(const command_context& context)
 {
     auto root_path = context.root_path / default_path;
 
-    for (auto const& repo_path : std::filesystem::directory_iterator(root_path)) {
-        if (!std::filesystem::is_directory(repo_path)) {
+    for (auto const& filesystem_entry : std::filesystem::directory_iterator(root_path)) {
+        if (!std::filesystem::is_directory(filesystem_entry)) {
             continue;
         }
 
-        auto manifest_path = repo_path.path() / manifest_name;
-        auto manifest_document = tomlfile<manifest>::read(repo_path / manifest_path);
+        auto manifest_path = filesystem_entry.path() / manifest_name;
+        auto manifest_document = tomlfile<manifest>::read(filesystem_entry / manifest_path);
 
-        std::cout << repo_path.path().filename().string() << '\t';
+        std::cout << filesystem_entry.path().filename().string() << '\t';
         std::cout << manifest_document.model.architecture << '\t';
         std::cout << manifest_document.model.partitioning << '\t';
         std::cout << manifest_document.model.repository << std::endl;
