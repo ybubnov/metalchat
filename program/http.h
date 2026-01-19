@@ -29,6 +29,9 @@ public:
 
     url(const std::string& u);
 
+    url&
+    push_query(const std::string& key, const std::string& value);
+
     std::string
     protocol() const;
 

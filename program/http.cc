@@ -28,6 +28,19 @@ url::native_handle() const
 }
 
 
+url&
+url::push_query(const std::string& key, const std::string& value)
+{
+    auto flags = CURLU_APPENDQUERY | CURLU_URLENCODE;
+    auto query = std::format("{}={}", key, value);
+    auto error = curl_url_set(_M_url.get(), CURLUPART_QUERY, query.data(), flags);
+    if (error) {
+        throw std::invalid_argument(std::format("url: failed to push query parameter '{}'", query));
+    }
+    return *this;
+}
+
+
 std::string
 url::part(CURLUPart p) const
 {

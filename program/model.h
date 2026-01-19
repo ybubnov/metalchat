@@ -80,7 +80,8 @@ private:
     std::string _M_repository;
     std::string _M_partitioning;
     std::string _M_arch;
-    std::string _M_name;
+    std::string _M_variant;
+    std::string _M_id;
 };
 
 

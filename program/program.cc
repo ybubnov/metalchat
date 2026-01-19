@@ -57,8 +57,7 @@ program::handle_stdin(const command_context& c)
     std::string input(max_input_size, '\0');
 
     if (std::cin.read(input.data(), max_input_size)) {
-        std::cout << "failed reading from stdin" << std::endl;
-        std::exit(1);
+        throw std::runtime_error("failed reading from stdin");
     }
     input = std::string(input.c_str(), std::cin.gcount());
 

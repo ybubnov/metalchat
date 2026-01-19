@@ -35,6 +35,7 @@ find_package(PCRE2 CONFIG REQUIRED)
 find_package(argparse)
 find_package(curl)
 find_package(keychain)
+find_package(openssl)
 find_package(replxx)
 find_package(toml11)
 
@@ -115,13 +116,15 @@ target_link_libraries(${metalchat_FRAMEWORK}
 )
 
 
-if (argparse_FOUND AND curl_FOUND AND keychain_FOUND AND replxx_FOUND AND toml11_FOUND)
+if (argparse_FOUND AND curl_FOUND AND openssl_FOUND AND
+    keychain_FOUND AND replxx_FOUND AND toml11_FOUND)
 
     add_executable(${CMAKE_PROJECT_NAME} ${metalchat_PROGRAM})
     target_link_libraries(${CMAKE_PROJECT_NAME}
         ${metalchat_FRAMEWORK}
         argparse::argparse
-        curl
+        CURL::libcurl
+        openssl::openssl
         keychain::keychain
         replxx::replxx
         toml11::toml11

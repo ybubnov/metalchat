@@ -6,6 +6,7 @@
 #include <metalchat/repository.h>
 
 #include "credential.h"
+#include "digest.h"
 #include "http.h"
 #include "model.h"
 
@@ -36,7 +37,6 @@ model_command::model_command(basic_command& parent)
         .help("the repository to pull the image from")
         .required()
         .store_into(_M_repository);
-    _M_pull.add_argument("name").help("the name of the model").required().store_into(_M_name);
     _M_pull.add_argument("-a", "--arch")
         .help("a model architecture")
         .metavar("<architecture>")
@@ -44,6 +44,13 @@ model_command::model_command(basic_command& parent)
         .default_value(architecture::llama3)
         .nargs(1)
         .store_into(_M_arch);
+    _M_pull.add_argument("-V", "--variant")
+        .help("a model implementation variant")
+        .metavar("<variant>")
+        .choices(variant::huggingface)
+        .default_value(variant::huggingface)
+        .nargs(1)
+        .store_into(_M_variant);
     _M_pull.add_argument("-p", "--partitioning")
         .help("a model partitioning strategy")
         .metavar("<partitioning>")
@@ -55,7 +62,7 @@ model_command::model_command(basic_command& parent)
     _M_list.add_description("list the available models");
 
     _M_remove.add_description("remove matching models");
-    _M_remove.add_argument("name").help("the name of the model").required().store_into(_M_name);
+    _M_remove.add_argument("id").help("a model identifier").required().store_into(_M_id);
 
     push_handler(_M_pull, [&](const command_context& c) { pull(c); });
     push_handler(_M_list, [&](const command_context& c) { list(c); });
@@ -66,30 +73,35 @@ model_command::model_command(basic_command& parent)
 void
 model_command::pull(const command_context& context)
 {
-    auto repo_path = context.root_path / default_path / _M_name;
+    url u(_M_repository);
+    u.push_query("architecture", _M_arch);
+    u.push_query("partitioning", _M_partitioning);
+    u.push_query("variant", _M_variant);
+
+    auto model_id = sha1(u);
+    auto repo_path = context.root_path / default_path / model_id;
     auto manifest_path = repo_path / manifest_name;
 
     if (std::filesystem::exists(repo_path)) {
-        throw std::invalid_argument(std::format("pull: model '{}' already exists", _M_name));
+        throw std::invalid_argument("pull: model already exists");
     }
 
     manifest manifest_document = {
         .model =
-            {.variant = variant::huggingface,
+            {.variant = _M_variant,
              .repository = _M_repository,
              .architecture = _M_arch,
              .partitioning = _M_partitioning}
     };
 
-    url u(_M_repository);
-    std::cout << "Pulling from '" << u.string() << "'..." << std::endl;
+    std::cout << "Pulling from '" << _M_repository << "'..." << std::endl;
 
     using filesystem_type = http_tracking_filesystem;
     using transformer_type = huggingface::llama3;
     using http_repository = huggingface_repository<transformer_type, filesystem_type>;
 
     http_bearer_auth<keychain_provider> http_auth;
-    http_tracking_filesystem filesystem(u, http_auth);
+    http_tracking_filesystem filesystem(url(_M_repository), http_auth);
     http_repository repository(u.path(), repo_path, filesystem);
 
     repository.clone();
@@ -123,7 +135,7 @@ model_command::list(const command_context& context)
 void
 model_command::remove(const command_context& context)
 {
-    auto repo_path = context.root_path / default_path / _M_name;
+    auto repo_path = context.root_path / default_path / _M_id;
     std::filesystem::remove_all(repo_path);
 }
 

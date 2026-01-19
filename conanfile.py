@@ -68,6 +68,7 @@ class MetalChat(ConanFile):
         if self.options.build_executable:
             self.requires("argparse/[>=3.2 <4.0.0]")
             self.requires("libcurl/[>=8.17.0 <9.0.0]")
+            self.requires("openssl/[>=3.6.0 <4.0.0]")
             self.requires("keychain/[>=1.3.0 <2.0.0]")
             self.requires("replxx/[>=0.0.4 <1.0.0]")
             self.requires("toml11/[>=4.0.0 <5.0.0]")
