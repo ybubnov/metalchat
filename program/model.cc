@@ -6,7 +6,6 @@
 #include <metalchat/repository.h>
 
 #include "credential.h"
-#include "digest.h"
 #include "http.h"
 #include "model.h"
 
@@ -73,26 +72,22 @@ model_command::model_command(basic_command& parent)
 void
 model_command::pull(const command_context& context)
 {
-    url u(_M_repository);
-    u.push_query("architecture", _M_arch);
-    u.push_query("partitioning", _M_partitioning);
-    u.push_query("variant", _M_variant);
+    manifest manifest_document = {
+        .model =
+            {.repository = _M_repository,
+             .variant = _M_variant,
+             .architecture = _M_arch,
+             .partitioning = _M_partitioning}
+    };
 
-    auto model_id = sha1(u);
-    auto repo_path = context.root_path / default_path / model_id;
+    url repo_url(_M_repository);
+
+    auto repo_path = context.root_path / default_path / manifest_document.model.id();
     auto manifest_path = repo_path / manifest_name;
 
     if (std::filesystem::exists(repo_path)) {
         throw std::invalid_argument("pull: model already exists");
     }
-
-    manifest manifest_document = {
-        .model =
-            {.variant = _M_variant,
-             .repository = _M_repository,
-             .architecture = _M_arch,
-             .partitioning = _M_partitioning}
-    };
 
     std::cout << "Pulling from '" << _M_repository << "'..." << std::endl;
 
@@ -101,8 +96,8 @@ model_command::pull(const command_context& context)
     using http_repository = huggingface_repository<transformer_type, filesystem_type>;
 
     http_bearer_auth<keychain_provider> http_auth;
-    http_tracking_filesystem filesystem(url(_M_repository), http_auth);
-    http_repository repository(u.path(), repo_path, filesystem);
+    http_tracking_filesystem filesystem(repo_url, http_auth);
+    http_repository repository(repo_url.path(), repo_path, filesystem);
 
     repository.clone();
 

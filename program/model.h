@@ -7,6 +7,8 @@
 #include <toml.hpp>
 
 #include "command.h"
+#include "digest.h"
+#include "http.h"
 
 
 namespace metalchat {
@@ -30,10 +32,21 @@ struct variant {
 
 
 struct model {
-    std::string variant;
     std::string repository;
+    std::string variant;
     std::string architecture;
     std::string partitioning;
+
+    std::string
+    id() const
+    {
+        url u(repository);
+        u.push_query("variant", variant);
+        u.push_query("architecture", architecture);
+        u.push_query("partitioning", partitioning);
+
+        return sha1(u);
+    }
 };
 
 
