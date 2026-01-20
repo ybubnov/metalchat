@@ -33,18 +33,30 @@ public:
     auto
     operator()(Input input, WeightTensor weight)
     {
-        auto data_size = input.numel();
         auto emb_size = weight.sizes().back();
         auto dim_size = input.sizes().back();
-        auto num_rows = data_size / dim_size;
+        auto num_batches = input.sizes().front();
 
         auto alloc = _M_kernel.get_allocator();
         auto output = shared_empty<T>({input.size(0), dim_size, emb_size}, alloc);
 
+        auto max_threads = _M_kernel.max_threads_per_threadgroup();
         auto thread_size_x = ceil_div(dim_size, BlockSize);
         auto thread_size_y = ceil_div(emb_size, EmbeddingBlockSize);
+
+        // Adjust the `thread.x`, considering that an embedding vector should
+        // be copied within a single thread.
+        if (thread_size_x * thread_size_y > max_threads) {
+            thread_size_x = ceil_div(max_threads, BlockSize * EmbeddingBlockSize) * BlockSize;
+        }
+
         auto thread = dim3(thread_size_x, thread_size_y);
-        auto grid = dim3(thread_size_x * num_rows, thread_size_y, EmbeddingBlockSize);
+
+        auto grid_size_x = thread_size_x * ceil_div(dim_size, thread_size_x);
+        auto grid_size_y = thread_size_y * ceil_div(emb_size, thread_size_y);
+        auto grid = dim3(grid_size_x, grid_size_y, num_batches);
+
+        // std::cout << "grid=" << grid << ", thread=" << thread << std::endl;
 
         auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(output, input, weight);

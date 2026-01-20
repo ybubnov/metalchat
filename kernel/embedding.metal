@@ -49,12 +49,12 @@ embedding(
 
     const uint dim_size = in.size(1);
     const uint emb_size = w.size(1);
-    const uint i = gid.x;
+    const uint i = gid.z;
 
-    const uint begin = tid.x * BlockSize;
+    const uint begin = gid.x * threadgroup_size.x + tid.x * BlockSize;
     const uint end = begin + BlockSize;
 
-    const uint k = tid.y + gid.z * threadgroup_size.y;
+    const uint k = gid.y * threadgroup_size.y + tid.y;
 
     if (k < emb_size) {
 #pragma unroll(BlockSize)

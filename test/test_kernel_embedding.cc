@@ -35,13 +35,13 @@ TEST_CASE("Embedding batched", "[kernel::embedding]")
     input[2, 2] = 3;
     input[2, 3] = 2;
 
-    auto weight = shared_tensor(rand<float>({5, 128256}));
+    auto weight = shared_tensor(rand<float>({128256, 2048}));
     auto output = emb(input, weight).get();
 
     REQUIRE(output.dim() == 3);
     REQUIRE(output.size(0) == 3);
     REQUIRE(output.size(1) == 4);
-    REQUIRE(output.size(2) == 128256);
+    REQUIRE(output.size(2) == 2048);
 
     for (std::size_t i = 0; i < output.size(0); i++) {
         for (std::size_t j = 0; j < output.size(1); j++) {
@@ -50,6 +50,22 @@ TEST_CASE("Embedding batched", "[kernel::embedding]")
             }
         }
     }
+}
+
+
+TEST_CASE("Embedding 1024", "[kernel::embedding]")
+{
+    metalchat::hardware_accelerator gpu0;
+    kernel::embedding<float, 16, 64> emb(gpu0);
+
+    auto input = shared_tensor(zeros<int32_t>({1, 1024}));
+    auto weight = shared_tensor(rand<float>({128256, 2048}));
+
+    auto output = emb(input, weight).get();
+    REQUIRE(output.dim() == 3);
+    REQUIRE(output.size(0) == 1);
+    REQUIRE(output.size(1) == 1024);
+    REQUIRE(output.size(2) == 2048);
 }
 
 
