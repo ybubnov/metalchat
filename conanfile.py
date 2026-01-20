@@ -36,6 +36,8 @@ class MetalChat(ConanFile):
         "pcre2/*:shared": False,
         "rapidhash/*:shared": False,
         "mbits-mstch/*:shared": False,
+        "libcurl/*:shared": True,
+        "openssl/*:shared": True,
     }
 
     exports_sources = (
