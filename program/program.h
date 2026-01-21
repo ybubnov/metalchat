@@ -32,6 +32,8 @@ public:
     handle_stdin(const command_context&);
 
 private:
+    std::string _M_model_id;
+
     parser_type _M_stdin;
 
     credential_command _M_credential;

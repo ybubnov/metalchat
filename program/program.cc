@@ -28,6 +28,10 @@ program::program()
         .nargs(1);
 
     _M_stdin.add_description("read from stdin and run default model");
+    _M_stdin.add_argument("model_id")
+        .help("the model to launch for the input processing")
+        .required()
+        .store_into(_M_model_id);
     push_handler(_M_stdin, [&](const command_context& c) { handle_stdin(c); });
 }
 
@@ -35,24 +39,13 @@ program::program()
 void
 program::handle_stdin(const command_context& c)
 {
-    auto root_path = c.root_path / "models";
-    std::filesystem::path repo_path;
-
-    for (auto const& filesystem_entry : std::filesystem::directory_iterator(root_path)) {
-        if (!std::filesystem::is_directory(filesystem_entry)) {
-            continue;
-        }
-        repo_path = filesystem_entry.path();
-        break;
-    }
-
+    auto repo_path = c.root_path / "models" / _M_model_id;
     auto repository = filesystem_repository<huggingface::llama3>(repo_path);
 
     auto tokenizer = repository.retrieve_tokenizer();
     auto transformer = repository.retrieve_transformer();
     auto interp = metalchat::interpreter(transformer, tokenizer);
 
-    const auto g = std::cin.tellg();
     const std::size_t max_input_size = 1024;
     std::string input(max_input_size, '\0');
 
