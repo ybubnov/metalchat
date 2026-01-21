@@ -13,7 +13,10 @@ main(int argc, char** argv)
     try {
         program.handle(argc, argv);
     } catch (const std::exception& e) {
-        std::cout << e.what() << std::endl;
+        std::string what(e.what());
+        if (!what.empty()) {
+            std::cout << what << std::endl;
+        }
         std::exit(1);
     }
 

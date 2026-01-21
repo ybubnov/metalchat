@@ -135,7 +135,7 @@ public:
             std::ofstream file(_M_path);
             file.close();
         }
-        auto toml_document = toml::parse(_M_path);
+        auto toml_document = toml::parse<toml::ordered_type_config>(_M_path);
         return toml::get<T>(toml_document);
     }
 

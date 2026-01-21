@@ -17,6 +17,12 @@ namespace metalchat {
 namespace runtime {
 
 
+struct ansi {
+    static constexpr std::string_view yellow = "\e[0;33m";
+    static constexpr std::string_view reset = "\e[0m";
+};
+
+
 struct command_context {
     std::filesystem::path root_path;
     tomlfile<config> config_file;

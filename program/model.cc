@@ -26,6 +26,7 @@ model_command::model_command(basic_command& parent)
   _M_pull("pull"),
   _M_list("list"),
   _M_remove("remove"),
+  _M_config("config"),
   _M_repository(),
   _M_arch()
 {
@@ -57,15 +58,33 @@ model_command::model_command(basic_command& parent)
         .default_value(partitioning::consolidated)
         .nargs(1)
         .store_into(_M_partitioning);
+    push_handler(_M_pull, [&](const command_context& c) { pull(c); });
 
     _M_list.add_description("list the available models");
+    _M_list.add_argument("--abbrev")
+        .help(("instead of showing the full model identifier, "
+               "show a prefix than names a model uniquely"))
+        .flag();
+    push_handler(_M_list, [&](const command_context& c) { list(c); });
 
     _M_remove.add_description("remove matching models");
     _M_remove.add_argument("id").help("a model identifier").required().store_into(_M_id);
-
-    push_handler(_M_pull, [&](const command_context& c) { pull(c); });
-    push_handler(_M_list, [&](const command_context& c) { list(c); });
     push_handler(_M_remove, [&](const command_context& c) { remove(c); });
+
+    _M_config.add_description("get and set model run options");
+    _M_config.add_argument("id").help("a model identifier").required().store_into(_M_id);
+    _M_config.add_argument("name")
+        .help("name of the target option")
+        .metavar("<name>")
+        .required()
+        .store_into(_M_config_name)
+        .nargs(1);
+    _M_config.add_argument("value")
+        .help("value of the target option")
+        .metavar("<value>")
+        .store_into(_M_config_value)
+        .nargs(0, 1);
+    push_handler(_M_config, [&](const command_context& c) { config(c); });
 }
 
 
@@ -110,6 +129,7 @@ void
 model_command::list(const command_context& context)
 {
     auto root_path = context.root_path / default_path;
+    bool use_abbrev = _M_list.get<bool>("--abbrev");
 
     for (auto const& filesystem_entry : std::filesystem::directory_iterator(root_path)) {
         if (!std::filesystem::is_directory(filesystem_entry)) {
@@ -119,7 +139,14 @@ model_command::list(const command_context& context)
         auto manifest_path = filesystem_entry.path() / manifest_name;
         auto manifest_document = tomlfile<manifest>::read(filesystem_entry / manifest_path);
 
-        std::cout << filesystem_entry.path().filename().string() << '\t';
+        std::cout << ansi::yellow;
+        if (use_abbrev) {
+            std::cout << manifest_document.model.abbrev_id() << '\t';
+        } else {
+            std::cout << manifest_document.model.id() << '\t';
+        }
+
+        std::cout << ansi::reset;
         std::cout << manifest_document.model.architecture << '\t';
         std::cout << manifest_document.model.partitioning << '\t';
         std::cout << manifest_document.model.repository << std::endl;
@@ -132,6 +159,47 @@ model_command::remove(const command_context& context)
 {
     auto repo_path = context.root_path / default_path / _M_id;
     std::filesystem::remove_all(repo_path);
+}
+
+
+void
+model_command::config(const command_context& context)
+{
+    auto repo_path = context.root_path / default_path / _M_id;
+    auto manifest_path = repo_path / manifest_name;
+
+    tomlfile<manifest> manifest_file(manifest_path, tomlformat::multiline);
+    auto manifest_document = manifest_file.read();
+
+    if (_M_config_value.empty()) {
+        auto config_value = manifest_document.model.config.and_then(
+            [&](auto& config) -> std::optional<std::string> {
+            if (auto it = config.find(_M_config_name); it != config.end()) {
+                return it->second;
+            }
+            return std::nullopt;
+        }
+        );
+
+        if (config_value) {
+            std::cout << config_value.value() << std::endl;
+        } else {
+            // Throw an exception with an empty error string, so that the
+            // program only returns a non-zero status code without printing
+            // any error information.
+            throw std::invalid_argument("");
+        }
+    } else {
+        // Ensure that model supports this option.
+        using optional_config_type = decltype(manifest_document.model.config);
+        using config_type = optional_config_type::value_type;
+
+        auto config = manifest_document.model.config.value_or(config_type());
+        config.insert_or_assign(_M_config_name, _M_config_value);
+
+        manifest_document.model.config = config;
+        manifest_file.write(manifest_document);
+    }
 }
 
 
