@@ -22,6 +22,56 @@ std::string partitioning::sharded = "sharded";
 std::string partitioning::consolidated = "consolidated";
 
 
+model_provider::model_provider(const std::filesystem::path& p)
+: _M_path(p / default_path)
+{}
+
+
+std::filesystem::path
+model_provider::resolve_path(const std::string& id) const
+{
+    return _M_path / id;
+}
+
+
+manifest
+model_provider::find(const std::string& id) const
+{
+    auto model_path = resolve_path(id);
+    if (!std::filesystem::exists(model_path)) {
+        throw std::invalid_argument(std::format("model '{}' not found", id));
+    }
+
+    auto m = ManifestFile::read(model_path / manifest::default_name);
+    if (m.model.id() != id) {
+        throw std::runtime_error(std::format("model '{}' is corrupted", id));
+    }
+
+    return m;
+}
+
+
+void
+model_provider::remove(const std::string& id)
+{
+    // Ensure that model exists before deleting it from the repository.
+    find(id);
+    std::filesystem::remove_all(resolve_path(id));
+}
+
+
+void
+model_provider::update(const manifest& m)
+{
+    auto model_id = m.model.id();
+    auto model_path = resolve_path(model_id);
+
+    find(model_id);
+    ManifestFile file(model_path / manifest::default_name, tomlformat::multiline);
+    file.write(m);
+}
+
+
 model_command::model_command(basic_command& parent)
 : basic_command("model", parent),
   _M_pull("pull"),
@@ -86,7 +136,8 @@ model_command::pull(const command_context& context)
 
     url repo_url(_M_repository);
 
-    auto repo_path = context.root_path / default_path / manifest_document.model.id();
+    auto repo_path =
+        context.root_path / model_provider::default_path / manifest_document.model.id();
     auto manifest_path = repo_path / manifest::default_name;
 
     if (std::filesystem::exists(repo_path)) {
@@ -113,37 +164,33 @@ model_command::pull(const command_context& context)
 void
 model_command::list(const command_context& context)
 {
-    auto root_path = context.root_path / default_path;
+    auto root_path = context.root_path / model_provider::default_path;
     bool use_abbrev = _M_list.get<bool>("--abbrev");
 
-    for (auto const& filesystem_entry : std::filesystem::directory_iterator(root_path)) {
-        if (!std::filesystem::is_directory(filesystem_entry)) {
-            continue;
-        }
-
-        auto manifest_path = filesystem_entry.path() / manifest::default_name;
-        auto manifest_document = tomlfile<manifest>::read(filesystem_entry / manifest_path);
-
+    model_provider models(context.root_path);
+    models.find_if([&](const manifest& m) -> bool {
         std::cout << ansi::yellow;
         if (use_abbrev) {
-            std::cout << manifest_document.model.abbrev_id() << '\t';
+            std::cout << m.model.abbrev_id() << "  ";
         } else {
-            std::cout << manifest_document.model.id() << '\t';
+            std::cout << m.model.id() << "  ";
         }
 
         std::cout << ansi::reset;
-        std::cout << manifest_document.model.architecture << '\t';
-        std::cout << manifest_document.model.partitioning << '\t';
-        std::cout << manifest_document.model.repository << std::endl;
-    }
+        std::cout << m.model.architecture << "  ";
+        std::cout << m.model.partitioning << "  ";
+        std::cout << m.model.repository << std::endl;
+
+        return false;
+    });
 }
 
 
 void
 model_command::remove(const command_context& context)
 {
-    auto repo_path = context.root_path / default_path / _M_id;
-    std::filesystem::remove_all(repo_path);
+    model_provider models(context.root_path);
+    models.remove(_M_id);
 }
 
 

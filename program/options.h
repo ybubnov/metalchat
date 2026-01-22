@@ -17,13 +17,13 @@ public:
     options_command(basic_command& parent);
 
     void
-    get(const command_context&);
+    get(const command_context&) const;
 
     void
-    set(const command_context&);
+    set(const command_context&) const;
 
     void
-    unset(const command_context&);
+    unset(const command_context&) const;
 
 private:
     parser_type _M_get;

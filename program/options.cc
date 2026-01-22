@@ -4,10 +4,12 @@
 
 #include "options.h"
 #include "manifest.h"
+#include "model.h"
 
 
 namespace metalchat {
 namespace runtime {
+
 
 options_command::options_command(basic_command& parent)
 : basic_command("options", parent),
@@ -56,15 +58,12 @@ options_command::options_command(basic_command& parent)
 
 
 void
-options_command::get(const command_context& context)
+options_command::get(const command_context& context) const
 {
-    auto repo_path = context.root_path / "models" / _M_id;
-    auto manifest_path = repo_path / manifest::default_name;
+    model_provider models(context.root_path);
+    auto manifest = models.find(_M_id);
 
-    tomlfile<manifest> manifest_file(manifest_path, tomlformat::multiline);
-    auto manifest_document = manifest_file.read();
-
-    if (auto value = manifest_document.get_option(_M_name); value) {
+    if (auto value = manifest.get_option(_M_name); value) {
         std::cout << (*value) << std::endl;
         return;
     }
@@ -76,22 +75,27 @@ options_command::get(const command_context& context)
 
 
 void
-options_command::set(const command_context& context)
+options_command::set(const command_context& context) const
 {
-    auto repo_path = context.root_path / "models" / _M_id;
-    auto manifest_path = repo_path / manifest::default_name;
-
-    tomlfile<manifest> manifest_file(manifest_path, tomlformat::multiline);
-    auto manifest_document = manifest_file.read();
+    model_provider models(context.root_path);
 
     // TODO: ensure that option is supported by the model.
-    manifest_document.set_option(_M_name, _M_value);
-    manifest_file.write(manifest_document);
+    auto manifest = models.find(_M_id);
+    manifest.set_option(_M_name, _M_value);
+
+    models.update(manifest);
 }
 
 void
-options_command::unset(const command_context& context)
-{}
+options_command::unset(const command_context& context) const
+{
+    model_provider models(context.root_path);
+
+    auto manifest = models.find(_M_id);
+    manifest.unset_option(_M_name);
+
+    models.update(manifest);
+}
 
 
 } // namespace runtime

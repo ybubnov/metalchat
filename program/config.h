@@ -118,6 +118,10 @@ public:
         }
 
         std::ofstream file_stream(_M_path, std::ios::binary | std::ios::trunc);
+        if (!file_stream.is_open()) {
+            throw std::runtime_error(std::format("unable writing toml file: {}", _M_path.string()));
+        }
+
         file_stream << toml_bytes_view << '\n';
     }
 
