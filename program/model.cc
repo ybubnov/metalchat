@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #include <metalchat/huggingface.h>
@@ -34,17 +34,25 @@ model_provider::resolve_path(const std::string& id) const
 }
 
 
+bool
+model_provider::exists(const std::string& id) const
+{
+    auto model_path = resolve_path(id);
+    return std::filesystem::exists(model_path);
+}
+
+
 manifest
 model_provider::find(const std::string& id) const
 {
     auto model_path = resolve_path(id);
     if (!std::filesystem::exists(model_path)) {
-        throw std::invalid_argument(std::format("model '{}' not found", id));
+        throw std::invalid_argument(std::format("fatal: model '{}' not found", id));
     }
 
     auto m = ManifestFile::read(model_path / manifest::default_name);
     if (m.model.id() != id) {
-        throw std::runtime_error(std::format("model '{}' is corrupted", id));
+        throw std::runtime_error(std::format("fatal: model '{}' is corrupted", id));
     }
 
     return m;
@@ -65,9 +73,41 @@ model_provider::update(const manifest& m)
 {
     auto model_id = m.model.id();
     auto model_path = resolve_path(model_id);
+    auto manifest_path = model_path / manifest::default_name;
 
     find(model_id);
-    ManifestFile file(model_path / manifest::default_name, tomlformat::multiline);
+    ManifestFile file(manifest_path, tomlformat::multiline);
+    file.write(m);
+}
+
+
+void
+model_provider::insert(const manifest& m)
+{
+    auto model_id = m.model.id();
+    auto model_path = resolve_path(model_id);
+    auto manifest_path = model_path / manifest::default_name;
+
+    if (exists(model_id)) {
+        throw std::invalid_argument("fatal: model already exists");
+    }
+
+    std::cout << "Pulling from '" << m.model.repository << "'..." << std::endl;
+
+    // TODO: add support of different model types.
+    using filesystem_type = http_tracking_filesystem;
+    using transformer_type = huggingface::llama3;
+    using http_repository = huggingface_repository<transformer_type, filesystem_type>;
+
+    url repo_url(m.model.repository);
+
+    http_bearer_auth<keychain_provider> http_auth;
+    http_tracking_filesystem filesystem(repo_url, http_auth);
+    http_repository repository(repo_url.path(), model_path, filesystem);
+
+    repository.clone();
+
+    ManifestFile file(manifest_path, tomlformat::multiline);
     file.write(m);
 }
 
@@ -126,7 +166,7 @@ model_command::model_command(basic_command& parent)
 void
 model_command::pull(const command_context& context)
 {
-    manifest manifest_document = {
+    manifest m = {
         .model =
             {.repository = _M_repository,
              .variant = _M_variant,
@@ -134,30 +174,8 @@ model_command::pull(const command_context& context)
              .partitioning = _M_partitioning}
     };
 
-    url repo_url(_M_repository);
-
-    auto repo_path =
-        context.root_path / model_provider::default_path / manifest_document.model.id();
-    auto manifest_path = repo_path / manifest::default_name;
-
-    if (std::filesystem::exists(repo_path)) {
-        throw std::invalid_argument("pull: model already exists");
-    }
-
-    std::cout << "Pulling from '" << _M_repository << "'..." << std::endl;
-
-    using filesystem_type = http_tracking_filesystem;
-    using transformer_type = huggingface::llama3;
-    using http_repository = huggingface_repository<transformer_type, filesystem_type>;
-
-    http_bearer_auth<keychain_provider> http_auth;
-    http_tracking_filesystem filesystem(repo_url, http_auth);
-    http_repository repository(repo_url.path(), repo_path, filesystem);
-
-    repository.clone();
-
-    tomlfile<manifest> manifest_file(manifest_path, tomlformat::multiline);
-    manifest_file.write(manifest_document);
+    model_provider models(context.root_path);
+    models.insert(m);
 }
 
 

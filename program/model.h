@@ -21,6 +21,9 @@ public:
 
     model_provider(const std::filesystem::path& p);
 
+    bool
+    exists(const std::string& id) const;
+
     /// Find a model in a repository and return it's manifest. When the model
     /// does not exist in a repository, method throws an exception.
     manifest
@@ -51,6 +54,9 @@ public:
     /// Update manifest of an existing model.
     void
     update(const manifest&);
+
+    void
+    insert(const manifest&);
 
 private:
     std::filesystem::path
