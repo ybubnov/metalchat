@@ -110,7 +110,7 @@ public:
             }
         }
 
-        auto toml_bytes = toml::format(toml_document);
+        auto toml_bytes = toml::format<toml::ordered_type_config>(toml_document);
         std::string_view toml_bytes_view = toml_bytes;
 
         while (!toml_bytes_view.empty() && toml_bytes_view.back() == '\n') {
