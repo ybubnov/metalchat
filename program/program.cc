@@ -16,6 +16,7 @@ program::program()
 : basic_command("metalchat"),
   _M_credential(*this),
   _M_model(*this),
+  _M_options(*this),
   _M_stdin("-")
 {
     auto config_path = std::filesystem::path("~") / default_path / default_config_path;

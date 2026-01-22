@@ -9,6 +9,7 @@
 #include "chat.h"
 #include "credential.h"
 #include "model.h"
+#include "options.h"
 
 
 namespace metalchat {
@@ -38,6 +39,7 @@ private:
 
     credential_command _M_credential;
     model_command _M_model;
+    options_command _M_options;
 };
 
 

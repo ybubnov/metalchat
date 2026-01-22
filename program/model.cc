@@ -7,6 +7,7 @@
 
 #include "credential.h"
 #include "http.h"
+#include "manifest.h"
 #include "model.h"
 
 
@@ -26,7 +27,6 @@ model_command::model_command(basic_command& parent)
   _M_pull("pull"),
   _M_list("list"),
   _M_remove("remove"),
-  _M_config("config"),
   _M_repository(),
   _M_arch()
 {
@@ -70,21 +70,6 @@ model_command::model_command(basic_command& parent)
     _M_remove.add_description("remove matching models");
     _M_remove.add_argument("id").help("a model identifier").required().store_into(_M_id);
     push_handler(_M_remove, [&](const command_context& c) { remove(c); });
-
-    _M_config.add_description("get and set model run options");
-    _M_config.add_argument("id").help("a model identifier").required().store_into(_M_id);
-    _M_config.add_argument("name")
-        .help("name of the target option")
-        .metavar("<name>")
-        .required()
-        .store_into(_M_config_name)
-        .nargs(1);
-    _M_config.add_argument("value")
-        .help("value of the target option")
-        .metavar("<value>")
-        .store_into(_M_config_value)
-        .nargs(0, 1);
-    push_handler(_M_config, [&](const command_context& c) { config(c); });
 }
 
 
@@ -102,7 +87,7 @@ model_command::pull(const command_context& context)
     url repo_url(_M_repository);
 
     auto repo_path = context.root_path / default_path / manifest_document.model.id();
-    auto manifest_path = repo_path / manifest_name;
+    auto manifest_path = repo_path / manifest::default_name;
 
     if (std::filesystem::exists(repo_path)) {
         throw std::invalid_argument("pull: model already exists");
@@ -136,7 +121,7 @@ model_command::list(const command_context& context)
             continue;
         }
 
-        auto manifest_path = filesystem_entry.path() / manifest_name;
+        auto manifest_path = filesystem_entry.path() / manifest::default_name;
         auto manifest_document = tomlfile<manifest>::read(filesystem_entry / manifest_path);
 
         std::cout << ansi::yellow;
@@ -159,47 +144,6 @@ model_command::remove(const command_context& context)
 {
     auto repo_path = context.root_path / default_path / _M_id;
     std::filesystem::remove_all(repo_path);
-}
-
-
-void
-model_command::config(const command_context& context)
-{
-    auto repo_path = context.root_path / default_path / _M_id;
-    auto manifest_path = repo_path / manifest_name;
-
-    tomlfile<manifest> manifest_file(manifest_path, tomlformat::multiline);
-    auto manifest_document = manifest_file.read();
-
-    if (_M_config_value.empty()) {
-        auto config_value = manifest_document.model.config.and_then(
-            [&](auto& config) -> std::optional<std::string> {
-            if (auto it = config.find(_M_config_name); it != config.end()) {
-                return it->second;
-            }
-            return std::nullopt;
-        }
-        );
-
-        if (config_value) {
-            std::cout << config_value.value() << std::endl;
-        } else {
-            // Throw an exception with an empty error string, so that the
-            // program only returns a non-zero status code without printing
-            // any error information.
-            throw std::invalid_argument("");
-        }
-    } else {
-        // Ensure that model supports this option.
-        using optional_config_type = decltype(manifest_document.model.config);
-        using config_type = optional_config_type::value_type;
-
-        auto config = manifest_document.model.config.value_or(config_type());
-        config.insert_or_assign(_M_config_name, _M_config_value);
-
-        manifest_document.model.config = config;
-        manifest_file.write(manifest_document);
-    }
 }
 
 
