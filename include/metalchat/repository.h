@@ -233,7 +233,13 @@ struct huggingface_repository {
     transformer_type
     retrieve_transformer()
     {
-        return _M_repo.retrieve_transformer("model.safetensors", retrieve_options());
+        return retrieve_transformer(retrieve_options());
+    }
+
+    transformer_type
+    retrieve_transformer(const options_type& options)
+    {
+        return _M_repo.retrieve_transformer("model.safetensors", options);
     }
 
 private:

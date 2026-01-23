@@ -17,10 +17,10 @@ struct llama3_reference_options {
     std::size_t n_heads;
     std::size_t n_kv_heads;
     std::size_t vocab_size;
-    float ffn_dim_multiplier;
+    double ffn_dim_multiplier;
     std::size_t multiple_of;
-    float norm_eps;
-    float rope_theta;
+    double norm_eps;
+    double rope_theta;
     bool use_scaled_rope;
 };
 

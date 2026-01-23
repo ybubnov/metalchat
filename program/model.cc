@@ -42,7 +42,7 @@ model_provider::exists(const std::string& id) const
 }
 
 
-manifest
+model_info
 model_provider::find(const std::string& id) const
 {
     auto model_path = resolve_path(id);
@@ -51,11 +51,11 @@ model_provider::find(const std::string& id) const
     }
 
     auto m = ManifestFile::read(model_path / manifest::default_name);
-    if (m.model.id() != id) {
+    if (m.id() != id) {
         throw std::runtime_error(std::format("fatal: model '{}' is corrupted", id));
     }
 
-    return m;
+    return model_info{.manifest = m, .path = model_path};
 }
 
 
@@ -63,28 +63,26 @@ void
 model_provider::remove(const std::string& id)
 {
     // Ensure that model exists before deleting it from the repository.
-    find(id);
-    std::filesystem::remove_all(resolve_path(id));
+    auto model = find(id);
+    std::filesystem::remove_all(model.path);
 }
 
 
 void
-model_provider::update(const manifest& m)
+model_provider::update(const model_info& m)
 {
-    auto model_id = m.model.id();
-    auto model_path = resolve_path(model_id);
-    auto manifest_path = model_path / manifest::default_name;
+    auto model = find(m.manifest.id());
+    auto manifest_path = model.path / manifest::default_name;
 
-    find(model_id);
     ManifestFile file(manifest_path, tomlformat::multiline);
-    file.write(m);
+    file.write(m.manifest);
 }
 
 
 void
 model_provider::insert(const manifest& m)
 {
-    auto model_id = m.model.id();
+    auto model_id = m.id();
     auto model_path = resolve_path(model_id);
     auto manifest_path = model_path / manifest::default_name;
 
@@ -186,18 +184,18 @@ model_command::list(const command_context& context)
     bool use_abbrev = _M_list.get<bool>("--abbrev");
 
     model_provider models(context.root_path);
-    models.find_if([&](const manifest& m) -> bool {
+    models.find_if([&](const model_info& m) -> bool {
         std::cout << ansi::yellow;
         if (use_abbrev) {
-            std::cout << m.model.abbrev_id() << "  ";
+            std::cout << m.manifest.abbrev_id() << "  ";
         } else {
-            std::cout << m.model.id() << "  ";
+            std::cout << m.manifest.id() << "  ";
         }
 
         std::cout << ansi::reset;
-        std::cout << m.model.architecture << "  ";
-        std::cout << m.model.partitioning << "  ";
-        std::cout << m.model.repository << std::endl;
+        std::cout << m.manifest.model.architecture << "  ";
+        std::cout << m.manifest.model.partitioning << "  ";
+        std::cout << m.manifest.model.repository << std::endl;
 
         return false;
     });

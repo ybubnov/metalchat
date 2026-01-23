@@ -23,8 +23,8 @@ struct options {
     std::size_t num_hidden_layers;
     std::size_t num_attention_heads;
     std::size_t num_key_value_heads;
-    float rms_norm_eps;
-    float rope_theta;
+    double rms_norm_eps;
+    double rope_theta;
 };
 
 
@@ -136,6 +136,24 @@ llama3_options_loader::load(std::istream& is) const
         .n_kv_heads(options.num_key_value_heads)
         .rope_theta(options.rope_theta)
         .norm_eps(options.rms_norm_eps);
+}
+
+
+void
+llama3_options_saver::save(std::ostream& os, const nn::llama3_options& options) const
+{
+    using options_type = metalchat::detail::hf::options;
+
+    auto hf_options = options_type{
+        .head_dim = options.head_dim(),
+        .num_hidden_layers = options.n_layers(),
+        .num_attention_heads = options.n_heads(),
+        .num_key_value_heads = options.n_kv_heads(),
+        .rope_theta = options.rope_theta(),
+        .rms_norm_eps = options.norm_eps()
+    };
+
+    jsoncons::encode_json<options_type>(hf_options, os);
 }
 
 

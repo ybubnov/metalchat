@@ -29,9 +29,18 @@ struct llama3_document_adaptor {
 };
 
 
+/// The reference Llama3.2 options loader. This loader loads LLama3 options from a JSON-encoded
+/// file in a Meta Llama format.
 struct llama3_options_loader {
     nn::llama3_options
     load(std::istream&) const;
+};
+
+
+/// The reference Llama3.2 options saver. This saver saves Llama3 options in JSON format.
+struct llama3_options_saver {
+    void
+    save(std::ostream& os, const nn::llama3_options& options) const;
 };
 
 
@@ -93,6 +102,7 @@ template <typename T, contiguous_container Container> struct llama3_traits {
     using value_type = T;
     using options_type = nn::llama3_options;
     using options_loader = llama3_options_loader;
+    using options_saver = llama3_options_saver;
     using layer_type = nn::llama3<T, Container>;
     using layer_adaptor = noop_layer_adaptor<options_type>;
     using container_type = Container;

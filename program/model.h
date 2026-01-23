@@ -12,6 +12,12 @@ namespace metalchat {
 namespace runtime {
 
 
+struct model_info {
+    manifest manifest;
+    std::filesystem::path path;
+};
+
+
 class model_provider {
 public:
     /// The default location of model data within a root path.
@@ -26,11 +32,11 @@ public:
 
     /// Find a model in a repository and return it's manifest. When the model
     /// does not exist in a repository, method throws an exception.
-    manifest
+    model_info
     find(const std::string& id) const;
 
     template <typename UnaryPred>
-    std::optional<manifest>
+    std::optional<model_info>
     find_if(UnaryPred p) const
     {
         for (auto const& entry : std::filesystem::directory_iterator(_M_path)) {
@@ -38,9 +44,9 @@ public:
                 continue;
             }
 
-            auto manifest = find(entry.path().filename().string());
-            if (p(manifest)) {
-                return manifest;
+            auto model = find(entry.path().filename().string());
+            if (p(model)) {
+                return model;
             }
         }
         return std::nullopt;
@@ -53,7 +59,7 @@ public:
 
     /// Update manifest of an existing model.
     void
-    update(const manifest&);
+    update(const model_info&);
 
     void
     insert(const manifest&);

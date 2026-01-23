@@ -1,15 +1,22 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #include <cstdlib>
 
+#include <jsoncons/json.hpp>
+#include <jsoncons_ext/jsonpath/jsonpath.hpp>
+
 #include "config.h"
+#include "model.h"
 #include "program.h"
 
 
 namespace metalchat {
 namespace runtime {
+
+
+namespace jsonpath = jsoncons::jsonpath;
 
 
 program::program()
@@ -40,11 +47,33 @@ program::program()
 void
 program::handle_stdin(const command_context& c)
 {
-    auto repo_path = c.root_path / "models" / _M_model_id;
-    auto repository = filesystem_repository<huggingface::llama3>(repo_path);
+    using Transformer = huggingface::llama3;
+
+    model_provider models(c.root_path);
+    auto model = models.find(_M_model_id);
+    auto repository = filesystem_repository<Transformer>(model.path);
 
     auto tokenizer = repository.retrieve_tokenizer();
-    auto transformer = repository.retrieve_transformer();
+    auto options = repository.retrieve_options();
+
+    if (model.manifest.options) {
+        Transformer::options_saver options_saver;
+        Transformer::options_loader options_loader;
+
+        std::stringstream input_stream;
+        options_saver.save(input_stream, options);
+
+        auto options_doc = jsoncons::json::parse(input_stream);
+        for (const auto& [k, v] : model.manifest.options.value()) {
+            jsonpath::json_replace(options_doc, std::string("$.") + k, std::move(v));
+        }
+
+        std::stringstream output_stream;
+        output_stream << options_doc;
+        options = options_loader.load(output_stream);
+    }
+
+    auto transformer = repository.retrieve_transformer(options);
     auto interp = metalchat::interpreter(transformer, tokenizer);
 
     const std::size_t max_input_size = 1024;

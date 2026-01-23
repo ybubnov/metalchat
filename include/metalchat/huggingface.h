@@ -44,6 +44,16 @@ struct llama3_options_loader {
 };
 
 
+/// Llama3 options saver for configuration distributed through HuggingFace repository.
+///
+/// This implementation saves parameters in a HuggingFace format only known to the MetalChat
+/// framework.
+struct llama3_options_saver {
+    void
+    save(std::ostream& os, const nn::llama3_options& options) const;
+};
+
+
 /// Layer adaptor for Llama3 model distributed through HuggingFace repository.
 ///
 /// The Meta's reference implementation of attention layer differs from HuggingFace's
@@ -227,6 +237,7 @@ template <typename T, contiguous_container Container> struct llama3_traits {
     using layer_adaptor = llama3_layer_adaptor<T>;
     using options_type = nn::llama3_options;
     using options_loader = llama3_options_loader;
+    using options_saver = llama3_options_saver;
     using container_type = Container;
     using document_adaptor = llama3_document_adaptor;
     using tokenizer_type = text::byte_pair_encoder<text::regexp>;
@@ -245,6 +256,7 @@ template <typename T, contiguous_container Container> struct llama3_qlora_traits
     using layer_adaptor = llama3_qlora_layer_adaptor<T>;
     using options_type = nn::llama3_options;
     using options_loader = llama3_options_loader;
+    using options_saver = llama3_options_saver;
     using container_type = Container;
     using document_adaptor = noop_document_adaptor;
     using tokenizer_type = text::byte_pair_encoder<text::regexp>;

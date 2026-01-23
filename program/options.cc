@@ -61,9 +61,9 @@ void
 options_command::get(const command_context& context) const
 {
     model_provider models(context.root_path);
-    auto manifest = models.find(_M_id);
+    auto model = models.find(_M_id);
 
-    if (auto value = manifest.get_option(_M_name); value) {
+    if (auto value = model.manifest.get_option(_M_name); value) {
         std::cout << (*value) << std::endl;
         return;
     }
@@ -80,10 +80,10 @@ options_command::set(const command_context& context) const
     model_provider models(context.root_path);
 
     // TODO: ensure that option is supported by the model.
-    auto manifest = models.find(_M_id);
-    manifest.set_option(_M_name, _M_value);
+    auto model = models.find(_M_id);
+    model.manifest.set_option(_M_name, _M_value);
 
-    models.update(manifest);
+    models.update(model);
 }
 
 void
@@ -91,10 +91,10 @@ options_command::unset(const command_context& context) const
 {
     model_provider models(context.root_path);
 
-    auto manifest = models.find(_M_id);
-    manifest.unset_option(_M_name);
+    auto model = models.find(_M_id);
+    model.manifest.unset_option(_M_name);
 
-    models.update(manifest);
+    models.update(model);
 }
 
 

@@ -35,23 +35,6 @@ struct model {
     std::string variant;
     std::string architecture;
     std::string partitioning;
-
-    std::string
-    id() const
-    {
-        url u(repository);
-        u.push_query("variant", variant);
-        u.push_query("architecture", architecture);
-        u.push_query("partitioning", partitioning);
-
-        return sha1(u);
-    }
-
-    std::string
-    abbrev_id(std::size_t n = 7) const
-    {
-        return id().substr(0, n);
-    }
 };
 
 
@@ -65,6 +48,28 @@ struct manifest {
 
     model model;
     optional_map<option_key, option_value> options;
+
+    /// Return a SHA-1 digest of model specification.
+    ///
+    /// The implementation creates a normalized URL with query parameters as model
+    /// specification attributes. And then compute SHA-1 digest from percent-encoded
+    /// string representation of the final URL.
+    std::string
+    id() const
+    {
+        url u(model.repository);
+        u.push_query("variant", model.variant);
+        u.push_query("architecture", model.architecture);
+        u.push_query("partitioning", model.partitioning);
+
+        return sha1(u);
+    }
+
+    std::string
+    abbrev_id(std::size_t n = 7) const
+    {
+        return id().substr(0, n);
+    }
 
     void
     set_option(const option_key& key, const option_value& value)
@@ -107,6 +112,6 @@ struct manifest {
 
 
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(
-    metalchat::runtime::model, variant, repository, architecture, partitioning
+    metalchat::runtime::model, repository, architecture, partitioning, variant
 );
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::runtime::manifest, model, options);

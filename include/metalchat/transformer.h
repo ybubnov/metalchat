@@ -66,6 +66,7 @@ concept transformer_traits = requires {
     typename Traits::layer_adaptor;
     typename Traits::options_type;
     typename Traits::options_loader;
+    typename Traits::options_saver;
     typename Traits::document_adaptor;
     typename Traits::container_type;
 
