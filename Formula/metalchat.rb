@@ -15,6 +15,7 @@ class Metalchat < Formula
       --build=missing
       --output-folder=build
       --conf tools.build:skip_test=True
+      --conf tools.cmake.cmaketoolchain:extra_variables={'CMAKE_INSTALL_PATH': '#{frameworks}'}
       --settings build_type=Release
       --options use_system_libs=True
     ]
@@ -24,13 +25,5 @@ class Metalchat < Formula
 
     bin.install "build/build/Release/metalchat"
     frameworks.install "build/build/Release/MetalChat.framework"
-
-    # Conan links the framework with an @rpath, here we override it with
-    # an absolute path to the Homebrew frameworks path.
-    MachO::Tools.change_install_name(
-      "#{bin}/metalchat",
-      "@rpath/MetalChat.framework/MetalChat",
-      "#{frameworks}/MetalChat.framework/MetalChat"
-    )
   end
 end
