@@ -5,6 +5,8 @@ class Metalchat < Formula
   head "https://github.com/ybubnov/metalchat.git", branch: "main"
 
   depends_on "conan@2" => :build
+  depends_on "cmake" => :build
+  depends_on "ninja" => :build
   depends_on "openssl@3"
   depends_on "curl"
 
