@@ -29,7 +29,7 @@ class Metalchat < Formula
     # an absolute path to the Homebrew frameworks path.
     MachO::Tools.change_install_name(
       "#{bin}/metalchat",
-      "@rpath/MetalChat.framework/Metalchat",
+      "@rpath/MetalChat.framework/MetalChat",
       "#{frameworks}/MetalChat.framework/MetalChat"
     )
   end
