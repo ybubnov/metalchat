@@ -17,6 +17,7 @@ class Metalchat < Formula
       --options use_system_libs=True
     ]
 
+    system "conan", "profile", "detect"
     system "conan", "build", ".", *build_args
 
     bin.install "build/Release/metalchat"
