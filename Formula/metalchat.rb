@@ -24,5 +24,9 @@ class Metalchat < Formula
 
     bin.install "build/build/Release/metalchat"
     frameworks.install "build/build/Release/MetalChat.framework"
+
+    # Conan links the framework with an @rpath, here we override it with
+    # an absolute path to the Homebrew frameworks path.
+    MachO::Tools.add_rpath("#{bin}/metalchat", frameworks.to_s)
   end
 end
