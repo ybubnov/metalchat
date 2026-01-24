@@ -19,6 +19,10 @@ namespace metalchat {
 #define __lib_metalchat_framework_identifier ""
 #endif
 
+#ifndef __lib_metalchat_version
+#define __lib_metalchat_version "0.0.0"
+#endif
+
 
 static const std::string framework_identifier = __lib_metalchat_framework_identifier;
 

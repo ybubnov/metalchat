@@ -15,6 +15,12 @@ basic_command::basic_command(const std::string& name)
 {}
 
 
+basic_command::basic_command(const std::string& name, const std::string& version)
+: _M_command(name, version),
+  _M_handlers()
+{}
+
+
 basic_command::basic_command(const std::string& name, basic_command& parent)
 : basic_command(name)
 {

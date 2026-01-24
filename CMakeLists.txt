@@ -75,6 +75,7 @@ set_target_properties(${metalchat_FRAMEWORK} PROPERTIES
 target_compile_definitions(
     ${metalchat_FRAMEWORK}
     PUBLIC __lib_metalchat_framework_identifier="${metalchat_IDENTIFIER}"
+    PUBLIC __lib_metalchat_version="${metalchat_VERSION}"
 )
 
 set(metalchat_FRAMEWORK_DIR "$<TARGET_FILE_DIR:${metalchat_FRAMEWORK}>")

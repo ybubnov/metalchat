@@ -20,7 +20,7 @@ namespace jsonpath = jsoncons::jsonpath;
 
 
 program::program()
-: basic_command("metalchat"),
+: basic_command("metalchat", __lib_metalchat_version),
   _M_credential(*this),
   _M_model(*this),
   _M_options(*this),

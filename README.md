@@ -3,6 +3,10 @@
 MetalChat is a [Metal](https://developer.apple.com/metal/)-accelerated C++ framework and command
 line interpreter for inference of [Meta Llama](https://www.llama.com/) models.
 
+> [!IMPORTANT]
+> The library API and CLI are under active development, therefore they may change without any
+> deprecation notice.
+
 ## License
 
 The MetalChat is distributed under GPLv3 license. See the [LICENSE](LICENSE) file for full license

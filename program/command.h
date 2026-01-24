@@ -36,6 +36,7 @@ public:
     using handler_type = std::function<void(const command_context&)>;
 
     basic_command(const std::string& name);
+    basic_command(const std::string& name, const std::string& version);
     basic_command(const std::string& name, basic_command& parent);
 
     void
