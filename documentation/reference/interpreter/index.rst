@@ -25,6 +25,10 @@ Repository
    :members:
 
 
+.. doxygenstruct:: metalchat::huggingface_repository
+   :members:
+
+
 Transformer
 -----------
 

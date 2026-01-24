@@ -17,6 +17,8 @@ namespace metalchat {
 
 /// A filesystem-based read-only repository used to retrieve language transformer building blocks
 /// (layer options, layer, and string tokenizer).
+///
+/// \tparam TransformerTraits transformer specification.
 template <transformer_traits TransformerTraits> struct filesystem_repository {
     using layer_type = TransformerTraits::layer_type;
     using layer_adaptor_type = TransformerTraits::layer_adaptor;
@@ -179,6 +181,13 @@ concept readonly_filesystem =
     };
 
 
+/// A repository that dynamically retrieves transformers from HuggingFace repository.
+///
+/// The implementation does not assume transport used to access HuggingFace repository,
+/// therefore users must provide a necessary implementation and authentication of requests.
+///
+/// \tparam TransformerTraits transformer specification.
+/// \tparam FileSystem a read-only file access system used to download the transformer.
 template <transformer_traits TransformerTraits, readonly_filesystem FileSystem>
 struct huggingface_repository {
     using layer_type = TransformerTraits::layer_type;
