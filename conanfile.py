@@ -22,12 +22,14 @@ class MetalChat(ConanFile):
         "shared": [True, False],
         "fPIC": [True, False],
         "build_executable": [True, False],
+        "use_system_libs": [True, False],
     }
 
     default_options = {
         "shared": True,
         "fPIC": True,
         "build_executable": True,
+        "use_system_libs": False,
 
         # Default options of the dependent packages.
         "catch2/*:shared": True,
@@ -69,11 +71,12 @@ class MetalChat(ConanFile):
 
         if self.options.build_executable:
             self.requires("argparse/[>=3.2 <4.0.0]")
-            self.requires("libcurl/[>=8.17.0 <9.0.0]")
-            self.requires("openssl/[>=3.6.0 <4.0.0]")
             self.requires("keychain/[>=1.3.0 <2.0.0]")
-            self.requires("replxx/[>=0.0.4 <1.0.0]")
             self.requires("toml11/[>=4.0.0 <5.0.0]")
+
+            if not self.options.use_system_libs:
+                self.requires("libcurl/[>=8.0.0 <9.0.0]")
+                self.requires("openssl/[>=3.0.0 <4.0.0]")
 
     def build_requirements(self):
         self.tool_requires("cmake/[>=3.31.0]")
@@ -105,9 +108,9 @@ class MetalChat(ConanFile):
         copytree(framework_src, frameworks_dst, symlinks=True, dirs_exist_ok=True)
 
     def package_info(self):
-        self.cpp_info.set_property("cmake_file_name", "metalchat")
-        self.cpp_info.set_property("cmake_target_name", "metalchat::metalchat")
-        self.cpp_info.set_property("pkg_config_name", "metalchat")
+        self.cpp_info.set_property("cmake_file_name", "MetalChat")
+        self.cpp_info.set_property("cmake_target_name", "MetalChat::MetalChat")
+        self.cpp_info.set_property("pkg_config_name", "MetalChat")
 
         self.cpp_info.includedirs = ["Frameworks/MetalChat.framework/Headers"]
         self.cpp_info.frameworkdirs = ["Frameworks"]

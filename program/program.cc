@@ -6,6 +6,7 @@
 
 #include <jsoncons/json.hpp>
 #include <jsoncons_ext/jsonpath/jsonpath.hpp>
+#include <metalchat/metalchat.h>
 
 #include "config.h"
 #include "model.h"

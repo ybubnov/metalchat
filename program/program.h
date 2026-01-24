@@ -6,7 +6,6 @@
 
 #include <string_view>
 
-#include "chat.h"
 #include "credential.h"
 #include "model.h"
 #include "options.h"
