@@ -20,9 +20,9 @@ class Metalchat < Formula
     ]
 
     system "conan", "profile", "detect"
-    system "conan", "build", ".", *build_args
+    system "conan", "build", *build_args
 
-    bin.install "build/Release/metalchat"
-    frameworks.install "build/Release/MetalChat.framework"
+    bin.install "build/build/Release/metalchat"
+    frameworks.install "build/build/Release/MetalChat.framework"
   end
 end
