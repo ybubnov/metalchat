@@ -11,11 +11,30 @@ namespace metalchat {
 namespace runtime {
 
 
+std::string optionkind::integer = "int";
+std::string optionkind::boolean = "bool";
+std::string optionkind::floating = "float";
+std::string optionkind::string = "str";
+
+
+bool
+stob(const std::string& s)
+{
+    bool value{};
+    std::istringstream(s) >> std::boolalpha >> value;
+    return value;
+}
+
+
 options_command::options_command(basic_command& parent)
 : basic_command("options", parent),
   _M_get("get"),
   _M_set("set"),
-  _M_unset("unset")
+  _M_unset("unset"),
+  _M_name(),
+  _M_value(),
+  _M_type(),
+  _M_id()
 {
     _M_command.add_description("manage model run options");
 
@@ -43,6 +62,13 @@ options_command::options_command(basic_command& parent)
         .store_into(_M_value)
         .required()
         .nargs(1);
+    _M_set.add_argument("-t", "--type")
+        .help("type of the target option")
+        .metavar("<type>")
+        .choices(optionkind::boolean, optionkind::integer, optionkind::floating, optionkind::string)
+        .store_into(_M_type)
+        .required()
+        .nargs(1);
     push_handler(_M_set, [&](const command_context& c) { set(c); });
 
     _M_unset.add_description("unset model run options");
@@ -63,8 +89,10 @@ options_command::get(const command_context& context) const
     model_provider models(context.root_path);
     auto model = models.find(_M_id);
 
-    if (auto value = model.manifest.get_option(_M_name); value) {
-        std::cout << (*value) << std::endl;
+    if (auto option = model.manifest.get_option(_M_name); option) {
+        std::visit([](auto&& value) {
+            std::cout << std::boolalpha << value << std::endl;
+        }, option.value());
         return;
     }
 
@@ -77,12 +105,25 @@ options_command::get(const command_context& context) const
 void
 options_command::set(const command_context& context) const
 {
-    model_provider models(context.root_path);
+    using option_value = manifest::option_value;
+    using K = std::string;
+    using V = std::function<option_value(const std::string&)>;
+
+    auto converters = std::unordered_map<K, V>({
+        {optionkind::boolean, [](const std::string& s) { return stob(s); }},
+        {optionkind::integer, [](const std::string& s) { return std::stoi(s); }},
+        {optionkind::floating, [](const std::string& s) { return std::stof(s); }},
+        {optionkind::string, [](const std::string& s) { return s; }},
+    });
+
+    auto& from_string = converters[_M_type];
+    auto value = from_string(_M_value);
 
     // TODO: ensure that option is supported by the model.
-    auto model = models.find(_M_id);
-    model.manifest.set_option(_M_name, _M_value);
+    model_provider models(context.root_path);
 
+    auto model = models.find(_M_id);
+    model.manifest.set_option(_M_name, value);
     models.update(model);
 }
 

@@ -3,6 +3,8 @@
 // SPDX-FileType: SOURCE
 
 #include <concepts>
+#include <iomanip>
+#include <memory>
 #include <sstream>
 
 #include <openssl/evp.h>

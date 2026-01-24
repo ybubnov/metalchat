@@ -15,13 +15,6 @@ namespace metalchat {
 namespace runtime {
 
 
-std::string architecture::llama3 = "llama3";
-std::string variant::huggingface = "huggingface";
-
-std::string partitioning::sharded = "sharded";
-std::string partitioning::consolidated = "consolidated";
-
-
 model_provider::model_provider(const std::filesystem::path& p)
 : _M_path(p / default_path)
 {}

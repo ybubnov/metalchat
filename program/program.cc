@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
+// SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #include <cstdlib>
@@ -64,8 +64,12 @@ program::handle_stdin(const command_context& c)
         options_saver.save(input_stream, options);
 
         auto options_doc = jsoncons::json::parse(input_stream);
-        for (const auto& [k, v] : model.manifest.options.value()) {
-            jsonpath::json_replace(options_doc, std::string("$.") + k, std::move(v));
+        for (const auto& [k, option] : model.manifest.options.value()) {
+            auto query = std::string("$.") + k;
+
+            std::visit([&](auto&& value) {
+                jsonpath::json_replace(options_doc, query, std::move(value));
+            }, option);
         }
 
         std::stringstream output_stream;

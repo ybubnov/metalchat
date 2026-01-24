@@ -4,10 +4,14 @@
 
 #pragma once
 
+#include <map>
+#include <string_view>
+#include <variant>
+
 #include <toml.hpp>
 
-#include "digest.h"
-#include "http.h"
+
+using primitive_variant = std::variant<bool, int, float, std::string>;
 
 
 namespace metalchat {
@@ -42,7 +46,7 @@ struct manifest {
     static constexpr std::string_view default_name = "manifest.toml";
 
     using option_key = std::string;
-    using option_value = std::string;
+    using option_value = primitive_variant;
 
     template <typename K, typename V> using optional_map = std::optional<std::map<K, V>>;
 
@@ -55,60 +59,58 @@ struct manifest {
     /// specification attributes. And then compute SHA-1 digest from percent-encoded
     /// string representation of the final URL.
     std::string
-    id() const
-    {
-        url u(model.repository);
-        u.push_query("variant", model.variant);
-        u.push_query("architecture", model.architecture);
-        u.push_query("partitioning", model.partitioning);
-
-        return sha1(u);
-    }
+    id() const;
 
     std::string
-    abbrev_id(std::size_t n = 7) const
-    {
-        return id().substr(0, n);
-    }
+    abbrev_id(std::size_t n = 7) const;
+
+    /// Set the model option value. The list of supported model options depends on
+    /// the specific architecture and implementation. This function does not validate
+    /// support of the set option.
+    void
+    set_option(const option_key& key, const option_value& value);
 
     void
-    set_option(const option_key& key, const option_value& value)
-    {
-        using options_type = decltype(options);
-        auto o = options.value_or(options_type::value_type());
-        o.insert_or_assign(key, value);
-        options = o;
-    }
-
-    void
-    unset_option(const option_key& key)
-    {
-        if (options) {
-            auto& o = options.value();
-            if (auto it = o.find(key); it != o.end()) {
-                o.erase(it);
-            }
-            if (o.empty()) {
-                options = std::nullopt;
-            }
-        }
-    }
+    unset_option(const option_key& key);
 
     std::optional<option_value>
-    get_option(const option_key& key) const
-    {
-        return options.and_then([&](auto& c) -> std::optional<option_value> {
-            if (auto it = c.find(key); it != c.end()) {
-                return it->second;
-            }
-            return std::nullopt;
-        });
-    }
+    get_option(const option_key& key) const;
 };
 
 
 } // namespace runtime
 } // namespace metalchat
+
+
+template <> struct toml::into<primitive_variant> {
+    template <typename TypeConfig>
+    static toml::basic_value<TypeConfig>
+    into_toml(const primitive_variant& v)
+    {
+        return std::visit([](auto&& value) { return toml::value(value); }, v);
+    }
+};
+
+template <> struct toml::from<primitive_variant> {
+    static primitive_variant
+    from_toml(const toml::value& v)
+    {
+        if (v.is_boolean()) {
+            return v.as_boolean();
+        }
+        if (v.is_integer()) {
+            return static_cast<int>(v.as_integer());
+        }
+        if (v.is_floating()) {
+            return static_cast<float>(v.as_floating());
+        }
+        if (v.is_string()) {
+            return v.as_string();
+        }
+
+        throw toml::type_error("failed paring a value", v.location());
+    }
+};
 
 
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(

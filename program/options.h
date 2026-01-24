@@ -12,6 +12,14 @@ namespace metalchat {
 namespace runtime {
 
 
+struct optionkind {
+    static std::string integer;
+    static std::string boolean;
+    static std::string floating;
+    static std::string string;
+};
+
+
 class options_command : public basic_command {
 public:
     options_command(basic_command& parent);
@@ -32,6 +40,7 @@ private:
 
     std::string _M_name;
     std::string _M_value;
+    std::string _M_type;
     std::string _M_id;
 };
 
