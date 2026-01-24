@@ -15,7 +15,6 @@ class Metalchat < Formula
       --build=missing
       --output-folder=build
       --conf tools.build:skip_test=True
-      --conf tools.cmake.cmaketoolchain:extra_variables={'CMAKE_INSTALL_PATH': '#{frameworks}'}
       --settings build_type=Release
       --options use_system_libs=True
     ]
