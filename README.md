@@ -5,7 +5,15 @@ line interpreter for inference of [Meta Llama](https://www.llama.com/) models.
 
 > [!IMPORTANT]
 > The library API and CLI are under active development, therefore they may change without any
-> deprecation notice.
+> deprecation notice. See issues tab for the list of known issues or missing features.
+
+## Installation
+
+The framework and binary could be installed using Homebrew package manager in a following way
+```sh
+brew tap ybubnov/metalchat https://github.com/ybubnov/metalchat
+brew install --HEAD metalchat
+```
 
 ## License
 
