@@ -28,5 +28,7 @@ class Metalchat < Formula
     # Conan links the framework with an @rpath, here we override it with
     # an absolute path to the Homebrew frameworks path.
     MachO::Tools.add_rpath("#{bin}/metalchat", frameworks.to_s)
+
+    system "codesign", "-s", "-", "-f", "#{bin}/metalchat"
   end
 end
