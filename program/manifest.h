@@ -61,6 +61,9 @@ struct manifest {
     std::string
     id() const;
 
+    /// Return an abbreviated version of the manifest identifier.
+    ///
+    /// \param n specifies the length of the resulting abbreviated identifier.
     std::string
     abbrev_id(std::size_t n = 7) const;
 

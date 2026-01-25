@@ -54,5 +54,14 @@ basic_command::handle(const command_context& context) const
 }
 
 
+command_scope
+basic_command::resolve_scope(const parser_type& parser) const
+{
+    auto is_local = parser.is_used("--local");
+    auto is_global = parser.is_used("--global");
+    return context_scope::make_from_bool(is_local, is_global);
+}
+
+
 } // namespace runtime
 } // namespace metalchat

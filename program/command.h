@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <bitset>
+#include <limits>
 #include <optional>
 #include <string>
 #include <utility>
@@ -25,18 +27,63 @@ struct ansi {
 };
 
 
+using command_scope = unsigned long;
+
+
+struct context_scope {
+    static constexpr command_scope local = 1 << 0;
+    static constexpr command_scope global = 1 << 1;
+
+    static command_scope
+    make_from_bool(bool is_local, bool is_global)
+    {
+        command_scope scope = 0;
+        scope |= (is_local ? local : 0);
+        scope |= (is_global ? global : 0);
+        return scope;
+    }
+};
+
+
 struct command_context {
+    using manifest_file = tomlfile<manifest>;
+
     std::filesystem::path root_path;
     tomlfile<config> config_file;
-    tomlfile<manifest> global_manifest;
+    std::unordered_map<command_scope, manifest_file> manifests;
 
-    std::optional<std::string>
-    global_id() const
+    /// Returns a manifest file that corresponds to the requested command scope.
+    ///
+    /// Method optionally validates the presence of the manifest file using `missing_ok` flag.
+    /// Also, when requested scope is empty, method defaults to the local scope.
+    manifest_file
+    resolve_manifest(command_scope flags, bool missing_ok = false) const
     {
-        if (global_manifest.exists()) {
-            return global_manifest.read().id();
+        constexpr auto digits = std::numeric_limits<command_scope>::digits;
+        std::bitset<digits> scope(flags);
+
+        if (scope.count() == 0) {
+            scope |= context_scope::local;
         }
-        return std::nullopt;
+        if (scope.count() > 1) {
+            throw std::invalid_argument("error: only one manifest file at a time");
+        }
+
+        for (std::size_t i = 0; i < scope.size(); i++) {
+            if (scope.test(i)) {
+                auto it = manifests.find(command_scope(scope.to_ulong()));
+                if (it == manifests.end()) {
+                    std::runtime_error("fatal: requested non-existing scope");
+                }
+
+                auto file = it->second;
+                if (!missing_ok && !file.exists()) {
+                    throw std::runtime_error("error: requested scope not checked out");
+                }
+                return file;
+            }
+        }
+        throw std::runtime_error("fatal: undefined command scope");
     }
 };
 
@@ -61,6 +108,13 @@ public:
     handle(const command_context& context) const;
 
 protected:
+    /// Resolve the scope of the command by combininig flags `--local`, `--global`.
+    ///
+    /// The parser must define those flags explicitly, otherwise the method throws
+    /// an exception.
+    command_scope
+    resolve_scope(const parser_type& parser) const;
+
     parser_type _M_command;
 
     template <typename Key, typename Value>

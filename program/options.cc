@@ -36,6 +36,8 @@ options_command::options_command(basic_command& parent)
   _M_type()
 {
     _M_command.add_description("manage model run options");
+    _M_command.add_argument("--local").help("use a current working directory manifest").flag();
+    _M_command.add_argument("--global").help("use a global manifest").flag();
 
     _M_get.add_description("query model run options");
     _M_get.add_argument("name")
@@ -78,11 +80,7 @@ options_command::options_command(basic_command& parent)
 tomlfile<manifest>
 options_command::resolve_manifest(const command_context& context) const
 {
-    if (!context.global_manifest.exists()) {
-        throw std::runtime_error("fatal: global model is not checked out"
-                                 "and model identifier is not provided");
-    }
-    return context.global_manifest;
+    return context.resolve_manifest(resolve_scope(_M_command));
 }
 
 

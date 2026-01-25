@@ -40,9 +40,13 @@ program::program()
 
     _M_stdin.add_description("read from stdin and run model inference");
     _M_stdin.add_argument("model").help("the model to launch for the input processing").nargs(0, 1);
+    _M_stdin.add_argument("--local").help("use a current working directory manifest").flag();
+    _M_stdin.add_argument("--global").help("use a global manifest").flag();
     push_handler(_M_stdin, [&](const command_context& c) { handle_stdin(c); });
 
     _M_checkout.add_description("switch models");
+    _M_checkout.add_argument("--local").help("use a current working directory manifest").flag();
+    _M_checkout.add_argument("--global").help("use a global manifest").flag();
     _M_checkout.add_argument("model")
         .help("the model to prepare for working")
         .required()
@@ -52,18 +56,18 @@ program::program()
 
 
 void
-program::handle_stdin(const command_context& c)
+program::handle_stdin(const command_context& context)
 {
     using Transformer = huggingface::llama3;
 
-    auto global_id = std::bind(&command_context::global_id, c);
-    auto model_id = _M_stdin.present("model").or_else(global_id);
+    auto model_id = _M_stdin.present("model");
     if (!model_id) {
-        throw std::runtime_error("fatal: global model is not checked out"
-                                 "and model identifier is not provided");
+        auto scope = resolve_scope(_M_stdin);
+        auto manifest_file = context.resolve_manifest(scope);
+        model_id = manifest_file.read().id();
     }
 
-    model_provider models(c.root_path);
+    model_provider models(context.root_path);
     auto model = models.find(model_id.value());
     auto repository = filesystem_repository<Transformer>(model.path);
 
@@ -112,17 +116,21 @@ program::handle_stdin(const command_context& c)
 
 
 void
-program::handle_checkout(const command_context& c)
+program::handle_checkout(const command_context& context)
 {
-    model_provider models(c.root_path);
+    model_provider models(context.root_path);
     auto model = models.find(_M_model_id);
 
+    auto scope = resolve_scope(_M_checkout);
+    auto manifest_file = context.resolve_manifest(scope, /*missing_ok=*/true);
+
     manifest m = {};
-    if (c.global_manifest.exists()) {
-        m = c.global_manifest.read();
+    if (manifest_file.exists()) {
+        m = manifest_file.read();
     }
+
     m.model = model.manifest.model;
-    c.global_manifest.write(m);
+    manifest_file.write(m);
 }
 
 
@@ -138,12 +146,20 @@ program::handle(int argc, char** argv)
 
     auto root_path = std::filesystem::path(config_path).parent_path();
     auto global_path = root_path / manifest::default_name;
+    auto local_path = std::filesystem::current_path() / manifest::default_name;
+
     std::filesystem::create_directories(root_path);
+    using manifest_file = command_context::manifest_file;
+
+    std::unordered_map<command_scope, manifest_file> manifests = {
+        {context_scope::local, manifest_file(local_path, tomlformat::multiline)},
+        {context_scope::global, manifest_file(global_path, tomlformat::multiline)},
+    };
 
     command_context context{
         .root_path = root_path,
         .config_file = tomlfile<config>(config_path),
-        .global_manifest = tomlfile<manifest>(global_path, tomlformat::multiline),
+        .manifests = manifests
     };
     basic_command::handle(context);
 }
