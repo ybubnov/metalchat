@@ -79,24 +79,7 @@ public:
     location() const;
 
     std::size_t
-    size() const
-    {
-        auto handle_ptr = make_handle();
-        curl_easy_setopt(handle_ptr.get(), CURLOPT_NOBODY, 1l);
-
-        handle_ptr = round_trip(handle_ptr);
-
-        curl_off_t content_length;
-        auto error = curl_easy_getinfo(
-            handle_ptr.get(), CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &content_length
-        );
-
-        if (error) {
-            throw std::runtime_error("http_file: unknown file size");
-        }
-
-        return content_length;
-    }
+    size() const;
 
     template <std::output_iterator<char> OutputIt>
     void
@@ -115,68 +98,16 @@ private:
     using handle_pointer = std::shared_ptr<CURL>;
 
     handle_pointer
-    make_handle() const
-    {
-        handle_pointer handle_ptr(curl_easy_init(), curl_easy_cleanup);
-        if (handle_ptr == nullptr) {
-            throw std::runtime_error(
-                std::format("http_file: failed initializing reader for '{}'", _M_url.string())
-            );
-        }
-
-        auto url = _M_url.string();
-        curl_easy_setopt(handle_ptr.get(), CURLOPT_URL, url.c_str());
-        curl_easy_setopt(handle_ptr.get(), CURLOPT_VERBOSE, 0l);
-        curl_easy_setopt(handle_ptr.get(), CURLOPT_NOPROGRESS, 1l);
-        curl_easy_setopt(handle_ptr.get(), CURLOPT_FOLLOWLOCATION, 1l);
-        curl_easy_setopt(handle_ptr.get(), CURLOPT_FAILONERROR, 1l);
-
-        handle_ptr = use_headers(handle_ptr);
-        return handle_ptr;
-    }
+    make_handle() const;
 
     handle_pointer
-    use_headers(handle_pointer handle_ptr) const
-    {
-        struct curl_slist* list_ptr = nullptr;
-        for (const auto& [k, v] : _M_headers) {
-            auto header = k + ": " + v;
-            list_ptr = curl_slist_append(list_ptr, header.c_str());
-        }
-
-        std::shared_ptr<curl_slist> headers_ptr(list_ptr, curl_slist_free_all);
-        curl_easy_setopt(handle_ptr.get(), CURLOPT_HTTPHEADER, headers_ptr.get());
-
-        return metalchat::make_pointer_alias(handle_ptr, headers_ptr);
-    }
+    use_headers(handle_pointer handle_ptr) const;
 
     handle_pointer
-    round_trip(handle_pointer handle_ptr) const
-    {
-        auto error = curl_easy_perform(handle_ptr.get());
-        return throw_on_error(handle_ptr, error);
-    }
+    round_trip(handle_pointer handle_ptr) const;
 
     handle_pointer
-    throw_on_error(handle_pointer handle_ptr, CURLcode error_code) const
-    {
-        if (error_code == CURLE_OK) {
-            return handle_ptr;
-        }
-
-        long response_code = 0;
-        curl_easy_getinfo(handle_ptr.get(), CURLINFO_RESPONSE_CODE, &response_code);
-
-        std::string error_text;
-        if (response_code != 0) {
-            error_text = std::format("http_file: {}\n", response_code);
-        }
-
-        error_text = std::format("{}http_file: {}", error_text, _M_url.string());
-        error_text = std::format("{}\nhttp_file: {}", error_text, curl_easy_strerror(error_code));
-
-        throw std::runtime_error(error_text);
-    }
+    throw_on_error(handle_pointer handle_ptr, CURLcode error_code) const;
 
     template <std::output_iterator<char> OutputIt>
     static size_t
@@ -206,9 +137,12 @@ using http_middleware = std::function<void(http_file&)>;
 /// request remains unchanged.
 template <typename SecretProvider> class http_bearer_auth {
 public:
-    http_bearer_auth(SecretProvider&& secrets = SecretProvider())
-        requires std::is_default_constructible_v<SecretProvider>
+    http_bearer_auth(SecretProvider&& secrets)
     : _M_secrets(secrets)
+    {}
+
+    http_bearer_auth() requires std::is_default_constructible_v<SecretProvider>
+    : _M_secrets(SecretProvider())
     {}
 
     http_bearer_auth(const SecretProvider& secrets)

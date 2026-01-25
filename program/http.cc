@@ -115,6 +115,14 @@ http_file::http_file(const std::string& u)
 {}
 
 
+http_file&
+http_file::set_header(const std::string& key, const std::string& value)
+{
+    _M_headers.insert_or_assign(key, value);
+    return *this;
+}
+
+
 const url&
 http_file::location() const
 {
@@ -122,11 +130,92 @@ http_file::location() const
 }
 
 
-http_file&
-http_file::set_header(const std::string& key, const std::string& value)
+std::size_t
+http_file::size() const
 {
-    _M_headers.insert_or_assign(key, value);
-    return *this;
+    auto handle_ptr = make_handle();
+    curl_easy_setopt(handle_ptr.get(), CURLOPT_NOBODY, 1l);
+
+    handle_ptr = round_trip(handle_ptr);
+
+    curl_off_t content_length;
+    auto error = curl_easy_getinfo(
+        handle_ptr.get(), CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &content_length
+    );
+
+    if (error) {
+        throw std::runtime_error("http_file: unknown file size");
+    }
+
+    return content_length;
+}
+
+
+http_file::handle_pointer
+http_file::make_handle() const
+{
+    handle_pointer handle_ptr(curl_easy_init(), curl_easy_cleanup);
+    if (handle_ptr == nullptr) {
+        throw std::runtime_error(
+            std::format("http_file: failed initializing reader for '{}'", _M_url.string())
+        );
+    }
+
+    auto url = _M_url.string();
+    curl_easy_setopt(handle_ptr.get(), CURLOPT_URL, url.c_str());
+    curl_easy_setopt(handle_ptr.get(), CURLOPT_VERBOSE, 0l);
+    curl_easy_setopt(handle_ptr.get(), CURLOPT_NOPROGRESS, 1l);
+    curl_easy_setopt(handle_ptr.get(), CURLOPT_FOLLOWLOCATION, 1l);
+    curl_easy_setopt(handle_ptr.get(), CURLOPT_FAILONERROR, 1l);
+
+    handle_ptr = use_headers(handle_ptr);
+    return handle_ptr;
+}
+
+
+http_file::handle_pointer
+http_file::use_headers(handle_pointer handle_ptr) const
+{
+    struct curl_slist* list_ptr = nullptr;
+    for (const auto& [k, v] : _M_headers) {
+        auto header = k + ": " + v;
+        list_ptr = curl_slist_append(list_ptr, header.c_str());
+    }
+
+    std::shared_ptr<curl_slist> headers_ptr(list_ptr, curl_slist_free_all);
+    curl_easy_setopt(handle_ptr.get(), CURLOPT_HTTPHEADER, headers_ptr.get());
+
+    return metalchat::make_pointer_alias(handle_ptr, headers_ptr);
+}
+
+
+http_file::handle_pointer
+http_file::round_trip(handle_pointer handle_ptr) const
+{
+    auto error = curl_easy_perform(handle_ptr.get());
+    return throw_on_error(handle_ptr, error);
+}
+
+
+http_file::handle_pointer
+http_file::throw_on_error(handle_pointer handle_ptr, CURLcode error_code) const
+{
+    if (error_code == CURLE_OK) {
+        return handle_ptr;
+    }
+
+    long response_code = 0;
+    curl_easy_getinfo(handle_ptr.get(), CURLINFO_RESPONSE_CODE, &response_code);
+
+    std::string error_text;
+    if (response_code != 0) {
+        error_text = std::format("http_file: {}\n", response_code);
+    }
+
+    error_text = std::format("{}http_file: {}", error_text, _M_url.string());
+    error_text = std::format("{}\nhttp_file: {}", error_text, curl_easy_strerror(error_code));
+
+    throw std::runtime_error(error_text);
 }
 
 

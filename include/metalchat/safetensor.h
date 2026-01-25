@@ -24,6 +24,9 @@
 namespace metalchat {
 
 
+/// Apple clang does not support yet the implementation of `spanbuf`, or the feature
+/// `__cpp_lib_spanstream`, therefore we define a custom and incomplete implementation
+/// of that class.
 class spanbuf : public std::streambuf {
     using streambuf_type = std::streambuf;
 
