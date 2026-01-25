@@ -16,8 +16,8 @@ namespace mustache = mstch;
 namespace metalchat {
 
 
-const std::string interpreter::variable::commands = "METALCHAT_COMMANDS";
-const std::string interpreter::variable::command_format = "METALCHAT_COMMAND_FORMAT";
+const std::string interpreter::variable::commands = "metalchat_commands";
+const std::string interpreter::variable::command_format = "metalchat_command_format";
 
 
 namespace variable_default {
@@ -37,27 +37,21 @@ struct interpreter::_Members {
 
     _Members()
     : vars({
-          {expand(variable::commands), ""},
-          {expand(variable::command_format), variable_default::command_format},
+          {variable::commands, ""},
+          {variable::command_format, variable_default::command_format},
       })
     {}
-
-    std::string
-    expand(const std::string& key)
-    {
-        return "$" + key;
-    }
 
     std::string&
     at(const std::string& key)
     {
-        return std::get<std::string>(vars[expand(key)]);
+        return std::get<std::string>(vars[key]);
     }
 
     void
     assign(const std::string& key, const std::string& val)
     {
-        vars.insert_or_assign(expand(key), val);
+        vars.insert_or_assign(key, val);
     }
 };
 
@@ -99,12 +93,6 @@ interpreter::declare_command(const std::string& declaration, command_type comman
 void
 interpreter::declare_variable(const std::string& declaration, const std::string& value)
 {
-    if (declaration.starts_with("$")) {
-        throw std::invalid_argument(
-            std::format("interpreter: variable {} cannot start with $", declaration)
-        );
-    }
-
     _M_members->assign(declaration, value);
 }
 

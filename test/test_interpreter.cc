@@ -45,12 +45,12 @@ TEST_CASE("Test interpreter", "[llama]")
 
 You have access to the following tools:
 
-{{ $METALCHAT_COMMANDS }}
-{{ $METALCHAT_COMMAND_FORMAT }}
-{{ $EXTRA_INSTRUCTIONS }}
+{{ metalchat_commands }}
+{{ metalchat_command_format }}
+{{ extra_instructions }}
 )";
 
-    interp.declare_variable("EXTRA_INSTRUCTIONS", "answer in json");
+    interp.declare_variable("extra_instructions", "answer in json");
     interp.declare_command(command, [](const command_statement&) -> std::string {
         return R"(113001120)";
     });

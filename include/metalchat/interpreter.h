@@ -93,14 +93,11 @@ public:
     /// Each message submitted to the interpreter is being passed through the mustache
     /// render engine, so all valid mustache sequences are expanded with appropriate
     /// variable values.
-    ///
-    /// Like in UNIX shell, the variables are accessing through $-expansion syntax like
-    /// following: `$COMMAND_NAME`.
     struct variable {
-        /// Variable `$METALCHAT_COMMANDS`
+        /// Variable `metalchat_commands`
         static const std::string commands;
 
-        /// Variable `$METALCHAT_COMMAND_FORMAT`
+        /// Variable `metalchat_command_format`
         static const std::string command_format;
     };
 
@@ -126,7 +123,7 @@ public:
     /// scanner is a \ref json_command_scanner, and declaration should be a
     /// [JSON Schema](https://json-schema.org/draft/2020-12) of the command and it's parameters.
     ///
-    /// All command declarations are appended to the variable `$METALCHAT_COMMANDS`.
+    /// All command declarations are appended to the variable `{{metalchat_commands}}`.
     ///
     /// \param declaration A command declaration (i.e. JSON Schema by default).
     /// \param command A handler that returns the result of command execution.
@@ -155,7 +152,7 @@ public:
     ///
     /// ```c++
     /// interpreter interp(/* ... */);
-    /// interp.declare_variable("MY_VAR", R"(arbitrary text)");
+    /// interp.declare_variable("my_var", R"(arbitrary text)");
     /// ```
     ///
     /// \param declaration A variable name.
