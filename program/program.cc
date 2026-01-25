@@ -25,7 +25,9 @@ program::program()
   _M_credential(*this),
   _M_model(*this),
   _M_options(*this),
-  _M_stdin("-")
+  _M_stdin("-"),
+  _M_checkout("checkout"),
+  _M_model_id()
 {
     auto config_path = std::filesystem::path("~") / default_path / default_config_path;
 
@@ -36,12 +38,16 @@ program::program()
         .default_value(config_path.string())
         .nargs(1);
 
-    _M_stdin.add_description("read from stdin and run default model");
-    _M_stdin.add_argument("model_id")
-        .help("the model to launch for the input processing")
+    _M_stdin.add_description("read from stdin and run model inference");
+    _M_stdin.add_argument("model").help("the model to launch for the input processing").nargs(0, 1);
+    push_handler(_M_stdin, [&](const command_context& c) { handle_stdin(c); });
+
+    _M_checkout.add_description("switch models");
+    _M_checkout.add_argument("model")
+        .help("the model to prepare for working")
         .required()
         .store_into(_M_model_id);
-    push_handler(_M_stdin, [&](const command_context& c) { handle_stdin(c); });
+    push_handler(_M_checkout, [&](const command_context& c) { handle_checkout(c); });
 }
 
 
@@ -50,8 +56,15 @@ program::handle_stdin(const command_context& c)
 {
     using Transformer = huggingface::llama3;
 
+    auto global_id = std::bind(&command_context::global_id, c);
+    auto model_id = _M_stdin.present("model").or_else(global_id);
+    if (!model_id) {
+        throw std::runtime_error("fatal: global model is not checked out"
+                                 "and model identifier is not provided");
+    }
+
     model_provider models(c.root_path);
-    auto model = models.find(_M_model_id);
+    auto model = models.find(model_id.value());
     auto repository = filesystem_repository<Transformer>(model.path);
 
     auto tokenizer = repository.retrieve_tokenizer();
@@ -99,18 +112,39 @@ program::handle_stdin(const command_context& c)
 
 
 void
+program::handle_checkout(const command_context& c)
+{
+    model_provider models(c.root_path);
+    auto model = models.find(_M_model_id);
+
+    manifest m = {};
+    if (c.global_manifest.exists()) {
+        m = c.global_manifest.read();
+    }
+    m.model = model.manifest.model;
+    c.global_manifest.write(m);
+}
+
+
+void
 program::handle(int argc, char** argv)
 {
     _M_command.parse_args(argc, argv);
+
     auto config_path = _M_command.get<std::string>("--file");
     if (config_path.starts_with("~/")) {
         config_path = std::string(std::getenv("HOME")) + config_path.substr(1);
     }
 
     auto root_path = std::filesystem::path(config_path).parent_path();
+    auto global_path = root_path / manifest::default_name;
     std::filesystem::create_directories(root_path);
 
-    command_context context{.root_path = root_path, .config_file = tomlfile<config>(config_path)};
+    command_context context{
+        .root_path = root_path,
+        .config_file = tomlfile<config>(config_path),
+        .global_manifest = tomlfile<manifest>(global_path, tomlformat::multiline),
+    };
     basic_command::handle(context);
 }
 

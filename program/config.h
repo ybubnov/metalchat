@@ -89,6 +89,12 @@ public:
         return _M_path;
     }
 
+    bool
+    exists() const
+    {
+        return std::filesystem::exists(_M_path);
+    }
+
     /// Writes a toml-encodable object into a file.
     ///
     /// The implementation removes trailing new line symbols from the output

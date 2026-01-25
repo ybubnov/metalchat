@@ -31,10 +31,14 @@ public:
     void
     handle_stdin(const command_context&);
 
+    void
+    handle_checkout(const command_context&);
+
 private:
     std::string _M_model_id;
 
     parser_type _M_stdin;
+    parser_type _M_checkout;
 
     credential_command _M_credential;
     model_command _M_model;

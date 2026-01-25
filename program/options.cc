@@ -33,32 +33,26 @@ options_command::options_command(basic_command& parent)
   _M_unset("unset"),
   _M_name(),
   _M_value(),
-  _M_type(),
-  _M_id()
+  _M_type()
 {
     _M_command.add_description("manage model run options");
 
     _M_get.add_description("query model run options");
-    _M_get.add_argument("id").help("a model identifier").required().store_into(_M_id);
     _M_get.add_argument("name")
         .help("name of the option to query")
-        .metavar("<name>")
         .store_into(_M_name)
         .required()
         .nargs(1);
     push_handler(_M_get, [&](const command_context& c) { get(c); });
 
     _M_set.add_description("change model run options");
-    _M_set.add_argument("id").help("a model identifier").required().store_into(_M_id);
     _M_set.add_argument("name")
         .help("name of the option to change")
-        .metavar("<name>")
         .store_into(_M_name)
         .required()
         .nargs(1);
     _M_set.add_argument("value")
         .help("value of the target option")
-        .metavar("<value>")
         .store_into(_M_value)
         .required()
         .nargs(1);
@@ -72,10 +66,8 @@ options_command::options_command(basic_command& parent)
     push_handler(_M_set, [&](const command_context& c) { set(c); });
 
     _M_unset.add_description("unset model run options");
-    _M_unset.add_argument("id").help("a model identifier").required().store_into(_M_id);
     _M_unset.add_argument("name")
         .help("name of the option to remove")
-        .metavar("<name>")
         .store_into(_M_name)
         .required()
         .nargs(1);
@@ -83,13 +75,24 @@ options_command::options_command(basic_command& parent)
 }
 
 
+tomlfile<manifest>
+options_command::resolve_manifest(const command_context& context) const
+{
+    if (!context.global_manifest.exists()) {
+        throw std::runtime_error("fatal: global model is not checked out"
+                                 "and model identifier is not provided");
+    }
+    return context.global_manifest;
+}
+
+
 void
 options_command::get(const command_context& context) const
 {
-    model_provider models(context.root_path);
-    auto model = models.find(_M_id);
+    auto manifest_file = resolve_manifest(context);
+    auto manifest = manifest_file.read();
 
-    if (auto option = model.manifest.get_option(_M_name); option) {
+    if (auto option = manifest.get_option(_M_name); option) {
         std::visit([](auto&& value) {
             std::cout << std::boolalpha << value << std::endl;
         }, option.value());
@@ -120,22 +123,21 @@ options_command::set(const command_context& context) const
     auto value = from_string(_M_value);
 
     // TODO: ensure that option is supported by the model.
-    model_provider models(context.root_path);
+    auto manifest_file = resolve_manifest(context);
+    auto manifest = manifest_file.read();
 
-    auto model = models.find(_M_id);
-    model.manifest.set_option(_M_name, value);
-    models.update(model);
+    manifest.set_option(_M_name, value);
+    manifest_file.write(manifest);
 }
 
 void
 options_command::unset(const command_context& context) const
 {
-    model_provider models(context.root_path);
+    auto manifest_file = resolve_manifest(context);
+    auto manifest = manifest_file.read();
 
-    auto model = models.find(_M_id);
-    model.manifest.unset_option(_M_name);
-
-    models.update(model);
+    manifest.unset_option(_M_name);
+    manifest_file.write(manifest);
 }
 
 

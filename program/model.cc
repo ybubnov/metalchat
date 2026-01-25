@@ -62,17 +62,6 @@ model_provider::remove(const std::string& id)
 
 
 void
-model_provider::update(const model_info& m)
-{
-    auto model = find(m.manifest.id());
-    auto manifest_path = model.path / manifest::default_name;
-
-    ManifestFile file(manifest_path, tomlformat::multiline);
-    file.write(m.manifest);
-}
-
-
-void
 model_provider::insert(const manifest& m)
 {
     auto model_id = m.id();

@@ -34,6 +34,9 @@ public:
     unset(const command_context&) const;
 
 private:
+    tomlfile<manifest>
+    resolve_manifest(const command_context&) const;
+
     parser_type _M_get;
     parser_type _M_set;
     parser_type _M_unset;
@@ -41,7 +44,6 @@ private:
     std::string _M_name;
     std::string _M_value;
     std::string _M_type;
-    std::string _M_id;
 };
 
 

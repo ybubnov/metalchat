@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -11,6 +12,7 @@
 #include <argparse/argparse.hpp>
 
 #include "config.h"
+#include "manifest.h"
 
 
 namespace metalchat {
@@ -26,6 +28,16 @@ struct ansi {
 struct command_context {
     std::filesystem::path root_path;
     tomlfile<config> config_file;
+    tomlfile<manifest> global_manifest;
+
+    std::optional<std::string>
+    global_id() const
+    {
+        if (global_manifest.exists()) {
+            return global_manifest.read().id();
+        }
+        return std::nullopt;
+    }
 };
 
 

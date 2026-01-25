@@ -57,10 +57,6 @@ public:
     void
     remove(const std::string& id);
 
-    /// Update manifest of an existing model.
-    void
-    update(const model_info&);
-
     void
     insert(const manifest&);
 
