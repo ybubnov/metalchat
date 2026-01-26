@@ -60,17 +60,20 @@ program::handle_stdin(const command_context& context)
 {
     using Transformer = huggingface::llama3;
 
+    auto manifest_file = context.resolve_manifest(resolve_scope(_M_stdin));
+    auto scope_path = manifest_file.path().parent_path();
+    auto scope_manifest = manifest{};
+
     auto model_id = _M_stdin.present("model");
     if (!model_id) {
-        auto scope = resolve_scope(_M_stdin);
-        auto manifest_file = context.resolve_manifest(scope);
-        model_id = manifest_file.read().id();
+        scope_manifest = manifest_file.read();
+        model_id = scope_manifest.id();
     }
 
     model_provider models(context.root_path);
     auto model = models.find(model_id.value());
-    auto repository = filesystem_repository<Transformer>(model.path);
 
+    auto repository = filesystem_repository<Transformer>(model.path);
     auto tokenizer = repository.retrieve_tokenizer();
     auto options = repository.retrieve_options();
 
@@ -106,7 +109,9 @@ program::handle_stdin(const command_context& context)
     }
     input = std::string(input.c_str(), std::cin.gcount());
 
-    interp.write(basic_message("system", "You are a helpful assistant"));
+    if (auto system_prompt = scope_manifest.system_prompt(scope_path); system_prompt) {
+        interp.write(basic_message("system", system_prompt.value()));
+    }
     interp.write(basic_message("user", input));
 
     // TODO: ensure that encoded context does not exceed the model limit.
@@ -145,8 +150,8 @@ program::handle(int argc, char** argv)
     }
 
     auto root_path = std::filesystem::path(config_path).parent_path();
-    auto global_path = root_path / manifest::default_name;
-    auto local_path = std::filesystem::current_path() / manifest::default_name;
+    auto global_path = root_path / manifest::workspace_name;
+    auto local_path = std::filesystem::current_path() / manifest::workspace_name;
 
     std::filesystem::create_directories(root_path);
     using manifest_file = command_context::manifest_file;

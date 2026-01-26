@@ -67,6 +67,8 @@ private:
 };
 
 
+/// Each message submitted to the interpreter is being passed through the mustache render engine,
+/// so all valid mustache sequences are expanded with appropriate variable values.
 class interpreter {
 private:
     struct _Members;
@@ -87,19 +89,6 @@ public:
     ///
     /// Interpreter executes a registered command, when an LLM model requests for an execution.
     using command_type = std::function<std::string(const command_statement&)>;
-
-    /// The structure keeps variable names accessing to the interpreter.
-    ///
-    /// Each message submitted to the interpreter is being passed through the mustache
-    /// render engine, so all valid mustache sequences are expanded with appropriate
-    /// variable values.
-    struct variable {
-        /// Variable `metalchat_commands`
-        static const std::string commands;
-
-        /// Variable `metalchat_command_format`
-        static const std::string command_format;
-    };
 
     template <typename Transformer>
     interpreter(Transformer&& transformer, const text::bpe& encoder, std::size_t max_pos = -1)

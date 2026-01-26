@@ -34,7 +34,7 @@ struct variant {
 };
 
 
-struct model {
+struct model_section {
     std::string repository;
     std::string variant;
     std::string architecture;
@@ -42,16 +42,23 @@ struct model {
 };
 
 
+struct prompt_section {
+    /// A file path that defines a prompt for a system message.
+    std::string system;
+};
+
+
 struct manifest {
     static constexpr std::string_view default_name = "manifest.toml";
+    static constexpr std::string_view workspace_name = "metalchat.toml";
 
     using option_key = std::string;
     using option_value = primitive_variant;
+    using options_section = std::map<option_key, option_value>;
 
-    template <typename K, typename V> using optional_map = std::optional<std::map<K, V>>;
-
-    model model;
-    optional_map<option_key, option_value> options;
+    model_section model;
+    std::optional<options_section> options;
+    std::optional<prompt_section> prompt;
 
     /// Return a SHA-1 digest of model specification.
     ///
@@ -67,15 +74,22 @@ struct manifest {
     std::string
     abbrev_id(std::size_t n = 7) const;
 
+    /// Retrieve the system prompt from the configured file relative to the `root`.
+    std::optional<std::string>
+    system_prompt(const std::filesystem::path& root) const;
+
     /// Set the model option value. The list of supported model options depends on
     /// the specific architecture and implementation. This function does not validate
     /// support of the set option.
     void
     set_option(const option_key& key, const option_value& value);
 
+    /// Remove a specified option from the manifest, method does not throw an exception
+    /// when the key is missing.
     void
     unset_option(const option_key& key);
 
+    /// Retrieve an option from the manifest, if present.
     std::optional<option_value>
     get_option(const option_key& key) const;
 };
@@ -117,6 +131,7 @@ template <> struct toml::from<primitive_variant> {
 
 
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(
-    metalchat::runtime::model, repository, architecture, partitioning, variant
+    metalchat::runtime::model_section, repository, architecture, partitioning, variant
 );
-TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::runtime::manifest, model, options);
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::runtime::prompt_section, system);
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::runtime::manifest, model, options, prompt);

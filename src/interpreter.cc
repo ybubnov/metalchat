@@ -16,11 +16,7 @@ namespace mustache = mstch;
 namespace metalchat {
 
 
-const std::string interpreter::variable::commands = "metalchat_commands";
-const std::string interpreter::variable::command_format = "metalchat_command_format";
-
-
-namespace variable_default {
+namespace variables {
 
 
 static const std::string command_format = R"(
@@ -29,18 +25,33 @@ To use a tool, respond with JSON in this format:
 )";
 
 
-} // namespace variable_default
+} // namespace variables
 
 
 struct interpreter::_Members {
     mustache::map vars;
+    mustache::array commands;
+    mustache::map builtins;
 
     _Members()
-    : vars({
-          {variable::commands, ""},
-          {variable::command_format, variable_default::command_format},
-      })
+    : vars(),
+      commands(),
+      builtins({{"command_format", variables::command_format}, {"command", mustache::array()}})
     {}
+
+    void
+    push_command(const std::string& command)
+    {
+        commands.push_back(command);
+        builtins.insert_or_assign("commands", commands);
+        vars.insert_or_assign("metalchat", builtins);
+    }
+
+    const mustache::map&
+    context() const
+    {
+        return vars;
+    }
 
     std::string&
     at(const std::string& key)
@@ -81,12 +92,7 @@ interpreter::declare_command(const std::string& declaration, command_type comman
 {
     auto command_name = _M_command_scanner->declare(declaration);
     _M_commands.insert_or_assign(command_name, command);
-
-    auto& commands = _M_members->at(variable::commands);
-    if (!commands.empty()) {
-        commands += ",";
-    }
-    commands += declaration;
+    _M_members->push_command(declaration);
 }
 
 
@@ -115,7 +121,7 @@ interpreter::write(const basic_message& message)
     write_header(message.role());
 
     auto output = std::back_inserter(_M_buf);
-    auto content = mustache::render(message.content(), _M_members->vars);
+    auto content = mustache::render(message.content(), _M_members->context());
     _M_encoder.encode(content, output);
     _M_encoder.encode(text::token::end_turn, output);
 }

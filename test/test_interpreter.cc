@@ -28,8 +28,7 @@ TEST_CASE("Test interpreter", "[llama]")
 
     auto interp = interpreter(transformer, tokenizer);
 
-    auto command = R"({
-"name":"multiply",
+    auto command = R"({"name":"multiply",
 "type": "function",
 "description":"multiply two numbers",
 "parameters":{
@@ -45,14 +44,17 @@ TEST_CASE("Test interpreter", "[llama]")
 
 You have access to the following tools:
 
-{{ metalchat_commands }}
-{{ metalchat_command_format }}
+{{ #metalchat.commands }}
+{{ . }}
+{{ /metalchat.commands }}
+
+{{ metalchat.command_format }}
 {{ extra_instructions }}
 )";
 
     interp.declare_variable("extra_instructions", "answer in json");
     interp.declare_command(command, [](const command_statement&) -> std::string {
-        return R"(113001120)";
+        return R"(print 113001120)";
     });
     interp.write(basic_message("system", prompt));
     interp.write(basic_message("user", "What is 12135 multiplied by 9312?"));
