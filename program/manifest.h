@@ -48,6 +48,18 @@ struct prompt_section {
 };
 
 
+/// Environment section defines strategy and parameters of running a model.
+struct environment_section {
+    using option_key = std::string;
+    using option_value = primitive_variant;
+    using options_section = std::map<option_key, option_value>;
+
+    std::optional<std::size_t> max_sequence_length;
+    std::optional<std::string> placement;
+    std::optional<std::vector<options_section>> sampling;
+};
+
+
 struct manifest {
     static constexpr std::string_view default_name = "manifest.toml";
     static constexpr std::string_view workspace_name = "metalchat.toml";
@@ -59,6 +71,7 @@ struct manifest {
     model_section model;
     std::optional<options_section> options;
     std::optional<prompt_section> prompt;
+    std::optional<environment_section> environment;
 
     /// Return a SHA-1 digest of model specification.
     ///
@@ -132,6 +145,9 @@ template <> struct toml::from<primitive_variant> {
 
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(
     metalchat::runtime::model_section, repository, architecture, partitioning, variant
+);
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(
+    metalchat::runtime::environment_section, max_sequence_length, placement, sampling
 );
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::runtime::prompt_section, system);
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::runtime::manifest, model, options, prompt);
