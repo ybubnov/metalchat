@@ -51,12 +51,25 @@ template <typename LayerOptions> struct noop_layer_adaptor {
 };
 
 
-template <typename Loader>
-concept tokenizer_loader = requires(std::remove_reference_t<Loader> const l, std::istream& is) {
-    typename Loader::type;
-
-    { l.load(is) } -> std::same_as<typename Loader::type>;
+/// The istream loader expects the type to load the `T` instance from the input stream.
+///
+/// \tparam Loader a type that implements method `load`.
+/// \tparam T a type that Loader should return after decoding the input stream.
+template <typename Loader, typename T>
+concept istream_loader = requires(std::remove_reference_t<Loader> const l, std::istream& is) {
+    { l.load(is) } -> std::same_as<T>;
 };
+
+
+/// The ostream saver concept expects the type to save the `T` instance to the output stream.
+///
+/// \tparam Saver a type that implements method `save`.
+/// \tparam T a type that Saver should save into the output stream.
+template <typename Saver, typename T>
+concept ostream_saver =
+    requires(std::remove_reference_t<Saver> const s, std::ostream& os, const T& t) {
+        { s.save(os, t) } -> std::same_as<void>;
+    };
 
 
 /// The requirements for a transformer declaration.
@@ -67,8 +80,14 @@ concept transformer_traits = requires {
     typename Traits::options_type;
     typename Traits::options_loader;
     typename Traits::options_saver;
-    typename Traits::document_adaptor;
     typename Traits::container_type;
+    typename Traits::document_adaptor;
+    typename Traits::tokenizer_type;
+    typename Traits::tokenizer_loader;
+
+    requires istream_loader<typename Traits::options_loader, typename Traits::options_type>;
+    requires ostream_saver<typename Traits::options_saver, typename Traits::options_type>;
+    requires istream_loader<typename Traits::tokenizer_loader, typename Traits::tokenizer_type>;
 
     requires nn::layer<typename Traits::layer_type>;
     requires contiguous_container<typename Traits::container_type>;
