@@ -58,7 +58,7 @@ llama3_document_adaptor::adapt(const safetensor_document& document) const
 
 
 nn::llama3_options
-llama3_options_loader::load(std::istream& is) const
+llama3_options_serializer::load(std::istream& is) const
 {
     using options_type = metalchat::detail::llama3_reference_options;
     auto options = jsoncons::decode_json<options_type>(is);
@@ -70,6 +70,13 @@ llama3_options_loader::load(std::istream& is) const
         .n_kv_heads(options.n_kv_heads)
         .rope_theta(options.rope_theta)
         .norm_eps(options.norm_eps);
+}
+
+
+void
+llama3_options_serializer::save(std::ostream&, const nn::llama3_options&) const
+{
+    throw std::runtime_error("not implemented");
 }
 
 

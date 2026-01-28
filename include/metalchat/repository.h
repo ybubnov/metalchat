@@ -18,16 +18,16 @@ namespace metalchat {
 /// A filesystem-based read-only repository used to retrieve language transformer building blocks
 /// (layer options, layer, and string tokenizer).
 ///
-/// \tparam TransformerTraits transformer specification.
-template <transformer_traits TransformerTraits> struct filesystem_repository {
-    using layer_type = TransformerTraits::layer_type;
-    using layer_adaptor_type = TransformerTraits::layer_adaptor;
-    using options_type = TransformerTraits::options_type;
-    using options_loader = TransformerTraits::options_loader;
-    using tokenizer_type = TransformerTraits::tokenizer_type;
-    using tokenizer_loader = TransformerTraits::tokenizer_loader;
-    using container_type = TransformerTraits::container_type;
-    using document_adaptor_type = TransformerTraits::document_adaptor;
+/// \tparam Transformer transformer specification.
+template <language_transformer Transformer> struct filesystem_repository {
+    using layer_type = Transformer::layer_type;
+    using layer_adaptor_type = Transformer::layer_adaptor;
+    using options_type = Transformer::options_type;
+    using options_serializer = Transformer::options_serializer;
+    using tokenizer_type = Transformer::tokenizer_type;
+    using tokenizer_loader = Transformer::tokenizer_loader;
+    using container_type = Transformer::container_type;
+    using document_adaptor_type = Transformer::document_adaptor;
 
     using transformer_type = transformer<layer_type>;
 
@@ -57,14 +57,14 @@ template <transformer_traits TransformerTraits> struct filesystem_repository {
             ));
         }
 
-        options_loader loader;
-        return loader.load(options_stream);
+        options_serializer serializer;
+        return serializer.load(options_stream);
     }
 
     options_type
-    retrieve_options() const requires has_options_location<TransformerTraits>
+    retrieve_options() const requires has_options_location<Transformer>
     {
-        const std::filesystem::path p(TransformerTraits::options_location);
+        const std::filesystem::path p(Transformer::options_location);
         return retrieve_options(p);
     }
 
@@ -84,9 +84,9 @@ template <transformer_traits TransformerTraits> struct filesystem_repository {
     }
 
     tokenizer_type
-    retrieve_tokenizer() const requires has_tokenizer_location<TransformerTraits>
+    retrieve_tokenizer() const requires has_tokenizer_location<Transformer>
     {
-        const std::filesystem::path p(TransformerTraits::tokenizer_location);
+        const std::filesystem::path p(Transformer::tokenizer_location);
         return retrieve_tokenizer(p);
     }
 
@@ -110,10 +110,9 @@ template <transformer_traits TransformerTraits> struct filesystem_repository {
     }
 
     transformer_type
-    retrieve_transformer(const options_type& options)
-        requires has_transformer_location<TransformerTraits>
+    retrieve_transformer(const options_type& options) requires has_transformer_location<Transformer>
     {
-        const std::filesystem::path p(TransformerTraits::transformer_location);
+        const std::filesystem::path p(Transformer::transformer_location);
         return retrieve_transformer(p, options);
     }
 
@@ -155,9 +154,9 @@ template <transformer_traits TransformerTraits> struct filesystem_repository {
     template <allocator_t<void> Allocator>
     transformer_type
     retrieve_transformer(const options_type& options, Allocator alloc = Allocator())
-        requires has_transformer_location<TransformerTraits>
+        requires has_transformer_location<Transformer>
     {
-        const std::filesystem::path p(TransformerTraits::transformer_location);
+        const std::filesystem::path p(Transformer::transformer_location);
         return retrieve_transformer(p, options, alloc);
     }
 
@@ -186,18 +185,18 @@ concept readonly_filesystem =
 /// The implementation does not assume transport used to access HuggingFace repository,
 /// therefore users must provide a necessary implementation and authentication of requests.
 ///
-/// \tparam TransformerTraits transformer specification.
+/// \tparam Transformer transformer specification.
 /// \tparam FileSystem a read-only file access system used to download the transformer.
-template <transformer_traits TransformerTraits, readonly_filesystem FileSystem>
+template <language_transformer Transformer, readonly_filesystem FileSystem>
 struct huggingface_repository {
-    using layer_type = TransformerTraits::layer_type;
-    using layer_adaptor_type = TransformerTraits::layer_adaptor;
-    using options_type = TransformerTraits::options_type;
-    using options_loader = TransformerTraits::options_loader;
-    using tokenizer_type = TransformerTraits::tokenizer_type;
-    using tokenizer_loader = TransformerTraits::tokenizer_loader;
-    using container_type = TransformerTraits::container_type;
-    using document_adaptor_type = TransformerTraits::document_adaptor;
+    using layer_type = Transformer::layer_type;
+    using layer_adaptor_type = Transformer::layer_adaptor;
+    using options_type = Transformer::options_type;
+    using options_serializer = Transformer::options_serializer;
+    using tokenizer_type = Transformer::tokenizer_type;
+    using tokenizer_loader = Transformer::tokenizer_loader;
+    using container_type = Transformer::container_type;
+    using document_adaptor_type = Transformer::document_adaptor;
 
     using transformer_type = transformer<layer_type>;
 
@@ -278,7 +277,7 @@ private:
     std::string _M_id;
     std::string _M_revision;
     FileSystem _M_fs;
-    filesystem_repository<TransformerTraits> _M_repo;
+    filesystem_repository<Transformer> _M_repo;
 };
 
 

@@ -4,8 +4,6 @@
 
 #include <cstdlib>
 
-#include <jsoncons/json.hpp>
-#include <jsoncons_ext/jsonpath/jsonpath.hpp>
 #include <metalchat/metalchat.h>
 
 #include "config.h"
@@ -15,9 +13,6 @@
 
 namespace metalchat {
 namespace runtime {
-
-
-namespace jsonpath = jsoncons::jsonpath;
 
 
 program::program()
@@ -59,6 +54,7 @@ void
 program::handle_stdin(const command_context& context)
 {
     using Transformer = huggingface::llama3;
+    using TransformerTraits = transformer_traits<Transformer>;
 
     auto manifest_file = context.resolve_manifest(resolve_scope(_M_stdin));
     auto scope_path = manifest_file.path().parent_path();
@@ -77,25 +73,10 @@ program::handle_stdin(const command_context& context)
     auto tokenizer = repository.retrieve_tokenizer();
     auto options = repository.retrieve_options();
 
-    if (model.manifest.options) {
-        Transformer::options_saver options_saver;
-        Transformer::options_loader options_loader;
-
-        std::stringstream input_stream;
-        options_saver.save(input_stream, options);
-
-        auto options_doc = jsoncons::json::parse(input_stream);
-        for (const auto& [k, option] : model.manifest.options.value()) {
-            auto query = std::string("$.") + k;
-
-            std::visit([&](auto&& value) {
-                jsonpath::json_replace(options_doc, query, std::move(value));
-            }, option);
-        }
-
-        std::stringstream output_stream;
-        output_stream << options_doc;
-        options = options_loader.load(output_stream);
+    if (scope_manifest.options) {
+        auto scope_options = scope_manifest.options.value();
+        options =
+            TransformerTraits::merge_options(scope_options.begin(), scope_options.end(), options);
     }
 
     auto transformer = repository.retrieve_transformer(options);

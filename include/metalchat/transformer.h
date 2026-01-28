@@ -7,6 +7,7 @@
 #include <fstream>
 #include <istream>
 #include <string_view>
+#include <variant>
 
 #include <metalchat/allocator.h>
 #include <metalchat/nn.h>
@@ -51,48 +52,110 @@ template <typename LayerOptions> struct noop_layer_adaptor {
 };
 
 
-/// The istream loader expects the type to load the `T` instance from the input stream.
+/// The stream serializer expects the type to load the `T` instance from the input stream,
+/// and save the instance `T` to the output stream.
 ///
-/// \tparam Loader a type that implements method `load`.
-/// \tparam T a type that Loader should return after decoding the input stream.
-template <typename Loader, typename T>
-concept istream_loader = requires(std::remove_reference_t<Loader> const l, std::istream& is) {
-    { l.load(is) } -> std::same_as<T>;
+/// \tparam Serializer a type that implements methods `load` and `save`.
+template <typename Serializer>
+concept stream_serializer = requires(std::remove_reference_t<Serializer> const s) {
+    typename Serializer::value_type;
+
+    { s.load(std::declval<std::istream&>()) } -> std::same_as<typename Serializer::value_type>;
+    {
+        s.save(std::declval<std::ostream&>(), std::declval<typename Serializer::value_type&>())
+    } -> std::same_as<void>;
 };
 
 
-/// The ostream saver concept expects the type to save the `T` instance to the output stream.
-///
-/// \tparam Saver a type that implements method `save`.
-/// \tparam T a type that Saver should save into the output stream.
-template <typename Saver, typename T>
-concept ostream_saver =
-    requires(std::remove_reference_t<Saver> const s, std::ostream& os, const T& t) {
-        { s.save(os, t) } -> std::same_as<void>;
-    };
-
-
 /// The requirements for a transformer declaration.
-template <typename Traits>
-concept transformer_traits = requires {
-    typename Traits::layer_type;
-    typename Traits::layer_adaptor;
-    typename Traits::options_type;
-    typename Traits::options_loader;
-    typename Traits::options_saver;
-    typename Traits::container_type;
-    typename Traits::document_adaptor;
-    typename Traits::tokenizer_type;
-    typename Traits::tokenizer_loader;
+template <typename Transformer>
+concept language_transformer = requires {
+    typename Transformer::layer_type;
+    typename Transformer::layer_adaptor;
+    typename Transformer::options_type;
+    typename Transformer::options_serializer;
+    typename Transformer::container_type;
+    typename Transformer::document_adaptor;
+    typename Transformer::tokenizer_type;
+    typename Transformer::tokenizer_loader;
 
-    requires istream_loader<typename Traits::options_loader, typename Traits::options_type>;
-    requires ostream_saver<typename Traits::options_saver, typename Traits::options_type>;
-    requires istream_loader<typename Traits::tokenizer_loader, typename Traits::tokenizer_type>;
+    requires nn::layer<typename Transformer::layer_type>;
+    requires contiguous_container<typename Transformer::container_type>;
+    requires indirect_layer_adaptor<typename Transformer::layer_adaptor>;
+    requires safetensor_document_adaptor<typename Transformer::document_adaptor>;
+    requires stream_serializer<typename Transformer::options_serializer>;
+};
 
-    requires nn::layer<typename Traits::layer_type>;
-    requires contiguous_container<typename Traits::container_type>;
-    requires indirect_layer_adaptor<typename Traits::layer_adaptor>;
-    requires safetensor_document_adaptor<typename Traits::document_adaptor>;
+
+namespace detail {
+
+
+class json_object {
+public:
+    json_object(std::istream&);
+
+    void
+    merge(const std::string& key, bool value);
+
+    void
+    merge(const std::string& key, int value);
+
+    void
+    merge(const std::string& key, float value);
+
+    void
+    merge(const std::string& key, std::string&& value);
+
+    void
+    write(std::ostream&) const;
+
+private:
+    struct _Members;
+    std::shared_ptr<_Members> _M_members;
+};
+
+
+} // namespace detail
+
+
+template <language_transformer Transformer> struct transformer_traits {
+    using layer_type = Transformer::layer_type;
+    using layer_adaptor_type = Transformer::layer_adaptor;
+    using options_type = Transformer::options_type;
+    using options_serializer = Transformer::options_serializer;
+    using tokenizer_type = Transformer::tokenizer_type;
+    using tokenizer_loader = Transformer::tokenizer_loader;
+    using container_type = Transformer::container_type;
+    using document_adaptor_type = Transformer::document_adaptor;
+
+    /// Merge JSON-serializable options.
+    ///
+    /// This method uses JSON-query to replace a specified sequence of key-value pairs
+    /// in the target options object, and then returns a new instance.
+    ///
+    /// Option keys must be specified as dot-separated path: `some.nested.value`.
+    template <typename ForwardIt>
+    static options_type
+    merge_options(ForwardIt first, ForwardIt last, const options_type& options)
+    {
+        options_serializer serializer;
+
+        std::stringstream input_stream;
+        serializer.save(input_stream, options);
+
+        detail::json_object object(input_stream);
+        for (auto it = first; it != last; ++it) {
+            auto& [key, value] = *it;
+            std::visit([&](auto&& typed_value) {
+                object.merge(key, std::move(typed_value));
+            }, value);
+        }
+
+        std::stringstream output_stream;
+        object.write(output_stream);
+
+        return serializer.load(output_stream);
+    }
 };
 
 
@@ -100,22 +163,22 @@ concept transformer_traits = requires {
 ///
 /// This concept is used in the repository implementation enabling methods for
 /// retrieval of transformer instances from a default location within a repository.
-template <typename Traits>
+template <typename T>
 concept has_transformer_location = requires {
-    Traits::transformer_location;
+    T::transformer_location;
 
-    requires std::same_as<decltype(Traits::transformer_location), std::string_view const>;
+    requires std::same_as<decltype(T::transformer_location), std::string_view const>;
 };
 
 /// Requirement of the `options_location` constant expression presence.
 ///
 /// This concept is used in the repository implementation enabling methods for
 /// retrieval of option instances from a default location within a repository.
-template <typename Traits>
+template <typename T>
 concept has_options_location = requires {
-    Traits::options_location;
+    T::options_location;
 
-    requires std::same_as<decltype(Traits::options_location), std::string_view const>;
+    requires std::same_as<decltype(T::options_location), std::string_view const>;
 };
 
 
@@ -123,11 +186,11 @@ concept has_options_location = requires {
 ///
 /// This concept is used in the repository implementation enabling methods for
 /// retrieval of tokenizer instances from a default location within a repository.
-template <typename Traits>
+template <typename T>
 concept has_tokenizer_location = requires {
-    Traits::tokenizer_location;
+    T::tokenizer_location;
 
-    requires std::same_as<decltype(Traits::tokenizer_location), std::string_view const>;
+    requires std::same_as<decltype(T::tokenizer_location), std::string_view const>;
 };
 
 

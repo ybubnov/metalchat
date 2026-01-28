@@ -31,7 +31,7 @@ TEST_CASE("Test llama3 huggingface model adaptor", "[huggingface]")
 }
 
 
-TEST_CASE("Test llama3 options loader", "[huggingface]")
+TEST_CASE("Test llama3 options serializer", "[huggingface]")
 {
     // Some parameter are removed from the HuggingFace's configuration for compactness.
     const std::string options_json = R"({
@@ -64,8 +64,8 @@ TEST_CASE("Test llama3 options loader", "[huggingface]")
 
     std::stringstream input(options_json);
 
-    huggingface::llama3_options_loader loader;
-    auto options = loader.load(input);
+    huggingface::llama3_options_serializer serializer;
+    auto options = serializer.load(input);
 
     REQUIRE(options.head_dim() == 64);
     REQUIRE(options.n_layers() == 16);

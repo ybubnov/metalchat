@@ -124,7 +124,7 @@ namespace huggingface {
 
 
 nn::llama3_options
-llama3_options_loader::load(std::istream& is) const
+llama3_options_serializer::load(std::istream& is) const
 {
     using options_type = metalchat::detail::hf::options;
     auto options = jsoncons::decode_json<options_type>(is);
@@ -140,7 +140,7 @@ llama3_options_loader::load(std::istream& is) const
 
 
 void
-llama3_options_saver::save(std::ostream& os, const nn::llama3_options& options) const
+llama3_options_serializer::save(std::ostream& os, const nn::llama3_options& options) const
 {
     using options_type = metalchat::detail::hf::options;
 

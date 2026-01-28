@@ -14,7 +14,7 @@ using namespace metalchat;
 using namespace Catch::Matchers;
 
 
-TEST_CASE("Test llama3 options loader", "[reference]")
+TEST_CASE("Test llama3 options serializer", "[reference]")
 {
     const std::string options_json = R"({
       "dim": 2048,
@@ -31,8 +31,8 @@ TEST_CASE("Test llama3 options loader", "[reference]")
 
     std::stringstream input(options_json);
 
-    reference::llama3_options_loader loader;
-    auto options = loader.load(input);
+    reference::llama3_options_serializer serializer;
+    auto options = serializer.load(input);
 
     REQUIRE(options.head_dim() == 64);
     REQUIRE(options.n_layers() == 16);

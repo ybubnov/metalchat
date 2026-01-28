@@ -34,21 +34,16 @@ struct llama3_document_adaptor {
 };
 
 
-/// Llama3 options loader for configuration distributed through HuggingFace repository.
+/// Llama3 options serializer for configuration distributed through HuggingFace repository.
 ///
 /// The HuggingFace configuration format differs from the format of reference Llama3
-/// implementation, so this loader performs necessary mapping of JSON fields internally.
-struct llama3_options_loader {
+/// implementation, so this serializer performs necessary mapping of JSON fields internally.
+struct llama3_options_serializer {
+    using value_type = nn::llama3_options;
+
     nn::llama3_options
     load(std::istream& is) const;
-};
 
-
-/// Llama3 options saver for configuration distributed through HuggingFace repository.
-///
-/// This implementation saves parameters in a HuggingFace format only known to the MetalChat
-/// framework.
-struct llama3_options_saver {
     void
     save(std::ostream& os, const nn::llama3_options& options) const;
 };
@@ -236,8 +231,7 @@ template <typename T, contiguous_container Container> struct llama3_traits {
     using layer_type = nn::llama3<T, Container>;
     using layer_adaptor = llama3_layer_adaptor<T>;
     using options_type = nn::llama3_options;
-    using options_loader = llama3_options_loader;
-    using options_saver = llama3_options_saver;
+    using options_serializer = llama3_options_serializer;
     using container_type = Container;
     using document_adaptor = llama3_document_adaptor;
     using tokenizer_type = text::byte_pair_encoder<text::regexp>;
@@ -255,8 +249,7 @@ template <typename T, contiguous_container Container> struct llama3_qlora_traits
     using layer_type = nn::llama3<T, Container>;
     using layer_adaptor = llama3_qlora_layer_adaptor<T>;
     using options_type = nn::llama3_options;
-    using options_loader = llama3_options_loader;
-    using options_saver = llama3_options_saver;
+    using options_serializer = llama3_options_serializer;
     using container_type = Container;
     using document_adaptor = noop_document_adaptor;
     using tokenizer_type = text::byte_pair_encoder<text::regexp>;

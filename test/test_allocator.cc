@@ -4,7 +4,6 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-
 #include <metalchat/accelerator.h>
 #include <metalchat/allocator.h>
 #include <metalchat/kernel.h>
