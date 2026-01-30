@@ -14,6 +14,13 @@ namespace metalchat {
 namespace kernel {
 
 
+/// Draw samples from a multinomial distribution.
+///
+/// Input of this method should be a cumulative distribution function of a multinomial
+/// distribution. Values in each row of the input should be a between 0.0 to 1.0, since
+/// implementation uses a uniform value generator to sample from CDF.
+///
+/// The kernel expects input probabilities to be in reverse order.
 template <typename T, std::size_t BlockSize = 32> class multinomial {
 private:
     basic_kernel _M_kernel;

@@ -89,8 +89,9 @@ template <typename T> struct __multinomial_parameters {
 
 /// Draw samples from a multinomial distribution.
 ///
-/// Input of this method should a cumulative distribution function of a multinomial
-/// distribution, which means that sum of each row of the input should be a equal to 1.0.
+/// Input of this method should be a cumulative distribution function of a multinomial
+/// distribution. Values in each row of the input should be a between 0.0 to 1.0, since
+/// implementation uses a uniform value generator to sample from CDF.
 ///
 /// The kernel expects input probabilities to be in reverse order.
 template <typename T>

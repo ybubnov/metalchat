@@ -134,7 +134,7 @@ template <language_transformer Transformer> struct transformer_traits {
     /// in the target options object, and then returns a new instance.
     ///
     /// Option keys must be specified as dot-separated path: `some.nested.value`.
-    template <typename ForwardIt>
+    template <std::forward_iterator ForwardIt>
     static options_type
     merge_options(ForwardIt first, ForwardIt last, const options_type& options)
     {
@@ -252,29 +252,32 @@ public:
 
     transformer(const layer_pointer& layer)
     : _M_layer(layer),
-      _M_sampler(std::make_shared<nn::nucleus_sampler<value_type>>())
+      _M_sampler(nn::make_default_sampler<value_type>())
     {}
 
+    /// Replace current sampler with the specified implementation.
+    ///
+    /// \param sampler a new sampler instance to use in the transformation.
     void
-    set_sampler(const sampler_pointer& sampler)
+    set_sampler(const sampler_pointer& sampler) noexcept
     {
         _M_sampler = sampler;
     }
 
     const sampler_pointer&
-    get_sampler() const
+    get_sampler() const noexcept
     {
         return _M_sampler;
     }
 
     const layer_pointer&
-    get_layer() const
+    get_layer() const noexcept
     {
         return _M_layer;
     }
 
     layer_pointer&
-    get_layer()
+    get_layer() noexcept
     {
         return _M_layer;
     }
@@ -284,8 +287,8 @@ public:
     transform(Input input, std::size_t start_pos = 0)
     {
         auto& accelerator = _M_layer.accelerator();
-        auto logits = _M_layer(input, start_pos);
-        return _M_sampler->sample(logits.template flatten<2>(), accelerator);
+        auto logits = _M_layer(input, start_pos).template flatten<2>();
+        return _M_sampler->sample(logits, accelerator);
     }
 
 private:

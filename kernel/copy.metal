@@ -39,6 +39,7 @@ copy(
 
 __lib_metalchat_kernel2(copy, bfloat);
 __lib_metalchat_kernel2(copy, float);
+__lib_metalchat_kernel2(copy, int32_t);
 
 
 template <typename T> struct __scatter_parameters {
@@ -108,4 +109,5 @@ gather(
 
 
 __lib_metalchat_kernel2(gather, float);
+__lib_metalchat_kernel2(gather, bfloat);
 __lib_metalchat_kernel2(gather, int32_t);

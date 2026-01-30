@@ -25,8 +25,6 @@ TEST_CASE("Test reference implementation inference", "[llama]")
 
     auto options = nn::default_llama3_1b_options().max_seq_len(16);
     auto transformer = repository.retrieve_transformer("model.safetensors", options);
-    auto m = transformer.get_layer();
-
     auto tokenizer = repository.retrieve_tokenizer("tokenizer.model");
 
     auto heap_size = std::size_t(512) * 1024 * 1024;
@@ -41,16 +39,13 @@ TEST_CASE("Test reference implementation inference", "[llama]")
     tokenizer.encode(input_text, std::back_inserter(ids));
 
     auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));
-    auto logit0 = m(input0, 0);
-    auto id = top_p(logit0.flatten<2>(), bf16(0.6f), bf16(0.9), gpu0);
+    auto id = transformer.transform(input0);
 
     std::cout << input_text;
     std::cout << tokenizer.decode(id.get()[0, 0]);
 
     for (std::size_t i = input0.size(1); i < 64; i++) {
-        auto logits = m(id, i).flatten<2>();
-        id = top_p(logits, bf16(0.6f), bf16(0.9f), gpu0);
-
+        id = transformer.transform(id, i);
         std::cout << tokenizer.decode(id.get()[0, 0]) << std::flush;
     }
 }

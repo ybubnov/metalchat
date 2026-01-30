@@ -188,6 +188,15 @@ gt(Tensor t, T value, hardware_accelerator& gpu)
 }
 
 
+template <typename T, immutable_tensor_t<T> Tensor, std::size_t BlockSize = 128>
+auto
+le(Tensor t, T value, hardware_accelerator& gpu)
+{
+    kernel::le<T, BlockSize> op(gpu);
+    return op(t, value);
+}
+
+
 template <immutable_tensor Tensor, std::size_t BlockSize = 16>
 auto
 multinomial(Tensor t, std::size_t sample_size, hardware_accelerator& gpu)

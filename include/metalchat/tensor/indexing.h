@@ -12,6 +12,7 @@
 
 namespace metalchat {
 
+
 struct slice {
     std::optional<std::size_t> start;
     std::optional<std::size_t> stop;
@@ -23,7 +24,7 @@ struct slice {
     : start(start_),
       stop(stop_)
     {
-        if (stop < start) {
+        if (stop && start && (stop.value() < start.value())) {
             throw std::invalid_argument(std::format(
                 "slice: start position {} should be lesser than stop position {}", start.value(),
                 stop.value()
