@@ -17,7 +17,7 @@ namespace kernel {
 /// Roll the tensor along the given dimension. Elements that are shifted beyond the last
 /// position are re-introduced at the first position. The tensor is always flattened before
 /// rolling and then restored to the original shape.
-template <typename T, std::size_t BlockSize = 32> class roll {
+template <typename T> class roll {
 private:
     basic_kernel _M_kernel;
 
