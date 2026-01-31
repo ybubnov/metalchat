@@ -105,11 +105,11 @@ silu(Tensor t, hardware_accelerator& gpu)
 }
 
 
-template <immutable_tensor Tensor, std::size_t BlockSize = 128>
+template <immutable_tensor Tensor>
 auto
 sort(Tensor t, hardware_accelerator& gpu)
 {
-    kernel::sort<typename Tensor::value_type, BlockSize> op(gpu);
+    kernel::sort<typename Tensor::value_type> op(gpu);
     return op(t);
 }
 
@@ -155,6 +155,15 @@ gather(Tensor t, Index index, hardware_accelerator& gpu)
 {
     kernel::gather<typename Tensor::value_type> op(gpu);
     return op(t, index);
+}
+
+
+template <immutable_tensor Tensor>
+auto
+clone(Tensor t, hardware_accelerator& gpu)
+{
+    kernel::clone<typename Tensor::value_type> op(gpu);
+    return op(t);
 }
 
 

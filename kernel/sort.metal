@@ -24,24 +24,25 @@ template <typename T> struct __sort_parameters {
     tensor2<T> values;
     tensor2<int32_t> indices;
     tensor2<const T> input;
+    constant uint& block_size;
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 sort(
     __sort_parameters<T> params,
-    uint2 gid [[threadgroup_position_in_grid]],
-    uint2 tid [[thread_position_in_threadgroup]],
-    uint2 threadgroup_size [[threads_per_threadgroup]]
+    uint gid [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]],
+    uint threadgroup_size [[threads_per_threadgroup]]
 )
 {
     const uint dim_size = params.input.size(1);
     const uint dim_size_aligned = params.values.size(1);
-    const uint batch = gid.x;
 
-    const uint begin = tid.x * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint batch = gid;
+    const uint begin = tid * params.block_size;
+    const uint end = begin + params.block_size;
 
     for (uint k = begin; k < end; k++) {
         if (k < dim_size) {
@@ -81,20 +82,5 @@ sort(
 }
 
 
-__lib_metalchat_kernel2_tiled(sort, 8, bfloat);
-__lib_metalchat_kernel2_tiled(sort, 16, bfloat);
-__lib_metalchat_kernel2_tiled(sort, 32, bfloat);
-__lib_metalchat_kernel2_tiled(sort, 128, bfloat);
-__lib_metalchat_kernel2_tiled(sort, 256, bfloat);
-__lib_metalchat_kernel2_tiled(sort, 512, bfloat);
-__lib_metalchat_kernel2_tiled(sort, 1024, bfloat);
-__lib_metalchat_kernel2_tiled(sort, 2048, bfloat);
-
-
-__lib_metalchat_kernel2_tiled(sort, 8, float);
-__lib_metalchat_kernel2_tiled(sort, 16, float);
-__lib_metalchat_kernel2_tiled(sort, 32, float);
-__lib_metalchat_kernel2_tiled(sort, 128, float);
-__lib_metalchat_kernel2_tiled(sort, 512, float);
-__lib_metalchat_kernel2_tiled(sort, 1024, float);
-__lib_metalchat_kernel2_tiled(sort, 2048, float);
+__lib_metalchat_kernel(sort, bfloat);
+__lib_metalchat_kernel(sort, float);

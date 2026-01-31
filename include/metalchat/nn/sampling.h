@@ -227,12 +227,9 @@ public:
     {
         using index_type = context_type::index_type;
 
-        kernel::clone<value_type> clone_values(accelerator);
-        kernel::clone<index_type> clone_indices(accelerator);
-
         auto k = std::min(context.logits.size(1), _M_k);
-        auto values = clone_values(context.logits).get();
-        auto indices = clone_indices(context.indices).get();
+        auto values = clone(context.logits, accelerator).get();
+        auto indices = clone(context.indices, accelerator).get();
 
         for (std::size_t i = 0; i < indices.size(0); i++) {
             auto value = values[i].data_ptr();

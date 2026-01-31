@@ -17,9 +17,9 @@ using namespace metalchat;
 TEST_CASE("Test sorting", "[kernel::sort]")
 {
     metalchat::hardware_accelerator gpu0;
-    kernel::sort<float, 32> sort(gpu0);
+    kernel::sort<float> sort(gpu0);
 
-    auto input = shared_tensor(rand<float>({1, 1, 2000}));
+    auto input = shared_tensor(rand<float>({1, 1, 100000}));
     auto [values_future, indices_future] = sort(input);
 
     auto values = values_future.get();
@@ -55,7 +55,7 @@ TEST_CASE("Test sorting", "[kernel::sort]")
 TEST_CASE("Sorting benchmark", "[kernel::sort]")
 {
     metalchat::hardware_accelerator gpu0;
-    kernel::sort<float, 128> sort(gpu0);
+    kernel::sort<float> sort(gpu0);
 
     auto input_cpu = rand<float>({1, 1, 128256});
     auto input = shared_tensor(empty<float>({1, 1, 128256}, gpu0.get_allocator()));
