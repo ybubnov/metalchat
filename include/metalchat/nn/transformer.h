@@ -27,6 +27,8 @@ private:
     using BasicLinear = nn::basic_linear<T, Container>;
     using Linear = nn::linear<T, Container>;
 
+    // These layers are declared as polymorphic to provide a way to replace them
+    // in runtime with, for example, LoRA linear layer implementations.
     polymorphic_layer<BasicLinear> _M_w1;
     polymorphic_layer<BasicLinear> _M_w2;
     polymorphic_layer<BasicLinear> _M_w3;

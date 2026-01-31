@@ -19,14 +19,13 @@ namespace metalchat {
 namespace kernel {
 
 
-template <typename T, std::size_t BlockSize = 16, std::size_t EmbeddingBlockSize = 64>
-class embedding {
+template <typename T> class embedding {
 private:
     basic_kernel _M_kernel;
 
 public:
     embedding(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T>("embedding", BlockSize))
+    : _M_kernel(gpu.load<T>("embedding"))
     {}
 
     template <immutable_tensor2_t<int32_t> Input, immutable_tensor2_t<T> WeightTensor>
@@ -41,14 +40,22 @@ public:
         auto output = shared_empty<T>({input.size(0), dim_size, emb_size}, alloc);
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
-        auto thread_size_x = ceil_div(dim_size, BlockSize);
-        auto thread_size_y = ceil_div(emb_size, EmbeddingBlockSize);
 
-        // Adjust the `thread.x`, considering that an embedding vector should
-        // be copied within a single thread.
-        if (thread_size_x * thread_size_y > max_threads) {
-            thread_size_x = ceil_div(max_threads, BlockSize * EmbeddingBlockSize) * BlockSize;
-        }
+        // Compute how dimension size of the input vector relates to the embedding
+        // size of the weight. Depending on this ratio more threads of a single group,
+        // a larger or smaller block size is used to iterate over input dimension.
+        auto q = double(dim_size) / double(emb_size + dim_size);
+        auto threads_ratio = double(max_threads) * q;
+
+        constexpr std::size_t one = 1;
+        auto max_threads_x = std::max(one, std::size_t(threads_ratio));
+        auto max_threads_y = std::max(one, std::size_t(std::floor(max_threads / max_threads_x)));
+
+        auto block_size_x = ceil_div(dim_size, max_threads_x);
+        auto block_size_y = ceil_div(emb_size, max_threads_y);
+
+        auto thread_size_x = ceil_div(dim_size, block_size_x);
+        auto thread_size_y = ceil_div(emb_size, block_size_y);
 
         auto thread = dim3(thread_size_x, thread_size_y);
 
@@ -56,8 +63,9 @@ public:
         auto grid_size_y = thread_size_y * ceil_div(emb_size, thread_size_y);
         auto grid = dim3(grid_size_x, grid_size_y, num_batches);
 
+        auto block_size = scalar<uint32_t>(block_size_x);
         auto task = kernel_task(_M_kernel, grid, thread);
-        auto task_future = task.bind_front(output, input, weight);
+        auto task_future = task.bind_front(output, input, weight, block_size);
 
         return future_tensor(output, std::move(task_future));
     }

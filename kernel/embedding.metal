@@ -19,6 +19,7 @@ template <typename T> struct __embedding_parameters {
     device const int32_t* input;
     constant layout2& weight_layout;
     device const T* weight;
+    constant uint& block_size;
 };
 
 
@@ -34,7 +35,7 @@ template <typename T> struct __embedding_parameters {
 ///
 ///     output[i][j][k] <- weight[input[i][j]][k]
 ///
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
 embedding(
     __embedding_parameters<T> params,
@@ -51,13 +52,13 @@ embedding(
     const uint emb_size = w.size(1);
     const uint i = gid.z;
 
-    const uint begin = gid.x * threadgroup_size.x + tid.x * BlockSize;
-    const uint end = begin + BlockSize;
+    const uint begin = gid.x * threadgroup_size.x + tid.x * params.block_size;
+    const uint end = begin + params.block_size;
 
     const uint k = gid.y * threadgroup_size.y + tid.y;
 
     if (k < emb_size) {
-#pragma unroll(BlockSize)
+#pragma unroll
         for (uint j = begin; j < end && j < dim_size; j++) {
             out.at(i, j, k) = w.at(in.at(i, j), k);
         }
@@ -65,8 +66,5 @@ embedding(
 }
 
 
-__lib_metalchat_kernel3_tiled(embedding, 4, bfloat);
-__lib_metalchat_kernel3_tiled(embedding, 16, bfloat);
-
-__lib_metalchat_kernel3_tiled(embedding, 4, float);
-__lib_metalchat_kernel3_tiled(embedding, 16, float);
+__lib_metalchat_kernel3(embedding, bfloat);
+__lib_metalchat_kernel3(embedding, float);

@@ -19,7 +19,7 @@ using namespace metalchat;
 TEST_CASE("Embedding batched", "[kernel::embedding]")
 {
     metalchat::hardware_accelerator gpu0;
-    kernel::embedding<float, 16, 128> emb(gpu0);
+    kernel::embedding<float> emb(gpu0);
 
     auto input = shared_tensor(full<int32_t>({3, 4}, 0.0));
     input[0, 0] = 0;
@@ -56,7 +56,7 @@ TEST_CASE("Embedding batched", "[kernel::embedding]")
 TEST_CASE("Embedding 1024", "[kernel::embedding]")
 {
     metalchat::hardware_accelerator gpu0;
-    kernel::embedding<float, 16, 64> emb(gpu0);
+    kernel::embedding<float> emb(gpu0);
 
     auto input = shared_tensor(zeros<int32_t>({1, 1024}));
     auto weight = shared_tensor(rand<float>({128256, 2048}));
