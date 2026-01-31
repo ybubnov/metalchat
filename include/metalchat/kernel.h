@@ -26,6 +26,20 @@ ceil_div(std::size_t a, std::size_t b)
 }
 
 
+inline std::size_t
+ceil_pow2(std::size_t value)
+{
+    value--;
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    value++;
+    return value;
+}
+
+
 template <immutable_tensor Tensor>
 std::tuple<dim3, dim3>
 make_kernel_grid_1d(const Tensor& t, std::size_t block_size)

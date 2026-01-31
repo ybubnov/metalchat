@@ -14,20 +14,6 @@ namespace metalchat {
 namespace kernel {
 
 
-inline std::size_t
-__ceil_pow2(std::size_t value)
-{
-    value--;
-    value |= value >> 1;
-    value |= value >> 2;
-    value |= value >> 4;
-    value |= value >> 8;
-    value |= value >> 16;
-    value++;
-    return value;
-}
-
-
 template <typename T> class sort {
 private:
     basic_kernel _M_kernel;
@@ -45,7 +31,7 @@ public:
         auto num_rows = input.numel() / dim_size;
 
         auto input_view = input.view({-1, int(dim_size)});
-        auto dim_size_aligned = __ceil_pow2(dim_size);
+        auto dim_size_aligned = ceil_pow2(dim_size);
 
         auto alloc = _M_kernel.get_allocator();
         auto values = shared_empty<T>({num_rows, dim_size_aligned}, alloc);

@@ -43,6 +43,14 @@ template <typename T> T inline __ceil_div(T a, T b) { return (a + b - 1) / b; }
 
 
 /// A macro renders the function prototype of a metal kernel with support of block-tiling and
+/// 1-dimensional execution grid.
+#define __lib_metalchat_kernel_tiled(function_name, block_size, type)                       \
+    template [[host_name(__lib_metalchat_concatenate3(function_name, block_size, type))]]   \
+    kernel void                                                                             \
+    function_name<type, block_size>(__##function_name##_parameters<type>, uint, uint, uint)
+
+
+/// A macro renders the function prototype of a metal kernel with support of block-tiling and
 /// 2-dimensional execution grid.
 #define __lib_metalchat_kernel2_tiled(function_name, block_size, type)                    \
     template [[host_name(__lib_metalchat_concatenate3(function_name, block_size, type))]] \

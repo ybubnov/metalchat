@@ -170,9 +170,6 @@ public:
     context_type
     filter(const context_type& context, hardware_accelerator& accelerator)
     {
-        constexpr std::size_t BlockSize = 128;
-        using Tensor = logits_tensor;
-
         T prob = T(1) - _M_p;
         T temp = T(1) / _M_temperature;
 
@@ -180,7 +177,7 @@ public:
         auto probs = softmax(logits, accelerator);
 
         auto [probs_sort, probs_idx] = sort(probs, accelerator);
-        auto probs_sum = cumsum<Tensor, BlockSize>(probs_sort, accelerator);
+        auto probs_sum = cumsum(probs_sort, accelerator);
         auto probs_diff = sub(probs_sum, probs_sort, accelerator);
 
         auto mask = gt(probs_diff, prob, accelerator);
@@ -234,7 +231,7 @@ public:
         for (std::size_t i = 0; i < indices.size(0); i++) {
             auto value = values[i].data_ptr();
             auto index = indices[i].data_ptr();
-            auto cmp = [&](int32_t i1, int32_t i2) { return value[i1] > value[i2]; };
+            auto cmp = [&](index_type i1, index_type i2) { return value[i1] > value[i2]; };
             std::partial_sort(index, index + k, index + indices.size(1), cmp);
         }
 

@@ -16,7 +16,7 @@ using namespace metalchat;
 TEST_CASE("Cumulative sum", "[kernel::cumsum]")
 {
     metalchat::hardware_accelerator gpu0;
-    kernel::cumsum<float, 16> cumsum(gpu0);
+    kernel::cumsum<float> cumsum(gpu0);
 
     auto input = shared_tensor(rand<float>({1, 1, 400}));
     auto output = cumsum(input).get();

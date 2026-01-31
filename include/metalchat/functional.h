@@ -131,11 +131,11 @@ roll(Input input, Output output, int32_t shift, std::size_t dim, hardware_accele
     return op(input, output, shift, dim);
 }
 
-template <immutable_tensor Tensor, std::size_t BlockSize = 16>
+template <immutable_tensor Tensor>
 auto
 cumsum(Tensor t, hardware_accelerator& gpu)
 {
-    kernel::cumsum<typename Tensor::value_type, BlockSize> op(gpu);
+    kernel::cumsum<typename Tensor::value_type> op(gpu);
     return op(t);
 }
 
@@ -204,7 +204,7 @@ multinomial(Tensor t, std::size_t sample_size, hardware_accelerator& gpu)
 }
 
 
-template <typename T, immutable_tensor2_t<T> Tensor, std::size_t BlockSize = 128>
+template <typename T, immutable_tensor2_t<T> Tensor>
 auto
 top_p(Tensor logits, T temperature, T p, hardware_accelerator& gpu)
 {
@@ -212,7 +212,7 @@ top_p(Tensor logits, T temperature, T p, hardware_accelerator& gpu)
     auto probs = softmax<Tensor>(logits, gpu);
 
     auto [probs_sort, probs_idx] = sort(probs, gpu);
-    auto probs_sum = cumsum<Tensor, BlockSize>(probs_sort, gpu);
+    auto probs_sum = cumsum<Tensor>(probs_sort, gpu);
     auto probs_diff = sub(probs_sum, probs_sort, gpu);
 
     auto mask = gt(probs_diff, p, gpu);

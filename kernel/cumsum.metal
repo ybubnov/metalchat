@@ -7,25 +7,31 @@
 #include <metal_common>
 #include <metal_stdlib>
 
+#include "kernel.h"
 #include "tensor.h"
 
 
-#define __cumsum_parameters(T)                              \
-    constant layout2& output_layout          [[buffer(0)]], \
-    device T* output                         [[buffer(1)]], \
-    constant layout2& input_layout           [[buffer(2)]], \
-    device const T* input                    [[buffer(3)]], \
-    uint gid [[threadgroup_position_in_grid]],              \
-    uint tid [[thread_position_in_threadgroup]],            \
-    uint threadgroup_size [[threads_per_threadgroup]]
+template <typename T> struct __cumsum_parameters {
+    constant layout2& output_layout;
+    device T* output;
+    constant layout2& input_layout;
+    device const T* input;
+};
 
 
-template <typename T, uint BlockSize, uint MaxBlocks = 1024>
+template <typename T, uint BlockSize>
 kernel void
-cumsum(__cumsum_parameters(T))
+cumsum(
+    __cumsum_parameters<T> params,
+    uint gid [[threadgroup_position_in_grid]],
+    uint tid [[thread_position_in_threadgroup]],
+    uint threadgroup_size [[threads_per_threadgroup]]
+)
 {
-    tensor2<const T> in(input_layout, input);
-    tensor2<T> out(output_layout, output);
+    constexpr uint MaxBlocks = 256;
+
+    tensor2<const T> in(params.input_layout, params.input);
+    tensor2<T> out(params.output_layout, params.output);
 
     const uint dim_size = in.size(1);
     const uint i = gid;
@@ -64,30 +70,24 @@ cumsum(__cumsum_parameters(T))
 }
 
 
-template [[host_name("cumsum_1_bfloat")]]
-kernel void cumsum<bfloat, 1>(__cumsum_parameters(bfloat));
+__lib_metalchat_kernel_tiled(cumsum, 2, bfloat);
+__lib_metalchat_kernel_tiled(cumsum, 4, bfloat);
+__lib_metalchat_kernel_tiled(cumsum, 8, bfloat);
+__lib_metalchat_kernel_tiled(cumsum, 16, bfloat);
+__lib_metalchat_kernel_tiled(cumsum, 32, bfloat);
+__lib_metalchat_kernel_tiled(cumsum, 64, bfloat);
+__lib_metalchat_kernel_tiled(cumsum, 128, bfloat);
+__lib_metalchat_kernel_tiled(cumsum, 256, bfloat);
+__lib_metalchat_kernel_tiled(cumsum, 512, bfloat);
+__lib_metalchat_kernel_tiled(cumsum, 1024, bfloat);
 
-template [[host_name("cumsum_4_bfloat")]]
-kernel void cumsum<bfloat, 4>(__cumsum_parameters(bfloat));
-
-template [[host_name("cumsum_16_bfloat")]]
-kernel void cumsum<bfloat, 16>(__cumsum_parameters(bfloat));
-
-template [[host_name("cumsum_32_bfloat")]]
-kernel void cumsum<bfloat, 32>(__cumsum_parameters(bfloat));
-
-template [[host_name("cumsum_128_bfloat")]]
-kernel void cumsum<bfloat, 128>(__cumsum_parameters(bfloat));
-
-
-template [[host_name("cumsum_1_float")]]
-kernel void cumsum<float, 1>(__cumsum_parameters(float));
-
-template [[host_name("cumsum_4_float")]]
-kernel void cumsum<float, 4>(__cumsum_parameters(float));
-
-template [[host_name("cumsum_16_float")]]
-kernel void cumsum<float, 16>(__cumsum_parameters(float));
-
-template [[host_name("cumsum_32_float")]]
-kernel void cumsum<float, 32>(__cumsum_parameters(float));
+__lib_metalchat_kernel_tiled(cumsum, 2, float);
+__lib_metalchat_kernel_tiled(cumsum, 4, float);
+__lib_metalchat_kernel_tiled(cumsum, 8, float);
+__lib_metalchat_kernel_tiled(cumsum, 16, float);
+__lib_metalchat_kernel_tiled(cumsum, 32, float);
+__lib_metalchat_kernel_tiled(cumsum, 64, float);
+__lib_metalchat_kernel_tiled(cumsum, 128, float);
+__lib_metalchat_kernel_tiled(cumsum, 256, float);
+__lib_metalchat_kernel_tiled(cumsum, 512, float);
+__lib_metalchat_kernel_tiled(cumsum, 1024, float);
