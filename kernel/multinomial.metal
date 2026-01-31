@@ -104,9 +104,8 @@ multinomial(
 )
 {
     const uint dim_size = params.output.size(1);
-    const uint i = gid.x;
-
-    const uint k = tid.x + gid.y * threadgroup_size.x;
+    const uint i = gid.y * threadgroup_size.y + tid.y;
+    const uint k = gid.x * threadgroup_size.x + tid.x;
 
     pcg32 generator(params.init_state + i, params.init_seq + k);
 

@@ -39,9 +39,8 @@ rope(
     tensor2<const float> f_sin(params.freqs_sin_layout, params.freqs_sin);
 
     const uint head_dim = f_cos.size(1);
-    const uint i = gid.x;
-
-    const uint k = tid.x + gid.y * threadgroup_size.x;
+    const uint i = gid.y * threadgroup_size.y + tid.y;
+    const uint k = gid.x * threadgroup_size.x + tid.x;
 
     // numel = bs * seq_len * n_head * head_dim
     const uint pos = i / (params.batch_size * params.n_head);

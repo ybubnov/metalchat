@@ -96,13 +96,14 @@ softmax(Tensor t, hardware_accelerator& gpu)
 }
 
 
-template <immutable_tensor Tensor, std::size_t BlockSize = 16>
+template <immutable_tensor Tensor>
 auto
 silu(Tensor t, hardware_accelerator& gpu)
 {
-    kernel::silu<typename Tensor::value_type, BlockSize> op(gpu);
+    kernel::silu<typename Tensor::value_type> op(gpu);
     return op(t);
 }
+
 
 template <immutable_tensor Tensor, std::size_t BlockSize = 128>
 auto
@@ -185,11 +186,11 @@ le(Tensor t, T value, hardware_accelerator& gpu)
 }
 
 
-template <immutable_tensor Tensor, std::size_t BlockSize = 16>
+template <immutable_tensor Tensor>
 auto
 multinomial(Tensor t, std::size_t sample_size, hardware_accelerator& gpu)
 {
-    kernel::multinomial<typename Tensor::value_type, BlockSize> op(gpu);
+    kernel::multinomial<typename Tensor::value_type> op(gpu);
     return op(t, sample_size);
 }
 

@@ -21,7 +21,7 @@ namespace kernel {
 /// implementation uses a uniform value generator to sample from CDF.
 ///
 /// The kernel expects input probabilities to be in reverse order.
-template <typename T, std::size_t BlockSize = 32> class multinomial {
+template <typename T> class multinomial {
 private:
     basic_kernel _M_kernel;
 
@@ -43,10 +43,8 @@ public:
     {
         auto num_rows = input.size(0);
         auto dim_size = sample_size;
-
-        auto thread_size = ceil_div(dim_size, BlockSize);
-        auto thread = dim3(thread_size);
-        auto grid = dim3(thread_size * num_rows, BlockSize);
+        auto max_threads = _M_kernel.max_threads_per_threadgroup();
+        auto [grid, thread] = make_dynamic_kernel_grid_2d(num_rows, dim_size, max_threads);
 
         auto init_state = _M_seed(_M_generator);
         auto init_seq = _M_seed(_M_generator);

@@ -64,7 +64,7 @@ public:
 };
 
 
-template <typename T, std::size_t BlockSize = 16> class rope {
+template <typename T> class rope {
 private:
     basic_kernel _M_kernel;
 
@@ -104,7 +104,8 @@ public:
         auto input_view = flatten<2>(input);
         auto output_view = shared_empty_like<T>(input_view, _M_kernel.get_allocator());
 
-        auto [grid, thread] = make_kernel_grid_2d(input, BlockSize);
+        auto max_threads = _M_kernel.max_threads_per_threadgroup();
+        auto [grid, thread] = make_dynamic_kernel_grid_2d(input, max_threads);
 
         auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(
@@ -118,7 +119,7 @@ public:
 };
 
 
-template <typename T, std::size_t BlockSize = 16> class rope_freqs {
+template <typename T> class rope_freqs {
 private:
     basic_kernel _M_kernel;
     std::size_t _M_dim;

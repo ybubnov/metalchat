@@ -10,6 +10,33 @@
 namespace metalchat {
 
 
+std::tuple<dim3, dim3>
+make_dynamic_kernel_grid_2d(std::size_t num_rows, std::size_t dim_size, std::size_t max_threads)
+{
+    auto data_size = dim_size * num_rows;
+
+    if (data_size <= max_threads) {
+        auto thread = dim3(dim_size, num_rows);
+        auto grid = dim3(dim_size, num_rows);
+        return std::make_tuple(grid, thread);
+    }
+
+    if (dim_size <= max_threads) {
+        auto thread = dim3(dim_size);
+        auto grid = dim3(dim_size, num_rows);
+        return std::make_tuple(grid, thread);
+    }
+
+    auto thread_size = max_threads;
+    auto thread_groups = ceil_div(dim_size, thread_size);
+
+    auto thread = dim3(thread_size);
+    auto grid = dim3(thread_size * thread_groups, num_rows);
+
+    return std::make_tuple(grid, thread);
+}
+
+
 basic_kernel::basic_kernel(metal::shared_kernel kernel, const hardware_accelerator& accelerator)
 : _M_name(kernel->function->name()->utf8String(), kernel->function->name()->length()),
   _M_kernel(kernel),

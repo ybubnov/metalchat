@@ -58,6 +58,10 @@ make_kernel_grid_2d(const Tensor& t, std::size_t block_size)
 }
 
 
+std::tuple<dim3, dim3>
+make_dynamic_kernel_grid_2d(std::size_t num_rows, std::size_t dim_size, std::size_t max_threads);
+
+
 template <immutable_tensor Tensor>
 std::tuple<dim3, dim3>
 make_dynamic_kernel_grid_2d(const Tensor& t, std::size_t max_threads)
@@ -66,25 +70,7 @@ make_dynamic_kernel_grid_2d(const Tensor& t, std::size_t max_threads)
     auto dim_size = t.sizes().back();
     auto num_rows = data_size / dim_size;
 
-    if (data_size <= max_threads) {
-        auto thread = dim3(dim_size, num_rows);
-        auto grid = dim3(dim_size, num_rows);
-        return std::make_tuple(grid, thread);
-    }
-
-    if (dim_size <= max_threads) {
-        auto thread = dim3(dim_size);
-        auto grid = dim3(dim_size, num_rows);
-        return std::make_tuple(grid, thread);
-    }
-
-    auto thread_size = max_threads;
-    auto thread_groups = ceil_div(dim_size, thread_size);
-
-    auto thread = dim3(thread_size);
-    auto grid = dim3(thread_size * thread_groups, num_rows);
-
-    return std::make_tuple(grid, thread);
+    return make_dynamic_kernel_grid_2d(num_rows, dim_size, max_threads);
 }
 
 
