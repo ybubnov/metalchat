@@ -56,8 +56,6 @@ public:
         auto grid_size_y = thread_size_y * ceil_div(emb_size, thread_size_y);
         auto grid = dim3(grid_size_x, grid_size_y, num_batches);
 
-        // std::cout << "grid=" << grid << ", thread=" << thread << std::endl;
-
         auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(output, input, weight);
 

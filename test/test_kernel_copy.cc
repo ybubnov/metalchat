@@ -29,6 +29,24 @@ TEST_CASE("Copy 2-dimensional tensors", "[kernel::clone]")
 }
 
 
+TEST_CASE("Copy large 2-dimensional tensors", "[kernel::clone]")
+{
+    metalchat::hardware_accelerator gpu0;
+    kernel::clone<float> clone(gpu0);
+
+    auto input = shared_tensor(rand<float>({16, 4096}));
+    auto output = shared_tensor(empty<float>({16, 4096}, gpu0.get_allocator()));
+
+    clone(input, output).wait();
+
+    for (std::size_t i = 0; i < input.size(0); i++) {
+        for (std::size_t j = 0; j < input.size(1); j++) {
+            REQUIRE((input[i, j]) == (output[i, j]));
+        }
+    }
+}
+
+
 TEST_CASE("Copy into slice", "[kernel::clone]")
 {
     metalchat::hardware_accelerator gpu0;

@@ -139,24 +139,20 @@ cumsum(Tensor t, hardware_accelerator& gpu)
 }
 
 
-template <
-    typename T,
-    immutable_tensor_t<T> Tensor,
-    immutable_tensor_t<bool> Mask,
-    std::size_t BlockSize = 128>
+template <typename T, immutable_tensor_t<T> Tensor, immutable_tensor_t<bool> Mask>
 auto
 scatter(Tensor t, Mask m, T value, hardware_accelerator& gpu)
 {
-    kernel::scatter<T, BlockSize> op(gpu);
+    kernel::scatter<T> op(gpu);
     return op(t, m, value);
 }
 
 
-template <immutable_tensor Tensor, immutable_tensor_t<int32_t> Index, std::size_t BlockSize = 16>
+template <immutable_tensor Tensor, immutable_tensor_t<int32_t> Index>
 auto
 gather(Tensor t, Index index, hardware_accelerator& gpu)
 {
-    kernel::gather<typename Tensor::value_type, BlockSize> op(gpu);
+    kernel::gather<typename Tensor::value_type> op(gpu);
     return op(t, index);
 }
 

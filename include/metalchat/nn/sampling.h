@@ -56,12 +56,12 @@ template <typename T> struct basic_sampler {
     }
 
     /// Return subset of raw logits and their indices (context) that should be
-    /// considered in token sequence generation from a language transformer model.
+    /// considered in token sequence generation for a language transformer model.
     virtual context_type
     filter(const context_type& context, hardware_accelerator& accelerator) = 0;
 
     /// Return indices of the original logits that should be considered in token
-    /// sequence generation from a language transformer model.
+    /// sequence generation for a language transformer model.
     virtual index_tensor
     sample(const context_type& context, hardware_accelerator& accelerator) = 0;
 
@@ -185,8 +185,7 @@ public:
 
         auto mask = gt(probs_diff, prob, accelerator);
         probs_sort = scatter(probs_sort, mask, T(0), accelerator);
-        probs_idx =
-            gather<index_tensor, index_tensor, BlockSize>(context.indices, probs_idx, accelerator);
+        probs_idx = gather(context.indices, probs_idx, accelerator);
 
         return context_type{probs_sort, probs_idx};
     }
@@ -213,8 +212,8 @@ public:
 
     /// Constructs a top-k sampler with the specified k value.
     ///
-    /// \param k The number of top candidates to retain, keeps all tokens, if k is larger than
-    ///          vocabulary size.
+    /// \param k The number of top candidates to retain.
+    ///          Keeps all tokens, if k is larger than vocabulary size.
     topk_sampler(std::size_t k)
     : _M_k(k)
     {}
@@ -228,8 +227,8 @@ public:
     {
         using index_type = context_type::index_type;
 
-        kernel::clone<value_type, 128> clone_values(accelerator);
-        kernel::clone<index_type, 128> clone_indices(accelerator);
+        kernel::clone<value_type> clone_values(accelerator);
+        kernel::clone<index_type> clone_indices(accelerator);
 
         auto k = std::min(context.logits.size(1), _M_k);
         auto values = clone_values(context.logits).get();
@@ -263,8 +262,7 @@ std::shared_ptr<sequential_sampler<T>>
 make_default_sampler()
 {
     sequential_sampler<T> sampler(
-        {std::make_shared<topk_sampler<T>>(topk_sampler<T>(50)),
-         std::make_shared<nucleus_sampler<T>>(nucleus_sampler<T>())}
+        {std::make_shared<topk_sampler<T>>(50), std::make_shared<nucleus_sampler<T>>()}
     );
 
     return std::make_shared<sequential_sampler<T>>(std::move(sampler));

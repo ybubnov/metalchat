@@ -27,9 +27,8 @@ copy(
 )
 {
     const uint dim_size = params.input.size(1);
-    const uint i = gid.x;
-
-    const uint k = tid.x + gid.y * threadgroup_size.x;
+    const uint i = gid.y * threadgroup_size.y + tid.y;
+    const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (k < dim_size) {
         params.output.at(i, k) = params.input.at(i, k);
@@ -59,9 +58,8 @@ scatter(
 )
 {
     const uint dim_size = params.output.size(1);
-    const uint i = gid.x;
-
-    const uint k = tid.x + gid.y * threadgroup_size.x;
+    const uint i = gid.y * threadgroup_size.y + tid.y;
+    const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (k < dim_size) {
         if (params.mask.at(i, k)) {
@@ -98,9 +96,8 @@ gather(
     tensor2<const int32_t> index(params.index_layout, params.index_data);
 
     const uint dim_size = index.size(1);
-    const uint i = gid.x;
-
-    const uint k = tid.x + gid.y * threadgroup_size.x;
+    const uint i = gid.y * threadgroup_size.y + tid.y;
+    const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (k < dim_size) {
         output.at(i, k) = input.at(i, index.at(i, k));
