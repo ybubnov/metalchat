@@ -17,9 +17,9 @@ namespace metalchat {
 namespace kernel {
 
 
-template <typename T, std::size_t BlockSize = 32> class add {
+template <typename T> class add {
 private:
-    binary_kernel_wrapper<T, BlockSize> _M_kernel;
+    binary_kernel_wrapper<T> _M_kernel;
 
 public:
     add(hardware_accelerator& gpu)
@@ -76,9 +76,9 @@ public:
 };
 
 
-template <typename T, std::size_t BlockSize = 32> class sub {
+template <typename T> class sub {
 private:
-    binary_kernel_wrapper<T, BlockSize> _M_kernel;
+    binary_kernel_wrapper<T> _M_kernel;
 
 public:
     sub(hardware_accelerator& gpu)

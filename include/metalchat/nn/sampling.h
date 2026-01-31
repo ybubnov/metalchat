@@ -176,12 +176,12 @@ public:
         T prob = T(1) - _M_p;
         T temp = T(1) / _M_temperature;
 
-        auto logits = mul<Tensor, BlockSize>(context.logits, temp, accelerator);
+        auto logits = mul(context.logits, temp, accelerator);
         auto probs = softmax<Tensor, BlockSize>(logits, accelerator);
 
         auto [probs_sort, probs_idx] = sort(probs, accelerator);
         auto probs_sum = cumsum<Tensor, BlockSize>(probs_sort, accelerator);
-        auto probs_diff = sub<Tensor, BlockSize>(probs_sum, probs_sort, accelerator);
+        auto probs_diff = sub(probs_sum, probs_sort, accelerator);
 
         auto mask = gt(probs_diff, prob, accelerator);
         probs_sort = scatter(probs_sort, mask, T(0), accelerator);

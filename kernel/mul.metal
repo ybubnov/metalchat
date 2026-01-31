@@ -34,9 +34,8 @@ hadamard(
     tensor2<const T> input2(params.input2_layout, params.input2_data);
 
     const uint dim_size = input1.size(1);
-    const uint i = gid.x;
-
-    const uint k = tid.x + gid.y * threadgroup_size.x;
+    const uint i = gid.y * threadgroup_size.y + tid.y;
+    const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (k < dim_size) {
         output.at(i, k) = input1.at(i, k) * input2.at(i, k);
@@ -113,9 +112,8 @@ scalar_mul(
     tensor2<T> out(params.output_layout, params.output);
 
     const uint dim_size = in.size(1);
-    const uint i = gid.x;
-
-    const uint k = tid.x + gid.y * threadgroup_size.x;
+    const uint i = gid.y * threadgroup_size.y + tid.y;
+    const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (k < dim_size) {
         out.at(i, k) = in.at(i, k) * params.multiplier;

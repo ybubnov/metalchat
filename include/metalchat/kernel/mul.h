@@ -16,9 +16,9 @@ namespace metalchat {
 namespace kernel {
 
 
-template <typename T, std::size_t BlockSize = 16> class hadamard {
+template <typename T> class hadamard {
 private:
-    binary_kernel_wrapper<T, BlockSize> _M_kernel;
+    binary_kernel_wrapper<T> _M_kernel;
 
 public:
     hadamard(hardware_accelerator& gpu)
@@ -81,9 +81,9 @@ public:
 };
 
 
-template <typename T, std::size_t BlockSize = 1> class scalar_mul {
+template <typename T> class scalar_mul {
 private:
-    binary_kernel_wrapper<T, BlockSize> _M_kernel;
+    binary_kernel_wrapper<T> _M_kernel;
 
 public:
     scalar_mul(hardware_accelerator& gpu)
