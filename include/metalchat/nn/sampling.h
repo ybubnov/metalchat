@@ -170,7 +170,6 @@ public:
     context_type
     filter(const context_type& context, hardware_accelerator& accelerator)
     {
-        T prob = T(1) - _M_p;
         T temp = T(1) / _M_temperature;
 
         auto logits = mul(context.logits, temp, accelerator);
@@ -180,7 +179,7 @@ public:
         auto probs_sum = cumsum(probs_sort, accelerator);
         auto probs_diff = sub(probs_sum, probs_sort, accelerator);
 
-        auto mask = gt(probs_diff, prob, accelerator);
+        auto mask = gt(probs_diff, _M_p, accelerator);
         probs_sort = scatter(probs_sort, mask, T(0), accelerator);
         probs_idx = gather(context.indices, probs_idx, accelerator);
 
