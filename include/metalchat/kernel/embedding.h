@@ -105,7 +105,7 @@ public:
         auto output_view = shared_empty_like<T>(input_view, _M_kernel.get_allocator());
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
-        auto [grid, thread] = make_dynamic_kernel_grid_2d(input, max_threads);
+        auto [grid, thread] = make_kernel_grid_2d(input, max_threads);
 
         auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(
@@ -141,7 +141,8 @@ public:
         auto expected_freqs_cos =
             expected_tensor(freqs_cos).same_dim(freqs_sin, 1).same_dim(1, _M_dim / 2).value();
 
-        auto [grid, thread] = make_kernel_grid_2d(expected_freqs_cos, _M_dim / 2);
+        auto max_threads = _M_kernel.max_threads_per_threadgroup();
+        auto [grid, thread] = make_kernel_grid_2d(expected_freqs_cos, max_threads);
 
         auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(

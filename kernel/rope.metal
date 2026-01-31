@@ -85,8 +85,8 @@ rope_freqs(
     tensor2<T> f_cos(params.freqs_cos_layout, params.freqs_cos);
     tensor2<T> f_sin(params.freqs_sin_layout, params.freqs_sin);
 
-    const uint i = gid.x;
-    const uint j = tid.x + gid.y * threadgroup_size.x;
+    const uint i = gid.y * threadgroup_size.y + tid.y;
+    const uint j = gid.x * threadgroup_size.x + tid.x;
 
     if (j < params.dim / 2) {
         T freq = T(1.0) / metal::pow(params.theta, 2.0 * j / params.dim);

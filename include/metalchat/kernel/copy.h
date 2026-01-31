@@ -39,7 +39,7 @@ private:
             expected_tensor(input).same_last_dim(output).same_numel(output).value();
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
-        auto [grid, thread] = make_dynamic_kernel_grid_2d(expected_input, max_threads);
+        auto [grid, thread] = make_kernel_grid_2d(expected_input, max_threads);
 
         auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(output, expected_input);
@@ -123,7 +123,7 @@ public:
         auto expected_output = expected_tensor(output).same_shape(mask).value();
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
-        auto [grid, thread] = make_dynamic_kernel_grid_2d(expected_output, max_threads);
+        auto [grid, thread] = make_kernel_grid_2d(expected_output, max_threads);
 
         auto output_view = flatten<2>(expected_output);
         auto mask_view = flatten<2>(mask);
@@ -176,7 +176,7 @@ public:
     operator()(Input input, Index index)
     {
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
-        auto [grid, thread] = make_dynamic_kernel_grid_2d(index, max_threads);
+        auto [grid, thread] = make_kernel_grid_2d(index, max_threads);
 
         auto input_view = flatten<2>(input);
         auto index_view = flatten<2>(index);

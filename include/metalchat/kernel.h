@@ -40,51 +40,19 @@ ceil_pow2(std::size_t value)
 }
 
 
+std::tuple<dim3, dim3>
+make_kernel_grid_2d(std::size_t num_rows, std::size_t dim_size, std::size_t max_threads);
+
+
 template <immutable_tensor Tensor>
 std::tuple<dim3, dim3>
-make_kernel_grid_1d(const Tensor& t, std::size_t block_size)
+make_kernel_grid_2d(const Tensor& t, std::size_t max_threads)
 {
     auto data_size = t.numel();
     auto dim_size = t.sizes().back();
     auto num_rows = data_size / dim_size;
 
-    auto thread_size = ceil_div(dim_size, block_size);
-    auto thread = dim3(thread_size);
-    auto grid = dim3(thread_size * num_rows);
-
-    return std::forward_as_tuple(grid, thread);
-}
-
-
-template <immutable_tensor Tensor>
-std::tuple<dim3, dim3>
-make_kernel_grid_2d(const Tensor& t, std::size_t block_size)
-{
-    auto data_size = t.numel();
-    auto dim_size = t.sizes().back();
-    auto num_rows = data_size / dim_size;
-
-    auto thread_size = ceil_div(dim_size, block_size);
-    auto thread = dim3(thread_size);
-    auto grid = dim3(thread_size * num_rows, block_size);
-
-    return std::forward_as_tuple(grid, thread);
-}
-
-
-std::tuple<dim3, dim3>
-make_dynamic_kernel_grid_2d(std::size_t num_rows, std::size_t dim_size, std::size_t max_threads);
-
-
-template <immutable_tensor Tensor>
-std::tuple<dim3, dim3>
-make_dynamic_kernel_grid_2d(const Tensor& t, std::size_t max_threads)
-{
-    auto data_size = t.numel();
-    auto dim_size = t.sizes().back();
-    auto num_rows = data_size / dim_size;
-
-    return make_dynamic_kernel_grid_2d(num_rows, dim_size, max_threads);
+    return make_kernel_grid_2d(num_rows, dim_size, max_threads);
 }
 
 
@@ -371,7 +339,7 @@ public:
         }
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
-        auto [grid, thread] = make_dynamic_kernel_grid_2d(input1, max_threads);
+        auto [grid, thread] = make_kernel_grid_2d(input1, max_threads);
         auto input1_view = flatten<2>(input1);
         auto input2_view = flatten<2>(input2);
         auto output_view = shared_empty_like<R>(input1_view, _M_kernel.get_allocator());
@@ -405,7 +373,7 @@ public:
         auto output_view = shared_empty_like<R>(input_view, _M_kernel.get_allocator());
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
-        auto [grid, thread] = make_dynamic_kernel_grid_2d(input1, max_threads);
+        auto [grid, thread] = make_kernel_grid_2d(input1, max_threads);
 
         auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(output_view, input_view, input2);

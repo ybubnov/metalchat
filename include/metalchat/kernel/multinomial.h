@@ -44,7 +44,7 @@ public:
         auto num_rows = input.size(0);
         auto dim_size = sample_size;
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
-        auto [grid, thread] = make_dynamic_kernel_grid_2d(num_rows, dim_size, max_threads);
+        auto [grid, thread] = make_kernel_grid_2d(num_rows, dim_size, max_threads);
 
         auto init_state = _M_seed(_M_generator);
         auto init_seq = _M_seed(_M_generator);

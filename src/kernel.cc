@@ -11,7 +11,7 @@ namespace metalchat {
 
 
 std::tuple<dim3, dim3>
-make_dynamic_kernel_grid_2d(std::size_t num_rows, std::size_t dim_size, std::size_t max_threads)
+make_kernel_grid_2d(std::size_t num_rows, std::size_t dim_size, std::size_t max_threads)
 {
     auto data_size = dim_size * num_rows;
 
