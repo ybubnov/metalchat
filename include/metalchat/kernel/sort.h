@@ -41,9 +41,8 @@ public:
     auto
     operator()(Input input)
     {
-        auto data_size = input.numel();
         auto dim_size = input.sizes().back();
-        auto num_rows = data_size / dim_size;
+        auto num_rows = input.numel() / dim_size;
 
         auto input_view = input.view({-1, int(dim_size)});
         auto dim_size_aligned = __ceil_pow2(dim_size);
@@ -54,17 +53,14 @@ public:
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
         auto block_size = ceil_div(dim_size_aligned, max_threads);
-        if (dim_size_aligned <= max_threads) {
-            block_size = 1;
-        }
-
         auto thread_size = ceil_div(dim_size_aligned, block_size);
+
         auto thread = dim3(thread_size);
         auto grid = dim3(thread_size * num_rows);
 
-        auto block = scalar<uint32_t>(block_size);
+        auto block_tensor = scalar<uint32_t>(block_size);
         auto task = kernel_task(_M_kernel, grid, thread);
-        auto task_future = task.bind_front(values, indices, input_view, block);
+        auto task_future = task.bind_front(values, indices, input_view, block_tensor);
 
         // A single kernel task produces both outputs (values and indices), but a future
         // tensor can hold only a single output. To work this around, we return to future

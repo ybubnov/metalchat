@@ -87,11 +87,11 @@ add2(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 }
 
 
-template <immutable_tensor Tensor, std::size_t BlockSize = 16>
+template <immutable_tensor Tensor>
 auto
 softmax(Tensor t, hardware_accelerator& gpu)
 {
-    kernel::softmax<typename Tensor::value_type, BlockSize> op(gpu);
+    kernel::softmax<typename Tensor::value_type> op(gpu);
     return op(t);
 }
 
@@ -209,7 +209,7 @@ auto
 top_p(Tensor logits, T temperature, T p, hardware_accelerator& gpu)
 {
     logits = mul(logits, T(1) / temperature, gpu);
-    auto probs = softmax<Tensor, BlockSize>(logits, gpu);
+    auto probs = softmax<Tensor>(logits, gpu);
 
     auto [probs_sort, probs_idx] = sort(probs, gpu);
     auto probs_sum = cumsum<Tensor, BlockSize>(probs_sort, gpu);

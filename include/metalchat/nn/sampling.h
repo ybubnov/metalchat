@@ -177,7 +177,7 @@ public:
         T temp = T(1) / _M_temperature;
 
         auto logits = mul(context.logits, temp, accelerator);
-        auto probs = softmax<Tensor, BlockSize>(logits, accelerator);
+        auto probs = softmax(logits, accelerator);
 
         auto [probs_sort, probs_idx] = sort(probs, accelerator);
         auto probs_sum = cumsum<Tensor, BlockSize>(probs_sort, accelerator);
