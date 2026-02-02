@@ -59,7 +59,7 @@ For example, to access cache for the 2-nd layer use the following approach:
 Sampling
 --------
 
-.. doxygenclass:: metalchat::nn::basic_sampler
+.. doxygenstruct:: metalchat::nn::basic_sampler
    :members:
 
 

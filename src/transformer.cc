@@ -4,6 +4,7 @@
 
 #include <jsoncons/json.hpp>
 #include <jsoncons_ext/jsonpath/jsonpath.hpp>
+#include <jsoncons_ext/jsonpointer/jsonpointer.hpp>
 
 #include <metalchat/transformer.h>
 
@@ -13,6 +14,7 @@ namespace detail {
 
 
 namespace jsonpath = jsoncons::jsonpath;
+namespace jsonpointer = jsoncons::jsonpointer;
 
 
 struct json_object::_Members {
@@ -67,6 +69,29 @@ void
 json_object::write(std::ostream& os) const
 {
     os << _M_members->data;
+}
+
+
+json_object::iterator
+json_object::begin() const
+{
+    std::unordered_map<std::string, std::string> container;
+
+    auto flat_json = jsonpointer::flatten(_M_members->data);
+    for (const auto& member : flat_json.object_range()) {
+        auto key = member.key();
+        std::replace(key.begin(), key.end(), '/', '.');
+        container.insert_or_assign(key.substr(1), member.value().as<std::string>());
+    }
+
+    return iterator(std::move(container));
+}
+
+
+json_object::iterator
+json_object::end() const
+{
+    return iterator();
 }
 
 

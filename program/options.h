@@ -33,6 +33,9 @@ public:
     void
     unset(const command_context&) const;
 
+    void
+    list(const command_context&) const;
+
 private:
     tomlfile<manifest>
     resolve_manifest(const command_context&) const;
@@ -40,6 +43,7 @@ private:
     parser_type _M_get;
     parser_type _M_set;
     parser_type _M_unset;
+    parser_type _M_list;
 
     std::string _M_name;
     std::string _M_value;

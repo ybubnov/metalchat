@@ -7,6 +7,7 @@
 #include <fstream>
 #include <istream>
 #include <string_view>
+#include <unordered_map>
 #include <variant>
 
 #include <metalchat/allocator.h>
@@ -90,8 +91,71 @@ concept language_transformer = requires {
 namespace detail {
 
 
+template <typename Key, typename T> class mapping_iterator_wrapper {
+public:
+    using key_type = Key;
+    using mapped_type = T;
+    using value_type = std::pair<const Key, T>;
+    using iterator_category = std::forward_iterator_tag;
+    using iterator = mapping_iterator_wrapper<Key, T>;
+    using reference = value_type&;
+    using pointer = value_type*;
+    using difference_type = std::ptrdiff_t;
+
+    mapping_iterator_wrapper(std::unordered_map<Key, T>&& container)
+    : _M_container(std::move(container)),
+      _M_it(_M_container.begin())
+    {}
+
+    mapping_iterator_wrapper()
+    : _M_container(),
+      _M_it(_M_container.end())
+    {}
+
+    iterator&
+    operator++()
+    {
+        ++_M_it;
+        return *this;
+    }
+
+    reference
+    operator*()
+    {
+        return *_M_it;
+    }
+
+    pointer
+    operator->()
+    {
+        return &(*_M_it);
+    }
+
+    bool
+    operator==(const iterator& rhs) const
+    {
+        return _M_it == rhs._M_it;
+    }
+
+    bool
+    operator!=(const iterator& rhs) const
+    {
+        return _M_it != rhs._M_it;
+    }
+
+private:
+    using container_type = std::unordered_map<Key, T>;
+    using container_iterator = container_type::iterator;
+
+    container_type _M_container;
+    container_iterator _M_it;
+};
+
+
 class json_object {
 public:
+    using iterator = mapping_iterator_wrapper<std::string, std::string>;
+
     json_object(std::istream&);
 
     void
@@ -108,6 +172,12 @@ public:
 
     void
     write(std::ostream&) const;
+
+    iterator
+    begin() const;
+
+    iterator
+    end() const;
 
 private:
     struct _Members;
@@ -155,6 +225,22 @@ template <language_transformer Transformer> struct transformer_traits {
         object.write(output_stream);
 
         return serializer.load(output_stream);
+    }
+
+    template <std::output_iterator<std::pair<std::string, std::string>> OutputIt>
+    static void
+    iter_options(const options_type& options, OutputIt output)
+    {
+        options_serializer serializer;
+
+        std::stringstream input_stream;
+        serializer.save(input_stream, options);
+
+        detail::json_object object(input_stream);
+        for (auto it = object.begin(); it != object.end(); ++it) {
+            *output = *it;
+            ++output;
+        }
     }
 };
 

@@ -146,16 +146,15 @@ model_command::model_command(basic_command& parent)
 void
 model_command::pull(const command_context& context)
 {
-    manifest m = {
-        .model =
-            {.repository = _M_repository,
-             .variant = _M_variant,
-             .architecture = _M_arch,
-             .partitioning = _M_partitioning}
+    auto model = model_section{
+        .repository = _M_repository,
+        .variant = _M_variant,
+        .architecture = _M_arch,
+        .partitioning = _M_partitioning
     };
 
     model_provider models(context.root_path);
-    models.insert(m);
+    models.insert(manifest{.model = model});
 }
 
 

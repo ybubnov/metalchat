@@ -33,14 +33,41 @@ using command_scope = unsigned long;
 struct context_scope {
     static constexpr command_scope local = 1 << 0;
     static constexpr command_scope global = 1 << 1;
+    static constexpr command_scope model = 1 << 2;
 
     static command_scope
-    make_from_bool(bool is_local, bool is_global)
+    make_from_bool(bool is_local, bool is_global, bool is_model = false)
     {
-        command_scope scope = 0;
-        scope |= (is_local ? local : 0);
-        scope |= (is_global ? global : 0);
-        return scope;
+        constexpr auto digits = std::numeric_limits<command_scope>::digits;
+        std::bitset<digits> scope;
+
+        scope |= local * static_cast<command_scope>(is_local);
+        scope |= global * static_cast<command_scope>(is_global);
+        scope |= model * static_cast<command_scope>(is_model);
+
+        if (scope.count() == 0) {
+            scope |= context_scope::local;
+        }
+        if (scope.count() > 1) {
+            throw std::invalid_argument("error: only one scope at a time");
+        }
+        return scope.to_ulong();
+    }
+
+    static std::string
+    string(command_scope flags)
+    {
+        static std::vector<std::string> names = {"local", "global", "model"};
+        if (flags & local) {
+            return "local";
+        }
+        if (flags & global) {
+            return "global";
+        }
+        if (flags & model) {
+            return "model";
+        }
+        return "undefined";
     }
 };
 
@@ -57,33 +84,17 @@ struct command_context {
     /// Method optionally validates the presence of the manifest file using `missing_ok` flag.
     /// Also, when requested scope is empty, method defaults to the local scope.
     manifest_file
-    resolve_manifest(command_scope flags, bool missing_ok = false) const
+    resolve_manifest(command_scope scope, bool missing_ok = false) const
     {
-        constexpr auto digits = std::numeric_limits<command_scope>::digits;
-        std::bitset<digits> scope(flags);
-
-        if (scope.count() == 0) {
-            scope |= context_scope::local;
+        auto it = manifests.find(scope);
+        if (it == manifests.end()) {
+            std::runtime_error("fatal: requested non-existing scope");
         }
-        if (scope.count() > 1) {
-            throw std::invalid_argument("error: only one manifest file at a time");
+        auto file = it->second;
+        if (!missing_ok && !file.exists()) {
+            throw std::runtime_error("error: requested scope not checked out");
         }
-
-        for (std::size_t i = 0; i < scope.size(); i++) {
-            if (scope.test(i)) {
-                auto it = manifests.find(command_scope(scope.to_ulong()));
-                if (it == manifests.end()) {
-                    std::runtime_error("fatal: requested non-existing scope");
-                }
-
-                auto file = it->second;
-                if (!missing_ok && !file.exists()) {
-                    throw std::runtime_error("error: requested scope not checked out");
-                }
-                return file;
-            }
-        }
-        throw std::runtime_error("fatal: undefined command scope");
+        return file;
     }
 };
 

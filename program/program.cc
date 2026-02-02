@@ -6,6 +6,7 @@
 
 #include <metalchat/metalchat.h>
 
+
 #include "config.h"
 #include "model.h"
 #include "program.h"
@@ -75,8 +76,10 @@ program::handle_stdin(const command_context& context)
 
     if (scope_manifest.options) {
         auto scope_options = scope_manifest.options.value();
-        options =
-            TransformerTraits::merge_options(scope_options.begin(), scope_options.end(), options);
+        auto first = scope_options.begin();
+        auto last = scope_options.end();
+
+        options = TransformerTraits::merge_options(first, last, options);
     }
 
     auto transformer = repository.retrieve_transformer(options);

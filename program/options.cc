@@ -2,9 +2,15 @@
 // SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
-#include "options.h"
+#include <algorithm>
+#include <iterator>
+
+#include <metalchat/huggingface.h>
+#include <metalchat/repository.h>
+
 #include "manifest.h"
 #include "model.h"
+#include "options.h"
 
 
 namespace metalchat {
@@ -31,6 +37,7 @@ options_command::options_command(basic_command& parent)
   _M_get("get"),
   _M_set("set"),
   _M_unset("unset"),
+  _M_list("list"),
   _M_name(),
   _M_value(),
   _M_type()
@@ -74,6 +81,13 @@ options_command::options_command(basic_command& parent)
         .required()
         .nargs(1);
     push_handler(_M_unset, [&](const command_context& c) { unset(c); });
+
+    _M_list.add_description("list model run options");
+    _M_list.add_argument("--show-scope")
+        .help(("augment the output of all queried options with"
+               "the scope of that value (local, model)"))
+        .flag();
+    push_handler(_M_list, [&](const command_context& c) { list(c); });
 }
 
 
@@ -136,6 +150,50 @@ options_command::unset(const command_context& context) const
 
     manifest.unset_option(_M_name);
     manifest_file.write(manifest);
+}
+
+
+void
+options_command::list(const command_context& context) const
+{
+    using Transformer = huggingface::llama3;
+    using TransformerTraits = transformer_traits<Transformer>;
+
+    auto manifest_file = resolve_manifest(context);
+    auto scope = resolve_scope(_M_command);
+    auto scope_manifest = manifest_file.read();
+    auto scope_options = scope_manifest.options.value_or(manifest::options_section());
+
+    model_provider models(context.root_path);
+    auto model = models.find(scope_manifest.id());
+
+    auto repository = filesystem_repository<Transformer>(model.path);
+    auto options = repository.retrieve_options();
+
+    if (!scope_options.empty()) {
+        auto first = scope_options.begin();
+        auto last = scope_options.end();
+        options = TransformerTraits::merge_options(first, last, options);
+    }
+
+    using options_type = std::pair<std::string, std::string>;
+    std::vector<options_type> runtime_options;
+    TransformerTraits::iter_options(options, std::back_inserter(runtime_options));
+
+    auto less = [](options_type o1, options_type o2) { return o1.first < o2.first; };
+    std::sort(runtime_options.begin(), runtime_options.end(), less);
+
+    bool use_show_scope = _M_list.get<bool>("--show-scope");
+    for (const auto& [key, value] : runtime_options) {
+        if (use_show_scope) {
+            auto scope_name = context_scope::string(scope);
+            if (!scope_options.contains(key)) {
+                scope_name = context_scope::string(context_scope::model);
+            }
+            std::cout << scope_name << "  ";
+        }
+        std::cout << key << "=" << value << std::endl;
+    }
 }
 
 
