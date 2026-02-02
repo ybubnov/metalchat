@@ -8,6 +8,7 @@
 #include <metalchat/huggingface.h>
 #include <metalchat/repository.h>
 
+#include "iterator.h"
 #include "manifest.h"
 #include "model.h"
 #include "options.h"
@@ -161,6 +162,7 @@ options_command::list(const command_context& context) const
 
     auto manifest_file = resolve_manifest(context);
     auto scope = resolve_scope(_M_command);
+    auto scope_name = context_scope::string(scope);
     auto scope_manifest = manifest_file.read();
     auto scope_options = scope_manifest.options.value_or(manifest::options_section());
 
@@ -176,21 +178,36 @@ options_command::list(const command_context& context) const
         options = TransformerTraits::merge_options(first, last, options);
     }
 
-    using options_type = std::pair<std::string, std::string>;
+    using options_type = std::tuple<std::string, std::string, std::string>;
     std::vector<options_type> runtime_options;
-    TransformerTraits::iter_options(options, std::back_inserter(runtime_options));
 
-    auto less = [](options_type o1, options_type o2) { return o1.first < o2.first; };
+    // Insert the options into the runtime options container, so that it is possible
+    // to sort the values in a container and print options sorted by scope.
+    auto back_inserter = function_output_iterator([&](auto option) {
+        auto option_scope_name = scope_name;
+        if (!scope_options.contains(option.first)) {
+            option_scope_name = context_scope::string(context_scope::model);
+        }
+        runtime_options.emplace_back(option_scope_name, option.first, option.second);
+    });
+
+    TransformerTraits::iter_options(options, back_inserter);
+
+    auto less = [](options_type o1, options_type o2) {
+        const auto& [scope1, key1, value1] = o1;
+        const auto& [scope2, key2, value2] = o2;
+        if (scope1 == scope2) {
+            return key1 < key2;
+        }
+        return scope1 < scope2;
+    };
+
     std::sort(runtime_options.begin(), runtime_options.end(), less);
 
     bool use_show_scope = _M_list.get<bool>("--show-scope");
-    for (const auto& [key, value] : runtime_options) {
+    for (const auto& [scope, key, value] : runtime_options) {
         if (use_show_scope) {
-            auto scope_name = context_scope::string(scope);
-            if (!scope_options.contains(key)) {
-                scope_name = context_scope::string(context_scope::model);
-            }
-            std::cout << scope_name << "  ";
+            std::cout << scope << "  ";
         }
         std::cout << key << "=" << value << std::endl;
     }
