@@ -23,8 +23,8 @@ struct options {
     std::size_t num_hidden_layers;
     std::size_t num_attention_heads;
     std::size_t num_key_value_heads;
-    double rms_norm_eps;
-    double rope_theta;
+    float rms_norm_eps;
+    float rope_theta;
 };
 
 
@@ -153,7 +153,12 @@ llama3_options_serializer::save(std::ostream& os, const nn::llama3_options& opti
         .rms_norm_eps = options.norm_eps()
     };
 
-    jsoncons::encode_json<options_type>(hf_options, os);
+    // Ensure that output JSON follows output stream float precision format.
+    auto encode_options = jsoncons::json_options()
+                              .float_format(jsoncons::float_chars_format::general)
+                              .precision(os.precision());
+
+    jsoncons::encode_json<options_type>(hf_options, os, encode_options);
 }
 
 
