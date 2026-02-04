@@ -138,13 +138,8 @@ program::handle_prompt(const command_context& context)
 void
 program::handle_stdin(const command_context& context)
 {
-    const std::size_t max_input_size = 1024;
-    std::string input(max_input_size, '\0');
-
-    if (std::cin.read(input.data(), max_input_size)) {
-        throw std::runtime_error("error: failed reading from stdin");
-    }
-    input = std::string(input.c_str(), std::cin.gcount());
+    using iterator = std::istreambuf_iterator<char>;
+    std::string input((iterator(std::cin)), iterator());
 
     program_scope scope;
     if (auto model_id = _M_stdin.present("model"); model_id) {
