@@ -174,7 +174,7 @@ template <typename T> struct llama3_qlora_layer_adaptor {
     {
         auto is_basic_linear = nn::layer_common_with<nn::basic_linear<T>>();
         auto is_basic_embedding = nn::layer_common_with<nn::basic_embedding<T>>();
-        auto is_output = nn::layer_all(is_basic_linear, nn::layer_name_match("output"));
+        auto is_output = nn::layer_match_all(is_basic_linear, nn::layer_match_name("output"));
 
         using QLinear = quantization::linear<T>;
         using QLoraEmbedding = quantization::lora_embedding<T>;

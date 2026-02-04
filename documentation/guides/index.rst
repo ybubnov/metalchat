@@ -6,5 +6,6 @@ Guides
 
    install
    getting_started
+   command_line
    tool_calling
    memory_reduced

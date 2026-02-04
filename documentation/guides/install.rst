@@ -33,7 +33,7 @@ to pull the model from the repository. MetalChat stores the provided secrets in
 
 .. prompt::
 
-   metalchat credential add -H https://huggingface.co -u $HF_USERNAME -s $HF_ACCESS_TOKEN
+   metalchat credential add -H huggingface.co -u $HF_USERNAME -s $HF_ACCESS_TOKEN
 
 After that you can pull a model:
 

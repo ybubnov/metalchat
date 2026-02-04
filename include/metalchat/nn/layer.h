@@ -693,10 +693,10 @@ concept named_layer_predicate = requires(const Predicate predicate) {
 };
 
 
-template <named_layer_predicate... Predicates> struct layer_all {
+template <named_layer_predicate... Predicates> struct layer_match_all {
     std::tuple<Predicates...> predicates;
 
-    layer_all(Predicates... preds)
+    layer_match_all(Predicates... preds)
     : predicates(std::make_tuple(preds...))
     {}
 
@@ -741,10 +741,10 @@ template <typename Layer> struct layer_common_with {
 /// name matches the specified regular expression.
 ///
 /// \param regex a regular expression to match the layer name.
-struct layer_name_match {
+struct layer_match_name {
     const std::regex re;
 
-    layer_name_match(const std::string& regex)
+    layer_match_name(const std::string& regex)
     : re(regex)
     {}
 
