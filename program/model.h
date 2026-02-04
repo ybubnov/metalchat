@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <metalchat/repository.h>
+
 #include "command.h"
 #include "manifest.h"
 
@@ -65,6 +67,58 @@ private:
     resolve_path(const std::string& id) const;
 
     std::filesystem::path _M_path;
+};
+
+
+template <language_transformer Transformer> class scoped_repository_adapter {
+public:
+    using layer_type = Transformer::layer_type;
+    using layer_adaptor_type = Transformer::layer_adaptor;
+    using options_type = Transformer::options_type;
+    using options_serializer = Transformer::options_serializer;
+    using tokenizer_type = Transformer::tokenizer_type;
+    using tokenizer_loader = Transformer::tokenizer_loader;
+    using container_type = Transformer::container_type;
+    using document_adaptor_type = Transformer::document_adaptor;
+
+    using transformer_type = transformer<layer_type>;
+
+    scoped_repository_adapter(const std::filesystem::path& root_path, const manifest& m)
+    : _M_repo(root_path),
+      _M_manifest(m)
+    {}
+
+    options_type
+    retrieve_options() const
+    {
+        using TransformerTraits = transformer_traits<Transformer>;
+
+        auto options = _M_repo.retrieve_options();
+        if (_M_manifest.options) {
+            auto manifest_options = _M_manifest.options.value();
+            auto first = manifest_options.begin();
+            auto last = manifest_options.end();
+            options = TransformerTraits::merge_options(first, last, options);
+        }
+
+        return options;
+    }
+
+    tokenizer_type
+    retrieve_tokenizer() const
+    {
+        return _M_repo.retrieve_tokenizer();
+    }
+
+    transformer_type
+    retrieve_transformer() const
+    {
+        return _M_repo.retrieve_transformer(retrieve_options());
+    }
+
+private:
+    filesystem_repository<Transformer> _M_repo;
+    manifest _M_manifest;
 };
 
 

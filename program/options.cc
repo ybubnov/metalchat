@@ -102,13 +102,26 @@ options_command::resolve_manifest(const command_context& context) const
 void
 options_command::get(const command_context& context) const
 {
-    auto manifest_file = resolve_manifest(context);
-    auto manifest = manifest_file.read();
+    model_provider models(context.root_path);
 
-    if (auto option = manifest.get_option(_M_name); option) {
-        std::visit([](auto&& value) {
-            std::cout << std::boolalpha << value << std::endl;
-        }, option.value());
+    auto manifest = resolve_manifest(context).read();
+    auto model = models.find(manifest.id());
+
+    using Transformer = huggingface::llama3;
+    using TransformerTraits = transformer_traits<Transformer>;
+
+    std::optional<std::string> option_value;
+    auto option_iterator = function_output_iterator([&](auto option) {
+        if (option.first == _M_name) {
+            option_value = option.second;
+        }
+    });
+
+    scoped_repository_adapter<Transformer> repo(model.path, manifest);
+    TransformerTraits::iter_options(repo.retrieve_options(), option_iterator);
+
+    if (option_value) {
+        std::cout << option_value.value() << std::endl;
         return;
     }
 
@@ -157,26 +170,11 @@ options_command::unset(const command_context& context) const
 void
 options_command::list(const command_context& context) const
 {
-    using Transformer = huggingface::llama3;
-    using TransformerTraits = transformer_traits<Transformer>;
-
-    auto manifest_file = resolve_manifest(context);
-    auto scope = resolve_scope(_M_command);
-    auto scope_name = context_scope::string(scope);
-    auto scope_manifest = manifest_file.read();
-    auto scope_options = scope_manifest.options.value_or(manifest::options_section());
-
     model_provider models(context.root_path);
-    auto model = models.find(scope_manifest.id());
 
-    auto repository = filesystem_repository<Transformer>(model.path);
-    auto options = repository.retrieve_options();
-
-    if (!scope_options.empty()) {
-        auto first = scope_options.begin();
-        auto last = scope_options.end();
-        options = TransformerTraits::merge_options(first, last, options);
-    }
+    auto manifest = resolve_manifest(context).read();
+    auto model = models.find(manifest.id());
+    auto scope = resolve_scope(_M_command);
 
     using options_type = std::tuple<std::string, std::string, std::string>;
     std::vector<options_type> runtime_options;
@@ -184,14 +182,18 @@ options_command::list(const command_context& context) const
     // Insert the options into the runtime options container, so that it is possible
     // to sort the values in a container and print options sorted by scope.
     auto back_inserter = function_output_iterator([&](auto option) {
-        auto option_scope_name = scope_name;
-        if (!scope_options.contains(option.first)) {
+        auto option_scope_name = context_scope::string(scope);
+        if (!manifest.get_option(option.first)) {
             option_scope_name = context_scope::string(context_scope::model);
         }
         runtime_options.emplace_back(option_scope_name, option.first, option.second);
     });
 
-    TransformerTraits::iter_options(options, back_inserter);
+    using Transformer = huggingface::llama3;
+    using TransformerTraits = transformer_traits<Transformer>;
+
+    scoped_repository_adapter<Transformer> repo(model.path, manifest);
+    TransformerTraits::iter_options(repo.retrieve_options(), back_inserter);
 
     auto less = [](options_type o1, options_type o2) {
         const auto& [scope1, key1, value1] = o1;
