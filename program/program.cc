@@ -124,6 +124,10 @@ void
 program::handle(int argc, char** argv)
 {
     _M_command.parse_args(argc, argv);
+    if (!_M_command) {
+        std::cout << _M_command;
+        throw std::runtime_error("");
+    }
 
     auto config_path = _M_command.get<std::string>("--file");
     if (config_path.starts_with("~/")) {
