@@ -54,35 +54,32 @@ program::program()
 void
 program::handle_stdin(const command_context& context)
 {
+    auto scope = resolve_scope(_M_stdin);
+    auto scope_manifest = manifest{};
+    auto scope_path = std::filesystem::current_path();
+
+    model_provider models(context.root_path);
+    model_info model;
+
+    auto model_id = _M_stdin.present("model");
+    if (model_id) {
+        model = models.find(model_id.value());
+        scope_manifest = model.manifest;
+        scope_path = model.path;
+    } else {
+        auto manifest_file = context.resolve_manifest(scope);
+        scope_manifest = manifest_file.read();
+        scope_path = manifest_file.path().parent_path();
+        model = models.find(scope_manifest.id());
+    }
+
     using Transformer = huggingface::llama3;
     using TransformerTraits = transformer_traits<Transformer>;
 
-    auto manifest_file = context.resolve_manifest(resolve_scope(_M_stdin));
-    auto scope_path = manifest_file.path().parent_path();
-    auto scope_manifest = manifest{};
+    scoped_repository_adapter<Transformer> repo(model.path, scope_manifest);
+    auto transformer = repo.retrieve_transformer();
+    auto tokenizer = repo.retrieve_tokenizer();
 
-    auto model_id = _M_stdin.present("model");
-    if (!model_id) {
-        scope_manifest = manifest_file.read();
-        model_id = scope_manifest.id();
-    }
-
-    model_provider models(context.root_path);
-    auto model = models.find(model_id.value());
-
-    auto repository = filesystem_repository<Transformer>(model.path);
-    auto tokenizer = repository.retrieve_tokenizer();
-    auto options = repository.retrieve_options();
-
-    if (scope_manifest.options) {
-        auto scope_options = scope_manifest.options.value();
-        auto first = scope_options.begin();
-        auto last = scope_options.end();
-
-        options = TransformerTraits::merge_options(first, last, options);
-    }
-
-    auto transformer = repository.retrieve_transformer(options);
     auto interp = metalchat::interpreter(transformer, tokenizer);
 
     const std::size_t max_input_size = 1024;

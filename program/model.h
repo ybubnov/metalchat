@@ -111,7 +111,7 @@ public:
     }
 
     transformer_type
-    retrieve_transformer() const
+    retrieve_transformer()
     {
         return _M_repo.retrieve_transformer(retrieve_options());
     }
