@@ -120,7 +120,7 @@ program::handle_prompt(const command_context& context)
     } else if (auto filename = _M_prompt.present("promptfile"); filename) {
         std::ifstream prompt_file(filename.value());
         if (!prompt_file.is_open()) {
-            auto error = std::format("error: file reading from '{}'", filename.value());
+            auto error = std::format("error: failed reading from '{}' file", filename.value());
             throw std::runtime_error(error);
         }
 
