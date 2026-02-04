@@ -126,6 +126,17 @@ protected:
     command_scope
     resolve_scope(const parser_type& parser) const;
 
+    /// Resolve the manifest of the command by combining flags `--local`, `--global`.
+    ///
+    /// The parser must define those flags explicitly (for example by calling a method
+    /// \ref add_scope_arguments).
+    command_context::manifest_file
+    resolve_manifest(const command_context& context, const parser_type& parser) const;
+
+    void
+    add_scope_arguments(parser_type& parser) const;
+
+
     parser_type _M_command;
 
     template <typename Key, typename Value>

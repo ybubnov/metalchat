@@ -43,9 +43,8 @@ options_command::options_command(basic_command& parent)
   _M_value(),
   _M_type()
 {
+    add_scope_arguments(_M_command);
     _M_command.add_description("manage model run options");
-    _M_command.add_argument("--local").help("use a current working directory manifest").flag();
-    _M_command.add_argument("--global").help("use a global manifest").flag();
 
     _M_get.add_description("query model run options");
     _M_get.add_argument("name")
@@ -85,17 +84,10 @@ options_command::options_command(basic_command& parent)
 
     _M_list.add_description("list model run options");
     _M_list.add_argument("--show-scope")
-        .help(("augment the output of all queried options with"
-               "the scope of that value (local, model)"))
+        .help(("augment the output of all queried options with\n"
+               "the scope of that value (global, local, model)"))
         .flag();
     push_handler(_M_list, [&](const command_context& c) { list(c); });
-}
-
-
-tomlfile<manifest>
-options_command::resolve_manifest(const command_context& context) const
-{
-    return context.resolve_manifest(resolve_scope(_M_command));
 }
 
 
@@ -104,7 +96,7 @@ options_command::get(const command_context& context) const
 {
     model_provider models(context.root_path);
 
-    auto manifest = resolve_manifest(context).read();
+    auto manifest = resolve_manifest(context, _M_command).read();
     auto model = models.find(manifest.id());
 
     using Transformer = huggingface::llama3;
@@ -149,7 +141,7 @@ options_command::set(const command_context& context) const
     auto value = from_string(_M_value);
 
     // TODO: ensure that option is supported by the model.
-    auto manifest_file = resolve_manifest(context);
+    auto manifest_file = resolve_manifest(context, _M_command);
     auto manifest = manifest_file.read();
 
     manifest.set_option(_M_name, value);
@@ -159,7 +151,7 @@ options_command::set(const command_context& context) const
 void
 options_command::unset(const command_context& context) const
 {
-    auto manifest_file = resolve_manifest(context);
+    auto manifest_file = resolve_manifest(context, _M_command);
     auto manifest = manifest_file.read();
 
     manifest.unset_option(_M_name);
@@ -172,7 +164,7 @@ options_command::list(const command_context& context) const
 {
     model_provider models(context.root_path);
 
-    auto manifest = resolve_manifest(context).read();
+    auto manifest = resolve_manifest(context, _M_command).read();
     auto model = models.find(manifest.id());
     auto scope = resolve_scope(_M_command);
 

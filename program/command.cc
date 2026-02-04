@@ -54,12 +54,29 @@ basic_command::handle(const command_context& context) const
 }
 
 
+void
+basic_command::add_scope_arguments(parser_type& parser) const
+{
+    auto& group = parser.add_mutually_exclusive_group(/*required=*/false);
+    group.add_argument("--local").help("use a current working directory manifest").flag();
+    group.add_argument("--global").help("use a global manifest").flag();
+}
+
+
 command_scope
 basic_command::resolve_scope(const parser_type& parser) const
 {
     auto is_local = parser.is_used("--local");
     auto is_global = parser.is_used("--global");
     return context_scope::make_from_bool(is_local, is_global);
+}
+
+
+command_context::manifest_file
+basic_command::resolve_manifest(const command_context& context, const parser_type& parser) const
+{
+    auto scope = resolve_scope(parser);
+    return context.resolve_manifest(scope);
 }
 
 

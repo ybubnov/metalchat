@@ -22,6 +22,7 @@ program::program()
   _M_model(*this),
   _M_options(*this),
   _M_stdin("-"),
+  _M_prompt("prompt"),
   _M_checkout("checkout"),
   _M_model_id()
 {
@@ -34,15 +35,27 @@ program::program()
         .default_value(config_path.string())
         .nargs(1);
 
+    add_scope_arguments(_M_stdin);
     _M_stdin.add_description("read from stdin and run model inference");
     _M_stdin.add_argument("model").help("the model to launch for the input processing").nargs(0, 1);
-    _M_stdin.add_argument("--local").help("use a current working directory manifest").flag();
-    _M_stdin.add_argument("--global").help("use a global manifest").flag();
     push_handler(_M_stdin, [&](const command_context& c) { handle_stdin(c); });
 
-    _M_checkout.add_description("switch models");
-    _M_checkout.add_argument("--local").help("use a current working directory manifest").flag();
-    _M_checkout.add_argument("--global").help("use a global manifest").flag();
+    // It is possible to put both, `-c` and `promptfile` into a mutually exclusive
+    // group, but argparse library renders really ugly help for such a setup, so
+    // just try to parse `-c` first, then `promptfile, throw otherwise.
+    add_scope_arguments(_M_prompt);
+    _M_prompt.add_description("read prompt and run model inference");
+    _M_prompt.add_argument("-c")
+        .help("pass user prompt as a string")
+        .metavar("<command>")
+        .nargs(0, 1);
+    _M_prompt.add_argument("promptfile")
+        .help("read prompt from file and pass it to the model")
+        .nargs(0, 1);
+    push_handler(_M_prompt, [&](const command_context& c) { handle_prompt(c); });
+
+    add_scope_arguments(_M_checkout);
+    _M_checkout.add_description("switch between different models");
     _M_checkout.add_argument("model")
         .help("the model to prepare for working")
         .required()
@@ -51,53 +64,96 @@ program::program()
 }
 
 
-void
-program::handle_stdin(const command_context& context)
+program_scope
+program::resolve_program_scope(const command_context& context, const parser_type& parser) const
 {
-    auto scope = resolve_scope(_M_stdin);
-    auto scope_manifest = manifest{};
-    auto scope_path = std::filesystem::current_path();
+    auto manifest_file = resolve_manifest(context, parser);
+    auto manifest_path = manifest_file.path().parent_path();
+    auto manifest = manifest_file.read();
 
     model_provider models(context.root_path);
-    model_info model;
+    auto model = models.find(manifest.id());
 
-    auto model_id = _M_stdin.present("model");
-    if (model_id) {
-        model = models.find(model_id.value());
-        scope_manifest = model.manifest;
-        scope_path = model.path;
-    } else {
-        auto manifest_file = context.resolve_manifest(scope);
-        scope_manifest = manifest_file.read();
-        scope_path = manifest_file.path().parent_path();
-        model = models.find(scope_manifest.id());
-    }
+    return program_scope{manifest_path, model.path, manifest};
+}
 
+
+program_scope
+program::resolve_program_scope(const command_context& context, const std::string& model_id) const
+{
+    model_provider models(context.root_path);
+    auto model = models.find(model_id);
+    return program_scope{model.path, model.path, model.manifest};
+}
+
+
+void
+program::transform(const program_scope& scope, const std::string& prompt) const
+{
     using Transformer = huggingface::llama3;
     using TransformerTraits = transformer_traits<Transformer>;
 
-    scoped_repository_adapter<Transformer> repo(model.path, scope_manifest);
+    scoped_repository_adapter<Transformer> repo(scope.repo_path, scope.manifest);
     auto transformer = repo.retrieve_transformer();
     auto tokenizer = repo.retrieve_tokenizer();
 
     auto interp = metalchat::interpreter(transformer, tokenizer);
-
-    const std::size_t max_input_size = 1024;
-    std::string input(max_input_size, '\0');
-
-    if (std::cin.read(input.data(), max_input_size)) {
-        throw std::runtime_error("failed reading from stdin");
-    }
-    input = std::string(input.c_str(), std::cin.gcount());
-
-    if (auto system_prompt = scope_manifest.system_prompt(scope_path); system_prompt) {
+    auto system_prompt = scope.manifest.system_prompt(scope.path);
+    if (system_prompt) {
         interp.write(basic_message("system", system_prompt.value()));
     }
-    interp.write(basic_message("user", input));
+    interp.write(basic_message("user", prompt));
 
     // TODO: ensure that encoded context does not exceed the model limit.
     std::ostream_iterator<std::string> content_iterator(std::cout << std::unitbuf);
     interp.read(content_iterator);
+}
+
+
+void
+program::handle_prompt(const command_context& context)
+{
+    std::string input;
+
+    if (auto prompt = _M_prompt.present("-c"); prompt) {
+        input = prompt.value();
+    } else if (auto filename = _M_prompt.present("promptfile"); filename) {
+        std::ifstream prompt_file(filename.value());
+        if (!prompt_file.is_open()) {
+            auto error = std::format("error: file reading from '{}'", filename.value());
+            throw std::runtime_error(error);
+        }
+
+        using iterator = std::istreambuf_iterator<char>;
+        input = std::string(iterator(prompt_file), iterator());
+    } else {
+        throw std::runtime_error("error: either command prompt or prompt file is required");
+    }
+
+    auto scope = resolve_program_scope(context, _M_prompt);
+    transform(scope, input);
+}
+
+
+void
+program::handle_stdin(const command_context& context)
+{
+    const std::size_t max_input_size = 1024;
+    std::string input(max_input_size, '\0');
+
+    if (std::cin.read(input.data(), max_input_size)) {
+        throw std::runtime_error("error: failed reading from stdin");
+    }
+    input = std::string(input.c_str(), std::cin.gcount());
+
+    program_scope scope;
+    if (auto model_id = _M_stdin.present("model"); model_id) {
+        scope = resolve_program_scope(context, model_id.value());
+    } else {
+        scope = resolve_program_scope(context, _M_stdin);
+    }
+
+    transform(scope, input);
 }
 
 
