@@ -13,7 +13,6 @@
 #include <metalchat/kernel/arithmetic.h>
 #include <metalchat/kernel/bmm.h>
 #include <metalchat/kernel/copy.h>
-#include <metalchat/kernel/cumsum.h>
 #include <metalchat/kernel/logical.h>
 #include <metalchat/kernel/mul.h>
 #include <metalchat/kernel/multinomial.h>
@@ -21,6 +20,7 @@
 #include <metalchat/kernel/silu.h>
 #include <metalchat/kernel/softmax.h>
 #include <metalchat/kernel/sort.h>
+#include <metalchat/kernel/sum.h>
 #include <metalchat/tensor/future.h>
 
 

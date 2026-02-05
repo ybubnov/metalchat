@@ -104,7 +104,7 @@ public:
 /// auto input2 = tensor<float>({{1.0, 2.0, 3.0}});
 ///
 /// auto accelerator = hardware_accelerator();
-/// auto div = kernel::div(accelerator);
+/// auto div = kernel::div<float>(accelerator);
 ///
 /// auto output = div(input1, input2);
 /// std::cout << output.get() << std::endl;

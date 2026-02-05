@@ -108,7 +108,7 @@ public:
     /// auto M = tensor<bool>({{true, false, false}, {false, true, true}});
     ///
     /// auto accelerator = hardware_accelerator();
-    /// auto scatter = kernel::scatter(accelerator);
+    /// auto scatter = kernel::scatter<float>(accelerator);
     ///
     /// auto output = scatter(T, M, 9.0);
     /// std::cout << output.get() << std::endl;
@@ -144,7 +144,7 @@ public:
 /// auto index = tensor<int32_t>({{0, 0}, {1, 0}});
 ///
 /// auto accelerator = hardware_accelerator();
-/// auto gather = kernel::gather(accelerator);
+/// auto gather = kernel::gather<float>(accelerator);
 ///
 /// auto output = gather(T, index);
 /// std::cout << output.get() << std::endl;

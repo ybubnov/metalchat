@@ -3,10 +3,11 @@
 // SPDX-FileType: SOURCE
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/matchers/catch_matchers_vector.hpp>
 
 #include <metalchat/accelerator.h>
-#include <metalchat/kernel/cumsum.h>
+#include <metalchat/kernel/sum.h>
 #include <metalchat/tensor.h>
 
 
@@ -35,6 +36,33 @@ TEST_CASE("Cumulative sum", "[kernel::cumsum]")
 
             std::vector<float> actual(output[i][j].begin(), output[i][j].end());
             REQUIRE_THAT(actual, Catch::Matchers::Approx(expect).margin(0.0001));
+        }
+    }
+}
+
+
+TEST_CASE("Sum", "[kernel::sum]")
+{
+    metalchat::hardware_accelerator gpu0;
+    kernel::sum<float> sum(gpu0);
+
+    auto input = rand<float>({4, 64, 4098});
+    auto output = sum(input).get();
+
+    REQUIRE(output.dim() == 2);
+    REQUIRE(output.size(0) == 4);
+    REQUIRE(output.size(1) == 64);
+
+    for (std::size_t i = 0; i < input.size(0); i++) {
+        for (std::size_t j = 0; j < input.size(1); j++) {
+            float expect = 0.0f;
+
+            for (std::size_t k = 0; k < input.size(2); k++) {
+                expect += input[i, j, k];
+            }
+
+            auto approx = Catch::Matchers::WithinAbs(expect, 0.01);
+            REQUIRE_THAT((output[i, j]), approx);
         }
     }
 }
