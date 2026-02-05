@@ -31,11 +31,12 @@ add(__add_parameters<T> params,
     tensor2<const T> in2(params.input2_layout, params.input2);
     tensor2<T> out(params.output_layout, params.output);
 
+    const uint row_size = in1.size(0);
     const uint dim_size = in1.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
-    if (k < dim_size) {
+    if (i < row_size && k < dim_size) {
         out.at(i, k) = in1.at(i, k) + in2.at(i, k);
     }
 }
@@ -115,11 +116,12 @@ sub(__sub_parameters<T> params,
     tensor2<const T> in2(params.input2_layout, params.input2);
     tensor2<T> out(params.output_layout, params.output);
 
+    const uint row_size = in1.size(0);
     const uint dim_size = in1.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
-    if (k < dim_size) {
+    if (i < row_size && k < dim_size) {
         out.at(i, k) = in1.at(i, k) - in2.at(i, k);
     }
 }
@@ -150,11 +152,12 @@ div(__div_parameters<T> params,
     tensor2<const T> in2(params.input2_layout, params.input2);
     tensor2<T> out(params.output_layout, params.output);
 
+    const uint row_size = in1.size(0);
     const uint dim_size = in1.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
-    if (k < dim_size) {
+    if (i < row_size && k < dim_size) {
         out.at(i, k) = in1.at(i, k) / in2.at(i, k);
     }
 }

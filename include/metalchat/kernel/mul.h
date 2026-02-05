@@ -92,14 +92,14 @@ public:
 
     template <immutable_tensor_t<T> Input, immutable_scalar_t<T> Multiplier>
     auto
-    operator()(Input input, Multiplier multiplier)
+    operator()(Input input, Multiplier multiplier) requires(Input::dim() > 1)
     {
         return _M_kernel(input, multiplier);
     }
 
     template <immutable_tensor_t<T> Input>
     auto
-    operator()(Input input, const T multiplier)
+    operator()(Input input, const T multiplier) requires(Input::dim() > 1)
     {
         return _M_kernel(input, multiplier);
     }

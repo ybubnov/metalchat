@@ -26,11 +26,12 @@ copy(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
+    const uint row_size = params.input.size(0);
     const uint dim_size = params.input.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
-    if (k < dim_size) {
+    if (i < row_size && k < dim_size) {
         params.output.at(i, k) = params.input.at(i, k);
     }
 }
@@ -57,11 +58,12 @@ scatter(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
+    const uint row_size = params.output.size(0);
     const uint dim_size = params.output.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
-    if (k < dim_size) {
+    if (i < row_size && k < dim_size) {
         if (params.mask.at(i, k)) {
             params.output.at(i, k) = params.value;
         }
@@ -95,11 +97,12 @@ gather(
     tensor2<const T> input(params.input_layout, params.input_data);
     tensor2<const int32_t> index(params.index_layout, params.index_data);
 
+    const uint row_size = index.size(0);
     const uint dim_size = index.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
-    if (k < dim_size) {
+    if (i < row_size && k < dim_size) {
         output.at(i, k) = input.at(i, index.at(i, k));
     }
 }

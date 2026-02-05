@@ -307,17 +307,23 @@ public:
     : _M_kernel(kernel)
     {}
 
+    std::string
+    name() const
+    {
+        return _M_kernel.name();
+    }
+
+    hardware_accelerator&
+    get_accelerator()
+    {
+        return _M_kernel.get_accelerator();
+    }
+
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
     auto
     operator()(Input1 input1, Input2 input2)
     {
         return operator()<T, Input1, Input2>(input1, input2);
-    }
-
-    std::string
-    name() const
-    {
-        return _M_kernel.name();
     }
 
     template <typename R, immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>

@@ -25,11 +25,12 @@ silu(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
+    const uint row_size = params.input.size(0);
     const uint dim_size = params.input.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
-    if (k < dim_size) {
+    if (i < row_size && k < dim_size) {
         T x = params.input.at(i, k);
         params.output.at(i, k) = x / (T(1.0) + T(metal::exp(-x)));
     }

@@ -8,6 +8,7 @@
 
 #include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
+#include <metalchat/functional/transform.h>
 #include <metalchat/kernel.h>
 #include <metalchat/tensor/expected.h>
 #include <metalchat/tensor/future.h>
@@ -29,6 +30,7 @@ public:
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
     auto
     operator()(Input1 input1, Input2 input2)
+        requires(Input1::dim() > 1 && Input1::dim() == Input2::dim())
     {
         return _M_kernel(input1, input2);
     }
@@ -88,6 +90,7 @@ public:
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
     auto
     operator()(Input1 input1, Input2 input2)
+        requires(Input1::dim() > 1 && Input1::dim() == Input2::dim())
     {
         return _M_kernel(input1, input2);
     }
@@ -96,8 +99,7 @@ public:
 
 /// Divides each element of the `input1` by corresponding element of `input2`.
 ///
-/// \note The kernel performs true division. The kernel does not support broadcasting.
-/// The kernel does not support type promotion.
+/// \note The kernel performs true division. The kernel does not support type promotion.
 ///
 /// ```c++
 /// auto input1 = tensor<float>({{3.0, 6.0, 9.0}});
@@ -129,8 +131,34 @@ public:
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
     auto
     operator()(Input1 input1, Input2 input2)
+        requires(Input1::dim() > 1 && Input1::dim() == Input2::dim())
     {
         return _M_kernel(input1, input2);
+    }
+
+    /// Invokes the kernel by broadcasting the last dimension
+    ///
+    /// \param input1 the divident
+    /// \param input2 the divisor
+    /// \returns a \ref future_tensor with the result.
+    template <immutable_tensor_t<T> Input1, immutable_tensor1_t<T> Input2>
+    auto
+    operator()(Input1 input1, Input2 input2) requires(Input1::dim() > 1)
+    {
+        auto div_size = input2.sizes().back();
+        auto dim_size = input1.sizes().back();
+        auto num_rows = input1.numel() / dim_size;
+
+        if (num_rows != div_size) {
+            throw std::runtime_error(std::format(
+                "kernel::div: tensor sizes {} and {} are not broadcastable", num_rows, div_size
+            ));
+        }
+
+        auto& accelerator = _M_kernel.get_accelerator();
+        auto divisor = repeat_interleave(input2, dim_size, 0, accelerator);
+
+        return operator()(input1, divisor.view(input1.shape()));
     }
 };
 

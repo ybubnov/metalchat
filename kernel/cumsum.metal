@@ -33,6 +33,7 @@ cumsum(
     tensor2<const T> in(params.input_layout, params.input);
     tensor2<T> out(params.output_layout, params.output);
 
+    const uint row_size = in.size(0);
     const uint dim_size = in.size(1);
     const uint i = gid;
 
@@ -44,10 +45,12 @@ cumsum(
     T local_sums[BlockSize];
 
     for (uint k = begin, j = 0; k < end && k < dim_size; k++, j++) {
-        if (j > 0) {
-            local_sums[j] = in.at(i, k) + local_sums[j - 1];
-        } else {
-            local_sums[j] = in.at(i, k);
+        if (i < row_size) {
+            if (j > 0) {
+                local_sums[j] = in.at(i, k) + local_sums[j - 1];
+            } else {
+                local_sums[j] = in.at(i, k);
+            }
         }
     }
 
@@ -65,7 +68,9 @@ cumsum(
     }
 
     for (uint k = begin; k < end && k < dim_size; k++) {
-        out.at(i, k) = local_sums[k - begin];
+        if (i < row_size) {
+            out.at(i, k) = local_sums[k - begin];
+        }
     }
 }
 
