@@ -69,6 +69,31 @@ TEST_CASE("Sub 3-dimensional tensors", "[kernel::sub]")
 }
 
 
+TEST_CASE("Div 3-dimensional tensors", "[kernel::div]")
+{
+    metalchat::hardware_accelerator gpu0;
+    kernel::div<float> div(gpu0);
+
+    auto input1 = shared_tensor(rand<float>({1, 4, 2048}));
+    auto input2 = shared_tensor(rand<float>({1, 4, 2048}));
+    auto output = div(input1, input2).get();
+
+    REQUIRE(output.dim() == 3);
+    REQUIRE(output.size(0) == 1);
+    REQUIRE(output.size(1) == 4);
+    REQUIRE(output.size(2) == 2048);
+
+    for (std::size_t i = 0; i < output.size(0); i++) {
+        for (std::size_t j = 0; j < output.size(1); j++) {
+            for (std::size_t k = 0; k < output.size(2); k++) {
+                float result = input1[i, j, k] / input2[i, j, k];
+                REQUIRE_THAT((output[i, j, k]), Catch::Matchers::WithinAbs(result, 0.01));
+            }
+        }
+    }
+}
+
+
 TEST_CASE("Add 2-dimensional tensors", "[kernel::add2]")
 {
     metalchat::hardware_accelerator gpu0;

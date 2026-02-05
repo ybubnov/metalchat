@@ -93,5 +93,47 @@ public:
     }
 };
 
+
+/// Divides each element of the `input1` by corresponding element of `input2`.
+///
+/// \note The kernel performs true division. The kernel does not support broadcasting.
+/// The kernel does not support type promotion.
+///
+/// ```c++
+/// auto input1 = tensor<float>({{3.0, 6.0, 9.0}});
+/// auto input2 = tensor<float>({{1.0, 2.0, 3.0}});
+///
+/// auto accelerator = hardware_accelerator();
+/// auto div = kernel::div(accelerator);
+///
+/// auto output = div(input1, input2);
+/// std::cout << output.get() << std::endl;
+/// // out:
+/// // [[3.0, 3.0, 3.0]], sizes=(1, 3)
+/// ```
+template <typename T> class div {
+private:
+    binary_kernel_wrapper<T> _M_kernel;
+
+public:
+    /// The kernel constructor
+    div(hardware_accelerator& gpu)
+    : _M_kernel(gpu.load<T>("div"))
+    {}
+
+    /// Invokes the kernel.
+    ///
+    /// \param input1 the divident
+    /// \param input2 the divisor
+    /// \returns a \ref future_tensor with the result.
+    template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
+    auto
+    operator()(Input1 input1, Input2 input2)
+    {
+        return _M_kernel(input1, input2);
+    }
+};
+
+
 } // namespace kernel
 } // namespace metalchat

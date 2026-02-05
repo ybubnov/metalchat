@@ -14,6 +14,9 @@ Arithmetic kernels
 .. doxygenclass:: metalchat::kernel::sub
    :members:
 
+.. doxygenclass:: metalchat::kernel::div
+   :members:
+
 .. doxygenclass:: metalchat::kernel::cumsum
    :members:
 

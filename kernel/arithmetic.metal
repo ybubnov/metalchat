@@ -127,3 +127,38 @@ sub(__sub_parameters<T> params,
 
 __lib_metalchat_kernel2(sub, bfloat);
 __lib_metalchat_kernel2(sub, float);
+
+
+template <typename T> struct __div_parameters {
+    constant layout2& output_layout;
+    device T* output;
+    constant layout2& input1_layout;
+    device const T* input1;
+    constant layout2& input2_layout;
+    device const T* input2;
+};
+
+
+template <typename T>
+kernel void
+div(__div_parameters<T> params,
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]])
+{
+    tensor2<const T> in1(params.input1_layout, params.input1);
+    tensor2<const T> in2(params.input2_layout, params.input2);
+    tensor2<T> out(params.output_layout, params.output);
+
+    const uint dim_size = in1.size(1);
+    const uint i = gid.y * threadgroup_size.y + tid.y;
+    const uint k = gid.x * threadgroup_size.x + tid.x;
+
+    if (k < dim_size) {
+        out.at(i, k) = in1.at(i, k) / in2.at(i, k);
+    }
+}
+
+
+__lib_metalchat_kernel2(div, bfloat);
+__lib_metalchat_kernel2(div, float);

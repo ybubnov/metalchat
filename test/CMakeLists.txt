@@ -23,7 +23,7 @@ foreach(metalchat_TEST_SOURCE ${metalchat_TEST_SOURCES})
     # Define a new test from the source file.
     add_test(
         NAME ${metalchat_TEST}
-        COMMAND ${metalchat_TEST}
+        COMMAND ${metalchat_TEST} --skip-benchmarks
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     )
 endforeach(metalchat_TEST_SOURCE)
