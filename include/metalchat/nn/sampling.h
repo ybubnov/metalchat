@@ -181,7 +181,7 @@ public:
 
         auto mask = gt(probs_diff, _M_p, accelerator);
         probs_sort = scatter(probs_sort, mask, T(0), accelerator);
-        // probs_sort = div(probs_sort, sum(probs_sort, accelerator), accelerator);
+        probs_sort = div(probs_sort, sum(probs_sort, accelerator), accelerator);
 
         probs_idx = gather(context.indices, probs_idx, accelerator);
         return context_type{probs_sort, probs_idx};
