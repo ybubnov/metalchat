@@ -2,7 +2,7 @@ Interpreter library
 ===================
 
 .. toctree::
-   :hidden:
+   :maxdepth: 1
 
    tokens
 

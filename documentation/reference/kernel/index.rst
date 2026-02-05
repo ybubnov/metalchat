@@ -2,9 +2,16 @@ Kernel library
 ==============
 
 .. toctree::
-   :hidden:
+   :maxdepth: 1
 
    metal
+
+This library provides low-level operations accelerated with Metal framework. This
+library could be used like following:
+
+.. code-block:: c++
+
+   #include <metalchat/kernel.h>
 
 Hardware accelerator
 --------------------

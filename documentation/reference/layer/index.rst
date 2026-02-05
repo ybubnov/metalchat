@@ -2,7 +2,7 @@ Layer library
 =============
 
 .. toctree::
-   :hidden:
+   :maxdepth: 1
 
    nn
    llm

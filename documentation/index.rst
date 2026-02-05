@@ -64,7 +64,7 @@ Information about the development principles of this library and how you can con
 MetalChat reference
 ^^^^^^^^^^^^^^^^^^^
 
-The interface exposed by the `MetalChat` library.
+The programming interface exposed by the MetalChat library.
 
 .. toctree::
    :maxdepth: 2
