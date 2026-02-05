@@ -26,10 +26,21 @@ high-level LLM interpreter API.
       `HuggingFace Hub <https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct>`_ out of the box.
 
 
+You can install both Framework and binary by adding a
+`third-party repository <https://docs.brew.sh/Taps>`_, and running ``brew install``. You can
+get more details how to use ``metalchat`` binary in the :doc:`command line <guides/command_line>`
+guide.
+
+.. prompt::
+
+   brew tap ybubnov/metalchat https://github.com/ybubnov/metalchat
+   brew install --HEAD metalchat
+
+
 User Guide
 ^^^^^^^^^^
 
-Information about installation and usage of the MetalChat library.
+Information about installation and usage of the MetalChat library and the binary utility.
 
 
 .. toctree::

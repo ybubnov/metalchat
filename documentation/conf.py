@@ -46,6 +46,10 @@ html_theme_options = {
     "navigation_depth": 2,
     "collapse_navigation": False,
     "sidebar_includehidden": True,
+    "announcement": (
+        "This framework is under active development. If you'd like to to contribute, "
+        '<a href="https://github.com/ybubnov/metalchat">check out the GitHub repository.</a>'
+    ),
     "show_nav_level": 1,
     "show_toc_level": 1,
     "icon_links": [

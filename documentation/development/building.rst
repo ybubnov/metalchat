@@ -26,11 +26,11 @@ These building instruments are installed by the conan itself, and therefore do n
 installation. The primary way of building the framework is using the Python environment. You can
 configure the Python environment in the following steps:
 
-1. Install `pipenv` instrument:
+1. Install development tools:
 
 .. prompt:: bash
 
-   brew install pipenv
+   brew install pipenv ninja cmake
 
 
 2. Install project dependencies:
@@ -86,7 +86,7 @@ Optionally, you could build a framework without running tests:
    conan build --build=missing --profile:host=metalchat-debug -c tools.build:skip_test=True
 
 Conan builds both, a framework and executable command-line program. The build of the program
-could be disable using conan package option `build_executable`:
+could be disable using conan package option ``build_executable``:
 
 .. prompt:: bash
 

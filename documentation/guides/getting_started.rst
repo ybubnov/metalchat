@@ -6,7 +6,7 @@ Getting started
    Work is in progress.
 
 This guide walks through the most basic usage of the library, precisely - how to build a
-simple chat application with `metalchat` library.
+simple chat application with MetalChat framework.
 
 Downloading a model
 ^^^^^^^^^^^^^^^^^^^
@@ -22,7 +22,7 @@ Writing an application
 ^^^^^^^^^^^^^^^^^^^^^^
 
 The next step is to write a C++ application. In the example below we use a performance-optimized
-implementation of the Llama 3.2 inference with default top-p sampling.
+implementation of the Llama 3.2 inference with default sampling.
 
 .. code-block:: c++
    :caption: main.cc
@@ -32,8 +32,9 @@ implementation of the Llama 3.2 inference with default top-p sampling.
    int main()
    {
        using Transformer = metalchat::huggingface::llama3;
-       metalchat::filesystem_repository<Transformer> repository("./Llama-3.2-1B-Instruct");
+       using Repository = metalchat::filesystem_repository<Transformer>;
 
+       Repository repository("./Llama-3.2-1B-Instruct");
        auto tokenizer = repository.retrieve_tokenizer();
        auto transformer = repository.retreive_transformer();
 
@@ -52,11 +53,11 @@ Building an executable
 ^^^^^^^^^^^^^^^^^^^^^^
 
 The last step is building the executable to launch a Llama-based chat and receive an answer
-to the question. Here we assume that `MetalChat` framework is located within a working directory,
-therefore we set framework lookup path (`-F`) as a current path.
+to the question. Here we assume that MetalChat framework is located within a working directory,
+therefore we set framework lookup path (``-F``) as a current path.
 
-.. prompt:: bash
+.. code:: console
 
-   clang++ -std=c++23 -rpath . -F. -framework MetalChat main.cc -o chat
-   ./chat
-   # The capital of France is Paris.
+   $ clang++ -std=c++23 -rpath . -F. -framework MetalChat main.cc -o run
+   $ ./run
+   The capital of France is Paris.
