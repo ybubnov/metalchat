@@ -108,10 +108,12 @@ multinomial(
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
+    const float a = params.input.at(i, dim_size - 1);
+    const float b = params.input.at(i, 0);
     pcg32 generator(params.init_state + i, params.init_seq + k);
 
     if (i < row_size && k < dim_size) {
-        T random = T(generator.uniform());
+        T random = T(generator.uniform() * (b - a) + a);
         params.output.at(i, k) = __binary_search(params.input, i, random);
     }
 }
