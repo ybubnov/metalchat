@@ -9,6 +9,7 @@
 #include <metalchat/nn/transformer.h>
 #include <metalchat/quantization.h>
 #include <metalchat/reference.h>
+#include <metalchat/repository.h>
 #include <metalchat/text.h>
 
 #include "metalchat/testing.h"
@@ -61,24 +62,16 @@ TEST_CASE("Test QLoRa adaptor", "[quantization]")
 
 TEST_CASE("Test QLoRA inference", "[quantization]")
 {
-    using LLama3 = nn::llama3<bf16>;
-    auto options = nn::default_llama3_1b_options();
-
-    hardware_accelerator gpu0(8);
-    nn::indirect_layer<LLama3> model(options, gpu0);
-    nn::indirect_layer<nn::basic_layer> model_base(model.get());
-
-    huggingface::llama3_qlora_layer_adaptor<bf16> model_adaptor(options);
-    model_adaptor.adapt_pre(model_base);
-
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct-QLORA_INT4_EO8";
-    auto tokenizer_path = repo_path / "tokenizer.model";
-    auto model_path = repo_path / "model.safetensors";
 
-    reference::llama3_tokenizer_loader tokenizer_loader;
-    auto tokenizer = tokenizer_loader.load(tokenizer_path);
-    safetensor_document::load(model_path, model);
-    model_adaptor.adapt_post(model_base);
+    using LLama3 = nn::llama3<bf16>;
+
+    auto gpu0 = hardware_accelerator(8);
+    auto repository = filesystem_repository<huggingface::llama3_qlora>(repo_path, gpu0);
+
+    auto options = nn::default_llama3_1b_options();
+    auto transformer = repository.retrieve_transformer("model.safetensors", options);
+    auto tokenizer = repository.retrieve_tokenizer("tokenizer.model");
 
     auto heap_size = std::size_t(2048) * 1024 * 1024;
     auto alloc0 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);
@@ -92,16 +85,13 @@ TEST_CASE("Test QLoRA inference", "[quantization]")
     tokenizer.encode(input_text, std::back_inserter(ids));
 
     auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));
-    auto logit0 = model(input0, 0);
-    auto id = top_p(logit0.flatten<2>(), bf16(0.6f), bf16(0.9), gpu0);
+    auto id = transformer.transform(input0);
 
     std::cout << input_text;
     std::cout << tokenizer.decode(id.get()[0, 0]);
 
     for (std::size_t i = input0.size(1); i < 32; i++) {
-        auto logits = model(id, i).flatten<2>();
-        id = top_p(logits, bf16(0.6f), bf16(0.9f), gpu0);
-
+        id = transformer.transform(id, i);
         std::cout << tokenizer.decode(id.get()[0, 0]) << std::flush;
     }
 }

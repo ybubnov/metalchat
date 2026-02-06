@@ -217,25 +217,6 @@ multinomial(Tensor t, std::size_t sample_size, hardware_accelerator& gpu)
 }
 
 
-template <typename T, immutable_tensor2_t<T> Tensor>
-auto
-top_p(Tensor logits, T temperature, T p, hardware_accelerator& gpu)
-{
-    logits = mul(logits, T(1) / temperature, gpu);
-    auto probs = softmax<Tensor>(logits, gpu);
-
-    auto [probs_sort, probs_idx] = sort(probs, gpu);
-    auto probs_sum = cumsum<Tensor>(probs_sort, gpu);
-    auto probs_diff = sub(probs_sum, probs_sort, gpu);
-
-    auto mask = gt(probs_diff, p, gpu);
-    probs_sort = scatter(probs_sort, mask, T(0), gpu);
-
-    auto next_token = multinomial(probs_sort, /*sample_size=*/1, gpu);
-    return gather(probs_idx, next_token, gpu);
-}
-
-
 template <typename T, contiguous_container Container>
 void
 triu(tensor<T, 2, Container>& t)
