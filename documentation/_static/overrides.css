@@ -43,4 +43,8 @@ dl.cpp dd {
 
 dl.cpp.var {
     margin-bottom: 0;
-};
+}
+
+dl.cpp.type {
+    margin-bottom: 0;
+}

@@ -20,12 +20,18 @@ namespace nn {
 /// Provides access to sampling state consisting of raw logits and their
 /// positions in the model vocabulary.
 template <typename T, typename Index> struct basic_sampling_context {
+    /// The value type of logits tensor.
     using value_type = T;
+    /// The value type of index tensor.
     using index_type = Index;
+    /// Logits tensor type.
     using logits_tensor = future_tensor<value_type, 2>;
+    /// Index tensor type.
     using index_tensor = future_tensor<index_type, 2>;
 
+    /// The logits.
     logits_tensor logits;
+    /// The logits indices.
     index_tensor indices;
 };
 
@@ -58,11 +64,6 @@ template <typename T> struct basic_sampler {
     /// Return subset of raw logits and their indices (context) that should be
     /// considered in token sequence generation for a language transformer model.
     virtual context_type
-    filter(const context_type& context, hardware_accelerator& accelerator) = 0;
-
-    /// Return indices of the original logits that should be considered in token
-    /// sequence generation for a language transformer model.
-    virtual index_tensor
     sample(const context_type& context, hardware_accelerator& accelerator) = 0;
 
     template <immutable_tensor_t<T> Tensor>
@@ -70,8 +71,8 @@ template <typename T> struct basic_sampler {
     sample(Tensor logits, hardware_accelerator& accelerator)
     {
         auto context = construct_context(logits, accelerator);
-        context = filter(context, accelerator);
-        return sample(context, accelerator);
+        context = sample(context, accelerator);
+        return context.indices;
     }
 
     /// A default virtual destructor.
@@ -79,65 +80,59 @@ template <typename T> struct basic_sampler {
 };
 
 
-template <typename T, typename Sampler> struct basic_multinomial_sampler : public basic_sampler<T> {
-public:
-    using value_type = T;
-    using base_type = basic_sampler<value_type>;
-    using sampler_type = Sampler;
-    using context_type = base_type::context_type;
-    using logits_tensor = base_type::logits_tensor;
-    using index_tensor = base_type::index_tensor;
-
-    context_type
-    filter(const context_type& context, hardware_accelerator& accelerator)
-    {
-        return static_cast<Sampler*>(this)->filter(context, accelerator);
-    }
-
-    index_tensor
-    sample(const context_type& context, hardware_accelerator& accelerator)
-    {
-        auto next_token = multinomial(context.logits, /*sample_size=*/1, accelerator);
-        return gather(context.indices, next_token, accelerator);
-    }
-};
-
-
 /// A sampler that applies the provided samplers one after another, passing the output from
 /// the previous sampler to the next one as an input.
+///
+/// Here is an example how to create the most common sampling strategy using a composition
+/// of \ref nucleus_sampler and \ref multinomial_sampler.
+/// ```c++
+/// using namespace metalchat::nn;
+///
+/// auto sampler = sequential_sampler<float>({
+///     std::make_shared<nucleus_sampler<float>>(),
+///     std::make_shared<multinomial_sampler<float>>()
+/// });
+/// ```
+///
+/// \note When sequential sampler is created from an empty range, the sequential sampler
+/// returns unmodified sampling context.
 template <typename T> class sequential_sampler : public basic_sampler<T> {
 public:
-    using value_type = T;
+    /// A base type for samplers comprising a \ref sequential_sampler.
     using sampler_type = basic_sampler<T>;
+    /// A shared pointer type to the \ref sampler_type.
     using sampler_pointer = std::shared_ptr<sampler_type>;
-    using context_type = sampler_type::context_type;
-    using logits_tensor = sampler_type::logits_tensor;
-    using index_tensor = sampler_type::index_tensor;
 
+    using value_type = T;
+    using index_type = int32_t;
+
+    using context_type = basic_sampling_context<value_type, index_type>;
+    using logits_tensor = context_type::logits_tensor;
+    using index_tensor = context_type::index_tensor;
+
+    /// Constructs the \ref sequential_sampler from the list of samplers.
     sequential_sampler(std::initializer_list<sampler_pointer> samplers)
-    : _M_samplers(
-          std::make_move_iterator(samplers.begin()), std::make_move_iterator(samplers.end())
-      )
-    {
-        if (samplers.size() == 0) {
-            throw std::invalid_argument("sequential_sampler: requires at least one sampler");
-        }
-    }
+    : sequential_sampler(samplers.begin(), samplers.end())
+    {}
+
+    /// Constructs the \ref sequential_sampler by moving elements from the specified range.
+    ///
+    /// \param first, last the pair of iterators defining the range of elements to move
+    /// the samplers from.
+    template <std::forward_iterator ForwardIt>
+    sequential_sampler(ForwardIt first, ForwardIt last)
+        requires std::same_as<std::iter_value_t<ForwardIt>, sampler_pointer>
+    : _M_samplers(std::make_move_iterator(first), std::make_move_iterator(last))
+    {}
 
     context_type
-    filter(const context_type& context, hardware_accelerator& accelerator)
+    sample(const context_type& context, hardware_accelerator& accelerator)
     {
         auto sampling_context = context;
         for (auto& sampler : _M_samplers) {
-            sampling_context = sampler->filter(sampling_context, accelerator);
+            sampling_context = sampler->sample(sampling_context, accelerator);
         }
         return sampling_context;
-    }
-
-    index_tensor
-    sample(const context_type& context, hardware_accelerator& accelerator)
-    {
-        return _M_samplers.back()->sample(context, accelerator);
     }
 
 private:
@@ -145,30 +140,43 @@ private:
 };
 
 
-template <typename T>
-class nucleus_sampler : public basic_multinomial_sampler<T, nucleus_sampler<T>> {
-private:
-    T _M_temperature;
-    T _M_p;
-
+/// A sampler that selects the smallest set of elements whose cumulative probability
+/// exceeds the probability `p`.
+///
+/// This version of a sampler combines top-p sampling with temperature scaling.
+template <typename T> class nucleus_sampler : public basic_sampler<T> {
 public:
     using value_type = T;
-    using base_type = basic_sampler<T>;
-    using context_type = base_type::context_type;
-    using logits_tensor = base_type::logits_tensor;
-    using index_tensor = base_type::index_tensor;
+    using index_type = int32_t;
 
+    using context_type = basic_sampling_context<value_type, index_type>;
+    using logits_tensor = context_type::logits_tensor;
+    using index_tensor = context_type::index_tensor;
+
+    /// The \ref nucleus_sampler constructor.
+    ///
+    /// \param temperature a positive value used to modulate the logits distribution.
+    /// \param p the cumulative probability cutoff value.
     nucleus_sampler(T temperature, T p)
     : _M_temperature(temperature),
       _M_p(p)
-    {}
+    {
+        if (temperature <= T(0)) {
+            throw std::invalid_argument("nucleus_sampler: temperature must be positive");
+        }
+        if (p < T(0) || p > T(1.0)) {
+            throw std::invalid_argument("nucleus_sampler: probability must be in [0.0, 1.0]");
+        }
+    }
 
+    /// The default \ref nucleus_sampler constructor initializers `temperature`
+    /// parameters with `0.6`, and `p` parameter with `0.9` value.
     nucleus_sampler()
     : nucleus_sampler(T(0.6), T(0.9))
     {}
 
     context_type
-    filter(const context_type& context, hardware_accelerator& accelerator)
+    sample(const context_type& context, hardware_accelerator& accelerator)
     {
         T temp = T(1) / _M_temperature;
 
@@ -185,6 +193,10 @@ public:
 
         return context_type{probs_sort, probs_idx};
     }
+
+private:
+    T _M_temperature;
+    T _M_p;
 };
 
 
@@ -194,6 +206,11 @@ public:
 /// The sampler processes each batch element independently, applying top-k filtering row-wise to
 /// the input logits tensor. If k exceeds the vocabulary size, all tokens are retained.
 ///
+/// \warning This implementation uses a CPU-based
+/// [selection algorithm](https://en.wikipedia.org/wiki/Selection_algorithm) to find top-k
+/// largest elements in the logits tensor. This implies that pending command queue is submitted
+/// to GPU for processing and the result (logits) are awaited by blocking a thread.
+///
 /// \tparam T The data type of the logits (e.g., float, bf16)
 template <typename T> class topk_sampler : public basic_sampler<T> {
 private:
@@ -201,10 +218,11 @@ private:
 
 public:
     using value_type = T;
-    using base_type = basic_sampler<T>;
-    using context_type = base_type::context_type;
-    using logits_tensor = base_type::logits_tensor;
-    using index_tensor = base_type::index_tensor;
+    using index_type = int32_t;
+
+    using context_type = basic_sampling_context<value_type, index_type>;
+    using logits_tensor = context_type::logits_tensor;
+    using index_tensor = context_type::index_tensor;
 
     /// Constructs a top-k sampler with the specified k value.
     ///
@@ -219,7 +237,7 @@ public:
     /// \param context input logits and indices of shape [batch_size, vocab_size].
     /// \param accelerator hardware accelerator used for tensor operations.
     context_type
-    filter(const context_type& context, hardware_accelerator& accelerator)
+    sample(const context_type& context, hardware_accelerator& accelerator)
     {
         using index_type = context_type::index_type;
 
@@ -239,23 +257,53 @@ public:
 
         return context_type{logits, indices};
     }
+};
 
-    index_tensor
+
+/// Draws samples interpreting logits array as a cumulative distribution function
+/// of a multinomial distribution.
+///
+/// \warning In order to using this sampler, the logits must be sorted in a descending
+/// order, otherwise the result is undefined.
+template <typename T> class multinomial_sampler : public basic_sampler<T> {
+public:
+    using value_type = T;
+    using index_type = int32_t;
+
+    using context_type = basic_sampling_context<value_type, index_type>;
+    using logits_tensor = context_type::logits_tensor;
+    using index_tensor = context_type::index_tensor;
+
+    /// The \ref multinomial_sampler constructor.
+    ///
+    /// \param sample_size a number of samples that should be drawn from the distribution.
+    multinomial_sampler(std::size_t sample_size = 1)
+    : _M_sample_size(sample_size)
+    {}
+
+    context_type
     sample(const context_type& context, hardware_accelerator& accelerator)
     {
-        auto probs = softmax(context.logits, accelerator);
-        auto next_token = multinomial(probs, /*sample_size=*/1, accelerator);
-        return gather(context.indices, next_token, accelerator);
+        auto next_token = multinomial(context.logits, _M_sample_size, accelerator);
+        auto logits = gather(context.logits, next_token, accelerator);
+        auto indices = gather(context.indices, next_token, accelerator);
+
+        return context_type{logits, indices};
     }
+
+private:
+    std::size_t _M_sample_size;
 };
 
 
 template <typename T>
 std::shared_ptr<sequential_sampler<T>>
-make_default_sampler()
+make_default_sampler(std::size_t sample_size = 1)
 {
     sequential_sampler<T> sampler(
-        {std::make_shared<topk_sampler<T>>(50), std::make_shared<nucleus_sampler<T>>()}
+        {std::make_shared<topk_sampler<T>>(std::max(sample_size, std::size_t(50))),
+         std::make_shared<nucleus_sampler<T>>(),
+         std::make_shared<multinomial_sampler<T>>(sample_size)}
     );
 
     return std::make_shared<sequential_sampler<T>>(std::move(sampler));

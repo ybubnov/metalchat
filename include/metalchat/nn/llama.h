@@ -96,6 +96,13 @@ public:
         _M_output = register_polymorphic_layer<BasicLinear, Linear>("output");
     }
 
+    /// Invoke the layer.
+    ///
+    /// \tparam Input type of the input tensor.
+    /// \param input a 2-dimensional tensor with the indices of the input tokens.
+    /// \param start_pos a start position of the input sequence.
+    ///
+    /// \returns a \ref future_tensor with logits of model vocabulary.
     template <immutable_tensor2_t<index_type> Input>
     auto
     operator()(Input input, std::size_t start_pos = 0)
