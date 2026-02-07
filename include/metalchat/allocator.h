@@ -544,9 +544,6 @@ public:
 
     /// Permit allocations to be moved to resident memory and be used idependently
     /// from the given allocator.
-    ///
-    /// Important implementation details:
-    /// 1. Empty residency set is never detached.
     void
     detach()
     {

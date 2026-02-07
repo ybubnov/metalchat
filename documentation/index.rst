@@ -31,10 +31,10 @@ You can install both Framework and binary by adding a
 get more details how to use ``metalchat`` binary in the :doc:`command line <guides/command_line>`
 guide.
 
-.. prompt::
+.. code:: console
 
-   brew tap ybubnov/metalchat https://github.com/ybubnov/metalchat
-   brew install --HEAD metalchat
+   $ brew tap ybubnov/metalchat https://github.com/ybubnov/metalchat
+   $ brew install --HEAD metalchat
 
 
 User Guide

@@ -1,5 +1,31 @@
 html[data-theme=light] {
-    --function-link-color: #ad7c37;
+    /* Color used to highlight c++ function name  and is imported
+     * from the github-light-default color scheme (pygments-styles)
+     */
+    --function-link-color: #8250df;
+    --class-link-color: #953800;
+    --struct-link-color: #953800;
+
+    --pst-color-primary: #0969da;
+    --pst-color-secondary: #0550ae;
+    --pst-color-secondary-highlight: #1f2328; /* black color */
+
+    --pst-color-inline-code: #59636e;
+    --pst-color-inline-code-links: #0969da;
+    --pst-color-link-color: #59636e;
+
+    --pst-color-link: #0969da;
+    --pst-color-secondary-bg: #ddf4ff;
+
+    /* Colors used in admonitions */
+    --pst-color-info: #0969da;
+    --pst-color-info-bg: #ddf4ff;
+
+    --pst-color-success: #1f883d;
+    --pst-color-success-bg: #dafbe1;
+
+    --pst-color-warning: #9a6700;
+    --pst-color-warning-bg: #fff8c5;
 }
 
 html[data-theme=dark] {
@@ -15,6 +41,10 @@ html[data-theme=dark] {
     font-weight: bold;
 }
 
+div.admonition {
+    border: 1px solid;
+    box-shadow: none !important;
+}
 
 dl.enumerator {
     margin-bottom: 0 !important;
@@ -33,7 +63,15 @@ dl.cpp dd {
     font-size: 0.9rem;
 }
 
-.cpp .function .sig-name {
+dl.cpp.class .sig-name.descname {
+    color: var(--class-link-color);
+}
+
+dl.cpp.struct .sig-name.descname {
+    color: var(--struct-link-color);
+}
+
+dl.cpp.function .sig-name.descname {
     color: var(--function-link-color);
 }
 
@@ -47,4 +85,8 @@ dl.cpp.var {
 
 dl.cpp.type {
     margin-bottom: 0;
+}
+
+.highlight .c1 {
+    font-style: italic;
 }

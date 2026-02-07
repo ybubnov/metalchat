@@ -9,10 +9,10 @@ Obtaining source code
 
 The source code of the project is served on GitHub, and could be retrieved in the following way:
 
-.. prompt:: bash
+.. code:: console
 
-   git clone https://github.com/ybubnov/metalchat
-   cd metalchat
+   $ git clone https://github.com/ybubnov/metalchat
+   $ cd metalchat
 
 
 Creating an environment
@@ -28,22 +28,22 @@ configure the Python environment in the following steps:
 
 1. Install development tools:
 
-.. prompt:: bash
+.. code:: console
 
-   brew install pipenv ninja cmake
+   $ brew install pipenv ninja cmake
 
 
 2. Install project dependencies:
 
-.. prompt:: bash
+.. code:: console
 
-   pipenv sync --dev
+   $ pipenv sync --dev
 
 3. Enter pipenv-shell:
 
-.. prompt:: bash
+.. code:: console
 
-   pipenv shell
+   $ pipenv shell
 
 
 Configuring a development build
@@ -74,23 +74,23 @@ Building binaries
 After that you could use this profile to install missing C++ dependencies and create a build
 environment. Run this command from the project directory root (it will create `build` directory):
 
-.. prompt:: bash
+.. code:: console
 
-   conan build --build=missing --profile:host=metalchat-debug
+   $ conan build --build=missing --profile:host=metalchat-debug
 
 
 Optionally, you could build a framework without running tests:
 
-.. prompt:: bash
+.. code:: console
 
-   conan build --build=missing --profile:host=metalchat-debug -c tools.build:skip_test=True
+   $ conan build --build=missing --profile:host=metalchat-debug -c tools.build:skip_test=True
 
 Conan builds both, a framework and executable command-line program. The build of the program
 could be disable using conan package option ``build_executable``:
 
-.. prompt:: bash
+.. code:: console
 
-   conan build --build=missing --profile:host=metalchat-build -o build_executable=False
+   $ conan build --build=missing --profile:host=metalchat-build -o build_executable=False
 
 Building a conan package
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -98,6 +98,6 @@ Building a conan package
 MetalChat could be used as a conan dependency, for this purpose you could build a conan package
 in the following way:
 
-.. prompt:: bash
+.. code:: console
 
-   conan export-pkg
+   $ conan export-pkg

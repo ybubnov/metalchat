@@ -5,3 +5,4 @@ sphinx-prompt
 sphinx-copybutton
 sphinx-design
 pydata-sphinx-theme
+pygments-styles

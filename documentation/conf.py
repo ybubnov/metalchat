@@ -31,13 +31,13 @@ breathe_domain_by_extension = {"h": "cpp"}
 # The documentation is in English language.
 language = "en"
 
-
 # Options for HTML output
-pygments_style = "default"
 
 html_title = project
 html_theme = "pydata_sphinx_theme"
 html_theme_options = {
+    "pygments_light_style": "github-light-default",
+    "pygments_dark_style": "github-dark-default",
     "navbar_align": "left",
     "use_edit_page_button": True,
     "search_bar_text": "Search",

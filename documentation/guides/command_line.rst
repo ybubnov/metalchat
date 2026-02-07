@@ -63,7 +63,36 @@ between models.
 Switching models
 ^^^^^^^^^^^^^^^^
 
-TBD.
+The ``metalchat`` utility uses ``metalchat.toml`` manifest file to keep the currently used
+model version and all respective options of that model, as well as environment parameters.
+The utility distinguishes three scopes: local, global, and model. You can find the manifest
+file in each of those scopes.
+
+The scopes correspond to the following locations:
+
+- ``local`` - the current working directory.
+- ``global`` - a directory located at ``$HOME/.metalchat``.
+- ``model`` - a directory in the ``$HOME/.metalchat/models``.
+
+You can use ``metalchat checkout`` command to switch models use either in local or global scope.
+By default, this command switches a model in the local scope.
+
+.. code:: console
+   :force:
+
+   $ metalchat checkout e37f2dfbbef2a9dcad4e1d83274b8ff5d55c5481
+   $ cat metalchat.toml
+   [model]
+   repository = "https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct"
+   architecture = "llama3"
+   partitioning = "consolidated"
+   variant = "huggingface"
+
+In a similar way, you can switch a model in the ``global`` scope:
+
+.. code:: console
+
+   $ metalchat checkout --global e37f2dfbbef2a9dcad4e1d83274b8ff5d55c5481
 
 
 Configuring options
