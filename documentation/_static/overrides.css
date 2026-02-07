@@ -1,15 +1,19 @@
 html[data-theme=light] {
     /* Color used to highlight c++ function name  and is imported
-     * from the github-light-default color scheme (pygments-styles)
-     */
+     * from the github-light-default color scheme (pygments-styles) */
     --function-link-color: #8250df;
     --class-link-color: #953800;
     --struct-link-color: #953800;
 
+    /* --fgColor-accent */
     --pst-color-primary: #0969da;
-    --pst-color-secondary: #0550ae;
-    --pst-color-secondary-highlight: #1f2328; /* black color */
+    /* --control-checked-bgColor-active */
+    --pst-color-secondary: #0757ba;
+    /* This color is used in a "Back to top" button on mouse hover.
+     * --fgColor-black */
+    --pst-color-secondary-highlight: #1f2328;
 
+    /* --fgColor-neutral */
     --pst-color-inline-code: #59636e;
     --pst-color-inline-code-links: #0969da;
     --pst-color-link-color: #59636e;
@@ -29,7 +33,37 @@ html[data-theme=light] {
 }
 
 html[data-theme=dark] {
-    --function-link-color: #fdd687;
+    /* Done */
+    --function-link-color: #d2a8ff;
+    --class-link-color: #ffa657;
+    --struct-link-color: #ffa657;
+
+    --pst-color-primary: #79c0ff;
+    /* --button-outline-bgColor-active */
+    --pst-color-secondary: #0969da;
+    --pst-color-secondary-highlight: #1f2328;
+
+    --pst-color-background: #101214;
+    --pst-color-on-background: #0b0c0d;
+
+    /* --fgColor-default */
+    --pst-color-inline-code: #59636e;
+    --pst-color-inline-code-links: #79c0ff;
+    --pst-color-link-color: #59636e;
+
+    --pst-color-link: #79c0ff;
+    /* This color is used in the announcement */
+    --pst-color-secondary-bg: #001e42;
+
+    /* Colors used in admonitions */
+    --pst-color-info: #79c0ff;
+    --pst-color-info-bg: #ddf4ff2a;
+
+    --pst-color-success: #1f883d;
+    --pst-color-success-bg: #dafbe12a;
+
+    --pst-color-warning: #9a6700;
+    --pst-color-warning-bg: #fff8c52a;
 }
 
 .bd-sidebar-primary {
