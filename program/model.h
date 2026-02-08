@@ -101,6 +101,11 @@ public:
             options = TransformerTraits::merge_options(first, last, options);
         }
 
+        auto environ = _M_manifest.environment;
+        if (environ && environ.value().max_sequence_length) {
+            options = options.max_seq_len(environ.value().max_sequence_length.value());
+        }
+
         return options;
     }
 

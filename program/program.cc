@@ -186,8 +186,8 @@ program::handle(int argc, char** argv)
     }
 
     auto root_path = std::filesystem::path(config_path).parent_path();
-    auto global_path = root_path / manifest::workspace_name;
-    auto local_path = std::filesystem::current_path() / manifest::workspace_name;
+    auto global_path = root_path / manifest::default_name;
+    auto local_path = std::filesystem::current_path() / manifest::default_name;
 
     std::filesystem::create_directories(root_path);
     using manifest_file = command_context::manifest_file;

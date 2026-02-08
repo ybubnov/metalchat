@@ -61,8 +61,7 @@ struct environment_section {
 
 
 struct manifest {
-    static constexpr std::string_view default_name = "manifest.toml";
-    static constexpr std::string_view workspace_name = "metalchat.toml";
+    static constexpr std::string_view default_name = "metalchat.toml";
 
     using option_key = std::string;
     using option_value = primitive_variant;
@@ -150,4 +149,6 @@ TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(
     metalchat::runtime::environment_section, max_sequence_length, placement, sampling
 );
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::runtime::prompt_section, system);
-TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::runtime::manifest, model, options, prompt);
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(
+    metalchat::runtime::manifest, model, options, prompt, environment
+);
