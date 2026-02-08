@@ -9,13 +9,12 @@ conan = ">=2.10.0, <3.0.0"
 [dev-packages]
 # Packages that are required to build documentation.
 breathe = ">= 4.0.0, <5.0.0"
-sphinx = ">=8.2.0, <9.0.0"
-sphinx-autobuild = "*"
-sphinx-copybutton = "*"
-sphinx_design = "==0.6.1"
-sphinx-prompt = "*"
-pydata-sphinx-theme = "*"
-pygments-styles = "*"
+Sphinx = ">=9.0.0, <10.0.0"
+sphinx-autobuild = "~=2025.8.25"
+sphinx-copybutton = ">=0.5.0, <1.0.0"
+sphinx_design = ">=0.6.0, <1.0.0"
+pydata-sphinx-theme = ">=0.6.1, <1.0.0"
+pygments-styles = ">=0.3.0, <1.0.0"
 
 # Packages, that are require to prepare testdata for unit tests.
 huggingface-hub = ">= 1.0.0, <2.0.0"

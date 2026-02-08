@@ -1,8 +1,7 @@
-breathe
-sphinx
-sphinx-autobuild
-sphinx-prompt
-sphinx-copybutton
-sphinx-design
-pydata-sphinx-theme
-pygments-styles
+breathe==4.36.0
+Sphinx==9.1.0
+sphinx-autobuild==2025.8.25
+sphinx-copybutton==0.5.2
+sphinx-design==0.7.0
+pydata-sphinx-theme==0.16.1
+pygments-styles==0.3.0
