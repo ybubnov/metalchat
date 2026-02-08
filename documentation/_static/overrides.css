@@ -5,6 +5,8 @@ html[data-theme=light] {
     --class-link-color: #953800;
     --struct-link-color: #953800;
 
+    /* Most of the colors below are imported from the github-primer
+     * color palette and adapted for the usage in sphinx templates */
     /* --fgColor-accent */
     --pst-color-primary: #0969da;
     /* --control-checked-bgColor-active */
@@ -33,7 +35,8 @@ html[data-theme=light] {
 }
 
 html[data-theme=dark] {
-    /* Done */
+    /* These colors are imported from the pygments-styles color scheme
+     * called github-dark-default */
     --function-link-color: #d2a8ff;
     --class-link-color: #ffa657;
     --struct-link-color: #ffa657;
