@@ -125,6 +125,11 @@ public:
     : _M_samplers(std::make_move_iterator(first), std::make_move_iterator(last))
     {}
 
+    /// The default \ref sequential_sampler constructor.
+    sequential_sampler()
+    : _M_samplers({})
+    {}
+
     context_type
     sample(const context_type& context, hardware_accelerator& accelerator)
     {

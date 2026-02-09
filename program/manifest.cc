@@ -93,7 +93,7 @@ manifest::unset_option(const option_key& key)
 }
 
 
-std::optional<manifest::option_value>
+std::optional<option_value>
 manifest::get_option(const option_key& key) const
 {
     if (options) {

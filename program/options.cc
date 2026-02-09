@@ -126,7 +126,6 @@ options_command::get(const command_context& context) const
 void
 options_command::set(const command_context& context) const
 {
-    using option_value = manifest::option_value;
     using K = std::string;
     using V = std::function<option_value(const std::string&)>;
 

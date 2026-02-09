@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <metalchat/nn.h>
 #include <metalchat/repository.h>
 
 #include "command.h"
@@ -70,6 +71,91 @@ private:
 };
 
 
+/// A nucleus sampler adapter for the \ref nn::nucleus_sampler implementation that parses
+/// configuration options from the key-value mapping (extracted from the manifest file).
+template <typename T> struct nucleus_sampler_traits {
+    using value_type = nn::basic_sampler<T>;
+    using pointer = std::shared_ptr<value_type>;
+
+    static constexpr float default_temperature = 0.6f;
+    static constexpr float default_probability = 0.9f;
+    static constexpr float default_k = 40;
+
+    /// Extract a value of the specified option key from the options section, throws
+    /// on a type mismatch.
+    template <typename U>
+    static std::optional<U>
+    get(const options_section& options, const std::string& key)
+    {
+        auto option_it = options.find(key);
+        if (option_it == options.end()) {
+            return std::nullopt;
+        }
+        auto& option_value = option_it->second;
+        if (!std::holds_alternative<U>(option_value)) {
+            throw std::invalid_argument(std::format("error: sampling option type '{}'", key));
+        }
+
+        return std::get<U>(option_value);
+    }
+
+    static pointer
+    construct(const options_section& options)
+    {
+        auto temp = get<float>(options, "temperature").value_or(default_temperature);
+        auto prob = get<float>(options, "probability").value_or(default_probability);
+        auto k = get<int>(options, "k").value_or(default_k);
+
+        using sampler_type = nn::sequential_sampler<T>;
+        sampler_type sampler(
+            {std::make_shared<nn::topk_sampler<T>>(k),
+             std::make_shared<nn::nucleus_sampler<T>>(temp, prob),
+             std::make_shared<nn::multinomial_sampler<T>>(/*sample_size=*/1)}
+        );
+
+        return std::make_shared<sampler_type>(std::move(sampler));
+    }
+};
+
+
+/// A container of the supported sampling strategies available through manifest file.
+template <typename T> class sampler_container {
+public:
+    using value_type = nn::basic_sampler<T>;
+    using pointer = std::shared_ptr<value_type>;
+    using constructor_type = std::function<pointer(options_section)>;
+
+    sampler_container()
+    : _M_values({{"nucleus", nucleus_sampler_traits<T>::construct}})
+    {}
+
+    pointer
+    find(const options_section& options) const
+    {
+        auto type = options.find("type");
+        if (type == options.end()) {
+            throw std::runtime_error("error: sampler section is missing a key 'type'");
+        }
+        if (!std::holds_alternative<std::string>(type->second)) {
+            throw std::runtime_error("error: sampler type must by a string");
+        }
+
+        auto sampler_type = std::get<std::string>(type->second);
+        auto sampler = _M_values.find(sampler_type);
+        if (sampler == _M_values.end()) {
+            throw std::runtime_error(std::format("sampler: type '{}' not registered", sampler_type)
+            );
+        }
+
+        auto& constructor = sampler->second;
+        return constructor(options);
+    }
+
+private:
+    std::unordered_map<std::string, constructor_type> _M_values;
+};
+
+
 template <language_transformer Transformer> class scoped_repository_adapter {
 public:
     using layer_type = Transformer::layer_type;
@@ -101,9 +187,9 @@ public:
             options = TransformerTraits::merge_options(first, last, options);
         }
 
-        auto environ = _M_manifest.environment;
-        if (environ && environ.value().max_sequence_length) {
-            options = options.max_seq_len(environ.value().max_sequence_length.value());
+        auto inference = _M_manifest.inference.value_or(inference_section{});
+        if (inference.max_sequence_length) {
+            options = options.max_seq_len(inference.max_sequence_length.value());
         }
 
         return options;
@@ -118,7 +204,19 @@ public:
     transformer_type
     retrieve_transformer()
     {
-        return _M_repo.retrieve_transformer(retrieve_options());
+        auto transformer = _M_repo.retrieve_transformer(retrieve_options());
+        auto inference = _M_manifest.inference.value_or(inference_section{});
+
+        if (inference.sampling) {
+            using value_type = transformer_type::value_type;
+            sampler_container<value_type> samplers;
+
+            auto sampling_options = inference.sampling.value();
+            auto sampler = samplers.find(sampling_options);
+            transformer.set_sampler(sampler);
+        }
+
+        return transformer;
     }
 
 private:

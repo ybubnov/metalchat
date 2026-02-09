@@ -34,6 +34,11 @@ struct variant {
 };
 
 
+using option_key = std::string;
+using option_value = primitive_variant;
+using options_section = std::map<option_key, option_value>;
+
+
 struct model_section {
     std::string repository;
     std::string variant;
@@ -48,29 +53,21 @@ struct prompt_section {
 };
 
 
-/// Environment section defines strategy and parameters of running a model.
-struct environment_section {
-    using option_key = std::string;
-    using option_value = primitive_variant;
-    using options_section = std::map<option_key, option_value>;
-
+/// Inference section defines strategy and parameters of running a model.
+struct inference_section {
     std::optional<std::size_t> max_sequence_length;
     std::optional<std::string> placement;
-    std::optional<std::vector<options_section>> sampling;
+    std::optional<options_section> sampling;
 };
 
 
 struct manifest {
     static constexpr std::string_view default_name = "metalchat.toml";
 
-    using option_key = std::string;
-    using option_value = primitive_variant;
-    using options_section = std::map<option_key, option_value>;
-
     model_section model;
     std::optional<options_section> options;
     std::optional<prompt_section> prompt;
-    std::optional<environment_section> environment;
+    std::optional<inference_section> inference;
 
     /// Return a SHA-1 digest of model specification.
     ///
@@ -146,9 +143,9 @@ TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(
     metalchat::runtime::model_section, repository, architecture, partitioning, variant
 );
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(
-    metalchat::runtime::environment_section, max_sequence_length, placement, sampling
+    metalchat::runtime::inference_section, max_sequence_length, placement, sampling
 );
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(metalchat::runtime::prompt_section, system);
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE(
-    metalchat::runtime::manifest, model, options, prompt, environment
+    metalchat::runtime::manifest, model, options, prompt, inference
 );

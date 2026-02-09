@@ -343,11 +343,19 @@ public:
 
     /// Replace current sampler with the specified implementation.
     ///
+    /// When a null pointer is provided, then the sampler is set to an empty sequential
+    /// sampler, which means that the \ref transform method returns all vocabulary indices.
+    ///
     /// \param sampler a new sampler instance to use in the transformation.
     void
     set_sampler(const sampler_pointer& sampler) noexcept
     {
-        _M_sampler = sampler;
+        if (sampler != nullptr) {
+            _M_sampler = sampler;
+        } else {
+            using sampler_type = nn::sequential_sampler<value_type>;
+            _M_sampler = std::make_shared<sampler_type>();
+        }
     }
 
     const sampler_pointer&
