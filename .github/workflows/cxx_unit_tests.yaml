@@ -32,11 +32,18 @@ jobs:
         pipenv sync --dev
         pipenv scripts prepare
 
+    - name: Detect build profile
+      id: setup_profile
+      run: >
+        pipenv run
+        conan detect profile
+
     - name: Build and test project
-      id: build
+      id: build_project
       run: >
         pipenv run
         conan build
         --build=missing
+        -s build_type=Release
         -c tools.build:skip_test=False
         -o build_executable=True
