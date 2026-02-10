@@ -34,7 +34,7 @@ jobs:
 
     - name: Build and test project
       id: build
-      run: |
+      run: >
         pipenv run
         conan build
         --build=missing
