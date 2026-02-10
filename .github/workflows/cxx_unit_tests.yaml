@@ -14,6 +14,8 @@ concurrency:
 
 jobs:
   unit-tests:
+    # According to the github documentation, macos-15 and macos-26 are providing an M1
+    # chip, that is suitable for running unit tests of Apple Metal kernels.
     runs-on: macos-26
 
     steps:
@@ -30,7 +32,6 @@ jobs:
       id: setup_build
       run: |
         pipenv sync --dev
-        pipenv scripts prepare
 
     - name: Detect build profile
       id: setup_profile
@@ -38,13 +39,20 @@ jobs:
         pipenv run
         conan profile detect
 
+    # The building command uses the system libraries (OpenSSL, and libcurl) to avoid
+    # long compilation time in the CI. Also unit tests do not launch integration tests
+    # to eliminate an extra burden of downloading model weights from the HuggingFace
+    # repository.
     - name: Build and test project
       id: build_project
+      env:
+        CTEST_OUTPUT_ON_FAILURE: ON
       run: >
         pipenv run
         conan build
         --build=missing
         --settings build_type=Release
-        --conf tools.build:skip_test=False
         --options build_executable=True
         --options use_system_libs=True
+        --conf tools.build:skip_test=False
+        --conf tools.cmake.cmaketoolchain:extra_variables={"CATCH_TEST_SPEC": "~[integration]"}

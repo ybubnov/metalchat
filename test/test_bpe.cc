@@ -34,7 +34,7 @@ TEST_CASE("Test GPT-2 codec", "[gpt2]")
 }
 
 
-TEST_CASE("TEST GPT-2 to Reference", "[gpt2]")
+TEST_CASE("TEST GPT-2 to Reference", "[gpt2][integration]")
 {
     auto tokenizer = make_tokenizer();
     text::gpt2_codec codec;
@@ -49,7 +49,7 @@ TEST_CASE("TEST GPT-2 to Reference", "[gpt2]")
 }
 
 
-TEST_CASE("Test BPE encode and decode", "[bpe]")
+TEST_CASE("Test BPE encode and decode", "[bpe][integration]")
 {
     auto tokenizer = make_tokenizer();
 
@@ -65,7 +65,7 @@ TEST_CASE("Test BPE encode and decode", "[bpe]")
 }
 
 
-TEST_CASE("Encode pairs with byte merge", "[bpe]")
+TEST_CASE("Encode pairs with byte merge", "[bpe][integration]")
 {
     auto tokenizer = make_tokenizer();
     auto ids = tokenizer.encode("And his name is John Cena.");
@@ -77,7 +77,7 @@ TEST_CASE("Encode pairs with byte merge", "[bpe]")
 }
 
 
-TEST_CASE("Encode ipython word", "[bpe]")
+TEST_CASE("Encode ipython word", "[bpe][integration]")
 {
     auto tokenizer = make_tokenizer();
     auto ids = tokenizer.encode(" ipython");
@@ -87,7 +87,7 @@ TEST_CASE("Encode ipython word", "[bpe]")
 }
 
 
-TEST_CASE("Encode unknown words", "[bpe]")
+TEST_CASE("Encode unknown words", "[bpe][integration]")
 {
     auto tokenizer = make_tokenizer();
     auto ids = tokenizer.encode("This is debatable topic.");
@@ -96,7 +96,7 @@ TEST_CASE("Encode unknown words", "[bpe]")
 }
 
 
-TEST_CASE("Decode control token", "bpe")
+TEST_CASE("Decode control token", "[bpe][integration]")
 {
     auto tokenizer = make_tokenizer();
     auto token = tokenizer.decode(128001);

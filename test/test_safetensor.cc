@@ -55,7 +55,7 @@ public:
 };
 
 
-TEST_CASE("Test model load", "[safetensor]")
+TEST_CASE("Test model load", "[safetensor][integration]")
 {
     using LLama3 = nn::llama3<bf16>;
 

@@ -1,6 +1,7 @@
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 set(CMAKE_CXX_STANDARD 23)
+set(metalchat_TEST_SPEC ${CATCH_TEST_SPEC})
 
 find_package(Catch2 3 REQUIRED)
 
@@ -23,7 +24,8 @@ foreach(metalchat_TEST_SOURCE ${metalchat_TEST_SOURCES})
     # Define a new test from the source file.
     add_test(
         NAME ${metalchat_TEST}
-        COMMAND ${metalchat_TEST} --skip-benchmarks
+        COMMAND ${metalchat_TEST} ${metalchat_TEST_SPEC}
+            --skip-benchmarks --allow-running-no-tests
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
     )
 endforeach(metalchat_TEST_SOURCE)
