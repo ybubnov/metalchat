@@ -28,8 +28,11 @@ TEST_CASE("Resident allocator", "[allocator]")
     auto alloc0 = hardware_memory_allocator(gpu0.get_metal_device());
     auto alloc1 = hardware_resident_allocator(alloc0, gpu0.get_metal_device());
 
+    WARN("CREATED ALLOCATORS");
     auto b = alloc1.allocate(10);
+    WARN("ALLOCATED MEMORY");
     REQUIRE(b != nullptr);
+    WARN("ASSERTION SUCCEEDED");
 }
 
 
