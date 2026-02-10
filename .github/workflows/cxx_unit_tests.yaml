@@ -55,4 +55,4 @@ jobs:
         --options build_executable=True
         --options use_system_libs=True
         --conf tools.build:skip_test=False
-        --conf tools.cmake.cmaketoolchain:extra_variables={"CATCH_TEST_SPEC": "~[integration]"}
+        --conf tools.cmake.cmaketoolchain:extra_variables='{"CATCH_TEST_SPEC": "~[integration]"}'
