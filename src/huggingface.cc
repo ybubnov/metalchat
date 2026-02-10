@@ -149,8 +149,8 @@ llama3_options_serializer::save(std::ostream& os, const nn::llama3_options& opti
         .num_hidden_layers = options.n_layers(),
         .num_attention_heads = options.n_heads(),
         .num_key_value_heads = options.n_kv_heads(),
-        .rope_theta = options.rope_theta(),
-        .rms_norm_eps = options.norm_eps()
+        .rms_norm_eps = options.norm_eps(),
+        .rope_theta = options.rope_theta()
     };
 
     // Ensure that output JSON follows output stream float precision format.
