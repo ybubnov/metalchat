@@ -1,0 +1,35 @@
+name: CXX Unit Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    runs-on: macos-26
+
+    steps:
+    - name: Checkout source code
+      id: checkout
+      uses: actions/checkout@v4
+
+    - name: Install third-party libraries and tools
+      id: install_packages
+      run: |
+        brew install cmake ninja pipenv
+
+    - name: Setup build environment
+      id: setup_build
+      run: |
+        pipenv sync --dev
+        pipenv scripts prepare
+
+    - name: Build and test project
+      id: build
+      run: |
+        conan build
+        --build=missing
+        -c tools.build:skip_test=False
+        -o build_executable=True
