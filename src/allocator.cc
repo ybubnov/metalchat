@@ -88,7 +88,7 @@ _HardwareHeapAllocator::_HardwareHeapAllocator(metal::shared_device device, std:
     auto rset_options = NS::TransferPtr(rset_options_ptr->init());
     rset_options->setInitialCapacity(1);
 
-    NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
+    NS::SharedPtr<NS::Error> error;
     NS::Error* error_ptr = error.get();
 
     _M_data->rset = NS::TransferPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
@@ -215,16 +215,15 @@ _HardwareResidentAllocator::_HardwareResidentAllocator(
     auto rset_options = NS::TransferPtr(rset_options_ptr->init());
     rset_options->setInitialCapacity(capacity);
 
-    NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
+    NS::SharedPtr<NS::Error> error;
     NS::Error* error_ptr = error.get();
 
     _M_data->rset = NS::TransferPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
     if (!_M_data->rset) {
-        throw std::runtime_error("hardware_resident_allocator: failed to allocate");
-        // auto failure_reason = error_ptr->localizedDescription();
-        // throw std::runtime_error(
-        //     std::format("hardware_resident_allocator: {}", failure_reason->utf8String())
-        //);
+        auto failure_reason = error_ptr->localizedDescription();
+        throw std::runtime_error(
+             std::format("hardware_resident_allocator: {}", failure_reason->utf8String())
+        );
     }
 }
 

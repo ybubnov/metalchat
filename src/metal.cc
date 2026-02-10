@@ -7,6 +7,8 @@
 #include <Foundation/Foundation.hpp>
 #include <Metal/Metal.hpp>
 
+#include <format>
+
 #include <metalchat/metal.h>
 
 #include "metal_impl.h"
@@ -56,13 +58,13 @@ make_device()
 shared_library
 make_library(const NS::URL* url, shared_device device)
 {
-    NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
+    NS::SharedPtr<NS::Error> error;
     NS::Error* error_ptr = error.get();
 
     auto library_ptr = NS::TransferPtr(device->ptr->newLibrary(url, &error_ptr));
     if (!library_ptr) {
         auto failure_reason = error_ptr->localizedDescription();
-        throw std::runtime_error(failure_reason->utf8String());
+        throw std::runtime_error(std::format("metal: {}", failure_reason->utf8String()));
     }
 
     return std::make_shared<library>(library_ptr);
