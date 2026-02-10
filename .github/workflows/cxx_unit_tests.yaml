@@ -44,6 +44,7 @@ jobs:
         pipenv run
         conan build
         --build=missing
-        -s build_type=Release
-        -c tools.build:skip_test=False
-        -o build_executable=True
+        --settings build_type=Release
+        --conf tools.build:skip_test=False
+        --options build_executable=True
+        --options use_system_libs=True
