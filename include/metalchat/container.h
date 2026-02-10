@@ -603,19 +603,19 @@ public:
     {}
 
     std::size_t
-    size() const
+    size() const override
     {
         return _M_storage.size() * sizeof(value_type);
     }
 
     pointer
-    data()
+    data() override
     {
         return _M_storage.data();
     }
 
     const value_type*
-    data() const
+    data() const override
     {
         const value_type* ptr = _M_storage.data();
         return ptr;

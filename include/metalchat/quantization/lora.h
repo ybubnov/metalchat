@@ -82,6 +82,7 @@ public:
       _M_adaptor(),
       _M_group_size(group_size),
       _M_weight(typename weight_traits::type()),
+      _M_weight_done(false),
       _M_scales(typename scales_traits::type()),
       _M_scale(scale)
     {

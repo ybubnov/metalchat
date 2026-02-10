@@ -75,13 +75,6 @@ public:
     : embedding(shared_tensor(weight_type()), accelerator)
     {}
 
-    template <immutable_tensor2_t<int32_t> Input>
-    auto
-    operator()(Input input)
-    {
-        return _M_embedding(input, _M_weight);
-    }
-
     _Base::result_type
     operator()(_Base::input_type input)
     {

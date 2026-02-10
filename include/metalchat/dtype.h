@@ -17,7 +17,7 @@ namespace metalchat {
 struct bf16 {
     using bits_type = std::array<uint16_t, 2>;
 
-    uint16_t m_bits;
+    uint16_t bits = 0;
 
     bf16(float f) { (*this) = f; }
 
@@ -25,33 +25,33 @@ struct bf16 {
 
     operator float() const
     {
-        bits_type bits = {{0, m_bits}};
-        return std::bit_cast<float>(bits);
+        bits_type float_bits = {{0, bits}};
+        return std::bit_cast<float>(float_bits);
     }
 
     bf16&
     operator=(float f)
     {
-        auto bits = std::bit_cast<bits_type>(f);
+        auto float_bits = std::bit_cast<bits_type>(f);
 
         switch (std::fpclassify(f)) {
         case FP_SUBNORMAL:
         case FP_ZERO:
-            m_bits = bits[1];
-            m_bits &= 0x8000;
+            bits = float_bits[1];
+            bits &= 0x8000;
             break;
         case FP_INFINITE:
-            m_bits = bits[1];
+            bits = float_bits[1];
             break;
         case FP_NAN:
-            m_bits = bits[1];
-            m_bits |= 1 << 6;
+            bits = float_bits[1];
+            bits |= 1 << 6;
             break;
         case FP_NORMAL:
-            const uint32_t rounding_bias = 0x00007FFF + (bits[1] & 0x1);
+            const uint32_t rounding_bias = 0x00007FFF + (float_bits[1] & 0x1);
             const uint32_t int_bits = std::bit_cast<uint32_t>(f) + rounding_bias;
-            bits = std::bit_cast<bits_type>(int_bits);
-            m_bits = bits[1];
+            float_bits = std::bit_cast<bits_type>(int_bits);
+            bits = float_bits[1];
             break;
         }
         return *this;

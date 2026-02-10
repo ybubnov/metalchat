@@ -163,9 +163,9 @@ private:
     tensor_accessor _M_access;
     difference_type _M_index;
     difference_type _M_overflow;
-    std::size_t _M_numel;
+    std::size_t _M_numel = 0;
 
-    std::array<std::size_t, N> _M_indices;
+    std::array<std::size_t, N> _M_indices = {};
 
     inline reference
     data(std::size_t index)

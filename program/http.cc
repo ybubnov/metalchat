@@ -139,9 +139,8 @@ http_file::size() const
     handle_ptr = round_trip(handle_ptr);
 
     curl_off_t content_length;
-    auto error = curl_easy_getinfo(
-        handle_ptr.get(), CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &content_length
-    );
+    auto error =
+        curl_easy_getinfo(handle_ptr.get(), CURLINFO_CONTENT_LENGTH_DOWNLOAD_T, &content_length);
 
     if (error) {
         throw std::runtime_error("http_file: unknown file size");
