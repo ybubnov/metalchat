@@ -24,7 +24,7 @@ jobs:
     - name: Install third-party libraries and tools
       id: install_packages
       run: |
-        brew install cmake ninja pipenv
+        brew install cmake curl openssl@3 ninja pipenv
 
     - name: Setup build environment
       id: setup_build
