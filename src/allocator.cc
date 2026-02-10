@@ -235,7 +235,6 @@ _HardwareResidentAllocator::~_HardwareResidentAllocator() { detach(); }
 void
 _HardwareResidentAllocator::detach()
 {
-    std::cout << "DETACHED" << std::endl;
     if (_M_mutex != nullptr) {
         const std::scoped_lock __lock(*_M_mutex);
 
