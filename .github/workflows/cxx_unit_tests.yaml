@@ -52,7 +52,7 @@ jobs:
         conan build
         --build=missing
         --settings build_type=Release
-        --options build_executable=True
-        --options use_system_libs=True
+        --options '&:build_executable'=True
+        --options '&:use_system_libs'=True
         --conf tools.build:skip_test=False
         --conf tools.cmake.cmaketoolchain:extra_variables='{"CATCH_TEST_SPEC": "~[integration]"}'

@@ -118,7 +118,7 @@ _HardwareHeapAllocator::allocate(std::size_t size)
     if (memory_ptr == nullptr) {
         auto cap = _M_data->heap->maxAvailableSize(placement.align);
         throw alloc_error(std::format(
-            "metalchat::hardware_heap_allocator: failed to allocate buffer of size={}, "
+            "hardware_heap_allocator: failed to allocate buffer of size={}, "
             "heap remaining capacity={}",
             size, cap
         ));
@@ -190,8 +190,7 @@ _HardwareNocopyAllocator::allocate(const void* ptr, std::size_t size)
 
     if (memory_ptr == nullptr) {
         throw alloc_error(std::format(
-            "metalchat::hardware_nocopy_allocator: failed to allocate no-copy buffer of size {}",
-            size
+            "hardware_nocopy_allocator: failed to allocate no-copy buffer of size {}", size
         ));
     }
 
@@ -221,10 +220,11 @@ _HardwareResidentAllocator::_HardwareResidentAllocator(
 
     _M_data->rset = NS::TransferPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
     if (!_M_data->rset) {
-        auto failure_reason = error_ptr->localizedDescription();
-        throw std::runtime_error(
-            std::format("metalchat::hardware_resident_allocator: {}", failure_reason->utf8String())
-        );
+        throw std::runtime_error("hardware_resident_allocator: failed to allocate");
+        // auto failure_reason = error_ptr->localizedDescription();
+        // throw std::runtime_error(
+        //     std::format("hardware_resident_allocator: {}", failure_reason->utf8String())
+        //);
     }
 }
 
