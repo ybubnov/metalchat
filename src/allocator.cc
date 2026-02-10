@@ -219,11 +219,14 @@ _HardwareResidentAllocator::_HardwareResidentAllocator(
     NS::Error* error_ptr = error.get();
 
     _M_data->rset = NS::TransferPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
-    if (!_M_data->rset) {
+    if (!_M_data->rset && error_ptr) {
         auto failure_reason = error_ptr->localizedDescription();
         throw std::runtime_error(
-             std::format("hardware_resident_allocator: {}", failure_reason->utf8String())
+            std::format("hardware_resident_allocator: {}", failure_reason->utf8String())
         );
+    }
+    if (!_M_data->rset) {
+        throw std::runtime_error("hardware_resident_allocator: failed creating residency set");
     }
 }
 
