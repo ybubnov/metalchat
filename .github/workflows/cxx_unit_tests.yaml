@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+  workflow_dispatch:
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+
 jobs:
   unit-tests:
     runs-on: macos-26
@@ -29,6 +35,7 @@ jobs:
     - name: Build and test project
       id: build
       run: |
+        pipenv run
         conan build
         --build=missing
         -c tools.build:skip_test=False
