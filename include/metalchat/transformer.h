@@ -376,6 +376,10 @@ public:
         return _M_layer;
     }
 
+    /// Transform the input sequence of tokens to the most probable token.
+    ///
+    /// \param input an input sequence of token identifiers (from a model vocabulary).
+    /// \param start_pos a start position to generate a token from.
     template <immutable_tensor2_t<index_type> Input>
     auto
     transform(Input input, std::size_t start_pos = 0)

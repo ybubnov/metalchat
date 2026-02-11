@@ -1,11 +1,6 @@
 Command line
 ============
 
-.. warning::
-
-   Work in progress
-
-
 Credentials management
 ^^^^^^^^^^^^^^^^^^^^^^
 
@@ -78,7 +73,6 @@ You can use ``metalchat checkout`` command to switch models use either in local 
 By default, this command switches a model in the local scope.
 
 .. code:: console
-   :force:
 
    $ metalchat checkout e37f2dfbbef2a9dcad4e1d83274b8ff5d55c5481
    $ cat metalchat.toml
@@ -98,10 +92,64 @@ In a similar way, you can switch a model in the ``global`` scope:
 Configuring options
 ^^^^^^^^^^^^^^^^^^^
 
-TBD.
+The ``metalchat options`` command allows to override model options (like, ``rms_norm_eps``,
+``rope_theta``). During the inference, MetalChat runtime merges both model and currently selected
+scope and runs a model with merged options:
+
+.. code:: console
+
+   $ metalchat options set --type=float rms_norm_eps 0.0001
+
+This command updates the manifest file with the new options. After that you could check what
+options a model will be using during inference and scope of the options.
+
+.. code:: console
+
+   $ metalchat options list --show-scope
+   local  rms_norm_eps=0.0001
+   model  head_dim=64
+   model  num_attention_heads=32
+   model  num_hidden_layers=16
+   model  num_key_value_heads=8
+   model  rope_theta=500000.0
+
+Alternatively, you can override the options in the ``metalchat.toml`` manifest in the section
+``options``, like in the example below.
+
+.. code:: toml
+
+   [options]
+   rms_norm_eps = 0.0001
 
 
 Prompting models
 ^^^^^^^^^^^^^^^^
 
-TBD.
+There are multiple ways of prompting a model, all of them start the inference from the 0 position.
+
+You could feed the query into the standard input:
+
+.. code:: console
+
+   $ echo 'Who are you?' | metalchat -
+   I'm an artificial intelligence model known as Llama. Llama stands for "Large Language Model Meta AI."
+
+Or you could run the inference using ``metalchat prompt`` command.
+
+.. code:: console
+
+   $ metalchat prompt -c 'Who are you?'
+
+.. code:: console
+
+   $ echo 'Who are you?' > file.md
+   $ metalchat prompt file.md
+
+By default model runs the inference without a system prompt. You could specify a custom prompt
+through the manifest file. The ``system`` option requires an existing file either relative to the
+manifest file location, or an absolute path:
+
+.. code:: toml
+
+   [prompt]
+   system = 'system.md'

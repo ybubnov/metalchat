@@ -34,7 +34,7 @@ If you are using CMake to as a build system, you could link the framework using 
 exported target:
 ```cmake
 find_package(metalchat CONFIG REQUIRED)
-target_link_libraries(build_target PRIVATE metalchat::metalchat)
+target_link_libraries(build_target PRIVATE MetalChat::MetalChat)
 ```
 
 ## Usage
@@ -63,21 +63,21 @@ For this expample, you would need to download weights from the HuggingFace
 ```c++
 #include <metalchat/metalchat.h>
 
-int main()
+int main(int argc, char** argv)
 {
     using Transformer = metalchat::huggingface::llama3;
     using Repository = metalchat::filesystem_repository<Transformer>;
 
-    Repository repo("Llama-3.2-1B-Instruct");
+    Repository repo(argv[1]);
     auto tokenizer = repo.retrieve_tokenizer();
-    auto transformer = repo.retreive_transformer();
+    auto transformer = repo.retrieve_transformer();
 
     metalchat::interpreter chat(transformer, tokenizer);
 
-    chat.send(metalchat::basic_message("system", "You are a helpful assistant"));
-    chat.send(metalchat::basic_message("user", "What is the capital of France?"));
+    chat.write(metalchat::basic_message("system", "You are a helpful assistant"));
+    chat.write(metalchat::basic_message("user", "What is the capital of France?"));
 
-    std::cout << chat.receive_text() << std::endl;
+    std::cout << chat.read_text() << std::endl;
     // Prints: The capital of France is Paris.
     return 0;
 }
