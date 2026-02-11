@@ -15,8 +15,7 @@ using namespace metalchat;
 TEST_CASE("Create accelerator with wrong shader library", "[accelerator]")
 {
     REQUIRE_THROWS_MATCHES(
-        hardware_accelerator("some/nonexisting/file", 1),
-        std::runtime_error,
+        hardware_accelerator("some/nonexisting/file", 1), std::runtime_error,
         Catch::Matchers::Message("metal: library not found")
     );
 }
