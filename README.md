@@ -7,16 +7,24 @@ line interpreter for inference of [Meta Llama](https://www.llama.com/) models.
 > The library API and CLI are under active development, therefore they may change without any
 > deprecation notice. See issues tab for the list of known issues or missing features.
 
+
+## Getting started
+
+See the [getting started](https://metalchat.readthedocs.org/guides/getting_started.html) guide
+for using MetalChat as a library and [command line](https://metalchat.readthedocs.org/guides/command_line.html)
+guide for using MetalChat to interact with LLM model from the command line.
+
 ## Installation
 
-The framework and binary could be installed using Homebrew package manager in a following way
+The framework and command line utility could be installed using Homebrew package manager in a
+following way:
 ```sh
 brew tap ybubnov/metalchat https://github.com/ybubnov/metalchat
 brew install --HEAD metalchat
 ```
 
 Alternatively you could build a [Conan](https://conan.io/) package locally using dependencies
-download from the Conan registry. After that, you could use the MetalChat framework just like
+downloaded from the Conan registry. After that, you could use the MetalChat framework just like
 any other Conan dependency.
 ```sh
 git clone https://github.com/ybubnov/metalchat
@@ -30,57 +38,11 @@ conan build \
 conan export-pkg
 ```
 
-If you are using CMake to as a build system, you could link the framework using an automatically
+If you are using CMake as a build system, you could link the framework using an automatically
 exported target:
 ```cmake
 find_package(metalchat CONFIG REQUIRED)
 target_link_libraries(build_target PRIVATE MetalChat::MetalChat)
-```
-
-## Usage
-
-The library provides a API for low-level tensor manipulation, as well as high-level API
-for running a language model inference.
-
-Unlike the general-purpose ML frameworks, MetalChat kernel support is limited and provides
-batched operations that are reasonable for LLM inference.
-```c++
-#include <metalchat/metalchat.h>
-
-int main()
-{
-    metalchat::hardware_accelerator gpu0;
-    metalchat::kernel::cumsum<float> cumsum(gpu0);
-
-    auto input = metalchat::rand<float>({4, 10});
-    auto output = cumsum(input).get();
-    std::cout << output << std::endl;
-}
-```
-
-For this expample, you would need to download weights from the HuggingFace
-[Llama-3.2-1B-Instruct](https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct).
-```c++
-#include <metalchat/metalchat.h>
-
-int main(int argc, char** argv)
-{
-    using Transformer = metalchat::huggingface::llama3;
-    using Repository = metalchat::filesystem_repository<Transformer>;
-
-    Repository repo(argv[1]);
-    auto tokenizer = repo.retrieve_tokenizer();
-    auto transformer = repo.retrieve_transformer();
-
-    metalchat::interpreter chat(transformer, tokenizer);
-
-    chat.write(metalchat::basic_message("system", "You are a helpful assistant"));
-    chat.write(metalchat::basic_message("user", "What is the capital of France?"));
-
-    std::cout << chat.read_text() << std::endl;
-    // Prints: The capital of France is Paris.
-    return 0;
-}
 ```
 
 ## License
