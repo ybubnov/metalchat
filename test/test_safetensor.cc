@@ -84,17 +84,20 @@ template <> struct __libcpp_random_is_valid_realtype<bf16> : true_type {};
 }; // namespace std
 
 
+template <typename T> using linear_layer = nn::linear<T, random_memory_container<T>>;
+
+
 TEST_CASE("Test write and read small model", "[safetensor]")
 {
     struct model : public nn::basic_layer {
         model(hardware_accelerator& accelerator)
         : nn::basic_layer(accelerator)
         {
-            auto w1 = rand<float>({10, 20}, accelerator);
-            auto w2 = rand<bf16>({3, 4}, accelerator);
+            auto w1 = rand<float>({10, 20});
+            auto w2 = rand<bf16>({3, 4});
 
-            register_layer<nn::linear<float>>("linear1", std::move(w1));
-            register_layer<nn::linear<bf16>>("linear2", std::move(w2));
+            register_layer<linear_layer<float>>("linear1", std::move(w1));
+            register_layer<linear_layer<bf16>>("linear2", std::move(w2));
         }
     };
 
@@ -109,7 +112,12 @@ TEST_CASE("Test write and read small model", "[safetensor]")
     REQUIRE(std::filesystem::exists(model_path));
 
     nn::indirect_layer<model> model_in(accelerator);
-    safetensor_document::load(model_path, model_in);
+
+    // Use a method that allocates safetensors using a random memory allocator
+    // since the hardware-supported version requires resident allocator, which
+    // is not available in the GitHub CI.
+    auto doc = safetensor_document::open(model_path);
+    doc.load(model_in);
 
     // Ensure that model parameter's data is the same.
     auto l1_out = model_out.get_parameter("linear1.weight");
