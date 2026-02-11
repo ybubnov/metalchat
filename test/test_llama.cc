@@ -16,7 +16,7 @@
 using namespace metalchat;
 
 
-TEST_CASE("Test reference implementation inference", "[llama]")
+TEST_CASE("Test reference implementation inference", "[llama][integration]")
 {
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
 

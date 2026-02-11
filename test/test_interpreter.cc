@@ -17,7 +17,7 @@
 using namespace metalchat;
 
 
-TEST_CASE("Test interpreter", "[llama]")
+TEST_CASE("Test interpreter", "[llama][integration]")
 {
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
 
@@ -66,7 +66,7 @@ You have access to the following tools:
 }
 
 
-TEST_CASE("Test filebuf interpreter", "[llama]")
+TEST_CASE("Test filebuf interpreter", "[llama][integration]")
 {
     SKIP();
 

@@ -22,7 +22,10 @@ TEST_CASE("Allocate hardware container", "[allocator]")
 }
 
 
-TEST_CASE("Resident allocator", "[allocator]")
+/// The resident allocator is not available in the GitHub CI virtual environment,
+/// as a result, it causes this test to fail. Mark this test as "integration" to
+/// skip it running in GitHub CI.
+TEST_CASE("Resident allocator", "[allocator][integration]")
 {
     hardware_accelerator gpu0;
     auto alloc0 = hardware_memory_allocator(gpu0.get_metal_device());

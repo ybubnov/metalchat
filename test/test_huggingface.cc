@@ -13,7 +13,7 @@ using namespace metalchat;
 using namespace Catch::Matchers;
 
 
-TEST_CASE("Test llama3 huggingface model adaptor", "[huggingface]")
+TEST_CASE("Test llama3 huggingface model adaptor", "[huggingface][integration]")
 {
     hardware_accelerator gpu0;
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct";

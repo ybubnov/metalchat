@@ -88,7 +88,7 @@ _HardwareHeapAllocator::_HardwareHeapAllocator(metal::shared_device device, std:
     auto rset_options = NS::TransferPtr(rset_options_ptr->init());
     rset_options->setInitialCapacity(1);
 
-    NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
+    NS::SharedPtr<NS::Error> error;
     NS::Error* error_ptr = error.get();
 
     _M_data->rset = NS::TransferPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
@@ -118,7 +118,7 @@ _HardwareHeapAllocator::allocate(std::size_t size)
     if (memory_ptr == nullptr) {
         auto cap = _M_data->heap->maxAvailableSize(placement.align);
         throw alloc_error(std::format(
-            "metalchat::hardware_heap_allocator: failed to allocate buffer of size={}, "
+            "hardware_heap_allocator: failed to allocate buffer of size={}, "
             "heap remaining capacity={}",
             size, cap
         ));
@@ -190,8 +190,7 @@ _HardwareNocopyAllocator::allocate(const void* ptr, std::size_t size)
 
     if (memory_ptr == nullptr) {
         throw alloc_error(std::format(
-            "metalchat::hardware_nocopy_allocator: failed to allocate no-copy buffer of size {}",
-            size
+            "hardware_nocopy_allocator: failed to allocate no-copy buffer of size {}", size
         ));
     }
 
@@ -216,15 +215,17 @@ _HardwareResidentAllocator::_HardwareResidentAllocator(
     auto rset_options = NS::TransferPtr(rset_options_ptr->init());
     rset_options->setInitialCapacity(capacity);
 
-    NS::SharedPtr<NS::Error> error = NS::TransferPtr(NS::Error::alloc());
+    NS::SharedPtr<NS::Error> error;
     NS::Error* error_ptr = error.get();
 
     _M_data->rset = NS::TransferPtr(device->ptr->newResidencySet(rset_options.get(), &error_ptr));
-    if (!_M_data->rset) {
-        auto failure_reason = error_ptr->localizedDescription();
-        throw std::runtime_error(
-            std::format("metalchat::hardware_resident_allocator: {}", failure_reason->utf8String())
-        );
+
+    if (!_M_data->rset && error_ptr) {
+        std::string failure_reason("failed creating residency set");
+        if (error_ptr != nullptr) {
+            failure_reason = std::string(error_ptr->localizedDescription()->utf8String());
+        }
+        throw std::runtime_error(std::format("hardware_resident_allocator: {}", failure_reason));
     }
 }
 

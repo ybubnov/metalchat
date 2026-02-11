@@ -52,7 +52,7 @@ TEST_CASE("Test sorting", "[kernel::sort]")
 }
 
 
-TEST_CASE("Sorting benchmark", "[kernel::sort]")
+TEST_CASE("Sorting benchmark", "[!benchmark][kernel::sort]")
 {
     metalchat::hardware_accelerator gpu0;
     kernel::sort<float> sort(gpu0);

@@ -60,7 +60,7 @@ TEST_CASE("Test QLoRa adaptor", "[quantization]")
 }
 
 
-TEST_CASE("Test QLoRA inference", "[quantization]")
+TEST_CASE("Test QLoRA inference", "[quantization][integration]")
 {
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct-QLORA_INT4_EO8";
 

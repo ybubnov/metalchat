@@ -61,7 +61,7 @@ TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
 }
 
 
-TEST_CASE("Matmul large 2d", "[kernel::bmm]")
+TEST_CASE("Matmul large 2d", "[!benchmark][kernel::bmm]")
 {
     metalchat::hardware_accelerator gpu0;
     kernel::bmm<float> mm(gpu0);
@@ -77,9 +77,4 @@ TEST_CASE("Matmul large 2d", "[kernel::bmm]")
         REQUIRE(output.size(0) == 8);
         REQUIRE(output.size(1) == 128256);
     };
-
-    // std::cout << output << std::endl;
-    // for (auto it = output.begin(); it != output.end(); ++it) {
-    //     REQUIRE_THAT(*it, Catch::Matchers::WithinAbs(4096.0, 1e-5));
-    // }
 }

@@ -1,0 +1,58 @@
+name: CXX Unit Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+  workflow_dispatch:
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  unit-tests:
+    # According to the github documentation, macos-15 and macos-26 are providing an M1
+    # chip, that is suitable for running unit tests of Apple Metal kernels.
+    runs-on: macos-26
+
+    steps:
+    - name: Checkout source code
+      id: checkout
+      uses: actions/checkout@v4
+
+    - name: Install third-party libraries and tools
+      id: install_packages
+      run: |
+        brew install cmake curl openssl@3 ninja pipenv
+
+    - name: Setup build environment
+      id: setup_build
+      run: |
+        pipenv sync --dev
+
+    - name: Detect build profile
+      id: setup_profile
+      run: >
+        pipenv run
+        conan profile detect
+
+    # The building command uses the system libraries (OpenSSL, and libcurl) to avoid
+    # long compilation time in the CI. Also unit tests do not launch integration tests
+    # to eliminate an extra burden of downloading model weights from the HuggingFace
+    # repository.
+    - name: Build and test project
+      id: build_project
+      env:
+        CTEST_OUTPUT_ON_FAILURE: ON
+      run: >
+        pipenv run
+        conan build
+        --build=missing
+        --settings build_type=Release
+        --options '&:build_executable'=True
+        --options '&:use_system_libs'=True
+        --conf tools.build:skip_test=False
+        --conf tools.cmake.cmaketoolchain:extra_variables='{"CATCH_TEST_SPEC": "~[integration]"}'
