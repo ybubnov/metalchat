@@ -17,7 +17,6 @@ extensions = [
     "sphinx_design",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
-    "sphinx_prompt",
 ]
 
 
