@@ -10,9 +10,10 @@ line interpreter for inference of [Meta Llama](https://www.llama.com/) models.
 
 ## Getting started
 
-See the [getting started](https://metalchat.readthedocs.org/guides/getting_started.html) guide
-for using MetalChat as a library and [command line](https://metalchat.readthedocs.org/guides/command_line.html)
-guide for using MetalChat to interact with LLM model from the command line.
+See the [getting started](https://metalchat.readthedocs.org/en/latest/guides/getting_started.html)
+guide for using MetalChat as a library and
+[command line](https://metalchat.readthedocs.org/en/latest/guides/command_line.html) guide for
+using MetalChat to interact with LLM model from the command line.
 
 ## Installation
 
