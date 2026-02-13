@@ -10,7 +10,7 @@ include the hear like in the example below:
 
 
 Safetensor document
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 .. seealso::
 
@@ -21,15 +21,22 @@ Safetensor document
    :members:
 
 
+Sharded safetensor document
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. doxygenstruct:: metalchat::sharded_safetensor_document
+   :members:
+
+
 Safetensor
-----------
+^^^^^^^^^^
 
 .. doxygenclass:: metalchat::safetensor
    :members:
 
 
 Safetensor allocator
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 .. doxygenclass:: metalchat::safetensor_allocator
    :members:
