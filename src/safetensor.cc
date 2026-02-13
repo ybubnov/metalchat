@@ -8,9 +8,17 @@
 
 
 JSONCONS_ALL_MEMBER_TRAITS(metalchat::safetensor_metadata, dtype, shape, data_offsets);
+JSONCONS_ALL_MEMBER_TRAITS(metalchat::safetensor_index, metadata, weight_map);
 
 
 namespace metalchat {
+
+
+safetensor_index
+safetensor_index::open(std::istream& stream)
+{
+    return jsoncons::decode_json<safetensor_index>(stream);
+}
 
 
 safetensor_document
@@ -313,6 +321,28 @@ safetensor_document::save(const std::filesystem::path& p)
     for (std::size_t i = 0; i < _M_metadata.size(); i++) {
         file.write(_M_containers[i]->data_ptr(), _M_metadata[i].size());
     }
+}
+
+
+safetensor_document
+sharded_safetensor_document::open(const std::filesystem::path& p)
+{
+    auto alloc = random_memory_allocator<void>();
+    auto nocopy_alloc = nocopy_allocator(alloc);
+    return open(p, nocopy_alloc);
+}
+
+
+safetensor_document
+sharded_safetensor_document::open(const std::filesystem::path& p, hardware_accelerator& accelerator)
+{
+    auto alloc = accelerator.get_allocator();
+    auto nocopy_alloc = nocopy_allocator(alloc, accelerator.get_metal_device());
+    auto resident_alloc = hardware_resident_allocator(nocopy_alloc, accelerator.get_metal_device());
+
+    using allocator_type = decltype(resident_alloc);
+
+    return open(p, std::forward<allocator_type>(resident_alloc), accelerator.max_buffer_size());
 }
 
 

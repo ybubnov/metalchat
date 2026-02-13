@@ -4,16 +4,20 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_vector.hpp>
+#include <jsoncons/json.hpp>
 
 #include <metalchat/accelerator.h>
 #include <metalchat/functional.h>
 #include <metalchat/nn.h>
 #include <metalchat/reference.h>
+#include <metalchat/safetensor.h>
 #include <metalchat/tensor.h>
 
 #include "metalchat/testing.h"
 
 using namespace metalchat;
+
+JSONCONS_ALL_MEMBER_TRAITS(safetensor_index, metadata, weight_map);
 
 
 struct scoped_temp_directory {
@@ -157,4 +161,38 @@ TEST_CASE("Test tensor link", "[safetensor]")
     REQUIRE(output.size(0) == input.size(0));
     REQUIRE(output.size(1) == input.size(1));
     REQUIRE(output.container_ptr() == input.container_ptr());
+}
+
+
+TEST_CASE("Test sharded document", "[safetensor]")
+{
+    scoped_temp_directory tmpdir("sharded_safetensor");
+    auto index_path = tmpdir.path() / "tensors.safetensors.index.json";
+    auto path1 = tmpdir.path() / "tensors-0001-of-0002.safetensors";
+    auto path2 = tmpdir.path() / "tensors-0002-of-0002.safetensors";
+
+    auto tensor1 = rand<float>({4, 3});
+    auto tensor2 = rand<float>({10, 6});
+
+    safetensor_document doc1;
+    safetensor_document doc2;
+
+    doc1.insert("tensor1", tensor1);
+    doc1.save(path1);
+    doc2.insert("tensor2", tensor2);
+    doc2.save(path2);
+
+    safetensor_index index{
+        .metadata = {},
+        .weight_map = {{"tensor1", path1.string()}, {"tensor2", path2.string()}}
+    };
+
+    std::ofstream index_file(index_path);
+    jsoncons::encode_json<safetensor_index>(index, index_file);
+    index_file.close();
+
+    auto doc = sharded_safetensor_document::open(index_path);
+    auto size = std::distance(doc.begin(), doc.end());
+
+    REQUIRE(size == 2);
 }

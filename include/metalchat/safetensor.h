@@ -7,10 +7,12 @@
 #include <algorithm>
 #include <filesystem>
 #include <format>
+#include <fstream>
 #include <istream>
 #include <numeric>
 #include <streambuf>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <metalchat/accelerator.h>
@@ -115,6 +117,15 @@ struct safetensor_metadata {
     {
         return data_offsets[1] - data_offsets[0];
     }
+};
+
+
+struct safetensor_index {
+    std::unordered_map<std::string, std::string> metadata;
+    std::unordered_map<std::string, std::string> weight_map;
+
+    static safetensor_index
+    open(std::istream&);
 };
 
 
@@ -523,7 +534,7 @@ public:
     /// A default \ref safetensor_document constructor.
     safetensor_document();
 
-    /// A \ref safetensor_document copt constructor.
+    /// A \ref safetensor_document copy constructor.
     safetensor_document(const safetensor_document&) = default;
 
     /// Returns tensor offsets (relative to a safetensor metadata header) in bytes.
@@ -888,6 +899,66 @@ public:
     /// \param p A path to the file to save tensors.
     void
     save(const std::filesystem::path& p);
+};
+
+
+/// An adaptor for the \ref safetensor_document that allows to open sharded safetensor documents.
+///
+/// Such documents are composed of two types of files: an index file, that points to the locations
+/// of the safetensors, and actual safetensor documents. This implementation reads the index file,
+/// and combines all safetensors into a single object.
+struct sharded_safetensor_document {
+    /// Open a sharded safetensor document.
+    ///
+    /// See \ref safetensor_document::open(const std::filesystem::path&) for more details.
+    ///
+    /// \param p a path to the safetensor index file.
+    static safetensor_document
+    open(const std::filesystem::path& p);
+
+    /// Open a sharded safetensor document using a hardware allocator.
+    ///
+    /// See \ref safetensor_document::open(const std::filesystem::path&, hardware_accelerator&)
+    /// for more details.
+    ///
+    /// \param p a path to the safetensor index file.
+    /// \param accelerator an instance of the hardware accelerator.
+    static safetensor_document
+    open(const std::filesystem::path& p, hardware_accelerator& accelerator);
+
+    template <allocator_t<void> Allocator>
+    static safetensor_document
+    open(const std::filesystem::path& p, Allocator& alloc, std::size_t max_size = -1)
+    {
+        std::ifstream index_file(p, std::ios::binary | std::ios::in);
+        auto index = safetensor_index::open(index_file);
+        auto index_path = p.parent_path();
+
+        safetensor_document consolidated;
+        std::unordered_set<std::string> processed_documents;
+
+        for (const auto& [_, filename] : index.weight_map) {
+            if (processed_documents.contains(filename)) {
+                continue;
+            }
+
+            processed_documents.insert(filename);
+            auto document_path = index_path / filename;
+
+            auto document = safetensor_document::open(document_path, alloc, max_size);
+            for (auto it = document.begin(); it != document.end(); it++) {
+                consolidated.insert(*it);
+            }
+        }
+        return consolidated;
+    }
+
+    template <allocator_t<void> Allocator>
+    static safetensor_document
+    open(const std::filesystem::path& p, Allocator&& alloc, std::size_t max_size = -1)
+    {
+        return open(p, alloc, max_size);
+    }
 };
 
 
