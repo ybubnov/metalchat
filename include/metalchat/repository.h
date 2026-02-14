@@ -7,8 +7,10 @@
 #include <filesystem>
 #include <iostream>
 #include <string>
+#include <unordered_set>
 
 #include <metalchat/accelerator.h>
+#include <metalchat/safetensor.h>
 #include <metalchat/transformer.h>
 
 
@@ -177,6 +179,7 @@ template <typename FileSystem>
 concept readonly_filesystem =
     requires(FileSystem const fs, const std::string& filename, std::ostream& output) {
         { fs.read(filename, output) } -> std::same_as<void>;
+        { fs.exists(filename) } -> std::same_as<bool>;
     };
 
 
@@ -223,7 +226,27 @@ struct huggingface_repository {
     {
         clone_file("config.json");
         clone_file("tokenizer.json");
-        clone_file("model.safetensors");
+
+        const std::string index_filename("model.safetensors.index.json");
+        const std::filesystem::path index_filepath(_M_repo.path() / index_filename);
+
+        if (!exists(index_filename)) {
+            clone_file("model.safetensors");
+            return;
+        }
+
+        clone_file(index_filename);
+
+        std::ifstream index_file(index_filepath, std::ios::binary);
+        std::unordered_set<std::string> filenames;
+
+        auto index = safetensor_index::open(index_file);
+        for (const auto& [_, filename] : index.weight_map) {
+            if (!filenames.contains(filename)) {
+                clone_file(filename);
+            }
+            filenames.insert(filename);
+        }
     }
 
     tokenizer_type
@@ -259,6 +282,12 @@ private:
 
         std::ofstream filestream(filepath, std::ios::trunc | std::ios::binary);
         _M_fs.read(link_to(filename), filestream);
+    }
+
+    bool
+    exists(const std::string& filename) const
+    {
+        return _M_fs.exists(link_to(filename));
     }
 
     std::string

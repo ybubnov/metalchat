@@ -93,6 +93,9 @@ public:
         round_trip(handle_ptr);
     }
 
+    bool
+    exists() const;
+
 private:
     using handle_type = CURL;
     using handle_pointer = std::shared_ptr<CURL>;
@@ -188,6 +191,14 @@ public:
         http_file file(_M_url / path);
         use_middleware(file);
         read(file, std::ostream_iterator<char>(output));
+    }
+
+    bool
+    exists(const std::string& path) const
+    {
+        http_file file(_M_url / path);
+        use_middleware(file);
+        return file.exists();
     }
 
 protected:

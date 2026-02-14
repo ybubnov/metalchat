@@ -150,6 +150,16 @@ http_file::size() const
 }
 
 
+bool
+http_file::exists() const
+{
+    auto handle_ptr = make_handle();
+
+    curl_easy_setopt(handle_ptr.get(), CURLOPT_NOBODY, 1l);
+    return curl_easy_perform(handle_ptr.get()) == CURLE_OK;
+}
+
+
 http_file::handle_pointer
 http_file::make_handle() const
 {
