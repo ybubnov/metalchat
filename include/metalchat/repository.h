@@ -20,17 +20,19 @@ namespace metalchat {
 /// A filesystem-based read-only repository used to retrieve language transformer building blocks
 /// (layer options, layer, and string tokenizer).
 ///
-/// \tparam Transformer transformer specification.
-template <language_transformer Transformer> struct filesystem_repository {
+/// \tparam Transformer a transformer specification.
+/// \tparam Document a document format type.
+template <language_transformer Transformer, typename Document = safetensor_document>
+struct filesystem_repository {
     using layer_type = Transformer::layer_type;
-    using layer_adaptor_type = Transformer::layer_adaptor;
+    using layer_serializer = Transformer::layer_serializer;
     using options_type = Transformer::options_type;
     using options_serializer = Transformer::options_serializer;
     using tokenizer_type = Transformer::tokenizer_type;
     using tokenizer_loader = Transformer::tokenizer_loader;
     using container_type = Transformer::container_type;
-    using document_adaptor_type = Transformer::document_adaptor;
 
+    using document_type = Document;
     using transformer_type = transformer<layer_type>;
 
     filesystem_repository(const std::filesystem::path& repo_path, hardware_accelerator accelerator)
@@ -95,19 +97,12 @@ template <language_transformer Transformer> struct filesystem_repository {
     transformer_type
     retrieve_transformer(const std::filesystem::path& p, const options_type& options)
     {
-        nn::indirect_layer<layer_type> layer(options, _M_accelerator);
-        nn::indirect_layer<nn::basic_layer> layer_base(layer.get());
+        layer_serializer serializer(options, _M_accelerator);
 
-        layer_adaptor_type layer_adaptor(options);
-        layer_adaptor.adapt_pre(layer_base);
+        auto document_path = _M_repo_path / p;
+        auto document = document_type::open(document_path, _M_accelerator);
+        auto layer = serializer.load(document);
 
-        auto document_adaptor = document_adaptor_type();
-        auto document = safetensor_document::open(_M_repo_path / p, _M_accelerator);
-
-        document = document_adaptor.adapt(document);
-        document.load(layer);
-
-        layer_adaptor.adapt_post(layer_base);
         return transformer_type(layer);
     }
 
@@ -130,11 +125,7 @@ template <language_transformer Transformer> struct filesystem_repository {
         const std::filesystem::path& p, const options_type& options, Allocator alloc = Allocator()
     )
     {
-        nn::indirect_layer<layer_type> layer(options, _M_accelerator);
-        nn::indirect_layer<nn::basic_layer> layer_base(layer.get());
-
-        layer_adaptor_type layer_adaptor(options);
-        layer_adaptor.adapt_pre(layer_base);
+        layer_serializer serializer(options, _M_accelerator);
 
         auto document_path = _M_repo_path / p;
         auto document_stream = std::ifstream(document_path, std::ios::binary);
@@ -143,13 +134,10 @@ template <language_transformer Transformer> struct filesystem_repository {
                 "filesystem_repository: failed opening file '{}'", document_path.string()
             ));
         }
-        auto document_adaptor = document_adaptor_type();
-        auto document = safetensor_document::open(document_stream, alloc);
 
-        document = document_adaptor.adapt(document);
-        document.load(layer);
+        auto document = document_type::open(document_stream, alloc);
+        auto layer = serializer.load(document);
 
-        layer_adaptor.adapt_post(layer_base);
         return transformer<layer_type>(layer);
     }
 
@@ -193,13 +181,12 @@ concept readonly_filesystem =
 template <language_transformer Transformer, readonly_filesystem FileSystem>
 struct huggingface_repository {
     using layer_type = Transformer::layer_type;
-    using layer_adaptor_type = Transformer::layer_adaptor;
+    using layer_serializer = Transformer::layer_serializer;
     using options_type = Transformer::options_type;
     using options_serializer = Transformer::options_serializer;
     using tokenizer_type = Transformer::tokenizer_type;
     using tokenizer_loader = Transformer::tokenizer_loader;
     using container_type = Transformer::container_type;
-    using document_adaptor_type = Transformer::document_adaptor;
 
     using transformer_type = transformer<layer_type>;
 
@@ -306,7 +293,11 @@ private:
     std::string _M_id;
     std::string _M_revision;
     FileSystem _M_fs;
-    filesystem_repository<Transformer> _M_repo;
+
+    // Tensors in the public HuggingFace repositories are stored in multiple
+    // formats, but one of the most common and supported by HuggingFace infrastructure
+    // is safetensors format.
+    filesystem_repository<Transformer, safetensor_document> _M_repo;
 };
 
 

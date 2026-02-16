@@ -158,14 +158,13 @@ private:
 
 template <language_transformer Transformer> class scoped_repository_adapter {
 public:
+    using container_type = Transformer::container_type;
     using layer_type = Transformer::layer_type;
-    using layer_adaptor_type = Transformer::layer_adaptor;
+    using layer_serializer = Transformer::layer_serializer;
     using options_type = Transformer::options_type;
     using options_serializer = Transformer::options_serializer;
     using tokenizer_type = Transformer::tokenizer_type;
     using tokenizer_loader = Transformer::tokenizer_loader;
-    using container_type = Transformer::container_type;
-    using document_adaptor_type = Transformer::document_adaptor;
 
     using transformer_type = transformer<layer_type>;
 

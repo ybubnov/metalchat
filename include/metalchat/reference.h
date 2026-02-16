@@ -7,6 +7,7 @@
 #include <istream>
 #include <string_view>
 
+#include <metalchat/allocator.h>
 #include <metalchat/nn.h>
 #include <metalchat/safetensor.h>
 #include <metalchat/tensor/concept.h>
@@ -18,14 +19,47 @@ namespace metalchat {
 namespace reference {
 
 
-/// The reference implementation of Llama 3.2 shares the weight of token embeddings and the output
-/// layer, use a shared tensor in order to reduce memory footprint.
-///
-/// This adaptor implement \ref safetensor_document_adaptor concept and creates an  alias between
-/// output and embedding layers. The rest of the tensors remains unchanged.
-struct llama3_document_adaptor {
-    safetensor_document
-    adapt(const safetensor_document& document) const;
+template <nn::layer Layer> class llama3_safetensor_serializer {
+public:
+    using value_type = nn::indirect_layer<Layer>;
+
+    /// The safetensor serializer for a Llama3 model.
+    llama3_safetensor_serializer(
+        const nn::llama3_options& options, hardware_accelerator& accelerator
+    )
+    : _M_options(options),
+      _M_accelerator(accelerator)
+    {}
+
+    value_type
+    load(const safetensor_document& document)
+    {
+        value_type layer(_M_options, _M_accelerator);
+        auto doc = adapt(document);
+        doc.load(layer);
+        return layer;
+    }
+
+    void
+    save(safetensor_document& document, value_type& layer) const
+    {
+        // TODO: remove tok_embeddings.weight tensor.
+        document.save(layer);
+    }
+
+    /// The reference implementation of Llama 3.2 shares the weight of token embeddings
+    /// and the output layer, use a shared tensor in order to reduce memory footprint.
+    static safetensor_document
+    adapt(const safetensor_document& document)
+    {
+        auto doc = document;
+        doc.insert("output.weight", "tok_embeddings.weight");
+        return doc;
+    }
+
+private:
+    nn::llama3_options _M_options;
+    hardware_accelerator _M_accelerator;
 };
 
 
@@ -96,20 +130,20 @@ struct llama3_tokenizer_loader {
 };
 
 
-template <typename T, contiguous_container Container> struct llama3_traits {
-    using value_type = T;
+template <contiguous_container Container> struct llama3_traits {
+    using value_type = Container::value_type;
+    using container_type = Container;
+
     using options_type = nn::llama3_options;
     using options_serializer = llama3_options_serializer;
-    using layer_type = nn::llama3<T, Container>;
-    using layer_adaptor = noop_layer_adaptor<options_type>;
-    using container_type = Container;
-    using document_adaptor = llama3_document_adaptor;
+    using layer_type = nn::llama3<value_type, container_type>;
+    using layer_serializer = llama3_safetensor_serializer<layer_type>;
     using tokenizer_type = text::byte_pair_encoder<text::regexp>;
     using tokenizer_loader = llama3_tokenizer_loader;
 };
 
 
-using llama3 = llama3_traits<bf16, hardware_memory_container<bf16>>;
+using llama3 = llama3_traits<hardware_memory_container<bf16>>;
 
 
 } // namespace reference

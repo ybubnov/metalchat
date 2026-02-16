@@ -72,7 +72,7 @@ TEST_CASE("Test filebuf interpreter", "[llama][integration]")
 
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
 
-    using Transformer = reference::llama3_traits<bf16, filebuf_memory_container<bf16>>;
+    using Transformer = reference::llama3_traits<filebuf_memory_container<bf16>>;
     using Repository = filesystem_repository<Transformer>;
     using Allocator = filebuf_memory_allocator<void>;
 

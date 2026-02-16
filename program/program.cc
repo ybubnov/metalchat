@@ -91,7 +91,6 @@ void
 program::transform(const program_scope& scope, const std::string& prompt) const
 {
     using Transformer = huggingface::llama3;
-    using TransformerTraits = transformer_traits<Transformer>;
 
     scoped_repository_adapter<Transformer> repo(scope.repo_path, scope.manifest);
     auto transformer = repo.retrieve_transformer();

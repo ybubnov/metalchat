@@ -64,8 +64,6 @@ TEST_CASE("Test QLoRA inference", "[quantization][integration]")
 {
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct-QLORA_INT4_EO8";
 
-    using LLama3 = nn::llama3<bf16>;
-
     auto gpu0 = hardware_accelerator(8);
     auto repository = filesystem_repository<huggingface::llama3_qlora>(repo_path, gpu0);
 

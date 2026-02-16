@@ -61,18 +61,18 @@ public:
 
 TEST_CASE("Test model load", "[safetensor][integration]")
 {
-    using LLama3 = nn::llama3<bf16>;
+    using layer_type = nn::llama3<bf16>;
+    using serializer_type = reference::llama3_safetensor_serializer<layer_type>;
+    auto options = nn::default_llama3_1b_options();
 
     hardware_accelerator gpu0(16);
-    nn::indirect_layer<LLama3> m(nn::default_llama3_1b_options(), gpu0);
 
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
     auto doc_path = repo_path / "model.safetensors";
-    auto doc_adapter = reference::llama3_document_adaptor();
     auto doc = safetensor_document::open(doc_path, gpu0);
 
-    doc = doc_adapter.adapt(doc);
-    doc.load(m);
+    auto serializer = serializer_type(options, gpu0);
+    auto m = serializer.load(doc);
     auto params = m.get_parameters();
 
     REQUIRE(params.size() == 179);

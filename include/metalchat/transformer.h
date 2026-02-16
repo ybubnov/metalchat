@@ -20,39 +20,6 @@
 namespace metalchat {
 
 
-/// A layer adaptor that is used by repository implementations to prepare the model for the usage.
-///
-/// Depending on the layer type and type of model distribution, the adaptor could be used to
-/// (1) map weight names from one implementation to another, (2) rebuild a model to load
-/// quantized implementation (QLoRa), etc.
-template <typename Adaptor>
-concept indirect_layer_adaptor = requires(std::remove_reference_t<Adaptor> const a) {
-    /// An `adapt_pre` method is called, immediately after model creation and before loading
-    /// weights from the file.
-    { a.adapt_pre(nn::indirect_layer<nn::basic_layer>()) } -> std::same_as<void>;
-
-    /// An `adapt_post` method is called after loading weights from file.
-    { a.adapt_post(nn::indirect_layer<nn::basic_layer>()) } -> std::same_as<void>;
-};
-
-
-/// An implementation of \ref indirect_layer_adaptor concept that does nothing. Use it to declare
-/// transformer traits (\ref transformer_traits) that do not perform any layer adaptation.
-template <typename LayerOptions> struct noop_layer_adaptor {
-    noop_layer_adaptor(LayerOptions) {}
-
-    /// The implementation does not modify the specified layer.
-    void
-    adapt_pre(nn::indirect_layer<nn::basic_layer>) const
-    {}
-
-    /// The implementation does not modify the specified layer.
-    void
-    adapt_post(nn::indirect_layer<nn::basic_layer>) const
-    {}
-};
-
-
 /// The stream serializer expects the type to load the `T` instance from the input stream,
 /// and save the instance `T` to the output stream.
 ///
@@ -61,8 +28,12 @@ template <typename Serializer>
 concept stream_serializer = requires(std::remove_reference_t<Serializer> const s) {
     typename Serializer::value_type;
 
-    { s.load(std::declval<std::istream&>()) } -> std::same_as<typename Serializer::value_type>;
     {
+        /// Load the serializable value from the input stream.
+        s.load(std::declval<std::istream&>())
+    } -> std::same_as<typename Serializer::value_type>;
+    {
+        /// Save the serializable value into the output stream.
         s.save(std::declval<std::ostream&>(), std::declval<typename Serializer::value_type&>())
     } -> std::same_as<void>;
 };
@@ -72,18 +43,16 @@ concept stream_serializer = requires(std::remove_reference_t<Serializer> const s
 template <typename Transformer>
 concept language_transformer = requires {
     typename Transformer::layer_type;
-    typename Transformer::layer_adaptor;
+    typename Transformer::layer_serializer;
     typename Transformer::options_type;
     typename Transformer::options_serializer;
     typename Transformer::container_type;
-    typename Transformer::document_adaptor;
     typename Transformer::tokenizer_type;
     typename Transformer::tokenizer_loader;
 
     requires nn::layer<typename Transformer::layer_type>;
     requires contiguous_container<typename Transformer::container_type>;
-    requires indirect_layer_adaptor<typename Transformer::layer_adaptor>;
-    requires safetensor_document_adaptor<typename Transformer::document_adaptor>;
+    requires safetensor_serializer<typename Transformer::layer_serializer>;
     requires stream_serializer<typename Transformer::options_serializer>;
 };
 
@@ -190,13 +159,12 @@ private:
 
 template <language_transformer Transformer> struct transformer_traits {
     using layer_type = Transformer::layer_type;
-    using layer_adaptor_type = Transformer::layer_adaptor;
+    using layer_serializer = Transformer::layer_serializer;
     using options_type = Transformer::options_type;
     using options_serializer = Transformer::options_serializer;
     using tokenizer_type = Transformer::tokenizer_type;
     using tokenizer_loader = Transformer::tokenizer_loader;
     using container_type = Transformer::container_type;
-    using document_adaptor_type = Transformer::document_adaptor;
 
     /// Merge JSON-serializable options.
     ///
