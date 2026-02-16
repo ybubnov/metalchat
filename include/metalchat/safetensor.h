@@ -499,19 +499,6 @@ concept safetensor_serializer = requires(Serializer s) {
 };
 
 
-template <typename Adaptor>
-concept safetensor_document_adaptor =
-    requires(std::remove_reference_t<Adaptor> const a, const safetensor_document& document) {
-        { a.adapt(document) } -> std::same_as<safetensor_document>;
-    };
-
-
-struct noop_document_adaptor {
-    safetensor_document
-    adapt(const safetensor_document& document) const;
-};
-
-
 /// A document for writing and reading tensors in a `safetensor` format.
 class safetensor_document {
 private:

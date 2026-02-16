@@ -21,13 +21,6 @@ safetensor_index::open(std::istream& stream)
 }
 
 
-safetensor_document
-noop_document_adaptor::adapt(const safetensor_document& document) const
-{
-    return document;
-}
-
-
 safetensor_document::safetensor_document()
 : _M_metadata(),
   _M_containers(),

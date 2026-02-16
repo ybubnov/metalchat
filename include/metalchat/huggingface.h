@@ -46,7 +46,7 @@ template <typename T, nn::layer Layer> class llama3_safetensor_serializer {
 public:
     using value_type = nn::indirect_layer<Layer>;
 
-    /// Creates a new instance of a layer adaptor with the Llama3 options.
+    /// Creates a new instance of a layer serializer with the Llama3 options.
     llama3_safetensor_serializer(
         const nn::llama3_options& options, hardware_accelerator& accelerator
     )
