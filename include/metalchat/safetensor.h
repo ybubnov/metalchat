@@ -484,6 +484,21 @@ public:
 };
 
 
+template <typename Serializer>
+concept safetensor_serializer = requires(Serializer s) {
+    typename Serializer::value_type;
+
+    {
+        s.load(std::declval<safetensor_document&>())
+    } -> std::same_as<typename Serializer::value_type>;
+    {
+        s.save(
+            std::declval<safetensor_document&>(), std::declval<typename Serializer::value_type&>()
+        )
+    } -> std::same_as<void>;
+};
+
+
 template <typename Adaptor>
 concept safetensor_document_adaptor =
     requires(std::remove_reference_t<Adaptor> const a, const safetensor_document& document) {

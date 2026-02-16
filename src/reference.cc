@@ -48,15 +48,6 @@ namespace metalchat {
 namespace reference {
 
 
-safetensor_document
-llama3_document_adaptor::adapt(const safetensor_document& document) const
-{
-    auto doc = document;
-    doc.insert("output.weight", "tok_embeddings.weight");
-    return doc;
-}
-
-
 nn::llama3_options
 llama3_options_serializer::load(std::istream& is) const
 {
