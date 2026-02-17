@@ -124,8 +124,7 @@ model_command::model_command(basic_command& parent)
     _M_pull.add_argument("-p", "--partitioning")
         .help("a model partitioning strategy")
         .metavar("<partitioning>")
-        .choices(partitioning::consolidated)
-        .default_value(partitioning::consolidated)
+        .choices(partitioning::consolidated, partitioning::sharded)
         .nargs(1)
         .store_into(_M_partitioning);
     push_handler(_M_pull, [&](const command_context& c) { pull(c); });

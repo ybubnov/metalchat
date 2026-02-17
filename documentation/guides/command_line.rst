@@ -43,7 +43,7 @@ directory.
 
 .. code:: console
 
-   $ metalchat model pull https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct
+   $ metalchat model pull -p consolidated https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct
 
 This command assigns to each model a SHA-1 identifier comprised of a repository URL, model
 architecture, model variant, and weights partitioning. You can use this identifier to switch
