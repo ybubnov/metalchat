@@ -276,6 +276,7 @@ public:
     using container_pointer = std::shared_ptr<container_type>;
 
     _HardwareNocopyAllocator(metal::shared_device device);
+    _HardwareNocopyAllocator(const _HardwareNocopyAllocator&) = default;
 
     container_pointer
     allocate(const void* ptr, std::size_t size);
@@ -452,7 +453,7 @@ public:
     using container_pointer = std::shared_ptr<container_type>;
 
     _HardwareResidentAllocator(metal::shared_device device, std::size_t capacity);
-    _HardwareResidentAllocator(_HardwareResidentAllocator&&) = default;
+    _HardwareResidentAllocator(const _HardwareResidentAllocator&) = default;
 
     ~_HardwareResidentAllocator();
 
@@ -532,7 +533,7 @@ public:
     hardware_resident_allocator(
         Allocator&& alloc, metal::shared_device device, std::size_t capacity = 256
     )
-    : _M_alloc(std::move(alloc)),
+    : _M_alloc(std::forward<Allocator>(alloc)),
       _M_resident_alloc(device, capacity)
     {}
 
@@ -948,7 +949,7 @@ public:
     {}
 
     aliasing_allocator(Allocator&& alloc, std::shared_ptr<void> ptr)
-    : _M_alloc(std::move(alloc)),
+    : _M_alloc(std::forward<Allocator>(alloc)),
       _M_ptr(ptr)
     {}
 
@@ -1043,7 +1044,7 @@ public:
     {}
 
     paginated_allocator_adapter(Allocator&& alloc, size_type max_size, size_type page_size)
-    : _M_alloc(std::move(alloc)),
+    : _M_alloc(std::forward<Allocator>(alloc)),
       _M_max_size(max_size),
       _M_page_size(page_size)
     {}
@@ -1053,7 +1054,7 @@ public:
     {}
 
     paginated_allocator_adapter(Allocator&& alloc, size_type max_size)
-    : paginated_allocator_adapter(std::move(alloc), max_size, page_size())
+    : paginated_allocator_adapter(std::forward<Allocator>(alloc), max_size, page_size())
     {}
 
     auto

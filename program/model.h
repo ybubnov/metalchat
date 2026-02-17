@@ -203,7 +203,22 @@ public:
     transformer_type
     retrieve_transformer()
     {
-        auto transformer = _M_repo.retrieve_transformer(retrieve_options());
+        using consolidated_repository = filesystem_repository<Transformer, safetensor_document>;
+        using sharded_repository = filesystem_repository<Transformer, sharded_safetensor_document>;
+
+        using retriever_type = std::function<transformer_type(const options_type&)>;
+        retriever_type retrieve_transformer = [&](const options_type& options) {
+            consolidated_repository repo(_M_repo.path());
+            return repo.retrieve_transformer("model.safetensors", options);
+        };
+
+        if (_M_manifest.model.partitioning == partitioning::sharded) {
+            retrieve_transformer = [&](const options_type& options) {
+                sharded_repository repo(_M_repo.path());
+                return repo.retrieve_transformer("model.safetensors.index.json", options);
+            };
+        }
+        auto transformer = retrieve_transformer(retrieve_options());
         auto inference = _M_manifest.inference.value_or(inference_section{});
 
         if (inference.sampling) {

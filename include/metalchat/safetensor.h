@@ -670,11 +670,13 @@ public:
         // so that file is closed (and evicted from mapped memory), only when
         // all sub-allocated containers are also destroyed.
         auto aliasing_alloc = aliasing_allocator(std::forward<Allocator>(alloc), file);
+        using aliasing_type = decltype(aliasing_alloc);
 
         // Some Apple devices limit the memory that is possible to allocated within
         // a single buffer, here we define a paginated allocator to split memory-mapped
         // file into the non-overlapping contiguous containers.
-        auto page_alloc = paginated_allocator_adapter(std::move(aliasing_alloc), max_size);
+        auto page_alloc =
+            paginated_allocator_adapter(std::forward<aliasing_type>(aliasing_alloc), max_size);
         auto containers = page_alloc.allocate(data_ptr, sizes);
 
         /// Independently of the specified base allocator, construct a final document,

@@ -330,11 +330,11 @@ safetensor_document
 sharded_safetensor_document::open(const std::filesystem::path& p, hardware_accelerator& accelerator)
 {
     auto alloc = accelerator.get_allocator();
-    auto nocopy_alloc = nocopy_allocator(alloc, accelerator.get_metal_device());
-    auto resident_alloc = hardware_resident_allocator(nocopy_alloc, accelerator.get_metal_device());
+
+    nocopy_allocator nocopy_alloc(alloc, accelerator.get_metal_device());
+    hardware_resident_allocator resident_alloc(nocopy_alloc, accelerator.get_metal_device());
 
     using allocator_type = decltype(resident_alloc);
-
     return open(p, std::forward<allocator_type>(resident_alloc), accelerator.max_buffer_size());
 }
 
