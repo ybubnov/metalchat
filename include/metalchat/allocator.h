@@ -441,19 +441,12 @@ private:
 
 
 class _HardwareResidentAllocator {
-private:
-    struct _HardwareResidentAllocator_data;
-
-    std::shared_ptr<_HardwareResidentAllocator_data> _M_data;
-    std::shared_ptr<std::mutex> _M_mutex;
-    std::shared_ptr<std::size_t> _M_size;
-
 public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
     _HardwareResidentAllocator(metal::shared_device device, std::size_t capacity);
-    _HardwareResidentAllocator(const _HardwareResidentAllocator&) = default;
+    _HardwareResidentAllocator(const _HardwareResidentAllocator&) = delete;
 
     ~_HardwareResidentAllocator();
 
@@ -462,6 +455,12 @@ public:
 
     container_pointer
     allocate(container_pointer&&);
+
+private:
+    struct _Memory;
+    struct _Deleter;
+
+    std::shared_ptr<_Memory> _M_mem;
 };
 
 
@@ -522,7 +521,7 @@ public:
         const Allocator& alloc, metal::shared_device device, std::size_t capacity = 256
     )
     : _M_alloc(alloc),
-      _M_resident_alloc(device, capacity)
+      _M_resident_alloc(std::make_shared<_HardwareResidentAllocator>(device, capacity))
     {}
 
     /// Constructs \ref hardware_resident_allocator from a base allocator.
@@ -534,40 +533,40 @@ public:
         Allocator&& alloc, metal::shared_device device, std::size_t capacity = 256
     )
     : _M_alloc(std::forward<Allocator>(alloc)),
-      _M_resident_alloc(device, capacity)
+      _M_resident_alloc(std::make_shared<_HardwareResidentAllocator>(device, capacity))
     {}
 
     /// The move constructor of the \ref hardware_resident_allocator.
     hardware_resident_allocator(hardware_resident_allocator&& other) = default;
 
-    /// The **deleted** copy constructor of the \ref hardware_resident_allocator.
-    hardware_resident_allocator(const hardware_resident_allocator& other) = delete;
+    /// The copy constructor of the \ref hardware_resident_allocator.
+    hardware_resident_allocator(const hardware_resident_allocator& other) = default;
 
     /// Permit allocations to be moved to resident memory and be used idependently
     /// from the given allocator.
     void
     detach()
     {
-        _M_resident_alloc.detach();
+        _M_resident_alloc->detach();
     }
 
     container_pointer
     allocate(size_type size)
     {
-        auto container = _M_resident_alloc.allocate(_M_alloc.allocate(size));
+        auto container = _M_resident_alloc->allocate(_M_alloc.allocate(size));
         return container_traits<container_type>::template rebind<value_type>(container);
     }
 
     container_pointer
     allocate(const_pointer ptr, size_type size)
     {
-        auto container = _M_resident_alloc.allocate(_M_alloc.allocate(ptr, size));
+        auto container = _M_resident_alloc->allocate(_M_alloc.allocate(ptr, size));
         return container_traits<container_type>::template rebind<value_type>(container);
     }
 
 private:
     Allocator _M_alloc;
-    _HardwareResidentAllocator _M_resident_alloc;
+    std::shared_ptr<_HardwareResidentAllocator> _M_resident_alloc;
 };
 
 

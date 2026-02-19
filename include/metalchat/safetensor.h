@@ -948,8 +948,9 @@ struct sharded_safetensor_document {
 
             processed_documents.insert(filename);
             auto document_path = index_path / filename;
+            auto allocator = alloc;
 
-            auto document = safetensor_document::open(document_path, alloc, max_size);
+            auto document = safetensor_document::open(document_path, allocator, max_size);
             for (auto it = document.begin(); it != document.end(); it++) {
                 consolidated.insert(*it);
             }
