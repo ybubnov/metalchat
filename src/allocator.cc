@@ -44,7 +44,7 @@ struct _HardwareHeapAllocator::_Deleter {
 
 
 _HardwareHeapAllocator::_HardwareHeapAllocator(metal::shared_device device, std::size_t capacity)
-: _M_mem(std::make_shared<_HardwareHeapAllocator::_Memory>())
+: _M_mem(std::make_shared<_Memory>())
 {
     auto heap_options_ptr = MTL::HeapDescriptor::alloc();
     auto heap_options = NS::TransferPtr(heap_options_ptr->init());
@@ -112,59 +112,55 @@ _HardwareHeapAllocator::allocate(std::size_t size)
 }
 
 
-struct _HardwareMemoryAllocator::_HardwareMemoryAllocator_data {
+struct _HardwareMemoryAllocator::_Memory {
     NS::SharedPtr<MTL::Device> device;
-
-    _HardwareMemoryAllocator_data(NS::SharedPtr<MTL::Device> d)
-    : device(d)
-    {}
 };
 
 
 _HardwareMemoryAllocator::_HardwareMemoryAllocator(metal::shared_device device)
-: _M_data(std::make_shared<_HardwareMemoryAllocator::_HardwareMemoryAllocator_data>(device->ptr))
-{}
+: _M_mem(std::make_shared<_Memory>())
+{
+    _M_mem->device = device->ptr;
+}
 
 
 _HardwareMemoryAllocator::container_pointer
 _HardwareMemoryAllocator::allocate(std::size_t size)
 {
-    auto memory_ptr = _M_data->device->newBuffer(size, MTL::ResourceStorageModeShared);
-    auto buffer_ptr = metal::make_buffer(memory_ptr);
-
-    return std::make_shared<_HardwareMemoryAllocator::container_type>(buffer_ptr);
-}
-
-
-_HardwareMemoryAllocator::container_pointer
-_HardwareMemoryAllocator::allocate(const void* ptr, std::size_t size)
-{
-    auto memory_ptr = _M_data->device->newBuffer(ptr, size, MTL::ResourceStorageModeShared);
+    auto memory_ptr = _M_mem->device->newBuffer(size, MTL::ResourceStorageModeShared);
     auto buffer_ptr = metal::make_buffer(memory_ptr);
 
     return std::make_shared<container_type>(buffer_ptr);
 }
 
 
-struct _HardwareNocopyAllocator::_HardwareNocopyAllocator_data {
-    NS::SharedPtr<MTL::Device> device;
+_HardwareMemoryAllocator::container_pointer
+_HardwareMemoryAllocator::allocate(const void* ptr, std::size_t size)
+{
+    auto memory_ptr = _M_mem->device->newBuffer(ptr, size, MTL::ResourceStorageModeShared);
+    auto buffer_ptr = metal::make_buffer(memory_ptr);
 
-    _HardwareNocopyAllocator_data(NS::SharedPtr<MTL::Device> d)
-    : device(d)
-    {}
+    return std::make_shared<container_type>(buffer_ptr);
+}
+
+
+struct _HardwareNocopyAllocator::_Memory {
+    NS::SharedPtr<MTL::Device> device;
 };
 
 
 _HardwareNocopyAllocator::_HardwareNocopyAllocator(metal::shared_device device)
-: _M_data(std::make_shared<_HardwareNocopyAllocator::_HardwareNocopyAllocator_data>(device->ptr))
-{}
+: _M_mem(std::make_shared<_Memory>())
+{
+    _M_mem->device = device->ptr;
+}
 
 
 _HardwareNocopyAllocator::container_pointer
 _HardwareNocopyAllocator::allocate(const void* ptr, std::size_t size)
 {
     auto options = MTL::ResourceStorageModeShared | MTL::ResourceHazardTrackingModeUntracked;
-    auto memory_ptr = _M_data->device->newBuffer(ptr, size, options, nullptr);
+    auto memory_ptr = _M_mem->device->newBuffer(ptr, size, options, nullptr);
 
     if (memory_ptr == nullptr) {
         throw alloc_error(std::format(

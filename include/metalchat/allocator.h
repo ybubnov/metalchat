@@ -266,11 +266,6 @@ public:
 
 
 class _HardwareNocopyAllocator {
-private:
-    struct _HardwareNocopyAllocator_data;
-
-    std::shared_ptr<_HardwareNocopyAllocator_data> _M_data;
-
 public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
@@ -280,6 +275,11 @@ public:
 
     container_pointer
     allocate(const void* ptr, std::size_t size);
+
+private:
+    struct _Memory;
+
+    std::shared_ptr<_Memory> _M_mem;
 };
 
 
@@ -571,22 +571,23 @@ private:
 
 
 class _HardwareMemoryAllocator {
-private:
-    struct _HardwareMemoryAllocator_data;
-
-    std::shared_ptr<_HardwareMemoryAllocator_data> _M_data;
-
 public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
     _HardwareMemoryAllocator(metal::shared_device device);
+    _HardwareMemoryAllocator(const _HardwareMemoryAllocator&) = default;
 
     container_pointer
     allocate(std::size_t size);
 
     container_pointer
     allocate(const void* ptr, std::size_t size);
+
+private:
+    struct _Memory;
+
+    std::shared_ptr<_Memory> _M_mem;
 };
 
 
