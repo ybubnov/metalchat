@@ -626,21 +626,21 @@ private:
 
 
 class _HardwareHeapAllocator {
-private:
-    struct _HardwareHeapAllocator_data;
-
-    std::shared_ptr<_HardwareHeapAllocator_data> _M_data;
-    std::shared_ptr<std::mutex> _M_mutex;
-    std::shared_ptr<std::size_t> _M_size;
-
 public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
     _HardwareHeapAllocator(metal::shared_device device, std::size_t capacity);
+    _HardwareHeapAllocator(const _HardwareHeapAllocator&) = default;
 
     container_pointer
     allocate(std::size_t size);
+
+private:
+    struct _Memory;
+    struct _Deleter;
+
+    std::shared_ptr<_Memory> _M_mem;
 };
 
 
