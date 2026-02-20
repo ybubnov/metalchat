@@ -120,12 +120,22 @@ struct safetensor_metadata {
 };
 
 
+/// This structure represents a file used in a sharded safetensor distribution format
+/// to specify locations of the safetensor files comprising a single model.
 struct safetensor_index {
     std::unordered_map<std::string, std::string> metadata;
     std::unordered_map<std::string, std::string> weight_map;
 
     static safetensor_index
     open(std::istream&);
+};
+
+
+/// This structure represents a safetensor header, where the metadata (denoted as
+/// `__metadata__`) field in the specified is defined as a separate member.
+struct safetensor_header {
+    std::vector<safetensor_metadata> tensors;
+    std::unordered_map<std::string, std::string, _StringHash> metadata;
 };
 
 
@@ -501,25 +511,35 @@ concept safetensor_serializer = requires(Serializer s) {
 
 /// A document for writing and reading tensors in a `safetensor` format.
 class safetensor_document {
+public:
+    /// A container type used to store metadata of the \ref safetensor_document.
+    using metadata_container = std::unordered_map<std::string, std::string, _StringHash>;
+
+    /// An iterator type of safetensor instances.
+    using iterator = safetensor_iterator;
+
+    /// A constant safetensor iterator type.
+    using const_iterator = const iterator;
+
 private:
     using safetensor_container = std::shared_ptr<basic_container>;
 
-    std::vector<safetensor_metadata> _M_metadata;
+    metadata_container _M_metadata;
+    std::vector<safetensor_metadata> _M_tensors;
     std::vector<safetensor_container> _M_containers;
     std::unordered_map<std::string, std::size_t, _StringHash> _M_names;
 
     safetensor_typeinfo _M_typeinfo;
 
-    /// Parse safetensor metadata from the given file.
+    /// Parse safetensor header from the given file.
     ///
-    /// Read header length and JSON-serialized tensor definitions into the metadata
-    /// structure. Elements of the resulting vector are sorted by data offset in
-    /// increasing order.
-    static std::vector<safetensor_metadata>
-    parse_metadata(std::istream& is);
+    /// Read header length and JSON-serialized tensor definitions into the \ref safetensor_header
+    /// structure. Elements of the resulting vector are sorted by data offset in increasing order.
+    static safetensor_header
+    parse_header(std::istream& is);
 
     void
-    insert(const safetensor_metadata& metadata, const safetensor_container& container);
+    insert(const safetensor_metadata& tensor, const safetensor_container& container);
 
     void
     load(const safetensor& st, basic_tensor& tensor) const;
@@ -530,9 +550,6 @@ private:
     container_offset() const;
 
 public:
-    using iterator = safetensor_iterator;
-    using const_iterator = const iterator;
-
     /// A default \ref safetensor_document constructor.
     safetensor_document();
 
@@ -615,12 +632,12 @@ public:
     static safetensor_document
     open(std::istream& is, Allocator alloc)
     {
-        auto metadata = parse_metadata(is);
+        auto header = parse_header(is);
 
         safetensor_document document;
         safetensor_allocator<Allocator> allocator;
 
-        for (const auto& m : metadata) {
+        for (const auto& m : header.tensors) {
             auto container_ptr = allocator.allocate(m.dtype, m.size(), alloc);
             auto data_ptr = static_cast<char*>(container_ptr->data_ptr());
 
@@ -634,6 +651,7 @@ public:
             document.insert(m, container_ptr);
         }
 
+        document._M_metadata = header.metadata;
         return document;
     }
 
@@ -657,10 +675,10 @@ public:
         spanbuf streambuf(file->data(), file->size());
         std::istream safetensor_stream(&streambuf);
 
-        auto metadata = parse_metadata(safetensor_stream);
+        auto header = parse_header(safetensor_stream);
 
         std::vector<std::size_t> sizes;
-        for (const auto& m : metadata) {
+        for (const auto& m : header.tensors) {
             sizes.push_back(m.size());
         }
 
@@ -696,13 +714,14 @@ public:
         safetensor_document document;
         safetensor_allocator<allocator_type> allocator;
 
-        for (const auto& m : metadata) {
+        for (const auto& m : header.tensors) {
             auto data = container_data_ptr + m.data_offsets[0];
 
             auto container_ptr = allocator.allocate(m.dtype, data, m.size(), container_alloc);
             document.insert(m, std::move(container_ptr));
         }
 
+        document._M_metadata = header.metadata;
         return document;
     }
 
@@ -903,6 +922,12 @@ public:
     /// \param p A path to the file to save tensors.
     void
     save(const std::filesystem::path& p);
+
+    /// Get a reference to the \ref safetensor_document metadata.
+    ///
+    /// \return a reference to the metadata container.
+    metadata_container&
+    get_metadata();
 };
 
 
