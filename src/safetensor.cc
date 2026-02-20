@@ -22,8 +22,10 @@ safetensor_index::open(std::istream& stream)
 
 
 safetensor_document::safetensor_document()
-: _M_metadata(),
+: _M_tensors(),
   _M_containers(),
+  _M_metadata(),
+  _M_names(),
   _M_typeinfo()
 {}
 
@@ -32,7 +34,7 @@ std::vector<std::size_t>
 safetensor_document::offsets() const
 {
     std::vector<std::size_t> offsets;
-    for (const auto& m : _M_metadata) {
+    for (const auto& m : _M_tensors) {
         offsets.push_back(m.data_offsets[0]);
     }
     return offsets;
@@ -43,8 +45,8 @@ std::vector<std::size_t>
 safetensor_document::sizes() const
 {
     std::vector<std::size_t> result;
-    for (const auto& metadata : _M_metadata) {
-        result.push_back(metadata.data_offsets[1] - metadata.data_offsets[0]);
+    for (const auto& tensor : _M_tensors) {
+        result.push_back(tensor.data_offsets[1] - tensor.data_offsets[0]);
     }
     return result;
 }
@@ -53,33 +55,33 @@ safetensor_document::sizes() const
 safetensor_document::iterator
 safetensor_document::begin()
 {
-    return iterator(_M_metadata.begin(), _M_containers.begin());
+    return iterator(_M_tensors.begin(), _M_containers.begin());
 }
 
 
 safetensor_document::iterator
 safetensor_document::end()
 {
-    return iterator(_M_metadata.end(), _M_containers.end());
+    return iterator(_M_tensors.end(), _M_containers.end());
 }
 
 
 safetensor_document::const_iterator
 safetensor_document::begin() const
 {
-    return iterator(_M_metadata.begin(), _M_containers.begin());
+    return iterator(_M_tensors.begin(), _M_containers.begin());
 }
 
 
 safetensor_document::const_iterator
 safetensor_document::end() const
 {
-    return iterator(_M_metadata.end(), _M_containers.end());
+    return iterator(_M_tensors.end(), _M_containers.end());
 }
 
 
-std::vector<safetensor_metadata>
-safetensor_document::parse_metadata(std::istream& is)
+safetensor_header
+safetensor_document::parse_header(std::istream& is)
 {
     // Read the length of the header and then the header itself, ensure that the
     // the file contains enough data to avoid reading from inaccessible regions.
@@ -101,34 +103,33 @@ safetensor_document::parse_metadata(std::istream& is)
         ));
     }
 
-    std::string_view header(header_bytes, sizeof(header_bytes));
-    std::vector<safetensor_metadata> metadata;
+    std::string_view header_json(header_bytes, sizeof(header_bytes));
+    safetensor_header header;
 
-    using metadata_type = std::map<std::string, std::string>;
-    using value_type = std::variant<safetensor_metadata, metadata_type>;
-    using header_type = std::map<std::string, value_type>;
+    using value_type = std::variant<safetensor_metadata, metadata_container>;
+    using header_type = std::unordered_map<std::string, value_type>;
 
-    auto tensor_metadata = jsoncons::decode_json<header_type>(header);
-
-    for (auto [name, value] : tensor_metadata) {
+    auto header_data = jsoncons::decode_json<header_type>(header_json);
+    for (auto [name, value] : header_data) {
         // Shame on designers of safetensor specification, garbage like this should
         // not be presented on the same level as tensor structures.
         if (name == "__metadata__") {
+            header.metadata = std::get<metadata_container>(value);
             continue;
         }
 
         auto meta = std::get<safetensor_metadata>(value);
         meta.name = name;
-        metadata.push_back(meta);
+        header.tensors.push_back(meta);
     }
 
     // Order metadata entries to ensure that we access file sequentially.
-    auto metadata_comp = [](const safetensor_metadata& a, const safetensor_metadata& b) {
+    auto comparator = [](const safetensor_metadata& a, const safetensor_metadata& b) {
         return a.data_offsets[0] < b.data_offsets[0];
     };
-    std::sort(metadata.begin(), metadata.end(), metadata_comp);
+    std::sort(header.tensors.begin(), header.tensors.end(), comparator);
 
-    return metadata;
+    return header;
 }
 
 
@@ -154,11 +155,11 @@ safetensor_document::open(const std::filesystem::path& p, hardware_accelerator& 
 
 void
 safetensor_document::insert(
-    const safetensor_metadata& metadata, const safetensor_container& container
+    const safetensor_metadata& tensor, const safetensor_container& container
 )
 {
-    _M_names.insert_or_assign(metadata.name, _M_metadata.size());
-    _M_metadata.push_back(metadata);
+    _M_names.insert_or_assign(tensor.name, _M_tensors.size());
+    _M_tensors.push_back(tensor);
     _M_containers.push_back(container);
 }
 
@@ -167,8 +168,8 @@ std::size_t
 safetensor_document::container_offset() const
 {
     std::size_t offset = 0;
-    if (_M_metadata.size() > 0) {
-        const auto& last = _M_metadata.back();
+    if (_M_tensors.size() > 0) {
+        const auto& last = _M_tensors.back();
         offset = last.data_offsets[1];
     }
     return offset;
@@ -182,14 +183,14 @@ safetensor_document::insert(const safetensor& st)
     auto offset = container_offset();
     auto container_ptr = st.container_ptr();
 
-    safetensor_metadata metadata{
+    safetensor_metadata tensordata{
         .name = st.name(),
         .dtype = st.dtype(),
         .shape = {sizes.begin(), sizes.end()},
         .data_offsets = {offset, offset + container_ptr->size()}
     };
 
-    insert(metadata, container_ptr);
+    insert(tensordata, container_ptr);
 }
 
 
@@ -202,14 +203,14 @@ safetensor_document::insert(const std::string& name, const basic_tensor& tensor)
 
     const auto& [dtype_name, _] = _M_typeinfo[tensor.dtype()];
 
-    safetensor_metadata metadata{
+    safetensor_metadata tensordata{
         .name = name,
         .dtype = dtype_name,
         .shape = {sizes.begin(), sizes.end()},
         .data_offsets = {offset, offset + container_ptr->size()}
     };
 
-    insert(metadata, container_ptr);
+    insert(tensordata, container_ptr);
 }
 
 
@@ -217,11 +218,11 @@ void
 safetensor_document::insert(const std::string& name, const std::string& source)
 {
     auto pos = _M_names.at(source);
-    auto metadata = _M_metadata[pos];
+    auto tensor = _M_tensors[pos];
     auto container_ptr = _M_containers[pos];
 
-    metadata.name = name;
-    insert(metadata, container_ptr);
+    tensor.name = name;
+    insert(tensor, container_ptr);
 }
 
 
@@ -295,23 +296,33 @@ safetensor_document::save(const std::filesystem::path& p, nn::basic_layer& layer
 void
 safetensor_document::save(const std::filesystem::path& p)
 {
-    std::unordered_map<std::string, safetensor_metadata> metadata;
-    for (auto m : _M_metadata) {
-        metadata.insert_or_assign(m.name, m);
+    using value_type = std::variant<safetensor_metadata, metadata_container>;
+    using header_type = std::unordered_map<std::string, value_type>;
+
+    header_type header({{"__metadata__", _M_metadata}});
+    for (auto tensor : _M_tensors) {
+        header.insert_or_assign(tensor.name, tensor);
     }
 
-    std::string header;
-    jsoncons::encode_json(metadata, header);
+    std::string header_json;
+    jsoncons::encode_json(header, header_json);
 
-    auto header_size = header.size();
+    auto header_size = header_json.size();
 
     basic_memfile file(p, std::ios::out);
     file.write(&header_size, sizeof(header_size));
-    file.write(header.c_str(), header_size);
+    file.write(header_json.c_str(), header_size);
 
-    for (std::size_t i = 0; i < _M_metadata.size(); i++) {
-        file.write(_M_containers[i]->data_ptr(), _M_metadata[i].size());
+    for (std::size_t i = 0; i < _M_tensors.size(); i++) {
+        file.write(_M_containers[i]->data_ptr(), _M_tensors[i].size());
     }
+}
+
+
+safetensor_document::metadata_container&
+safetensor_document::get_metadata()
+{
+    return _M_metadata;
 }
 
 
