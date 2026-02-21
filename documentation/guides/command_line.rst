@@ -54,6 +54,14 @@ between models.
    $ metalchat model list --abbrev
    e37f2df  llama3  consolidated  https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct
 
+When you already have a cloned repository with a model, you could pull it as well. This command
+creates hard links to the necessary files, so even if you remove the original directory, the model
+remains functional.
+
+.. code:: console
+
+   $ metalchat model pull -p consolidated file:///var/models/Llama-3.2-1B-Instruct
+
 
 Switching models
 ^^^^^^^^^^^^^^^^

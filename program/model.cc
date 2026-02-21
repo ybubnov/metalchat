@@ -62,33 +62,80 @@ model_provider::remove(const std::string& id)
 
 
 void
+model_provider::insert_local(const manifest& m, const std::filesystem::path& model_path)
+{
+    using filesystem_type = hard_linking_filesystem;
+    using transformer_type = huggingface::llama3;
+    using repository_type = huggingface_repository<transformer_type, filesystem_type>;
+
+    url repo_url(m.model.repository);
+    auto repo_remote = std::filesystem::canonical(repo_url.path());
+
+    repository_type repository(repo_remote, model_path);
+    repository.clone();
+}
+
+
+void
+model_provider::insert_https(const manifest& m, const std::filesystem::path& model_path)
+{
+    using filesystem_type = http_tracking_filesystem;
+    using transformer_type = huggingface::llama3;
+    using repository_type = huggingface_repository<transformer_type, filesystem_type>;
+
+    url repo_url(m.model.repository);
+
+    http_bearer_auth<keychain_provider> http_auth;
+    filesystem_type filesystem(repo_url, http_auth);
+
+    auto repo_id = repo_url.path();
+    auto repo_remote = repository_type::resolve_remote(repo_id, filesystem);
+
+    repository_type repository(repo_remote, model_path, filesystem);
+    repository.clone();
+}
+
+
+void
 model_provider::insert(const manifest& m)
 {
     auto model_id = m.id();
     auto model_path = resolve_path(model_id);
+    auto model_manifest = m;
     auto manifest_path = model_path / manifest::default_name;
 
     if (exists(model_id)) {
         throw std::invalid_argument("fatal: model already exists");
     }
 
-    std::cout << "Pulling from '" << m.model.repository << "'..." << std::endl;
+    // URL performs path normalization, therefore relative path is squashed,
+    // for example: file:///users/username/../../file.txt becomes file:///file.txt.
+    url model_url(model_manifest.model.repository);
+    model_manifest.model.repository = model_url.string();
 
-    // TODO: add support of different model types.
-    using filesystem_type = http_tracking_filesystem;
-    using transformer_type = huggingface::llama3;
-    using http_repository = huggingface_repository<transformer_type, filesystem_type>;
+    std::cout << "Pulling from '" << model_manifest.model.repository << "'..." << std::endl;
 
-    url repo_url(m.model.repository);
+    using path = std::filesystem::path;
+    using cloner_type = std::function<void(const manifest&, const path&)>;
 
-    http_bearer_auth<keychain_provider> http_auth;
-    http_tracking_filesystem filesystem(repo_url, http_auth);
-    http_repository repository(repo_url.path(), model_path, filesystem);
+    std::unordered_map<std::string, cloner_type> protocols(
+        {{"file", model_provider::insert_local}, {"https", model_provider::insert_https}}
+    );
 
-    repository.clone();
+    auto it = protocols.find(model_url.protocol());
+    if (it == protocols.end()) {
+        throw std::invalid_argument(
+            std::format("model: '{}' is an unsupported URL protocol", model_url.protocol())
+        );
+    }
 
-    ManifestFile file(manifest_path, tomlformat::multiline);
-    file.write(m);
+    auto& clone = it->second;
+    clone(model_manifest, model_path);
+
+    ManifestFile manifest_file(manifest_path, tomlformat::multiline);
+    manifest_file.write(model_manifest);
+
+    std::cout << "Digest: " << model_id << std::endl;
 }
 
 

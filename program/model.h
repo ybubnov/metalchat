@@ -8,6 +8,7 @@
 #include <metalchat/repository.h>
 
 #include "command.h"
+#include "filesystem.h"
 #include "manifest.h"
 
 
@@ -60,10 +61,21 @@ public:
     void
     remove(const std::string& id);
 
+    /// Insert a new model into the model repository.
+    ///
+    /// Depending on the repository's protocol specified in the manifest, the implementation
+    /// uses the appropriate mechanism to insert a model. For example, in case of HTTP schema,
+    /// model is downloaded over HTTP.
     void
     insert(const manifest&);
 
 private:
+    static void
+    insert_local(const manifest&, const std::filesystem::path& p);
+
+    static void
+    insert_https(const manifest&, const std::filesystem::path& p);
+
     std::filesystem::path
     resolve_path(const std::string& id) const;
 
@@ -121,15 +133,14 @@ template <typename T> struct nucleus_sampler_traits {
 /// A container of the supported sampling strategies available through manifest file.
 template <typename T> class sampler_container {
 public:
-    using value_type = nn::basic_sampler<T>;
-    using pointer = std::shared_ptr<value_type>;
-    using constructor_type = std::function<pointer(options_section)>;
+    using value_type = std::shared_ptr<nn::basic_sampler<T>>;
+    using constructor_type = std::function<value_type(options_section)>;
 
     sampler_container()
     : _M_values({{"nucleus", nucleus_sampler_traits<T>::construct}})
     {}
 
-    pointer
+    value_type
     find(const options_section& options) const
     {
         auto type = options.find("type");
@@ -143,11 +154,55 @@ public:
         auto sampler_type = std::get<std::string>(type->second);
         auto sampler = _M_values.find(sampler_type);
         if (sampler == _M_values.end()) {
-            throw std::runtime_error(std::format("sampler: type '{}' not registered", sampler_type)
+            throw std::runtime_error(
+                std::format("sampler: type '{}' is not registered", sampler_type)
             );
         }
 
         auto& constructor = sampler->second;
+        return constructor(options);
+    }
+
+private:
+    std::unordered_map<std::string, constructor_type> _M_values;
+};
+
+
+template <language_transformer Transformer> class transformer_container {
+private:
+    template <typename Document>
+    using repository_type = filesystem_repository<Transformer, Document>;
+
+public:
+    using layer_type = Transformer::layer_type;
+    using options_type = Transformer::options_type;
+    using value_type = transformer<layer_type>;
+    using constructor_type = std::function<value_type(const options_type&)>;
+
+    transformer_container(const std::filesystem::path& p)
+    : _M_values()
+    {
+        _M_values.insert_or_assign(partitioning::consolidated, [=](const options_type& options) {
+            repository_type<safetensor_document> repository(p);
+            return repository.retrieve_transformer("model.safetensors", options);
+        });
+        _M_values.insert_or_assign(partitioning::sharded, [=](const options_type& options) {
+            repository_type<sharded_safetensor_document> repository(p);
+            return repository.retrieve_transformer("model.safetensors.index.json", options);
+        });
+    }
+
+    value_type
+    find(const model_section& model, const options_type& options) const
+    {
+        auto transformer = _M_values.find(model.partitioning);
+        if (transformer == _M_values.end()) {
+            throw std::runtime_error(
+                std::format("transformer: partitioning '{}' is not supported", model.partitioning)
+            );
+        }
+
+        auto& constructor = transformer->second;
         return constructor(options);
     }
 
@@ -167,6 +222,7 @@ public:
     using tokenizer_loader = Transformer::tokenizer_loader;
 
     using transformer_type = transformer<layer_type>;
+    using transformer_constructor = std::function<transformer_type(const options_type&)>;
 
     scoped_repository_adapter(const std::filesystem::path& root_path, const manifest& m)
     : _M_repo(root_path),
@@ -203,24 +259,12 @@ public:
     transformer_type
     retrieve_transformer()
     {
-        using consolidated_repository = filesystem_repository<Transformer, safetensor_document>;
-        using sharded_repository = filesystem_repository<Transformer, sharded_safetensor_document>;
+        auto options = retrieve_options();
 
-        using retriever_type = std::function<transformer_type(const options_type&)>;
-        retriever_type retrieve_transformer = [&](const options_type& options) {
-            consolidated_repository repo(_M_repo.path());
-            return repo.retrieve_transformer("model.safetensors", options);
-        };
+        transformer_container<Transformer> transformers(_M_repo.path());
+        auto transformer = transformers.find(_M_manifest.model, options);
 
-        if (_M_manifest.model.partitioning == partitioning::sharded) {
-            retrieve_transformer = [&](const options_type& options) {
-                sharded_repository repo(_M_repo.path());
-                return repo.retrieve_transformer("model.safetensors.index.json", options);
-            };
-        }
-        auto transformer = retrieve_transformer(retrieve_options());
         auto inference = _M_manifest.inference.value_or(inference_section{});
-
         if (inference.sampling) {
             using value_type = transformer_type::value_type;
             sampler_container<value_type> samplers;
