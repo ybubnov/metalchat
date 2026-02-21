@@ -9,6 +9,7 @@
 
 #include <filesystem>
 #include <format>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <iterator>
@@ -191,6 +192,13 @@ public:
         http_file file(_M_url / path);
         use_middleware(file);
         read(file, std::ostream_iterator<char>(output));
+    }
+
+    void
+    copy(const std::string& src, const std::string& dst) const
+    {
+        std::ofstream filestream(dst, std::ios::trunc | std::ios::binary);
+        read(src, filestream);
     }
 
     bool

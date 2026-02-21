@@ -167,6 +167,7 @@ template <typename FileSystem>
 concept readonly_filesystem =
     requires(FileSystem const fs, const std::string& filename, std::ostream& output) {
         { fs.read(filename, output) } -> std::same_as<void>;
+        { fs.copy(filename, filename) } -> std::same_as<void>;
         { fs.exists(filename) } -> std::same_as<bool>;
     };
 
@@ -191,22 +192,25 @@ struct huggingface_repository {
     using transformer_type = transformer<layer_type>;
 
     huggingface_repository(
-        const std::string& id,
-        const std::string& revision,
-        const std::filesystem::path& p,
-        FileSystem fs = FileSystem()
+        const std::string& remote, const std::filesystem::path& repo, FileSystem fs = FileSystem()
     )
-    : _M_id(id),
-      _M_revision(revision),
+    : _M_remote(remote),
       _M_fs(fs),
-      _M_repo(p)
+      _M_repo(repo)
     {}
 
-    huggingface_repository(
-        const std::string& id, const std::filesystem::path& p, FileSystem fs = FileSystem()
-    )
-    : huggingface_repository(id, resolve_revision(id, fs), p, fs)
-    {}
+    static std::string
+    resolve_revision(const std::string& id, const FileSystem& fs)
+    {
+        // TODO: Resolve the model revision using /api/models/:model_id.
+        return "main";
+    }
+
+    static std::string
+    resolve_remote(const std::string& id, const FileSystem& fs)
+    {
+        return std::format("resolve/{}", resolve_revision(id, fs));
+    }
 
     void
     clone() const
@@ -267,8 +271,7 @@ private:
         std::filesystem::create_directories(_M_repo.path());
         const auto filepath = _M_repo.path() / filename;
 
-        std::ofstream filestream(filepath, std::ios::trunc | std::ios::binary);
-        _M_fs.read(link_to(filename), filestream);
+        _M_fs.copy(link_to(filename), filepath);
     }
 
     bool
@@ -280,23 +283,15 @@ private:
     std::string
     link_to(const std::string& resource) const
     {
-        return std::format("resolve/{}/{}", _M_revision, resource);
+        return std::format("{}/{}", _M_remote, resource);
     }
 
-    static std::string
-    resolve_revision(const std::string& id, const FileSystem& fs)
-    {
-        // TODO: Resolve the model revision using /api/models/:model_id.
-        return "main";
-    }
-
-    std::string _M_id;
-    std::string _M_revision;
+    std::string _M_remote;
     FileSystem _M_fs;
 
-    // Tensors in the public HuggingFace repositories are stored in multiple
-    // formats, but one of the most common and supported by HuggingFace infrastructure
-    // is safetensors format.
+    // Tensors in the public HuggingFace repositories are stored in
+    // multiple formats, but one of the most common and supported by
+    // HuggingFace infrastructure is safetensors format.
     filesystem_repository<Transformer, safetensor_document> _M_repo;
 };
 
