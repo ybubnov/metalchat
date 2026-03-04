@@ -1,6 +1,11 @@
 Installation
 ============
 
+.. warning::
+
+   In order to install the brew formula, you would need to download and install
+   `Xcode <https://developer.apple.com/xcode/>`_.
+
 The project is distributed as both a Framework, and a binary utility to run the model inference.
 Currently, the installation implies compilation from sources using `Homebrew <https://brew.sh/>`_
 package manager.
