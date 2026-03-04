@@ -7,7 +7,6 @@ line interpreter for inference of [Meta Llama](https://www.llama.com/) models.
 > The library API and CLI are under active development, therefore they may change without any
 > deprecation notice. See issues tab for the list of known issues or missing features.
 
-
 ## Getting started
 
 See the [getting started](https://metalchat.readthedocs.org/en/latest/guides/getting_started.html)
@@ -16,6 +15,10 @@ guide for using MetalChat as a library and
 using MetalChat to interact with LLM model from the command line.
 
 ## Installation
+
+> [!WARNING]
+> In order to install the brew formula, you would need to download and install
+> [Xcode](https://developer.apple.com/xcode/).
 
 The framework and command line utility could be installed using Homebrew package manager in a
 following way:
