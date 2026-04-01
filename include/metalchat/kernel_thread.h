@@ -71,7 +71,7 @@ private:
     ///
     /// Consider the following kernel example, where the first parameter is passed by a value
     /// and the second by a pointer to the device data:
-    /// ```c++
+    /// ```cpp
     /// kernel void greater_than_value(
     ///     device float* input, constant float& value, device float* output
     /// );

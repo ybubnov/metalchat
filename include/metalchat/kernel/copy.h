@@ -103,7 +103,7 @@ public:
     ///
     /// \return a \ref future_tensor with the kernel operation result.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = tensor<float>({{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}});
     /// auto M = tensor<bool>({{true, false, false}, {false, true, true}});
     ///
@@ -139,7 +139,7 @@ public:
 
 /// Gathers values given the index tensor.
 ///
-/// ```c++
+/// ```cpp
 /// auto T = tensor<float>({{1.0, 2.0, 3.0}, {4.0, 5.0, 6.0}});
 /// auto index = tensor<int32_t>({{0, 0}, {1, 0}});
 ///

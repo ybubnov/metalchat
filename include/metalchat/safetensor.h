@@ -313,7 +313,7 @@ private:
 /// public API for registering new, unsupported types.
 ///
 /// Here is an example of allocating a 128-element container of `int32_t` types in a heap:
-/// ```c++
+/// ```cpp
 /// using Allocator = random_memory_allocator<void>;
 /// safetensor_allocator<Allocator> dynamic_alloc;
 ///
@@ -569,7 +569,7 @@ public:
     /// \note It's guaranteed that tensors are returned in an order defined by their offset
     /// in a document.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto document = safetensor_document::open("model.safetensors");
     /// for (auto it = document.begin(); it != document.end(); ++it) {
     ///     std::cout << (*it) << std::endl;
@@ -747,7 +747,7 @@ public:
     /// to that container could be destroyed by a caller.
     ///
     /// Example:
-    /// ```c++
+    /// ```cpp
     /// auto weight = zeros<float>({3, 4});
     ///
     /// safetensor_document doc;
@@ -769,7 +769,7 @@ public:
     /// Both tensors will be sharing the same underlying container.
     ///
     /// Example:
-    /// ```c++
+    /// ```cpp
     /// auto weight = zeros<float>({3, 4});
     ///
     /// safetensor_document doc;
@@ -788,7 +788,7 @@ public:
     /// document.
     ///
     /// Example:
-    /// ```c++
+    /// ```cpp
     /// auto linear = nn::linear<float>({10, 64});
     ///
     /// safetensor_document doc;
@@ -850,7 +850,7 @@ public:
     /// document.
     ///
     /// Example:
-    /// ```c++
+    /// ```cpp
     /// hardware_accelerator accelerator;
     /// nn::linear<float> linear(accelerator);
     ///
@@ -883,7 +883,7 @@ public:
     /// \warning Tensor should be using the same container type as the safetensor document.
     ///
     /// Example:
-    /// ```c++
+    /// ```cpp
     /// tensor<float> target;
     /// auto doc = safetensor_document::open("linear.safetensors");
     /// doc.load("weight", target);

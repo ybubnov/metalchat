@@ -148,7 +148,7 @@ largest_nested_size(std::initializer_list<std::initializer_list<T>> data)
 /// A tensor can be constructed from the `std::initializer_list` or by copying data from
 /// the various sources (see various tensor constructs below);
 ///
-/// ```c++
+/// ```cpp
 /// auto T = tensor({{1.0f, -1.0f}, {1.0f, -1.0f}});
 /// std::cout << T << std::endl;
 /// // out:
@@ -161,7 +161,7 @@ largest_nested_size(std::initializer_list<std::initializer_list<T>> data)
 /// A tensor of specific data type can be constructed by specified a concrete tensor type with
 /// a template parameter `T` and/or \ref allocator , \ref memory_container, or
 /// \ref hardware_accelerator, or tensor creation operation:
-/// ```c++
+/// ```cpp
 /// auto T = zeros<int32_t>({2, 4});
 /// std::cout << T << std::endl;
 /// // out:
@@ -226,7 +226,7 @@ public:
     /// \param value the value to initialize a tensor with.
     /// \param alloc allocator to use for all memory allocations of this container.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = tensor<float, 0, scalar_memory_container<float>>(3.0f);
     /// // Same as:
     /// auto S = scalar<float>(3.0f);
@@ -243,7 +243,7 @@ public:
     ///
     /// \param data initial data of the tensor.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = tensor({1.0f, 2.0f, 3.0f, 4.0f});
     /// ```
     tensor(std::initializer_list<T> data) requires(N == 1)
@@ -259,7 +259,7 @@ public:
     ///
     /// \param data initial data of the tensor.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = tensor({{1.0f, 2.0f, 3.0f}, {3.0f, 4.0f}});
     /// std::cout << T << std::endl;
     /// // out:
@@ -293,7 +293,7 @@ public:
     ///     to copy from.
     /// \param alloc allocator to use for all memory allocations of this container.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto sizes = std::vector({4, 3, 6, 7});
     /// auto T = tensor<float, 4>(sizes.begin(), sizes.end(), random_memory_allocator<float>());
     /// ```
@@ -318,7 +318,7 @@ public:
     /// \param data the contents that will be used as data for the tensor.
     /// \param alloc allocator to use for all memory allocations of this container.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto sizes = std::vector<std::size_t>({10, 2, 5});
     /// auto contents = std::vector<float>(100, 4.0f);
     ///
@@ -343,7 +343,7 @@ public:
     ///     to copy from.
     /// \param data initial data of the tensor.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto sizes = std::vector<std::size_t>({4, 5});
     ///
     /// auto alloc = random_memory_allocator<float>();
@@ -364,7 +364,7 @@ public:
     /// \param sizes a sequence of unsigned integers defining the shape of the tensor.
     /// \param alloc allocator to use for all memory allocations of this container.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto sizes = std::vector<std::size_t>({4, 5});
     /// auto alloc = std::random_memory_allocator<float>();
     ///
@@ -382,7 +382,7 @@ public:
     /// \param sizes a sequence of unsigned integers defining the shape of the tensor.
     /// \param data initial data of the tensor.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto sizes = std::vector<std::size_t>({4, 5});
     ///
     /// auto alloc = random_memory_allocator<float>();
@@ -399,7 +399,7 @@ public:
     /// \param sizes a sequence of unsigned integers defining the shape of the tensor.
     /// \param alloc allocator to use for all memory allocations of this container.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto alloc = random_memory_allocator<float>();
     /// auto T = tensor<float>({3, 4, 5}, alloc);
     /// ```
@@ -414,7 +414,7 @@ public:
     /// \param sizes a sequence of unsigned integers defining the shape of the tensor.
     /// \param data initial data of the tensor.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto alloc = random_memory_allocator<float>();
     /// auto container_ptr = alloc.allocate(120);
     ///
@@ -432,7 +432,7 @@ public:
     /// \param access a tensor accessor defining the layout of data in the container.
     /// \param data initial data of the tensor.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto alloc = random_memory_allocator<float>();
     /// auto container_ptr = alloc.allocate(120);
     ///
@@ -502,7 +502,7 @@ public:
     ///
     /// \param dim the dimension for which to retrieve the stride.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = empty<float>({2, 5});
     /// std::cout << T.stride(0) << std::endl;
     /// // out: 5
@@ -529,7 +529,7 @@ public:
 
     /// Returns strides of the tensor.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = empty<float>({2, 5});
     /// std::cout << T.strides() << std::endl;
     /// // out: 5, 1
@@ -546,7 +546,7 @@ public:
     ///
     /// \param dim the dimension for which to retrieve the size.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = empty<float>({3, 4, 5});
     /// std::cout << T.size(1) << std::endl;
     /// // out: 4
@@ -569,7 +569,7 @@ public:
 
     /// Returns the sizes of the tensor.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = empty<float>({3, 4, 5});
     /// std::cout << T.sizes() << std::endl;
     /// // out: 3, 4, 5
@@ -597,7 +597,7 @@ public:
     ///
     /// \param dim the dimension for which to retrieve the offset.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = empty<float>({3, 4, 5});
     /// auto S = T[slice(), slice(1, 3), slice()];
     /// std::cout << S.offset(1) << std::endl;
@@ -621,7 +621,7 @@ public:
 
     /// Returns the offsets of the tensor container.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = empty<float>({3, 4, 5});
     /// std::cout << T.offsets() << std::endl;
     /// // out: 0, 0, 0
@@ -648,7 +648,7 @@ public:
 
     /// Returns the total number of elements in the tensor.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = rand<float>({1, 2, 3, 4, 5});
     /// std::cout << T.numel() << std::endl;
     /// // out: 120
@@ -707,7 +707,7 @@ public:
     /// Returns tensor's offset in the underlying storage in terms of number of storage elements
     /// (not bytes).
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = zeros<int32_t>({5});
     /// std::cout << T[slice(3), slice()].container_offset() << std::endl;
     /// // out: 3
@@ -735,7 +735,7 @@ public:
 
     /// Returns an iterator to the first element of a tensor.
     ///
-    /// ```c++
+    /// ```cpp
     /// #include <algorithm>
     ///
     /// auto T = rand<float>({4, 5, 6});
@@ -803,7 +803,7 @@ public:
     ///
     /// \param slices the slices of the tensor minor.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = rand<float>({3, 4});
     /// const auto M = T[slice(0, 1), slice(1, 3)];
     /// ```
@@ -846,7 +846,7 @@ public:
     ///
     /// \param indices the indices of the element to access.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = rand<float>({3, 4});
     /// std::cout << T.value_select(0, 2) << std::endl;
     /// ```
@@ -895,7 +895,7 @@ public:
     /// \param start index of the element to start the narrowed dimension from.
     /// \param length length of the narrowed dimension.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = rand<float>({3, 3});
     /// std::cout << T.narrow(0, 0, 2).sizes() << std::endl;
     /// // out: 2, 3
@@ -922,7 +922,7 @@ public:
     /// acceleration kernels, therefore performance of this method is suboptimal. Consider using
     /// \ref kernel::clone for Metal-accelerated tensor copying.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = rand<float>({10, 10});
     /// auto M = zeros<float>({2, 2});
     ///
@@ -950,7 +950,7 @@ public:
     ///
     /// \param indices the indices of the element to access.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = rand<float>({3, 4});
     /// std::cout << T[0, 2] << std::endl;
     /// ```
@@ -973,7 +973,7 @@ public:
     ///
     /// \param slices the minors of the tensor to access.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = rand<float>({10, 20, 3});
     /// std::cout << T[slice(1, 4), slice(2, 4), slice(0, 2)] << std::endl;
     /// ```
@@ -998,7 +998,7 @@ public:
     ///
     /// \param dim position of the tensor minor.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = rand<float>({4, 3, 4});
     /// std::cout << T[2].sizes() << std::endl;
     /// // out: 3, 4
@@ -1014,7 +1014,7 @@ public:
     ///
     /// \param dims dimensions to transpose
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = rand<float>({10, 4, 8, 128});
     /// std::cout << T.transpose({1, 0, 3, 2}) << std::endl;
     /// ```
@@ -1045,7 +1045,7 @@ public:
     ///
     /// \param dim position in the expanded shapew where the new dimension is placed.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = tensor({1.0f, 2.0f, 3.0f, 4.0f, 5.0f});
     /// std::cout << T.expand_dims(0) << std::endl;
     /// // out:
@@ -1091,7 +1091,7 @@ public:
     /// \tparam M a dimensionality of the new tensor.
     /// \param dims the desired tensor shape.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = rand<float>({4, 4});
     /// std::cout << T.sizes << std::endl;
     /// // out: 4, 4
@@ -1149,7 +1149,7 @@ public:
     /// dimensionality (M ≤ N). The resulting tensor is always a view of the original tensor data,
     /// therefore method raises an exception if it is not possible to create a view for the tensor.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto T = rand<float>({2, 4, 8, 10});
     /// std::cout << T.flatten<2>().sizes() << std::endl;
     /// // out: 64, 10

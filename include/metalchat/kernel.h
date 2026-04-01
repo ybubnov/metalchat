@@ -148,7 +148,7 @@ public:
     /// \param thread a size of 3-dimensional GPU compute thread group.
     /// \param args optional kernel arguments.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto accelerator = hardware_accelerator();
     /// auto kernel = accelerator.load<float, 16>("hadamard");
     ///
