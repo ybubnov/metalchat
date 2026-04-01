@@ -33,7 +33,7 @@ concept forward_tensor_iterator_t = std::forward_iterator<It> && requires(It it)
 /// Usually \ref tensor_iterator is constructed using methods \ref tensor::begin and
 /// \ref tensor::end. But could also be used as a standalone entity.
 ///
-/// ```c++
+/// ```cpp
 /// auto T = rand<float>({3, 4});
 /// for (auto it = T.begin(); it != T.end(); ++it) {
 ///     std::cout << (*it) << std::endl;

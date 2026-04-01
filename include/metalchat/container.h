@@ -27,7 +27,7 @@ namespace metalchat {
 ///       \ref undeclare_mapped methods.
 ///
 /// Example usage:
-/// ```c++
+/// ```cpp
 /// basic_memfile file(std::ios::in | std::ios::out);
 ///
 /// const char* str = "this is a string";
@@ -163,7 +163,7 @@ private:
 /// \param ptr2 The secondary shared pointer (kept alive along with ptr1).
 ///
 /// Example usage:
-/// ```c++
+/// ```cpp
 /// auto ptr1 = std::make_shared<int>(1);
 /// auto ptr2 = std::make_shared<float>(2.0f);
 ///
@@ -211,7 +211,7 @@ struct basic_container {
 /// \tparam T The value type stored in the container.
 ///
 /// Example usage:
-/// ```c++
+/// ```cpp
 /// class custom_container : public memory_container<float> {
 /// private:
 ///     std::vector<float> _M_data;
@@ -443,7 +443,7 @@ template <contiguous_container Container> struct container_traits {
 /// \tparam T The value type.
 ///
 /// Example usage:
-/// ```c++
+/// ```cpp
 /// // Allocate raw memory.
 /// std::shared_ptr<void> storage = std::make_shared<float[]>(1024);
 ///
@@ -574,7 +574,7 @@ template <typename T> struct container_offset<random_memory_container<T>> {
 /// \tparam T The value type.
 ///
 /// Example usage:
-/// ```c++
+/// ```cpp
 /// auto storage = std::vector<int>({1, 2, 3, 4, 5});
 ///
 /// using Container = vector_memory_container<int>;
@@ -766,7 +766,7 @@ template <typename T> struct container_offset<hardware_memory_container<T>> {
 /// \tparam T The value type.
 ///
 /// Example usage:
-/// ```c++
+/// ```cpp
 /// using Container = scalar_memory_container<double>;
 /// auto container = std::make_shared<Container>(3.14159);
 ///
@@ -823,7 +823,7 @@ private:
 /// \tparam T The value type.
 ///
 /// Example usage:
-/// ```c++
+/// ```cpp
 /// auto storage = std::vector<float>({1.0f, 2.0f, 3.0f});
 ///
 /// using Container = filebuf_memory_container<float>;
@@ -986,7 +986,7 @@ template <typename T> struct container_offset<filebuf_memory_container<T>> {
 /// \tparam T The value type.
 ///
 /// Example usage:
-/// ```c++
+/// ```cpp
 /// using Container = vector_memory_container<int>;
 /// auto storage = std::vector<int32_t>({1, 2, 3, 4, 5});
 /// auto container_ptr = std::make_shared<Container>(storage);

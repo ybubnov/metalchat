@@ -136,7 +136,7 @@ public:
     /// A new tensor will wait for completion of both self task and a new asynchronously
     /// invocable task, and only then makes result accessible.
     ///
-    /// ```c++
+    /// ```cpp
     /// #include <future>
     ///
     /// struct noop_async_func {

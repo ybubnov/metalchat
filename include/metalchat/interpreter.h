@@ -117,7 +117,7 @@ public:
     /// \param declaration A command declaration (i.e. JSON Schema by default).
     /// \param command A handler that returns the result of command execution.
     ///
-    /// ```c++
+    /// ```cpp
     /// auto command = R"({
     /// "name":"multiply",
     /// "type": "function",
@@ -139,7 +139,7 @@ public:
     ///
     /// The variable should not start with $-expansion symbol.
     ///
-    /// ```c++
+    /// ```cpp
     /// interpreter interp(/* ... */);
     /// interp.declare_variable("my_var", R"(arbitrary text)");
     /// ```

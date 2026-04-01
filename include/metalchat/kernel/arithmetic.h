@@ -101,7 +101,7 @@ public:
 ///
 /// \note The kernel performs true division. The kernel does not support type promotion.
 ///
-/// ```c++
+/// ```cpp
 /// auto input1 = tensor<float>({{3.0, 6.0, 9.0}});
 /// auto input2 = tensor<float>({{1.0, 2.0, 3.0}});
 ///

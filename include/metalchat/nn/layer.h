@@ -220,7 +220,7 @@ public:
     /// A common practice is registering upstream layers within a downstream layer constructor
     /// like in the example below.
     ///
-    /// ```c++
+    /// ```cpp
     /// using namespace metalchat;
     ///
     /// struct custom_layer : public basic_layer {
@@ -296,7 +296,7 @@ public:
     /// A common practice is registering parameters of the layers that could be updated
     /// externally (loaded from a file, or stored after inference):
     ///
-    /// ```c++
+    /// ```cpp
     /// using namespace metalchat;
     ///
     /// struct custom_layer : public basic_layer {
@@ -323,7 +323,7 @@ public:
     /// This method shared ownership of the tensor (parameter) with the caller. Consider the
     /// following example, where the parameter is constructed with the basic layer using
     /// delegated constructors, and then registered in the body of the constructor:
-    /// ```c++
+    /// ```cpp
     /// using namespace metalchat;
     ///
     /// struct custom_layer : public basic_layer {
@@ -353,7 +353,7 @@ public:
     ///
     /// Example:
     ///
-    /// ```c++
+    /// ```cpp
     /// using namespace metalchat;
     ///
     /// auto accelerator = hardware_accelerator(32);
@@ -571,7 +571,7 @@ polymorphic_layer<Layer>::operator=(indirect_layer<DerivedLayer>&& derived)
 ///
 /// \tparam Layer a type of the layers this module stores.
 ///
-/// ```c++
+/// ```cpp
 /// struct my_layer : public basic_layer {
 ///     // Step 1. Create a layer array as a type member.
 ///     layer_array<nn::linear<float>> linears;
@@ -768,7 +768,7 @@ struct layer_match_name {
 /// \param pred a predicate invoked for each layer in a search loop.
 /// \param generator a generator of \ref nn::indirect_layer instances used for replacement.
 ///
-/// ```c++
+/// ```cpp
 /// using namespace metalchat;
 ///
 /// using LLama3 = nn::llama3<bf16>;

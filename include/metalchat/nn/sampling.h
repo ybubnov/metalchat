@@ -85,7 +85,7 @@ template <typename T> struct basic_sampler {
 ///
 /// Here is an example how to create the most common sampling strategy using a composition
 /// of \ref nucleus_sampler and \ref multinomial_sampler.
-/// ```c++
+/// ```cpp
 /// using namespace metalchat::nn;
 ///
 /// auto sampler = sequential_sampler<float>({

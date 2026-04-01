@@ -85,7 +85,7 @@ concept input_token_iterator_t = requires {
 /// ```
 ///
 /// Consider the following basic example:
-/// ```c++
+/// ```cpp
 /// using namespace metalchat::text;
 ///
 /// byte_pair_encoder<text::regexp> tokenizer("tokenizer.model");

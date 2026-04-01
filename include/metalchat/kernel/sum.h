@@ -61,7 +61,7 @@ public:
 
 /// Return the sum of each row of the `input` tensor in the last dimension.
 ///
-/// ```c++
+/// ```cpp
 /// auto input = tensor<float>({{1.0, 2.0, 3.0}, {3.0, 4.0, 5.0}});
 ///
 /// auto accelerator = hardware_accelerator();
