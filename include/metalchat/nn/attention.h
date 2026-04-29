@@ -134,7 +134,7 @@ public:
 
         auto scores = mul(matmul(queries, keys, accelerator()), _M_scale, accelerator());
         if (mask.has_value()) {
-            scores = add2(scores, mask.value(), accelerator());
+            scores = add_broadcast(scores, mask.value(), accelerator());
         }
         scores = softmax(scores, accelerator());
 

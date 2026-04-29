@@ -119,20 +119,20 @@ TEST_CASE("Div broadcasted", "[kernel::div]")
 }
 
 
-TEST_CASE("Add 2-dimensional tensors", "[kernel::add2]")
+TEST_CASE("Add 2-dimensional tensors", "[kernel::add_broadcast]")
 {
     metalchat::hardware_accelerator gpu0;
-    kernel::add2<float> add(gpu0);
+    kernel::add_broadcast<float> add(gpu0);
 
-    auto input1 = shared_tensor(rand<float>({5, 32, 16, 16}));
-    auto input2 = shared_tensor(rand<float>({16, 16}));
+    auto input1 = shared_tensor(rand<float>({5, 32, 160, 160}));
+    auto input2 = shared_tensor(rand<float>({160, 160}));
     auto output = add(input1, input2).get();
 
     REQUIRE(output.dim() == 4);
     REQUIRE(output.size(0) == 5);
     REQUIRE(output.size(1) == 32);
-    REQUIRE(output.size(2) == 16);
-    REQUIRE(output.size(3) == 16);
+    REQUIRE(output.size(2) == 160);
+    REQUIRE(output.size(3) == 160);
 
     for (std::size_t i = 0; i < output.size(0); i++) {
         for (std::size_t j = 0; j < output.size(1); j++) {

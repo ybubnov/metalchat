@@ -46,20 +46,21 @@ __lib_metalchat_kernel2(add, bfloat);
 __lib_metalchat_kernel2(add, float);
 
 
-template <typename T> struct __add2_parameters {
+template <typename T> struct __add_broadcast_parameters {
     constant layout3& output_layout;
     device T* output;
     constant layout3& input1_layout;
     device const T* input1;
     constant layout2& input2_layout;
     device const T* input2;
+    constant uint& block_size;
 };
 
 
-template <typename T, uint BlockSize>
+template <typename T>
 kernel void
-add2(
-    __add2_parameters<T> params,
+add_broadcast(
+    __add_broadcast_parameters<T> params,
     uint3 gid [[threadgroup_position_in_grid]],
     uint3 tid [[thread_position_in_threadgroup]],
     uint3 threadgroup_size [[threads_per_threadgroup]]
@@ -71,28 +72,23 @@ add2(
 
     const uint dim0_size = in2.size(0);
     const uint dim1_size = in2.size(1);
-    const uint i = gid.x;
-    const uint j = tid.x + gid.y * threadgroup_size.x;
+    const uint i = gid.z;
 
-    const uint begin_z = tid.z * BlockSize;
-    const uint end_z = begin_z + BlockSize;
+    const uint begin = gid.x * threadgroup_size.x + tid.x * params.block_size;
+    const uint end = begin + params.block_size;
 
-    if (j < dim0_size) {
-#pragma unroll(BlockSize)
-        for (uint k = begin_z; k < end_z && k < dim1_size; k++) {
+    const uint k = gid.y * threadgroup_size.y + tid.y;
+
+    if (k < dim0_size) {
+        for (uint j = begin; j < end && j < dim0_size; j++) {
             out.at(i, j, k) = in1.at(i, j, k) + in2.at(j, k);
         }
     }
 }
 
 
-__lib_metalchat_kernel3_tiled(add2, 8, bfloat);
-__lib_metalchat_kernel3_tiled(add2, 16, bfloat);
-__lib_metalchat_kernel3_tiled(add2, 32, bfloat);
-
-__lib_metalchat_kernel3_tiled(add2, 8, float);
-__lib_metalchat_kernel3_tiled(add2, 16, float);
-__lib_metalchat_kernel3_tiled(add2, 32, float);
+__lib_metalchat_kernel3(add_broadcast, bfloat);
+__lib_metalchat_kernel3(add_broadcast, float);
 
 
 template <typename T> struct __sub_parameters {
