@@ -72,11 +72,11 @@ add(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 }
 
 
-template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockSize = 8>
+template <immutable_tensor Tensor1, immutable_tensor Tensor2>
 auto
-add2(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
+add_broadcast(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 {
-    kernel::add2<typename Tensor1::value_type, BlockSize> op(gpu);
+    kernel::add_broadcast<typename Tensor1::value_type> op(gpu);
     return op(t1, t2);
 }
 

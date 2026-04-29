@@ -37,42 +37,66 @@ public:
 };
 
 
-template <typename T, std::size_t BlockSize = 8> class add2 {
+template <typename T> class add_broadcast {
 private:
     basic_kernel _M_kernel;
 
 public:
-    add2(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T>("add2", BlockSize))
+    add_broadcast(hardware_accelerator& gpu)
+    : _M_kernel(gpu.load<T>("add_broadcast"))
     {}
 
-    template <immutable_tensor_t<T> Input1, immutable_tensor2_t<T> Input2>
-    requires(Input1::dim() >= 2)
+    template <immutable_tensor3_t<T> Input1, immutable_tensor2_t<T> Input2>
     auto
     operator()(Input1 input1, Input2 input2)
     {
         constexpr auto M = Input1::dim();
 
-        auto data_size = input1.numel();
-        auto dim0_size = input2.size(0);
-        auto dim1_size = input2.size(1);
-        auto num_rows = data_size / (dim0_size * dim1_size);
-
         auto expected_input1 =
             expected_tensor(input1).same_dim(input2, M - 2, 0).same_dim(input2, M - 1, 1).value();
 
-        auto input1_view = input1.view({-1, int(dim0_size), int(dim1_size)});
-        auto output_view = shared_empty_like<T>(input1_view, _M_kernel.get_allocator());
+        auto dim0_size = input2.size(0);
+        auto dim1_size = input2.size(1);
+        auto num_batches = input1.sizes().front();
 
-        auto thread_size_x = ceil_div(dim0_size, BlockSize);
-        auto thread_size_z = ceil_div(dim1_size, BlockSize);
-        auto thread = dim3(thread_size_x, 1, thread_size_z);
-        auto grid = dim3(thread_size_x * num_rows, BlockSize, thread_size_z);
+        auto alloc = _M_kernel.get_allocator();
+        auto output = shared_empty_like<T>(input1, alloc);
 
+        auto max_threads = _M_kernel.max_threads_per_threadgroup();
+
+        auto q = double(dim0_size) / double(dim0_size + dim1_size);
+        auto threads_ratio = double(max_threads) * q;
+
+        constexpr std::size_t one = 1;
+        auto max_threads_x = std::max(one, std::size_t(threads_ratio));
+        auto max_threads_y = std::max(one, std::size_t(std::floor(max_threads / max_threads_x)));
+
+
+        auto block_size_x = ceil_div(dim0_size, max_threads_x);
+        auto block_size_y = ceil_div(dim1_size, max_threads_y);
+
+        auto thread_size_x = ceil_div(dim0_size, block_size_x);
+        auto thread_size_y = ceil_div(dim1_size, block_size_y);
+
+        auto thread = dim3(thread_size_x, thread_size_y);
+
+        auto grid_size_x = thread_size_x * ceil_div(dim0_size, thread_size_x);
+        auto grid_size_y = thread_size_y * ceil_div(dim1_size, thread_size_y);
+        auto grid = dim3(grid_size_x, grid_size_y, num_batches);
+
+        auto block_size = scalar<uint32_t>(block_size_x);
         auto task = kernel_task(_M_kernel, grid, thread);
-        auto task_future = task.bind_front(output_view, input1_view, input2);
+        auto task_future = task.bind_front(output, input1, input2, block_size);
 
-        auto output = future_tensor(output_view, std::move(task_future));
+        return future_tensor(output, std::move(task_future));
+    }
+
+    template <immutable_tensor_t<T> Input1, immutable_tensor2_t<T> Input2>
+    requires(Input1::dim() > 3)
+    auto
+    operator()(Input1 input1, Input2 input2)
+    {
+        auto output = operator()(flatten<3>(input1), input2);
         return output.view(input1.shape());
     }
 };
