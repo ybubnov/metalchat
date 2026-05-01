@@ -53,7 +53,6 @@ template <typename T> struct __add_broadcast_parameters {
     device const T* input1;
     constant layout2& input2_layout;
     device const T* input2;
-    constant uint& block_size;
 };
 
 
@@ -72,17 +71,13 @@ add_broadcast(
 
     const uint dim0_size = in2.size(0);
     const uint dim1_size = in2.size(1);
+
+    const uint k = gid.x * threadgroup_size.x + tid.x;
+    const uint j = gid.y * threadgroup_size.y + tid.y;
     const uint i = gid.z;
 
-    const uint begin = gid.x * threadgroup_size.x + tid.x * params.block_size;
-    const uint end = begin + params.block_size;
-
-    const uint k = gid.y * threadgroup_size.y + tid.y;
-
-    if (k < dim0_size) {
-        for (uint j = begin; j < end && j < dim0_size; j++) {
-            out.at(i, j, k) = in1.at(i, j, k) + in2.at(j, k);
-        }
+    if (j < dim1_size && k < dim0_size) {
+        out.at(i, j, k) = in1.at(i, j, k) + in2.at(j, k);
     }
 }
 
