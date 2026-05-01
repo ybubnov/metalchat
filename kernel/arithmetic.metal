@@ -71,12 +71,12 @@ add_broadcast(
 
     const uint dim0_size = in2.size(0);
     const uint dim1_size = in2.size(1);
+
+    const uint k = gid.x * threadgroup_size.x + tid.x;
+    const uint j = gid.y * threadgroup_size.y + tid.y;
     const uint i = gid.z;
 
-    const uint j = gid.x * threadgroup_size.x + tid.x;
-    const uint k = gid.y * threadgroup_size.y + tid.y;
-
-    if (j < dim0_size && k < dim1_size) {
+    if (j < dim1_size && k < dim0_size) {
         out.at(i, j, k) = in1.at(i, j, k) + in2.at(j, k);
     }
 }
