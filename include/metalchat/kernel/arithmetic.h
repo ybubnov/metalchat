@@ -64,19 +64,15 @@ public:
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
 
-        auto q = double(dim0_size) / double(dim0_size + dim1_size);
-        auto threads_ratio = double(max_threads) * q;
+        auto q = double(dim0_size) / double(std::max(dim0_size, dim1_size));
+        auto threads_ratio = std::sqrt(double(max_threads)) * q;
 
         constexpr std::size_t one = 1;
         auto max_threads_x = std::max(one, std::size_t(threads_ratio));
         auto max_threads_y = std::max(one, std::size_t(std::floor(max_threads / max_threads_x)));
 
-
-        auto block_size_x = ceil_div(dim0_size, max_threads_x);
-        auto block_size_y = ceil_div(dim1_size, max_threads_y);
-
-        auto thread_size_x = ceil_div(dim0_size, block_size_x);
-        auto thread_size_y = ceil_div(dim1_size, block_size_y);
+        auto thread_size_x = ceil_div(dim0_size, max_threads_x);
+        auto thread_size_y = ceil_div(dim1_size, max_threads_y);
 
         auto thread = dim3(thread_size_x, thread_size_y);
 
@@ -84,9 +80,8 @@ public:
         auto grid_size_y = thread_size_y * ceil_div(dim1_size, thread_size_y);
         auto grid = dim3(grid_size_x, grid_size_y, num_batches);
 
-        auto block_size = scalar<uint32_t>(block_size_x);
         auto task = kernel_task(_M_kernel, grid, thread);
-        auto task_future = task.bind_front(output, input1, input2, block_size);
+        auto task_future = task.bind_front(output, input1, input2);
 
         return future_tensor(output, std::move(task_future));
     }
