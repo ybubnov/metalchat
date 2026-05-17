@@ -45,7 +45,7 @@ public:
         // size of the weight. Depending on this ratio more threads of a single group,
         // a larger or smaller block size is used to iterate over input dimension.
         auto q = double(dim_size) / double(emb_size + dim_size);
-        auto threads_ratio = double(max_threads) * q;
+        auto threads_ratio = std::sqrt(double(max_threads)) * q;
 
         constexpr std::size_t one = 1;
         auto max_threads_x = std::max(one, std::size_t(threads_ratio));

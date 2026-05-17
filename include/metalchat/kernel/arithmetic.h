@@ -46,52 +46,33 @@ public:
     : _M_kernel(gpu.load<T>("add_broadcast"))
     {}
 
-    template <immutable_tensor3_t<T> Input1, immutable_tensor2_t<T> Input2>
+    template <immutable_tensor2_t<T> Input1, immutable_tensor1_t<T> Input2>
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        constexpr auto M = Input1::dim();
-
-        auto expected_input1 =
-            expected_tensor(input1).same_dim(input2, M - 2, 0).same_dim(input2, M - 1, 1).value();
-
-        auto dim0_size = input2.size(0);
-        auto dim1_size = input2.size(1);
-        auto num_batches = input1.sizes().front();
+        auto expected_input1 = expected_tensor(input1).same_dim(input2, 1, 0).value();
 
         auto alloc = _M_kernel.get_allocator();
-        auto output = shared_empty_like<T>(input1, alloc);
+        auto output = shared_empty_like<T>(expected_input1, alloc);
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
-
-        auto q = double(dim0_size) / double(std::max(dim0_size, dim1_size));
-        auto threads_ratio = std::sqrt(double(max_threads)) * q;
-
-        constexpr std::size_t one = 1;
-        auto max_threads_x = std::max(one, std::size_t(threads_ratio));
-        auto max_threads_y = std::max(one, std::size_t(std::floor(max_threads / max_threads_x)));
-
-        auto thread_size_x = ceil_div(dim0_size, max_threads_x);
-        auto thread_size_y = ceil_div(dim1_size, max_threads_y);
-
-        auto thread = dim3(thread_size_x, thread_size_y);
-
-        auto grid_size_x = thread_size_x * ceil_div(dim0_size, thread_size_x);
-        auto grid_size_y = thread_size_y * ceil_div(dim1_size, thread_size_y);
-        auto grid = dim3(grid_size_x, grid_size_y, num_batches);
+        auto [grid, thread] = make_kernel_grid_2d(expected_input1, max_threads);
 
         auto task = kernel_task(_M_kernel, grid, thread);
-        auto task_future = task.bind_front(output, input1, input2);
+        auto task_future = task.bind_front(output, expected_input1, input2);
 
         return future_tensor(output, std::move(task_future));
     }
 
-    template <immutable_tensor_t<T> Input1, immutable_tensor2_t<T> Input2>
-    requires(Input1::dim() > 3)
+    template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
+    requires(Input1::dim() > 2 && Input2::dim() >= 2)
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        auto output = operator()(flatten<3>(input1), input2);
+        auto input2_flat = flatten<1>(input2);
+        auto bcast_dim = static_cast<int32_t>(input2_flat.size(0));
+
+        auto output = operator()(input1.view({-1, bcast_dim}), input2_flat);
         return output.view(input1.shape());
     }
 };

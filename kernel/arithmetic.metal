@@ -47,11 +47,11 @@ __lib_metalchat_kernel2(add, float);
 
 
 template <typename T> struct __add_broadcast_parameters {
-    constant layout3& output_layout;
+    constant layout2& output_layout;
     device T* output;
-    constant layout3& input1_layout;
+    constant layout2& input1_layout;
     device const T* input1;
-    constant layout2& input2_layout;
+    constant layout1& input2_layout;
     device const T* input2;
 };
 
@@ -60,30 +60,29 @@ template <typename T>
 kernel void
 add_broadcast(
     __add_broadcast_parameters<T> params,
-    uint3 gid [[threadgroup_position_in_grid]],
-    uint3 tid [[thread_position_in_threadgroup]],
-    uint3 threadgroup_size [[threads_per_threadgroup]]
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    tensor3<const T> in1(params.input1_layout, params.input1);
-    tensor2<const T> in2(params.input2_layout, params.input2);
-    tensor3<T> out(params.output_layout, params.output);
+    tensor2<const T> in1(params.input1_layout, params.input1);
+    tensor1<const T> in2(params.input2_layout, params.input2);
+    tensor2<T> out(params.output_layout, params.output);
 
-    const uint dim0_size = in2.size(0);
-    const uint dim1_size = in2.size(1);
+    const uint dim0_size = in1.size(0);
+    const uint dim1_size = in1.size(1);
 
-    const uint k = gid.x * threadgroup_size.x + tid.x;
-    const uint j = gid.y * threadgroup_size.y + tid.y;
-    const uint i = gid.z;
+    const uint j = gid.x * threadgroup_size.x + tid.x;
+    const uint i = gid.y * threadgroup_size.y + tid.y;
 
-    if (j < dim1_size && k < dim0_size) {
-        out.at(i, j, k) = in1.at(i, j, k) + in2.at(j, k);
+    if (i < dim0_size && j < dim1_size) {
+        out.at(i, j) = in1.at(i, j) + in2.at(j % in2.size(0));
     }
 }
 
 
-__lib_metalchat_kernel3(add_broadcast, bfloat);
-__lib_metalchat_kernel3(add_broadcast, float);
+__lib_metalchat_kernel2(add_broadcast, bfloat);
+__lib_metalchat_kernel2(add_broadcast, float);
 
 
 template <typename T> struct __sub_parameters {
