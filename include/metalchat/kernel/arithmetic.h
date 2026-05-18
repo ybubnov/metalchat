@@ -69,10 +69,10 @@ public:
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        auto input2_flat = flatten<1>(input2);
-        auto bcast_dim = static_cast<int32_t>(input2_flat.size(0));
+        auto input2_view = flatten<1>(input2);
+        auto input2_dim = static_cast<int32_t>(input2_view.size(0));
 
-        auto output = operator()(input1.view({-1, bcast_dim}), input2_flat);
+        auto output = operator()(input1.view({-1, input2_dim}), input2_view);
         return output.view(input1.shape());
     }
 };

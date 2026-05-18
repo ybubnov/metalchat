@@ -48,11 +48,7 @@ hadamard(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 }
 
 
-template <
-    typename T,
-    immutable_tensor Tensor1,
-    immutable_tensor Tensor2,
-    std::size_t BlockSize = 16>
+template <typename T, immutable_tensor Tensor1, immutable_tensor Tensor2>
 auto
 hadamard_broadcast(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 {

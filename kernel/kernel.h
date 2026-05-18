@@ -71,16 +71,6 @@ template <typename T> T inline __ceil_div(T a, T b) { return (a + b - 1) / b; }
     )
 
 
-#define __lib_metalchat_kernel2_mixed3_tiled(function_name, block_size, type1, type2, type3) \
-    template [[host_name(                                                                    \
-        __lib_metalchat_concatenate5(function_name, block_size, type1, type2, type3)         \
-    )]]                                                                                      \
-    kernel void                                                                              \
-    function_name<type1, type2, type3, block_size>(                                          \
-        __##function_name##_parameters<type1, type2, type3>, uint2, uint2, uint2             \
-    )
-
-
 /// A macro renders the function prototype of a metal kernel with 3-dimensional execution grid.
 ///
 /// Use this macro for kernels that do not use block-tiling.

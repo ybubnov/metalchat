@@ -52,11 +52,11 @@ template <typename Output, typename Input1, typename Input2>
 struct __hadamard_broadcast_parameters {
     tensor2<Output> output;
     tensor2<const Input1> input1;
-    tensor2<const Input2> input2;
+    tensor1<const Input2> input2;
 };
 
 
-template <typename Output, typename Input1, typename Input2, uint BlockSize>
+template <typename Output, typename Input1, typename Input2>
 kernel void
 hadamard_broadcast(
     __hadamard_broadcast_parameters<Output, Input1, Input2> params,
@@ -65,30 +65,24 @@ hadamard_broadcast(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    const uint row_size = params.output.size(0);
-    const uint dim_size = params.output.size(1);
+    const uint dim0_size = params.input1.size(0);
+    const uint dim1_size = params.input1.size(1);
 
-    const uint ibegin = (gid.x * threadgroup_size.x + tid.x) * BlockSize;
-    const uint iend = ibegin + BlockSize;
+    const uint j = gid.x * threadgroup_size.x + tid.x;
+    const uint i = gid.y * threadgroup_size.y + tid.y;
 
-    for (uint i = ibegin; i < iend && i < row_size; i++) {
-        const uint kbegin = tid.y * BlockSize;
-        const uint kend = kbegin + BlockSize;
-
-#pragma unroll(BlockSize)
-        for (uint k = kbegin; k < kend && k < dim_size; k++) {
-            params.output.at(i, k) =
-                (static_cast<Output>(params.input1.at(i, k)) *
-                 static_cast<Output>(params.input2.at(i, 0)));
-        }
+    if (i < dim0_size && j < dim1_size) {
+        params.output.at(i, j) =
+            (static_cast<Output>(params.input1.at(i, j)) *
+             static_cast<Output>(params.input2.at(i % params.input2.size(0))));
     }
 }
 
 
-__lib_metalchat_kernel2_mixed3_tiled(hadamard_broadcast, 16, bfloat, int8_t, bfloat);
-__lib_metalchat_kernel2_mixed3_tiled(hadamard_broadcast, 16, bfloat, int8_t, float);
-__lib_metalchat_kernel2_mixed3_tiled(hadamard_broadcast, 16, float, int8_t, bfloat);
-__lib_metalchat_kernel2_mixed3_tiled(hadamard_broadcast, 16, float, int8_t, float);
+__lib_metalchat_kernel2_mixed3(hadamard_broadcast, bfloat, int8_t, bfloat);
+__lib_metalchat_kernel2_mixed3(hadamard_broadcast, bfloat, int8_t, float);
+__lib_metalchat_kernel2_mixed3(hadamard_broadcast, float, int8_t, bfloat);
+__lib_metalchat_kernel2_mixed3(hadamard_broadcast, float, int8_t, float);
 
 
 template <typename T> struct __scalar_mul_parameters {
