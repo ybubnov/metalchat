@@ -31,6 +31,7 @@ jobs:
 
     - name: Build a Homebrew Bottle
       id: bottle
+      run: |
         brew install --build-bottle $HOMEBREW_TAP/metalchat
         brew bottle $HOMEBREW_TAP/metalchat
 
