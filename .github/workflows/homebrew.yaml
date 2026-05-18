@@ -40,6 +40,6 @@ jobs:
       with:
         name: metalchat
         retention-days: 7
-        path:
+        path: |
           *.bottle.*.tar.gz
           *.bottle.json
