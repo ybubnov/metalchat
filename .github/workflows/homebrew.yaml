@@ -1,6 +1,11 @@
 name: Homebrew Bottle
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
   workflow_dispatch:
 
 concurrency:
