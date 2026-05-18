@@ -15,25 +15,31 @@ concurrency:
 jobs:
   build:
     runs-on: macos-26
+    env:
+      HOMEBREW_TAP: ${{ github.sha }}/metalchat
 
     steps:
     - name: Checkout source code
       id: checkout
       uses: actions/checkout@v4
 
-    - name: Build a bottle
-      id: bottle
-      env:
-        tap: ${{ github.sha }}/metalchat
+    - name: Configure a Homebrew Tap
+      id: tap
       run: |
-        brew tap-new --no-git ${{ env.tap }}
-        cp -r Formula $(brew --repository ${{ env.tap }})
-        brew install --build-bottle ${{ env.tap }}/metalchat
-        brew bottle ${{ env.tap }}/metalchat
+        brew tap-new --no-git $HOMEBREW_TAP
+        ln -s $(pwd) $(brew --repo $HOMEBREW_TAP)
+
+    - name: Build a Homebrew Bottle
+      id: bottle
+        brew install --build-bottle $HOMEBREW_TAP/metalchat
+        brew bottle $HOMEBREW_TAP/metalchat
 
     - name: Upload a bottle
       uses: actions/upload-artifact@v4
       id: upload
       with:
-        path: ./*.bottle.tar.gz
+        name: metalchat
         retention-days: 7
+        path:
+          *.bottle.*.tar.gz
+          *.bottle.json
