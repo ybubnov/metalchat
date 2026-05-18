@@ -28,6 +28,7 @@ jobs:
       run: |
         brew tap-new --no-git $HOMEBREW_TAP
         ln -s $(pwd) $(brew --repo $HOMEBREW_TAP)
+        ls -l $(brew --repo $HOMEBREW_TAP)/Formula
 
     - name: Build a Homebrew Bottle
       id: bottle
