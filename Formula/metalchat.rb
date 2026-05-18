@@ -2,7 +2,10 @@ class Metalchat < Formula
   desc "Llama inference for Apple Silicon"
   homepage "https://metalchat.readthedocs.org"
   license "GPL-3.0-or-later"
-  head "file://#{Pathname.new(__dir__).parent}"
+
+  head do
+    url "file://#{Pathname.new(__dir__).parent}", using: :git
+  end
 
   depends_on "conan@2" => :build
   depends_on "cmake" => :build
@@ -12,7 +15,7 @@ class Metalchat < Formula
 
   def install
     source_path = Pathname.new(__dir__).parent
-    build_path = buildpath / "build"
+    build_path = buildpath/"build"
 
     build_args = %W[
       --build=missing
@@ -25,8 +28,8 @@ class Metalchat < Formula
     system "conan", "profile", "detect"
     system "conan", "build", *build_args, build_path
 
-    bin.install "#{build_path}/build/Release/metalchat"
-    frameworks.install "#{build_path}/build/Release/MetalChat.framework"
+    bin.install build_path/"build/Release/metalchat"
+    frameworks.install build_path/"build/Release/MetalChat.framework"
 
     # Conan links the framework with an @rpath, here we override it with
     # an absolute path to the Homebrew frameworks path.
