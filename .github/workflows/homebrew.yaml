@@ -28,5 +28,5 @@ jobs:
       uses: actions/upload-artifact@v4
       id: upload
       with:
-        path: *.bottle.tar.gz
+        path: ./*.bottle.tar.gz
         retention-days: 7
