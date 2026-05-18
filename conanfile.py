@@ -53,7 +53,9 @@ class MetalChat(ConanFile):
     )
 
     def set_version(self):
-        self.version = files.load(self, "version.txt").strip()
+        conan_path = Path(__file__).resolve()
+        version_path = conan_path.parent / "version.txt"
+        self.version = files.load(self, version_path).strip()
 
     def validate(self):
         if not apple.is_apple_os(self):
