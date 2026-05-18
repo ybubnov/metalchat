@@ -23,11 +23,13 @@ jobs:
 
     - name: Build a bottle
       id: bottle
+      env:
+        tap: ${{ github.sha }}/metalchat
       run: |
-        brew tap-new ${{ github.ref }}/metalchat
-        cp -r Formula $(brew --repository ${{ github.ref }}/metalchat)/
-        brew install --build-bottle ${{ github.ref }}/metalchat/metalchat
-        brew bottle ${{ github.ref }}/metalchat/metalchat
+        brew tap-new --no-git ${{ env.tap }}
+        cp -r Formula $(brew --repository ${{ env.tap }})
+        brew install --build-bottle ${{ env.tap }}/metalchat
+        brew bottle ${{ env.tap }}/metalchat
 
     - name: Upload a bottle
       uses: actions/upload-artifact@v4
