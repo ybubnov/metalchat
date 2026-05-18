@@ -1,0 +1,32 @@
+name: Homebrew Bottle
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  build:
+    runs-on: macos-26
+
+    steps:
+    - name: Checkout source code
+      id: checkout
+      uses: actions/checkout@v4
+
+    - name: Build a bottle
+      id: bottle
+      run: |
+        brew tap-new ${{ github.ref }}/metalchat
+        cp -r Formula $(brew --repository ${{ github.ref }}/metalchat)/
+        brew install --build-bottle ${{ github.ref }}/metalchat/metalchat
+        brew bottle ${{ github.ref }}/metalchat/metalchat
+
+    - name: Upload a bottle
+      uses: actions/upload-artifact@v4
+      id: upload
+      with:
+        path: *.bottle.tar.gz
+        retention-days: 7
