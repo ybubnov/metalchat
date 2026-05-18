@@ -1,0 +1,47 @@
+name: Homebrew Bottle
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+  workflow_dispatch:
+
+concurrency:
+  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  build:
+    runs-on: macos-26
+    env:
+      HOMEBREW_TAP: ${{ github.sha }}/metalchat
+
+    steps:
+    - name: Checkout source code
+      id: checkout
+      uses: actions/checkout@v4
+
+    - name: Configure a Homebrew Tap
+      id: tap
+      run: |
+        brew tap-new --no-git $HOMEBREW_TAP
+        rm -r $(brew --repo $HOMEBREW_TAP)
+        ln -s $(pwd) $(brew --repo $HOMEBREW_TAP)
+
+    - name: Build a Homebrew Bottle
+      id: bottle
+      run: |
+        brew install --build-bottle $HOMEBREW_TAP/metalchat
+        brew bottle $HOMEBREW_TAP/metalchat
+
+    - name: Upload a bottle
+      uses: actions/upload-artifact@v4
+      id: upload
+      with:
+        name: metalchat
+        retention-days: 7
+        path: |
+          *.bottle.*.tar.gz
+          *.bottle.json
