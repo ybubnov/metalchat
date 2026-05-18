@@ -2,10 +2,7 @@ class Metalchat < Formula
   desc "Llama inference for Apple Silicon"
   homepage "https://metalchat.readthedocs.org"
   license "GPL-3.0-or-later"
-
-  head do
-    url "file://#{Pathname.new(__dir__).parent}", using: :git
-  end
+  url "file://#{Pathname.new(__dir__).parent}"
 
   depends_on "conan@2" => :build
   depends_on "cmake" => :build
