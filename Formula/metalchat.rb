@@ -21,7 +21,7 @@ class Metalchat < Formula
       --options use_system_libs=True
     ]
 
-    system "cp", "-r", source_path, buildpath
+    system "cp", "-r", "#{source_path}/*", buildpath
     system "conan", "profile", "detect"
     system "conan", "build", *build_args, buildpath
 
