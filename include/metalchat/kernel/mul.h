@@ -34,29 +34,24 @@ public:
 };
 
 
-template <typename T, typename I1, typename I2, std::size_t BlockSize = 16>
-class hadamard_broadcast {
+template <typename T, typename I1, typename I2> class hadamard_broadcast {
 private:
     basic_kernel _M_kernel;
 
 public:
     hadamard_broadcast(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T, I1, I2>("hadamard_broadcast", BlockSize))
+    : _M_kernel(gpu.load<T, I1, I2>("hadamard_broadcast"))
     {}
 
-    template <immutable_tensor2_t<I1> Input1, immutable_tensor2_t<I2> Input2>
+    template <immutable_tensor2_t<I1> Input1, immutable_tensor1_t<I2> Input2>
     auto
     operator()(Input1 input1, Input2 input2)
     {
         auto expected_input1 = expected_tensor(input1).same_first_dim(input2).value();
-        auto expected_input2 = expected_tensor(input2).same_dim(1, /*expect=*/1).value();
+        auto expected_input2 = input2;
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
-        auto num_rows = ceil_div(input1.size(0), BlockSize);
-        auto num_dims = ceil_div(input1.size(1), BlockSize);
-
-        auto thread = dim3(ceil_div(max_threads, num_dims), num_dims);
-        auto grid = dim3(ceil_div(num_rows, thread.x) * thread.x, thread.y);
+        auto [grid, thread] = make_kernel_grid_2d(expected_input1, max_threads);
 
         auto output = shared_empty_like<T>(input1, _M_kernel.get_allocator());
 
@@ -66,17 +61,16 @@ public:
         return future_tensor(output, std::move(task_future));
     }
 
-    template <immutable_tensor3_t<I1> Input1, immutable_tensor3_t<I2> Input2>
+    template <immutable_tensor_t<I1> Input1, immutable_tensor_t<I2> Input2>
+    requires(Input1::dim() >= 2 && Input2::dim() >= 2)
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        auto expected_input1 = expected_tensor(input1).same_dim(input2, 1, 1).value();
-
-        auto input1_view = flatten<2>(expected_input1);
-        auto input2_view = flatten<2>(input2);
+        auto input1_view = flatten<2>(input1);
+        auto input2_view = flatten<1>(input2);
 
         auto output = operator()(input1_view, input2_view);
-        return output.view(expected_input1.shape());
+        return output.view(input1.shape());
     }
 };
 
