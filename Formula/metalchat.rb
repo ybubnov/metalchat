@@ -11,8 +11,6 @@ class Metalchat < Formula
   depends_on "curl"
 
   def install
-    source_path = Pathname.new(__dir__).parent
-
     build_args = %W[
       --build=missing
       --output-folder=build
@@ -21,7 +19,6 @@ class Metalchat < Formula
       --options use_system_libs=True
     ]
 
-    system "cp", "-r", "#{source_path}/*", buildpath
     system "conan", "profile", "detect"
     system "conan", "build", *build_args, buildpath
 
