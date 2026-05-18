@@ -11,19 +11,22 @@ class Metalchat < Formula
   depends_on "curl"
 
   def install
+    source_path = Pathname.new(__dir__).parent
+    build_path = buildpath / "build"
+
     build_args = %W[
       --build=missing
-      --output-folder=build
       --conf tools.build:skip_test=True
       --settings build_type=Release
       --options use_system_libs=True
     ]
 
+    cp_r source_path, build_path
     system "conan", "profile", "detect"
-    system "conan", "build", *build_args, buildpath
+    system "conan", "build", *build_args, build_path
 
-    bin.install "#{buildpath}/build/build/Release/metalchat"
-    frameworks.install "#{buildpath}/build/build/Release/MetalChat.framework"
+    bin.install "#{build_path}/build/Release/metalchat"
+    frameworks.install "#{build_path}/build/Release/MetalChat.framework"
 
     # Conan links the framework with an @rpath, here we override it with
     # an absolute path to the Homebrew frameworks path.
