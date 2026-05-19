@@ -54,5 +54,5 @@ jobs:
     - name: Upload Bottle to GitHub Packages
       run: |
         oras push \
-          ghrc.io/${{ github.repository_owner }}/stable/metalchat:1.2.1 \
+          ghcr.io/${{ github.repository_owner }}/stable/metalchat:1.2.1 \
           *.bottle.tar.gz
