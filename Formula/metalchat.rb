@@ -14,7 +14,7 @@ class Metalchat < Formula
     Version.new(File.read(source_path/"version.txt").strip)
   end
 
-  def source_path
+  def self.source_path
     Pathname.new(__dir__).parent
   end
 
