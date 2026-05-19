@@ -19,7 +19,7 @@ jobs:
       HOMEBREW_TAP: ${{ github.sha }}/metalchat
 
     steps:
-    - name: Checkout source code
+    - name: Checkout Source Code
       uses: actions/checkout@v6
 
     - name: Setup oras
@@ -36,7 +36,7 @@ jobs:
         brew install --build-bottle $HOMEBREW_TAP/metalchat
         brew bottle --json $HOMEBREW_TAP/metalchat
 
-    - name: Upload a bottle
+    - name: Upload Bottles to the Run
       uses: actions/upload-artifact@v7
       with:
         name: metalchat
@@ -45,7 +45,11 @@ jobs:
           *.bottle.tar.gz
           *.bottle.json
 
-    - name: Upload package
+    - name: Login to GitHub Packages
+      run: |
+        echo $GITHUB_TOKEN | oras login ghcr.io --username ${{ github.repository_owner }} --password-stdin
+
+    - name: Upload Bottle to GitHub Packages
       run: |
         oras push \
           ghrc.io/${{ github.repository_owner }}/stable/metalchat:1.2.1 \
