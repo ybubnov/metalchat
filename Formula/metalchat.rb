@@ -2,8 +2,7 @@ class Metalchat < Formula
   desc "Llama inference for Apple Silicon"
   homepage "https://metalchat.readthedocs.org"
   license "GPL-3.0-or-later"
-  url "file://#{Pathname.new(__dir__).parent}"
-  version "v1.2.0"
+  url "file://#{source_path}"
 
   depends_on "conan@2" => :build
   depends_on "cmake" => :build
@@ -11,8 +10,15 @@ class Metalchat < Formula
   depends_on "openssl@3"
   depends_on "curl"
 
+  def version
+    Version.new(File.read(source_path/"version.txt").strip)
+  end
+
+  def source_path
+    Pathname.new(__dir__).parent
+  end
+
   def install
-    source_path = Pathname.new(__dir__).parent
     build_path = buildpath/"build"
 
     build_args = %W[
@@ -22,7 +28,7 @@ class Metalchat < Formula
       --options use_system_libs=True
     ]
 
-    cp_r source_path, build_path
+    cp_r sourcepath, build_path
     system "conan", "profile", "detect"
     system "conan", "build", *build_args, build_path
 
