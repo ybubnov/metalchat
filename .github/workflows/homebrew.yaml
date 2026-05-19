@@ -48,5 +48,5 @@ jobs:
     - name: Upload package
       run: |
         oras push \
-          ghrc.io/${{ github.repository_owner }/homebrew-core/metalchat:1.2.1 \
+          ghrc.io/${{ github.repository_owner }}/stable/metalchat:1.2.1 \
           *.bottle.tar.gz
