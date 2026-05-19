@@ -46,6 +46,8 @@ jobs:
           *.bottle.json
 
     - name: Login to GitHub Packages
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         echo $GITHUB_TOKEN | oras login ghcr.io --username ${{ github.repository_owner }} --password-stdin
 
