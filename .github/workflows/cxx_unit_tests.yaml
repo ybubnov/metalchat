@@ -21,7 +21,7 @@ jobs:
     steps:
     - name: Checkout source code
       id: checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Install third-party libraries and tools
       id: install_packages

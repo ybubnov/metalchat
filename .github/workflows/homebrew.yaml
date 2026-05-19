@@ -20,28 +20,33 @@ jobs:
 
     steps:
     - name: Checkout source code
-      id: checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
+
+    - name: Setup oras
+      uses: oras-project/oras@v2
 
     - name: Configure a Homebrew Tap
-      id: tap
       run: |
         brew tap-new --no-git $HOMEBREW_TAP
         rm -r $(brew --repo $HOMEBREW_TAP)
         ln -s $(pwd) $(brew --repo $HOMEBREW_TAP)
 
     - name: Build a Homebrew Bottle
-      id: bottle
       run: |
         brew install --build-bottle $HOMEBREW_TAP/metalchat
         brew bottle --json $HOMEBREW_TAP/metalchat
 
     - name: Upload a bottle
-      uses: actions/upload-artifact@v4
-      id: upload
+      uses: actions/upload-artifact@v7
       with:
         name: metalchat
         retention-days: 7
         path: |
           *.bottle.tar.gz
           *.bottle.json
+
+    - name: Upload package
+      run: |
+        oras push \
+          ghrc.io/${{ github.repository_owner }/homebrew-core/metalchat:1.2.1 \
+          *.bottle.tar.gz
