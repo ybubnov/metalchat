@@ -58,6 +58,6 @@ jobs:
       run: |
         oras push \
           --annotation "com.github.package.type=homebrew_bottle" \
-          --annotation "org.opencontainers.image.description=brew install ${{ github.repository_owner }}/stable/metalchat" \
+          --annotation "org.opencontainers.image.description=Large language model inference on Apple Silicon" \
           ghcr.io/${{ github.repository_owner }}/stable/metalchat:1.2.1 \
           *.bottle.tar.gz
