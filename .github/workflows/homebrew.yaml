@@ -13,35 +13,66 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
-  build:
+  build_bottles:
+    name: Build Bottles on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix: [ macos-26 ]
     permissions:
       contents: write
-      packages: write
-      pull-requests: write
-    runs-on: macos-26
     env:
       HOMEBREW_TAP: ${{ github.repository_owner }}/stable
       HOMEBREW_ROOT_URL: https://ghcr.io/v2/${{ github.repository_owner }}/stable
-      HOMEBREW_GITHUB_PACKAGES_USER: ${{ github.repository_owner }}
-      HOMEBREW_GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
     - name: Checkout Source Code
       uses: actions/checkout@v6
 
     - name: Configure a Homebrew Tap
-      run: |
-        brew tap-new --no-git $HOMEBREW_TAP
-        rm -r $(brew --repo $HOMEBREW_TAP)
-        ln -s $(pwd) $(brew --repo $HOMEBREW_TAP)
+      run: ln -s $(pwd) $(brew --repo $HOMEBREW_TAP)
 
     - name: Build a Homebrew Bottle
       run: |
         brew install --build-bottle $HOMEBREW_TAP/metalchat
         brew bottle --root-url $HOMEBREW_ROOT_URL --json $HOMEBREW_TAP/metalchat
-        brew bottle --write --merge *.bottle.json
+
+    - name: Upload Homebrew Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: bottle-${{ matrix.os }}
+        path: |
+          *.bottle.tar.gz
+          *.bottle.json
+        retention-days: 1
+
+  upload_bottles:
+    name: Upload Bottles
+    needs: [build_bottles]
+    runs-on: macos-26
+    permissions:
+      packages: write
+      pull-requests: write
+    env:
+      HOMEBREW_GITHUB_PACKAGES_USER: ${{ github.repository_owner }}
+      HOMEBREW_GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+    - name: Checkout Main Branch
+      uses: actions/checkout@v6
+      with:
+        ref: main
+
+    - name: Download Bottle Artifacts
+      uses: actions/download-artifact@v8
+      with:
+        pattern: bottle-*
+        path: bottles
+        merge-multiple: true
+
+    - name: Upload Bottles to GitHub Packages
+      run: |
         #brew pr-upload --upload-only --root-url $HOMEBREW_ROOT_URL
-        cat Formula/metalchat.rb
+        brew bottle --write --merge bottles/*.bottle.json
 
     - name: Create PR Updating Bottle Checksums
       env:
