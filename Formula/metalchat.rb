@@ -29,7 +29,7 @@ class Metalchat < Formula
   depends_on "curl"
 
   bottle do
-    root_url "https://ghrc.io/v2/ybubnov/stable"
+    root_url "https://ghcr.io/v2/ybubnov/stable"
   end
 
   def install
