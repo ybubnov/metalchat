@@ -29,7 +29,7 @@ class Metalchat < Formula
   depends_on "curl"
 
   bottle do
-    root_url "https://ghcr.io/v2/ybubnov/stable"
+    sha256 cellar: :any, arm64_tahoe: "82eb7b173bbcc83cf7e77803afc0664350c80b137b690eb2569d7e3072fbe85f"
   end
 
   def install
