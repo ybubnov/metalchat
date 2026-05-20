@@ -34,7 +34,7 @@ guide.
 .. code:: console
 
    $ brew tap ybubnov/metalchat https://github.com/ybubnov/metalchat
-   $ brew install --HEAD metalchat
+   $ brew install metalchat
 
 
 User Guide
