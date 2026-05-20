@@ -19,14 +19,14 @@ jobs:
       packages: write
     runs-on: macos-26
     env:
-      HOMEBREW_TAP: ${{ github.sha }}/metalchat
+      HOMEBREW_TAP: ${{ github.repository_owner }}/stable
+      HOMEBREW_ROOT_URL: https://ghcr.io/v2/${{ github.repository_owner }}/stable
+      HOMEBREW_GITHUB_PACKAGES_USER: ${{ github.repository_owner }}
+      HOMEBREW_GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
     - name: Checkout Source Code
       uses: actions/checkout@v6
-
-    - name: Setup oras
-      uses: oras-project/setup-oras@v2
 
     - name: Configure a Homebrew Tap
       run: |
@@ -38,26 +38,4 @@ jobs:
       run: |
         brew install --build-bottle $HOMEBREW_TAP/metalchat
         brew bottle --json $HOMEBREW_TAP/metalchat
-
-    - name: Upload Bottles to the Run
-      uses: actions/upload-artifact@v7
-      with:
-        name: metalchat
-        retention-days: 7
-        path: |
-          *.bottle.tar.gz
-          *.bottle.json
-
-    - name: Login to GitHub Packages
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        echo $GITHUB_TOKEN | oras login ghcr.io --username ${{ github.repository_owner }} --password-stdin
-
-    - name: Upload Bottle to GitHub Packages
-      run: |
-        oras push \
-          --annotation "com.github.package.type=homebrew_bottle" \
-          --annotation "org.opencontainers.image.description=Large language model inference on Apple Silicon" \
-          ghcr.io/${{ github.repository_owner }}/stable/metalchat:1.2.1 \
-          *.bottle.tar.gz
+        brew pr-upload --upload-only --root-url $HOMEBREW_ROOT_URL
