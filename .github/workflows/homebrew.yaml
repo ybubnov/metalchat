@@ -37,7 +37,7 @@ jobs:
     - name: Build a Homebrew Bottle
       run: |
         brew install --build-bottle $HOMEBREW_TAP/metalchat
-        brew bottle --json $HOMEBREW_TAP/metalchat
+        brew bottle --root-url $HOMEBREW_ROOT_URL --json $HOMEBREW_TAP/metalchat
         brew bottle --write --merge *.bottle.json
         #brew pr-upload --upload-only --root-url $HOMEBREW_ROOT_URL
         cat Formula/metalchat.rb
