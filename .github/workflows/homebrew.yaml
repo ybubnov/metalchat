@@ -55,6 +55,7 @@ jobs:
     runs-on: macos-26
     permissions:
       packages: write
+      contents: write
       pull-requests: write
     env:
       HOMEBREW_TAP: ${{ github.repository_owner }}/stable
@@ -65,6 +66,7 @@ jobs:
     - name: Checkout Main Branch
       uses: actions/checkout@v6
       with:
+        token: ${{ secrets.GITHUB_TOKEN }}
         ref: main
 
     - name: Resolve Metadata
