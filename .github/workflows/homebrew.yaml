@@ -17,6 +17,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      pull-requests: write
     runs-on: macos-26
     env:
       HOMEBREW_TAP: ${{ github.repository_owner }}/stable
@@ -41,3 +42,13 @@ jobs:
         brew bottle --write --merge *.bottle.json
         #brew pr-upload --upload-only --root-url $HOMEBREW_ROOT_URL
         cat Formula/metalchat.rb
+
+    - name: Create PR Updating Bottle Checksums
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        gh pr create \
+          --base main \
+          --head ${{ github.ref_name }} \
+          --title "Update homebrew bottle checksums v$(cat version.txt)" \
+          --body "This patch updates sha256 checksums of the Homebrew formula."
