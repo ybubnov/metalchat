@@ -4,6 +4,12 @@ class Metalchat < Formula
     Pathname.new(source_uri.path).parent
   end
 
+  bottle do
+    root_url "https://ghcr.io/v2/ybubnov/stable"
+    sha256 cellar: :any, arm64_tahoe:   "7cc901ac409afb27baf0854589dff4978b7f61ad4e822d07046455aca99ea147"
+    sha256 cellar: :any, arm64_sequoia: "960d64fb9dfc31f896d67ab406506502e939bc51470e3f5ea6de4a21b4ddfe97"
+  end
+
   def source_path
     Metalchat::source_path
   end
