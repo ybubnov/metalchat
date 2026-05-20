@@ -38,5 +38,6 @@ jobs:
       run: |
         brew install --build-bottle $HOMEBREW_TAP/metalchat
         brew bottle --json $HOMEBREW_TAP/metalchat
-        brew pr-upload --root-url $HOMEBREW_ROOT_URL
-        git diff HEAD~1 HEAD
+        #brew pr-upload --upload-only --root-url $HOMEBREW_ROOT_URL
+        git status
+        ls -l
