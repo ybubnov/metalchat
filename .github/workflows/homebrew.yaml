@@ -40,4 +40,4 @@ jobs:
         brew bottle --json $HOMEBREW_TAP/metalchat
         brew bottle --merge *.bottle.json
         #brew pr-upload --upload-only --root-url $HOMEBREW_ROOT_URL
-        git diff HEAD HEAD~1
+        cat Formula/metalchat.rb
