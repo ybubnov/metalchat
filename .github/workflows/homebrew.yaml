@@ -49,6 +49,5 @@ jobs:
       run: |
         gh pr create \
           --base main \
-          --head ${{ github.ref_name }} \
           --title "Update homebrew bottle checksums v$(cat version.txt)" \
           --body "This patch updates sha256 checksums of the Homebrew formula."
