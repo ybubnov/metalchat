@@ -30,7 +30,10 @@ jobs:
       uses: actions/checkout@v6
 
     - name: Configure a Homebrew Tap
-      run: ln -s $(pwd) $(brew --repo $HOMEBREW_TAP)
+      run: |
+        brew tap-new --no-git $HOMEBREW_TAP
+        rm -r $(brew --repo $HOMEBREW_TAP)
+        ln -s $(pwd) $(brew --repo $HOMEBREW_TAP)
 
     - name: Build a Homebrew Bottle
       run: |
