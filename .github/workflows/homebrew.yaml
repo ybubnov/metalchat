@@ -57,6 +57,7 @@ jobs:
       packages: write
       pull-requests: write
     env:
+      HOMEBREW_TAP: ${{ github.repository_owner }}/stable
       HOMEBREW_GITHUB_PACKAGES_USER: ${{ github.repository_owner }}
       HOMEBREW_GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -66,6 +67,11 @@ jobs:
       with:
         ref: main
 
+    - name: Resolve Metadata
+      id: metadata
+      run:
+        echo "version=$(cat version.txt | tr -d '\n')" >> "$GITHUB_OUTPUT"
+
     - name: Download Bottle Artifacts
       uses: actions/download-artifact@v8
       with:
@@ -73,8 +79,15 @@ jobs:
         path: bottles
         merge-multiple: true
 
+    - name: Configure a Homebrew Tap
+      run: |
+        brew tap-new --no-git $HOMEBREW_TAP
+        rm -r $(brew --repo $HOMEBREW_TAP)
+        ln -s $(pwd) $(brew --repo $HOMEBREW_TAP)
+
     - name: Upload Bottles to GitHub Packages
       run: |
+        git checkout -b bottle-${{ steps.metadata.outputs.version }}
         #brew pr-upload --upload-only --root-url $HOMEBREW_ROOT_URL
         brew bottle --write --merge bottles/*.bottle.json
 
@@ -84,5 +97,5 @@ jobs:
       run: |
         gh pr create \
           --base main \
-          --title "Update homebrew bottle checksums v$(cat version.txt)" \
+          --title "Release Homebrew bottles ${{ steps.metadata.outputs.version }}" \
           --body "This patch updates sha256 checksums of the Homebrew formula."
