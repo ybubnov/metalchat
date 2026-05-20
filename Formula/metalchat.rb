@@ -28,6 +28,10 @@ class Metalchat < Formula
   depends_on "openssl@3"
   depends_on "curl"
 
+  bottle do
+    root_url "https://ghrc.io/v2/ybubnov/stable"
+  end
+
   def install
     build_path = buildpath/"build"
 
