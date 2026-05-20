@@ -16,15 +16,11 @@ using MetalChat to interact with LLM model from the command line.
 
 ## Installation
 
-> [!WARNING]
-> In order to install the brew formula, you would need to download and install
-> [Xcode](https://developer.apple.com/xcode/).
-
 The framework and command line utility could be installed using Homebrew package manager in a
 following way:
 ```sh
 brew tap ybubnov/metalchat https://github.com/ybubnov/metalchat
-brew install --HEAD metalchat
+brew install metalchat
 ```
 
 Alternatively you could build a [Conan](https://conan.io/) package locally using dependencies

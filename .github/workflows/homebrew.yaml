@@ -18,7 +18,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ macos-26, macos-15, macos-14 ]
+        os: [ macos-26, macos-15 ]
     permissions:
       contents: write
     env:
@@ -90,9 +90,10 @@ jobs:
 
     - name: Upload Bottles to GitHub Packages
       run: |
+        cd bottles
         git checkout -b ${{ steps.metadata.outputs.branch }}
-        #brew pr-upload --upload-only --root-url $HOMEBREW_ROOT_URL
-        brew bottle --write --merge bottles/*.bottle.json
+        brew pr-upload --upload-only --root-url $HOMEBREW_ROOT_URL
+        brew bottle --write --merge *.bottle.json
 
     - name: Create PR Updating Bottle Checksums
       env:
