@@ -4,6 +4,11 @@ class Metalchat < Formula
   license "GPL-3.0-or-later"
   head "https://github.com/ybubnov/metalchat.git", branch: "main"
 
+  bottle do
+    root_url "https://ghcr.io/v2/ybubnov/stable"
+    sha256 cellar: :any, arm64_tahoe: "d6b9cb97d7c9f79227a48fe3ec85c75d509bbd662d9ff8d06e726de96e4cf55d"
+  end
+
   depends_on "conan@2" => :build
   depends_on "cmake" => :build
   depends_on "ninja" => :build
