@@ -18,7 +18,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ macos-26 ]
+        os: [ macos-26, macos-15, macos-14 ]
     permissions:
       contents: write
     env:
