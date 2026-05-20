@@ -1,4 +1,4 @@
-name: Homebrew Bottle
+name: Homebrew
 
 on:
   push:
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build_bottles:
-    name: Build Bottles on ${{ matrix.os }}
+    name: Build Bottle on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -41,7 +41,7 @@ jobs:
         brew bottle --root-url $HOMEBREW_ROOT_URL --json $HOMEBREW_TAP/metalchat
 
     - name: Upload Homebrew Artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: bottle-${{ matrix.os }}
         path: |
@@ -71,6 +71,7 @@ jobs:
       id: metadata
       run:
         echo "version=$(cat version.txt | tr -d '\n')" >> "$GITHUB_OUTPUT"
+        echo "branch=bottle-$(cat version.txt | tr -d '\n')" >> "$GITHUB_OUTPUT"
 
     - name: Download Bottle Artifacts
       uses: actions/download-artifact@v8
@@ -87,7 +88,7 @@ jobs:
 
     - name: Upload Bottles to GitHub Packages
       run: |
-        git checkout -b bottle-${{ steps.metadata.outputs.version }}
+        git checkout -b ${{ steps.metadata.outputs.branch }}
         #brew pr-upload --upload-only --root-url $HOMEBREW_ROOT_URL
         brew bottle --write --merge bottles/*.bottle.json
 
@@ -95,6 +96,7 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+        git push origin ${{ steps.metadata.outputs.branch }}
         gh pr create \
           --base main \
           --title "Release Homebrew bottles ${{ steps.metadata.outputs.version }}" \
