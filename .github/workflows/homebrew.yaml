@@ -12,6 +12,10 @@ concurrency:
   cancel-in-progress: true
   group: ${{ github.workflow }}-${{ github.ref }}
 
+env:
+  HOMEBREW_TAP: ${{ github.repository_owner }}/stable
+  HOMEBREW_ROOT_URL: https://ghcr.io/v2/${{ github.repository_owner }}/stable
+
 jobs:
   build_bottles:
     name: Build Bottle on ${{ matrix.os }}
@@ -21,9 +25,6 @@ jobs:
         os: [ macos-26, macos-15 ]
     permissions:
       contents: write
-    env:
-      HOMEBREW_TAP: ${{ github.repository_owner }}/stable
-      HOMEBREW_ROOT_URL: https://ghcr.io/v2/${{ github.repository_owner }}/stable
 
     steps:
     - name: Checkout Source Code
@@ -58,7 +59,6 @@ jobs:
       contents: write
       pull-requests: write
     env:
-      HOMEBREW_TAP: ${{ github.repository_owner }}/stable
       HOMEBREW_GITHUB_PACKAGES_USER: ${{ github.repository_owner }}
       HOMEBREW_GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
