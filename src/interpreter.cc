@@ -74,6 +74,7 @@ interpreter::interpreter(
 )
 : _M_members(std::make_shared<_Members>()),
   _M_transformer(transformer_ptr),
+  _M_token_scanner(std::make_shared<limit_token_scanner>(50)),
   _M_command_scanner(std::make_shared<json_command_scanner>()),
   _M_commands(),
   _M_encoder(encoder),
@@ -84,6 +85,13 @@ interpreter::interpreter(
     // Do not escape characters, leave them as is. This is the global configuration,
     // so unfortunately this line changes behaviour for the whole library.
     mustache::config::escape = [](const std::string& str) -> std::string { return str; };
+}
+
+
+void
+interpreter::set_token_scanner(std::shared_ptr<basic_token_scanner> scanner)
+{
+    _M_token_scanner = scanner;
 }
 
 

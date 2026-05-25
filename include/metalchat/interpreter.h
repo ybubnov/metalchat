@@ -5,6 +5,7 @@
 #pragma once
 
 #include <iostream>
+#include <iterator>
 #include <optional>
 
 #include <metalchat/command.h>
@@ -67,6 +68,123 @@ private:
 };
 
 
+class basic_token_scanner {
+public:
+    using index_type = int32_t;
+
+    virtual void
+    reset() = 0;
+
+    virtual bool
+    scan(index_type token) = 0;
+
+    /// The default /ref basic_token_scanner destructor.
+    virtual ~basic_token_scanner() {}
+};
+
+
+class match_token_scanner : public basic_token_scanner {
+public:
+    match_token_scanner(std::initializer_list<index_type> tokens)
+    : match_token_scanner(tokens.begin(), tokens.end())
+    {}
+
+    template <std::forward_iterator ForwardIt>
+    match_token_scanner(ForwardIt first, ForwardIt last)
+        requires std::same_as<std::iter_value_t<ForwardIt>, index_type>
+    : _M_tokens(first, last)
+    {}
+
+    void
+    reset()
+    {}
+
+    bool
+    scan(index_type token)
+    {
+        return _M_tokens.find(token) == _M_tokens.end();
+    }
+
+private:
+    std::unordered_set<index_type> _M_tokens;
+};
+
+
+class limit_token_scanner : public basic_token_scanner {
+public:
+    limit_token_scanner(std::size_t lim)
+    : _M_lim(lim),
+      _M_scanned(0)
+    {}
+
+    void
+    reset()
+    {
+        _M_scanned = 0;
+    }
+
+    bool
+    scan(index_type token)
+    {
+        return (++_M_scanned) < _M_lim;
+    }
+
+private:
+    std::size_t _M_lim;
+    std::size_t _M_scanned;
+};
+
+
+template <typename LogicalOp> class composite_token_scanner : public basic_token_scanner {
+public:
+    using scanner_type = basic_token_scanner;
+    using scanner_pointer = std::shared_ptr<scanner_type>;
+
+    composite_token_scanner(std::initializer_list<scanner_pointer> scanners)
+    : composite_token_scanner(scanners.begin(), scanners.end())
+    {}
+
+    template <std::forward_iterator ForwardIt>
+    composite_token_scanner(ForwardIt first, ForwardIt last)
+        requires std::same_as<std::iter_value_t<ForwardIt>, scanner_pointer>
+    : _M_scanners(std::make_move_iterator(first), std::make_move_iterator(last)),
+      _M_logical_op()
+    {}
+
+    /// The default \ref composite_token_scanner constructor.
+    composite_token_scanner()
+    : composite_token_scanner({})
+    {}
+
+    void
+    reset()
+    {
+        for (auto& scanner : _M_scanners) {
+            scanner->reset();
+        }
+    }
+
+    bool
+    scan(index_type token)
+    {
+        bool result = false;
+        if (_M_scanners.size() == 0) {
+            return result;
+        }
+
+        result = _M_scanners.front()->scan(token);
+        for (std::size_t i = 1; i < _M_scanners.size(); i++) {
+            result = _M_logical_op(result, _M_scanners[i]->scan(token));
+        }
+        return result;
+    }
+
+private:
+    std::vector<scanner_pointer> _M_scanners;
+    LogicalOp _M_logical_op;
+};
+
+
 /// Each message submitted to the interpreter is being passed through the mustache render engine,
 /// so all valid mustache sequences are expanded with appropriate variable values.
 class interpreter {
@@ -105,6 +223,17 @@ public:
         const text::bpe& encoder,
         std::size_t max_pos = -1
     );
+
+    void
+    set_token_scanner(std::shared_ptr<basic_token_scanner> scanner);
+
+    template <std::derived_from<basic_token_scanner> Scanner>
+    void
+    set_token_scanner(Scanner&& scanner)
+    {
+        auto scanner_ptr = std::make_shared<Scanner>(std::move(scanner));
+        set_token_scanner(scanner_ptr);
+    }
 
     /// Declare the command available for execution.
     ///
@@ -204,6 +333,7 @@ public:
 private:
     std::shared_ptr<_Members> _M_members;
     std::shared_ptr<basic_transformer> _M_transformer;
+    std::shared_ptr<basic_token_scanner> _M_token_scanner;
     std::shared_ptr<basic_command_scanner> _M_command_scanner;
     std::unordered_map<std::string, command_type> _M_commands;
     text::bpe _M_encoder;
@@ -238,13 +368,12 @@ private:
     tensor_type
     read_until(OutputIt it)
     {
+        _M_token_scanner->reset();
+
         auto stream = flush();
         auto token = stream.get()[0, 0];
 
-        auto end_turn = _M_encoder.encode(text::token::end_turn);
-        auto end_message = _M_encoder.encode(text::token::end_message);
-
-        while (token != end_turn && token != end_message) {
+        while (_M_token_scanner->scan(token)) {
             *it++ = _M_encoder.decode(token);
             stream = _M_transformer->transform(stream, _M_start_pos++);
             token = stream.get()[0, 0];
