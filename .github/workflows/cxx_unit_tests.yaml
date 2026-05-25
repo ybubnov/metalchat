@@ -38,6 +38,7 @@ jobs:
       run: >
         pipenv run
         conan profile detect
+        sed -i 's/compiler.version=\d+/compiler.version=17/d' $(conan profile path default)
 
     # The building command uses the system libraries (OpenSSL, and libcurl) to avoid
     # long compilation time in the CI. Also unit tests do not launch integration tests
@@ -52,7 +53,6 @@ jobs:
         conan build
         --build=missing
         --settings build_type=Release
-        --settings compiler.version=17
         --options '&:build_executable'=True
         --options '&:use_system_libs'=True
         --conf tools.build:skip_test=False
