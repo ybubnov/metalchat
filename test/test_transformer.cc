@@ -6,7 +6,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <metalchat/huggingface.h>
+#include <metalchat/huggingface/llama.h>
 #include <metalchat/transformer.h>
 
 

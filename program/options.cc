@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <iterator>
 
-#include <metalchat/huggingface.h>
+#include <metalchat/huggingface/llama.h>
 #include <metalchat/repository.h>
 
 #include "iterator.h"

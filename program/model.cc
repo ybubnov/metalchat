@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
-#include <metalchat/huggingface.h>
+#include <metalchat/huggingface/llama.h>
 #include <metalchat/repository.h>
 
 #include "credential.h"

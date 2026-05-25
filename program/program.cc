@@ -4,6 +4,7 @@
 
 #include <cstdlib>
 
+#include <metalchat/huggingface/llama.h>
 #include <metalchat/metalchat.h>
 
 

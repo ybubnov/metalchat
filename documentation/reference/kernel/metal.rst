@@ -8,7 +8,7 @@ Arithmetic kernels
 .. doxygenclass:: metalchat::kernel::add
    :members:
 
-.. doxygenclass:: metalchat::kernel::add2
+.. doxygenclass:: metalchat::kernel::add_broadcast
    :members:
 
 .. doxygenclass:: metalchat::kernel::sub

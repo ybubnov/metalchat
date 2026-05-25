@@ -43,7 +43,9 @@ jobs:
     - name: Patch compiler version
       id: patch_profile
       run: |
-        sed -i '' 's/compiler.version=.*/compiler.version=17/' ${{ steps.setup_profile.outputs.path }}
+        sed -i '' \
+          's/compiler.version=.*/compiler.version=17/' \
+          ${{ steps.setup_profile.outputs.path }}
 
     # The building command uses the system libraries (OpenSSL, and libcurl) to avoid
     # long compilation time in the CI. Also unit tests do not launch integration tests

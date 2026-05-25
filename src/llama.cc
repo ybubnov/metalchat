@@ -4,7 +4,13 @@
 
 #include <jsoncons/json.hpp>
 
+#include <metalchat/huggingface/llama.h>
+#include <metalchat/kernel/copy.h>
 #include <metalchat/nn/options.h>
+#include <metalchat/reference.h>
+#include <metalchat/tensor/accessor.h>
+
+#include "huggingface.h"
 
 
 namespace metalchat {
@@ -143,4 +149,93 @@ llama3_options::norm_eps() const noexcept
 
 
 } // namespace nn
+
+
+namespace huggingface {
+
+
+nn::llama3_options
+llama3_options_serializer::load(std::istream& is) const
+{
+    using options_type = metalchat::huggingface::detail::options;
+    auto options = jsoncons::decode_json<options_type>(is);
+
+    return nn::llama3_options()
+        .head_dim(options.head_dim)
+        .n_layers(options.num_hidden_layers)
+        .n_heads(options.num_attention_heads)
+        .n_kv_heads(options.num_key_value_heads)
+        .rope_theta(options.rope_theta)
+        .norm_eps(options.rms_norm_eps);
+}
+
+
+void
+llama3_options_serializer::save(std::ostream& os, const nn::llama3_options& options) const
+{
+    using options_type = metalchat::huggingface::detail::options;
+
+    auto hf_options = options_type{
+        .head_dim = options.head_dim(),
+        .num_hidden_layers = options.n_layers(),
+        .num_attention_heads = options.n_heads(),
+        .num_key_value_heads = options.n_kv_heads(),
+        .rms_norm_eps = options.norm_eps(),
+        .rope_theta = options.rope_theta()
+    };
+
+    // Ensure that output JSON follows output stream float precision format.
+    auto encode_options = jsoncons::json_options()
+                              .float_format(jsoncons::float_chars_format::general)
+                              .precision(os.precision());
+
+    jsoncons::encode_json<options_type>(hf_options, os, encode_options);
+}
+
+
+llama3_tokenizer_loader::type
+llama3_tokenizer_loader::load(std::istream& is) const
+{
+    using model_type = metalchat::huggingface::detail::tokenizer;
+    using split_tokenizer_type = metalchat::huggingface::detail::split_tokenizer;
+    using loader_type = metalchat::reference::llama3_tokenizer_loader;
+
+    auto model_file = jsoncons::decode_json<model_type>(is);
+    std::string token_regex;
+
+    for (const auto& tokenizer : model_file.pre_tokenizer.pretokenizers) {
+        if (const auto split = std::get_if<split_tokenizer_type>(&tokenizer)) {
+            token_regex = split->pattern.Regex;
+            break;
+        }
+    }
+
+    text::gpt2_codec codec;
+    llama3_tokenizer_loader::type tokenizer(token_regex);
+
+    for (const auto& [value, key] : model_file.model.vocab) {
+        auto val = codec.decode(value);
+        tokenizer.insert(val, key, text::token::regular);
+    }
+
+    loader_type::insert_control_tokens(tokenizer);
+    return tokenizer;
+}
+
+
+llama3_tokenizer_loader::type
+llama3_tokenizer_loader::load(const std::filesystem::path& p) const
+{
+    std::ifstream file(p, std::ios::binary | std::ios::in);
+    if (!file.is_open()) {
+        throw std::invalid_argument(
+            std::format("llama3_tokenizer_loader: failed opening file '{}'", p.string())
+        );
+    }
+
+    return load(file);
+}
+
+
+} // namespace huggingface
 } // namespace metalchat
