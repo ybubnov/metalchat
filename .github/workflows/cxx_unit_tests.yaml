@@ -35,10 +35,14 @@ jobs:
 
     - name: Detect build profile
       id: setup_profile
-      run: >
-        pipenv run
-        conan profile detect
-        sed -i 's/compiler.version=\d+/compiler.version=17/d' $(conan profile path default)
+      run: |
+        pipenv run conan profile detect
+        echo "path=$(pipenv run conan profile detect)" >> "$GITHUB_OUTPUT"
+
+    - name: Patch compiler version
+      id: patch_profile
+      run: |
+        sed -i 's/compiler.version=\d+/compiler.version=17/d' ${{ steps.setup_profile.outputs.path }}
 
     # The building command uses the system libraries (OpenSSL, and libcurl) to avoid
     # long compilation time in the CI. Also unit tests do not launch integration tests
