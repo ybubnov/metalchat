@@ -17,6 +17,22 @@
 using namespace metalchat;
 
 
+namespace testing {
+
+auto
+make_token_scanner()
+{
+    auto terminal_tokens_scanner = match_token_scanner({128001, 128008, 128009});
+
+    return composite_token_scanner<std::logical_and<bool>>(
+        {std::make_shared<limit_token_scanner>(100),
+         std::make_shared<match_token_scanner>(std::move(terminal_tokens_scanner))}
+    );
+}
+
+} // namespace testing
+
+
 TEST_CASE("Test interpreter", "[llama][integration]")
 {
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
@@ -27,6 +43,7 @@ TEST_CASE("Test interpreter", "[llama][integration]")
     auto transformer = repository.retrieve_transformer("model.safetensors", options);
 
     auto interp = interpreter(transformer, tokenizer);
+    interp.set_token_scanner(testing::make_token_scanner());
 
     auto command = R"({"name":"multiply",
 "type": "function",
@@ -82,6 +99,7 @@ TEST_CASE("Test filebuf interpreter", "[llama][integration]")
     auto transformer = repository.retrieve_transformer("model.safetensors", options, Allocator());
 
     auto interp = interpreter(transformer, tokenizer);
+    interp.set_token_scanner(testing::make_token_scanner());
 
     interp.write(basic_message("system", "You are a helpful assistant"));
     interp.write(basic_message("user", "What is the capital of Germany?"));
