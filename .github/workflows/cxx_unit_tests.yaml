@@ -27,6 +27,7 @@ jobs:
       id: install_packages
       run: |
         brew install cmake curl openssl@3 ninja pipenv
+        xcodebuild -downloadComponent MetalToolchain
 
     - name: Setup build environment
       id: setup_build

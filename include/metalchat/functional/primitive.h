@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <metalchat/kernel/activation.h>
 #include <metalchat/kernel/arithmetic.h>
 #include <metalchat/kernel/bmm.h>
 #include <metalchat/kernel/copy.h>
@@ -11,7 +12,6 @@
 #include <metalchat/kernel/mul.h>
 #include <metalchat/kernel/multinomial.h>
 #include <metalchat/kernel/roll.h>
-#include <metalchat/kernel/silu.h>
 #include <metalchat/kernel/softmax.h>
 #include <metalchat/kernel/sort.h>
 #include <metalchat/kernel/sum.h>
@@ -91,6 +91,15 @@ auto
 silu(Tensor t, hardware_accelerator& gpu)
 {
     kernel::silu<typename Tensor::value_type> op(gpu);
+    return op(t);
+}
+
+
+template <immutable_tensor Tensor>
+auto
+gelu(Tensor t, hardware_accelerator& gpu)
+{
+    kernel::gelu<typename Tensor::value_type> op(gpu);
     return op(t);
 }
 

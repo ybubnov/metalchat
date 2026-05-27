@@ -20,8 +20,37 @@ private:
     basic_kernel _M_kernel;
 
 public:
-    silu(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T>("silu"))
+    silu(hardware_accelerator& accelerator)
+    : _M_kernel(accelerator.load<T>("silu"))
+    {}
+
+    template <immutable_tensor_t<T> Input>
+    auto
+    operator()(Input input)
+    {
+        auto input_view = flatten<2>(input);
+        auto output_view = shared_empty_like<T>(input_view, _M_kernel.get_allocator());
+
+        auto max_threads = _M_kernel.max_threads_per_threadgroup();
+        auto [grid, thread] = make_kernel_grid_2d(input, max_threads);
+
+        auto task = kernel_task(_M_kernel, grid, thread);
+        auto task_future = task.bind_front(output_view, input_view);
+
+        auto output = future_tensor(output_view, std::move(task_future));
+        return output.view(input.shape());
+    }
+};
+
+
+/// Applies the Gaussian Error Linear Units function.
+template <typename T> class gelu {
+private:
+    basic_kernel _M_kernel;
+
+public:
+    gelu(hardware_accelerator& accelerator)
+    : _M_kernel(accelerator.load<T>("gelu"))
     {}
 
     template <immutable_tensor_t<T> Input>

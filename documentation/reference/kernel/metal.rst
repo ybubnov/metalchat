@@ -76,6 +76,9 @@ Sparse kernels
 Non-linear activation kernels
 -----------------------------
 
+.. doxygenclass:: metalchat::kernel::gelu
+   :members:
+
 .. doxygenclass:: metalchat::kernel::rmsnorm
    :members:
 
