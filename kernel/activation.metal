@@ -39,3 +39,38 @@ silu(
 
 __lib_metalchat_kernel2(silu, bfloat);
 __lib_metalchat_kernel2(silu, float);
+
+
+template <typename T> struct __gelu_parameters {
+    tensor2<T> output;
+    tensor2<const T> input;
+};
+
+
+template <typename T>
+kernel void
+gelu(
+    __gelu_parameters<T> params,
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
+)
+{
+    const uint row_size = params.input.size(0);
+    const uint dim_size = params.input.size(1);
+    const uint i = gid.y * threadgroup_size.y + tid.y;
+    const uint k = gid.x * threadgroup_size.x + tid.x;
+
+    if (i < row_size && k < dim_size) {
+        const auto sqrt_2_pi = metal::fast::sqrt(0.5 * M_PI_F);
+
+        const T x = params.input.at(i, k);
+        const T xh = x + T(0.044715) * x * x * x;
+
+        params.output.at(i, k) = x * T(0.5) * T(1.0 + metal::tanh(sqrt_2_pi * xh));
+    }
+}
+
+
+__lib_metalchat_kernel2(gelu, bfloat);
+__lib_metalchat_kernel2(gelu, float);
