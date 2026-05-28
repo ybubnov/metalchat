@@ -66,9 +66,16 @@ basic_layer::get_parent_layer(const std::string& name) const
 
 
 basic_layer&
-basic_layer::get_layer(const std::string& name) const
+basic_layer::get_layer(const std::string& name)
 {
-    const basic_layer* this_layer = this;
+    return *(get_layer_ptr(name));
+}
+
+
+std::shared_ptr<basic_layer>&
+basic_layer::get_layer_ptr(const std::string& name)
+{
+    basic_layer* this_layer = this;
     auto delim_pos = name.rfind(_M_delimiter);
     auto layer_name = name;
 
@@ -78,7 +85,7 @@ basic_layer::get_layer(const std::string& name) const
     }
 
     if (auto it = this_layer->_M_layers.find(layer_name); it != this_layer->_M_layers.end()) {
-        return *(it->second);
+        return it->second;
     }
 
     throw std::runtime_error(std::format("layer '{}' is not registered", name));
@@ -86,7 +93,7 @@ basic_layer::get_layer(const std::string& name) const
 
 
 basic_layer::parameter_pointer
-basic_layer::get_parameter(const std::string& name) const
+basic_layer::get_parameter(const std::string& name)
 {
     const basic_layer* this_layer = this;
     auto delim_pos = name.rfind(_M_delimiter);
@@ -106,7 +113,7 @@ basic_layer::get_parameter(const std::string& name) const
 
 
 const basic_layer::parameter_container
-basic_layer::get_parameters(bool recurse) const
+basic_layer::get_parameters(bool recurse)
 {
     parameter_container params;
 

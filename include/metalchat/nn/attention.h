@@ -92,10 +92,10 @@ public:
     void
     initialize()
     {
-        _M_wq = register_polymorphic_layer<BasicLinear, Linear>("wq");
-        _M_wk = register_polymorphic_layer<BasicLinear, Linear>("wk");
-        _M_wv = register_polymorphic_layer<BasicLinear, Linear>("wv");
-        _M_wo = register_polymorphic_layer<BasicLinear, Linear>("wo");
+        _M_wq = register_polymorphic_layer<Linear>("wq");
+        _M_wk = register_polymorphic_layer<Linear>("wk");
+        _M_wv = register_polymorphic_layer<Linear>("wv");
+        _M_wo = register_polymorphic_layer<Linear>("wo");
     }
 
     template <immutable_tensor3_t<T> Input, cache_t<T> Cache>
