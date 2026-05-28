@@ -42,7 +42,7 @@ struct named_parameter {
 
 /// A Wrapper around a shared pointer for arbitrary layer implementation provides invocable
 /// functionality for `Layer` implementations.
-template <typename Layer> class indirect_layer {
+template <layer Layer> class indirect_layer {
 public:
     using layer_type = std::remove_cvref_t<Layer>;
     using layer_pointer = layer_type::layer_pointer;
@@ -120,7 +120,7 @@ public:
     accelerator();
 
     basic_layer&
-    get_layer(const std::string& name) const;
+    get_layer(const std::string& name);
 
     basic_layer&
     get_parent_layer(const std::string& name) const;
@@ -130,18 +130,18 @@ public:
     set_parameter(const std::string& name, Tensor&& tensor);
 
     parameter_pointer
-    get_parameter(const std::string& name) const;
+    get_parameter(const std::string& name);
 
     const parameter_container
-    get_parameters(bool recurse = true) const;
+    get_parameters(bool recurse = true);
 
     template <std::invocable<named_parameter> Function>
     void
-    apply(Function fn, bool recurse = true) const;
+    apply(Function fn, bool recurse = true);
 
     template <std::invocable<named_layer> Function>
     void
-    apply(Function fn) const;
+    apply(Function fn);
 
     virtual ~indirect_layer() = default;
 
@@ -150,10 +150,10 @@ private:
 };
 
 
-template <typename Layer> indirect_layer(Layer&&) -> indirect_layer<Layer>;
+template <layer Layer> indirect_layer(Layer&&) -> indirect_layer<Layer>;
 
 
-template <typename Layer> class polymorphic_layer {
+template <layer Layer> class polymorphic_layer {
 public:
     using layer_type = std::remove_cvref_t<Layer>;
     using layer_pointer = layer_type::layer_pointer;
@@ -182,16 +182,16 @@ public:
     auto
     operator()(Args&&... args);
 
-    template <typename DerivedLayer> requires std::derived_from<DerivedLayer, Layer>
-    polymorphic_layer<Layer>&
+    template <std::derived_from<Layer> DerivedLayer>
+    polymorphic_layer&
     operator=(indirect_layer<DerivedLayer>&& derived);
 
-    template <typename DerivedLayer> requires std::derived_from<DerivedLayer, Layer>
-    polymorphic_layer<Layer>&
+    template <std::derived_from<Layer> DerivedLayer>
+    polymorphic_layer&
     operator=(polymorphic_layer<DerivedLayer>&& derived);
 
 private:
-    template <typename FriendLayer> friend class polymorphic_layer;
+    template <layer FriendLayer> friend class polymorphic_layer;
 
     std::weak_ptr<basic_layer> _M_layer;
     std::string _M_name;
@@ -476,7 +476,8 @@ private:
     {
         auto tensor_ptr = std::dynamic_pointer_cast<Tensor>(ptr);
         if (!tensor_ptr) {
-            throw std::invalid_argument("basic_layer::move_tensor: tensor types are not compatible"
+            throw std::invalid_argument(
+                "basic_layer::move_tensor_to_pointer: tensor types are not compatible"
             );
         }
         *tensor_ptr = std::move(tensor);
@@ -484,7 +485,7 @@ private:
 };
 
 
-template <typename Layer>
+template <layer Layer>
 const hardware_accelerator&
 indirect_layer<Layer>::accelerator() const
 {
@@ -492,7 +493,7 @@ indirect_layer<Layer>::accelerator() const
 }
 
 
-template <typename Layer>
+template <layer Layer>
 hardware_accelerator&
 indirect_layer<Layer>::accelerator()
 {
@@ -500,15 +501,15 @@ indirect_layer<Layer>::accelerator()
 }
 
 
-template <typename Layer>
+template <layer Layer>
 basic_layer&
-indirect_layer<Layer>::get_layer(const std::string& name) const
+indirect_layer<Layer>::get_layer(const std::string& name)
 {
     return _M_value->get_layer(name);
 }
 
 
-template <typename Layer>
+template <layer Layer>
 basic_layer&
 indirect_layer<Layer>::get_parent_layer(const std::string& name) const
 {
@@ -516,7 +517,7 @@ indirect_layer<Layer>::get_parent_layer(const std::string& name) const
 }
 
 
-template <typename Layer>
+template <layer Layer>
 template <immutable_tensor Tensor>
 void
 indirect_layer<Layer>::set_parameter(const std::string& name, Tensor&& tensor)
@@ -525,41 +526,41 @@ indirect_layer<Layer>::set_parameter(const std::string& name, Tensor&& tensor)
 }
 
 
-template <typename Layer>
+template <layer Layer>
 indirect_layer<Layer>::parameter_pointer
-indirect_layer<Layer>::get_parameter(const std::string& name) const
+indirect_layer<Layer>::get_parameter(const std::string& name)
 {
     return _M_value->get_parameter(name);
 }
 
 
-template <typename Layer>
+template <layer Layer>
 const indirect_layer<Layer>::parameter_container
-indirect_layer<Layer>::get_parameters(bool recurse) const
+indirect_layer<Layer>::get_parameters(bool recurse)
 {
     return _M_value->get_parameters(recurse);
 }
 
 
-template <typename Layer>
+template <layer Layer>
 template <std::invocable<named_parameter> Function>
 void
-indirect_layer<Layer>::apply(Function fn, bool recurse) const
+indirect_layer<Layer>::apply(Function fn, bool recurse)
 {
     _M_value->apply(fn, recurse);
 }
 
 
-template <typename Layer>
+template <layer Layer>
 template <std::invocable<named_layer> Function>
 void
-indirect_layer<Layer>::apply(Function fn) const
+indirect_layer<Layer>::apply(Function fn)
 {
     _M_value->apply(fn);
 }
 
 
-template <typename Layer>
+template <layer Layer>
 template <class... Args>
 auto
 polymorphic_layer<Layer>::operator()(Args&&... args)
@@ -569,8 +570,8 @@ polymorphic_layer<Layer>::operator()(Args&&... args)
     return layer_impl(std::forward<Args>(args)...);
 }
 
-template <typename Layer>
-template <typename DerivedLayer> requires std::derived_from<DerivedLayer, Layer>
+template <layer Layer>
+template <std::derived_from<Layer> DerivedLayer>
 polymorphic_layer<Layer>&
 polymorphic_layer<Layer>::operator=(indirect_layer<DerivedLayer>&& derived)
 {
@@ -580,8 +581,8 @@ polymorphic_layer<Layer>::operator=(indirect_layer<DerivedLayer>&& derived)
 }
 
 
-template <typename Layer>
-template <typename DerivedLayer> requires std::derived_from<DerivedLayer, Layer>
+template <layer Layer>
+template <std::derived_from<Layer> DerivedLayer>
 polymorphic_layer<Layer>&
 polymorphic_layer<Layer>::operator=(polymorphic_layer<DerivedLayer>&& derived)
 {
@@ -629,7 +630,7 @@ polymorphic_layer<Layer>::operator=(polymorphic_layer<DerivedLayer>&& derived)
 ///
 /// \note You can access elements of the layer array through \ref basic_layer::get_parameter
 /// method by using the following syntax: `array.0`.
-template <typename Layer> class layer_array : public basic_layer {
+template <layer Layer> class layer_array : public basic_layer {
 public:
     using size_type = std::size_t;
     using pointer = indirect_layer<Layer>;
@@ -755,7 +756,7 @@ private:
 /// type is possible to dynamically-cast to the specified layer type.
 ///
 /// \tparam Layer a layer type that is used to assert possibility of dynamic cast.
-template <typename Layer> struct layer_common_with {
+template <layer Layer> struct layer_common_with {
     bool
     operator()(named_layer layer) const
     {
