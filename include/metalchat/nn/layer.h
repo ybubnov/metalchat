@@ -279,11 +279,8 @@ public:
     polymorphic_layer<Layer>
     register_polymorphic_layer(const std::string& name, Args&&... args)
     {
-        // TODO: move the initialize call to polymorphic_layer?
-        auto layer_ptr = std::make_shared<Layer>(std::forward<Args>(args)..., _M_accelerator);
-        layer_ptr->initialize();
-
-        _M_layers.insert_or_assign(name, layer_ptr);
+        indirect_layer<Layer> layer(std::forward<Args>(args)..., _M_accelerator);
+        _M_layers.insert_or_assign(name, layer.get());
         return polymorphic_layer<Layer>(name, weak_from_this());
     }
 
