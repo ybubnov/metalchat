@@ -44,9 +44,9 @@ public:
     void
     initialize()
     {
-        _M_w1 = register_polymorphic_layer<BasicLinear, Linear>("w1");
-        _M_w2 = register_polymorphic_layer<BasicLinear, Linear>("w2");
-        _M_w3 = register_polymorphic_layer<BasicLinear, Linear>("w3");
+        _M_w1 = register_polymorphic_layer<Linear>("w1");
+        _M_w2 = register_polymorphic_layer<Linear>("w2");
+        _M_w3 = register_polymorphic_layer<Linear>("w3");
     }
 
     template <immutable_tensor3_t<T> Input>

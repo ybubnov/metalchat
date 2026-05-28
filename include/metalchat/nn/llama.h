@@ -92,8 +92,8 @@ public:
     void
     initialize() override
     {
-        _M_embedding = register_polymorphic_layer<BasicEmbedding, Embedding>("tok_embeddings");
-        _M_output = register_polymorphic_layer<BasicLinear, Linear>("output");
+        _M_embedding = register_polymorphic_layer<Embedding>("tok_embeddings");
+        _M_output = register_polymorphic_layer<Linear>("output");
     }
 
     /// Invoke the layer.

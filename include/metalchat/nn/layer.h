@@ -155,6 +155,12 @@ template <typename Layer> indirect_layer(Layer&&) -> indirect_layer<Layer>;
 
 template <typename Layer> class polymorphic_layer {
 public:
+    using layer_type = std::remove_cvref_t<Layer>;
+    using layer_pointer = layer_type::layer_pointer;
+    using layer_container = layer_type::layer_container;
+    using parameter_pointer = layer_type::parameter_pointer;
+    using parameter_container = layer_type::parameter_container;
+
     polymorphic_layer(const std::string& name, const std::weak_ptr<basic_layer>& ptr)
     : _M_layer(ptr),
       _M_name(name)
@@ -165,6 +171,13 @@ public:
       _M_name()
     {}
 
+    std::shared_ptr<layer_type>
+    get() const
+    {
+        auto layer_ptr = _M_layer.lock();
+        return std::dynamic_pointer_cast<layer_type>(layer_ptr->get_layer_ptr(_M_name));
+    }
+
     template <class... Args>
     auto
     operator()(Args&&... args);
@@ -173,7 +186,13 @@ public:
     polymorphic_layer<Layer>&
     operator=(indirect_layer<DerivedLayer>&& derived);
 
+    template <typename DerivedLayer> requires std::derived_from<DerivedLayer, Layer>
+    polymorphic_layer<Layer>&
+    operator=(polymorphic_layer<DerivedLayer>&& derived);
+
 private:
+    template <typename FriendLayer> friend class polymorphic_layer;
+
     std::weak_ptr<basic_layer> _M_layer;
     std::string _M_name;
 };
@@ -237,9 +256,8 @@ public:
     ///    }
     /// };
     /// ```
-    template <typename Layer, typename... Args>
-    requires std::constructible_from<Layer, Args..., hardware_accelerator&> &&
-             std::derived_from<Layer, basic_layer>
+    template <layer Layer, typename... Args>
+    requires std::constructible_from<Layer, Args..., hardware_accelerator&>
     indirect_layer<Layer>
     register_layer(const std::string& name, Args&&... args)
     {
@@ -248,19 +266,17 @@ public:
         return layer;
     }
 
-    template <typename Layer>
+    template <layer Layer>
     indirect_layer<Layer>
-    register_layer(const std::string& name, const indirect_layer<Layer>& layer_ptr)
+    register_layer(const std::string& name, const indirect_layer<Layer>& layer)
     {
-        layer_pointer ptr = layer_ptr.get();
-        _M_layers.insert_or_assign(name, ptr);
-        return layer_ptr;
+        _M_layers.insert_or_assign(name, layer.get());
+        return layer;
     }
 
-    template <typename Base, typename Layer, typename... Args>
-    requires std::constructible_from<Layer, Args..., hardware_accelerator&> &&
-             std::derived_from<Layer, Base> && std::derived_from<Base, basic_layer>
-    polymorphic_layer<Base>
+    template <layer Layer, typename... Args>
+    requires std::constructible_from<Layer, Args..., hardware_accelerator&>
+    polymorphic_layer<Layer>
     register_polymorphic_layer(const std::string& name, Args&&... args)
     {
         // TODO: move the initialize call to polymorphic_layer?
@@ -268,22 +284,25 @@ public:
         layer_ptr->initialize();
 
         _M_layers.insert_or_assign(name, layer_ptr);
-        return polymorphic_layer<Base>(name, weak_from_this());
+        return polymorphic_layer<Layer>(name, weak_from_this());
     }
 
-    template <typename Base> requires std::derived_from<Base, basic_layer>
-    polymorphic_layer<Base>
-    register_polymorphic_layer(const std::string& name)
+    template <layer Layer>
+    polymorphic_layer<Layer>
+    register_polymorphic_layer(const std::string& name, const polymorphic_layer<Layer>& layer)
     {
-        _M_layers.insert_or_assign(name, nullptr);
-        return polymorphic_layer<Base>(name, weak_from_this());
+        _M_layers.insert_or_assign(name, layer.get());
+        return polymorphic_layer<Layer>(name, weak_from_this());
     }
 
     /// Get upstream layer by name. This method does not perform recursive lookup and only
     /// returns layers registered at the current layer. If layer is not registered, method
     /// throws exception.
     basic_layer&
-    get_layer(const std::string& name) const;
+    get_layer(const std::string& name);
+
+    std::shared_ptr<basic_layer>&
+    get_layer_ptr(const std::string& name);
 
     basic_layer&
     get_parent_layer(const std::string& name) const;
@@ -374,7 +393,7 @@ public:
     /// This method also supports recursive lookup of the parameter within children layers
     /// if the name contains a dot ('.') delimiter.
     parameter_pointer
-    get_parameter(const std::string& name) const;
+    get_parameter(const std::string& name);
 
     /// Return a set of parameters with fully-qualified names. Parameters of different layers
     /// are separated using dot ('.') delimiter symbol.
@@ -382,7 +401,7 @@ public:
     /// If you want to return only parameters of the current layer and drop upstream parameters,
     /// you could call this method with `recurse = false`.
     const parameter_container
-    get_parameters(bool recurse = true) const;
+    get_parameters(bool recurse = true);
 
     /// Apply a function to every parameters of the layer.
     ///
@@ -564,6 +583,17 @@ polymorphic_layer<Layer>::operator=(indirect_layer<DerivedLayer>&& derived)
 }
 
 
+template <typename Layer>
+template <typename DerivedLayer> requires std::derived_from<DerivedLayer, Layer>
+polymorphic_layer<Layer>&
+polymorphic_layer<Layer>::operator=(polymorphic_layer<DerivedLayer>&& derived)
+{
+    _M_layer = derived._M_layer;
+    _M_name = derived._M_name;
+    return *this;
+}
+
+
 /// Sequential container of layers.
 ///
 /// \ref layer_array can be indexed like a random access container, but layers it contains are
@@ -732,7 +762,7 @@ template <typename Layer> struct layer_common_with {
     bool
     operator()(named_layer layer) const
     {
-        return dynamic_pointer_cast<Layer>(layer.ptr) != nullptr;
+        return std::dynamic_pointer_cast<Layer>(layer.ptr) != nullptr;
     }
 };
 
