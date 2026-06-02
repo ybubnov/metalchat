@@ -125,6 +125,8 @@ concept mutable_layer = std::derived_from<Layer, basic_layer>;
 
 /// A Wrapper around a shared pointer for arbitrary layer implementation provides invocable
 /// functionality for `Layer` implementations.
+///
+/// \tparam Layer A wrapped layer type.
 template <mutable_layer Layer> class indirect_layer {
 public:
     using layer_type = std::remove_cvref_t<Layer>;
@@ -201,15 +203,19 @@ public:
         return *this;
     }
 
+    /// \copydoc basic_layer::accelerator() const
     const hardware_accelerator&
     accelerator() const;
 
+    /// \copydoc basic_layer::accelerator()
     hardware_accelerator&
     accelerator();
 
+    /// \copydoc basic_layer::layer(const std::string&)
     basic_layer&
     layer(const std::string& name);
 
+    /// \copydoc basic_layer::layer(const std::string&) const
     const basic_layer&
     layer(const std::string& name) const;
 
@@ -219,13 +225,16 @@ public:
     const basic_layer&
     layer_parent(const std::string& name) const;
 
+    /// \copydoc basic_layer::set_parameter
     template <immutable_tensor Tensor>
     void
     set_parameter(const std::string& name, Tensor&& tensor);
 
+    /// \copydoc basic_layer::parameter(const std::string&)
     parameter_type&
     parameter(const std::string& name);
 
+    /// \copydoc basic_layer::parameters
     std::vector<named_parameter>
     parameters(bool recurse = true) const;
 
@@ -268,8 +277,11 @@ public:
     basic_layer(const hardware_accelerator& accelerator, char delimiter);
 
     /// Construct a layer that is a associated with the specified hardware accelerator.
+    ///
+    /// The layer is constructed with a default - `.` (dot) delimiter.
     basic_layer(const hardware_accelerator& accelerator);
 
+    /// Return a delimiter used to join names of layers and parameters of nested layers.
     char
     delimiter() const;
 
@@ -281,11 +293,13 @@ public:
     hardware_accelerator&
     accelerator();
 
+    /// Return a reference to the registered layer by the specified name.
     layer_type&
     layer(const std::string& name);
 
-    // const layer_type&
-    // layer(const std::string& name) const;
+    /// Return a const reference to the registered layer by the specified name.
+    const layer_type&
+    layer(const std::string& name) const;
 
     layer_pointer&
     layer_ptr(const std::string& name);
@@ -302,16 +316,18 @@ public:
     /// Return a reference to the registered parameter by the specified name.
     ///
     /// This method also supports recursive lookup of the parameter within children layers
-    /// if the name contains a dot ('.') delimiter.
+    /// if the name contains a \ref basic_layer::delimiter() const.
     parameter_type&
     parameter(const std::string& name);
 
-    /// \copydoc parameter(const std::string&)
+    /// Returns a const reference to the registered parameter.
+    ///
+    /// See \ref parameter(const std::string&)
     const parameter_type&
     parameter(const std::string& name) const;
 
     /// Return a set of parameters with fully-qualified names. Parameters of different layers
-    /// are separated using a configured delimiter symbol.
+    /// are separated using a configured \ref basic_layer::delimiter() const symbol.
     ///
     /// If you want to return only parameters of the current layer and drop upstream parameters,
     /// you could call this method with `recurse = false`.
@@ -321,11 +337,13 @@ public:
     /// Return a pointer to the registered parameter by the specified name.
     ///
     /// This method also supports recursive lookup of the parameter within children layers
-    /// if the name contains a dot ('.') delimiter.
+    /// if the name contains a \ref delimiter.
     parameter_pointer&
     parameter_ptr(const std::string& name);
 
-    /// \copydoc parameter_ptr(const std::string&)
+    /// Returns a conster pointer to the registered parameter.
+    ///
+    /// See \ref parameter_ptr(const std::string&).
     const parameter_pointer&
     parameter_ptr(const std::string& name) const;
 
@@ -390,6 +408,10 @@ public:
 
     /// Add a parameter to the layer.
     ///
+    /// \tparam Tensor a type of the parameter's tensor.
+    /// \param name a name of the parameter to register.
+    /// \param tensor_ptr a shared pointer to the parameter value.
+    ///
     /// This method shared ownership of the tensor (parameter) with the caller. Consider the
     /// following example, where the parameter is constructed with the basic layer using
     /// delegated constructors, and then registered in the body of the constructor:
@@ -402,9 +424,9 @@ public:
     ///
     ///     custom_layer(hardware_accelerator accelerator)
     ///     : layer(accelerator),
-    ///       weight(full<float>({5, 4, 2}, 4.0, accelerator))
+    ///       weight()
     ///     {
-    ///         register_parameter("weight", weight);
+    ///         weight = register_parameter("weight", full<float>({5, 4, 2}, 4.0, accelerator));
     ///     }
     /// };
     /// ```
@@ -418,7 +440,7 @@ public:
     }
 
     /// Register an upstream layer for the current layer. The layer could be accessed using
-    /// the given name using `basic_layer::layer` method.
+    /// the given name using \ref basic_layer::layer method.
     ///
     /// The registry of layers owns the upstream layer, and the method returns a object pointing
     /// to that owned layer.
@@ -428,6 +450,11 @@ public:
     ///
     /// A common practice is registering upstream layers within a downstream layer constructor
     /// like in the example below.
+    ///
+    /// \tparam Layer a layer type to create.
+    /// \tparam Args types of parameters for a Layer's constructor.
+    /// \param name a name of the layer to register.
+    /// \param args arguments used to construct the layer instance.
     ///
     /// ```cpp
     /// using namespace metalchat;
@@ -455,6 +482,9 @@ public:
         return register_layer(name, layer);
     }
 
+    /// Register an upstream layer for the current layer.
+    ///
+    /// Does the same a \ref basic_layer::register_layer but with already built indirect layer.
     template <mutable_layer Layer>
     indirect_layer<Layer>
     register_layer(const std::string& name, const indirect_layer<Layer>& layer)
