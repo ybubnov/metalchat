@@ -42,7 +42,7 @@ struct llama3_options_serializer {
 ///
 /// \tparam T a type of the attention weights (Wq, Wk).
 /// \tparam Layer a Llama3 implementation layer.
-template <typename T, nn::layer Layer> class llama3_safetensor_serializer {
+template <typename T, nn::mutable_layer Layer> class llama3_safetensor_serializer {
 public:
     using value_type = nn::indirect_layer<Layer>;
 
@@ -217,7 +217,7 @@ private:
 ///
 /// \tparam T a type of the dequantized weights.
 /// \tparam Layer a Llama3 implementation layer.
-template <typename T, nn::layer Layer> class llama3_qlora_safetensor_serializer {
+template <typename T, nn::mutable_layer Layer> class llama3_qlora_safetensor_serializer {
 public:
     using value_type = nn::indirect_layer<Layer>;
 

@@ -66,6 +66,9 @@ public:
         _M_transforms = register_layer<TransformerArray>("layers");
         _M_caches = register_layer<CacheArray>("caches");
 
+        _M_embedding = register_polymorphic_layer<Embedding>("tok_embeddings");
+        _M_output = register_polymorphic_layer<Linear>("output");
+
         const auto caching_opts = caching_options{
             .head_dim = options.head_dim(),
             .n_heads = options.n_heads(),
@@ -87,13 +90,6 @@ public:
             _M_transforms->emplace_back(attention_opts, accelerator);
             _M_caches->emplace_back(caching_opts, accelerator);
         }
-    }
-
-    void
-    initialize() override
-    {
-        _M_embedding = register_polymorphic_layer<Embedding>("tok_embeddings");
-        _M_output = register_polymorphic_layer<Linear>("output");
     }
 
     /// Invoke the layer.

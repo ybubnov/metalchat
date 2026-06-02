@@ -21,7 +21,10 @@ namespace metalchat {
 namespace nn {
 
 
-template <typename T, contiguous_container Container = hardware_memory_container<T>>
+template <
+    typename T,
+    contiguous_container Container = hardware_memory_container<T>,
+    typename Activation = kernel::silu<T>>
 class feed_forward : public basic_layer {
 private:
     using BasicLinear = nn::basic_linear<T, Container>;
@@ -33,16 +36,15 @@ private:
     polymorphic_layer<BasicLinear> _M_w2;
     polymorphic_layer<BasicLinear> _M_w3;
 
+    Activation _M_activation;
+
 public:
     using value_type = T;
     using container_type = Container;
 
     feed_forward(hardware_accelerator& accelerator)
-    : basic_layer(accelerator)
-    {}
-
-    void
-    initialize()
+    : basic_layer(accelerator),
+      _M_activation(accelerator)
     {
         _M_w1 = register_polymorphic_layer<Linear>("w1");
         _M_w2 = register_polymorphic_layer<Linear>("w2");
@@ -54,7 +56,7 @@ public:
     operator()(Input input)
     {
         auto input2 = _M_w3(input);
-        auto input1 = silu(_M_w1(input), accelerator());
+        auto input1 = _M_activation(_M_w1(input));
 
         return _M_w2(hadamard(input1, input2, accelerator()));
     }
