@@ -73,12 +73,12 @@ TEST_CASE("Test model load", "[safetensor][integration]")
 
     auto serializer = serializer_type(options, gpu0);
     auto m = serializer.load(doc);
-    auto params = m.get_parameters();
+    auto params = m.parameters();
 
     REQUIRE(params.size() == 179);
-    for (auto [name, param] : params) {
-        REQUIRE(param->numel() > 0);
-        REQUIRE(param->container_ptr() != nullptr);
+    for (auto& param : params) {
+        REQUIRE(param.ptr->numel() > 0);
+        REQUIRE(param.ptr->container_ptr() != nullptr);
     }
 }
 
@@ -124,24 +124,24 @@ TEST_CASE("Test write and read small model", "[safetensor]")
     doc.load(model_in);
 
     // Ensure that model parameter's data is the same.
-    auto l1_out = model_out.get_parameter("linear1.weight");
-    auto l1_in = model_in.get_parameter("linear1.weight");
-    auto l1_out_begin = static_cast<float*>(l1_out->data());
-    auto l1_in_begin = static_cast<float*>(l1_in->data());
+    auto& l1_out = model_out.parameter("linear1.weight");
+    auto& l1_in = model_in.parameter("linear1.weight");
+    auto l1_out_begin = static_cast<float*>(l1_out.data());
+    auto l1_in_begin = static_cast<float*>(l1_in.data());
 
-    auto l1_out_vec = std::vector(l1_out_begin, l1_out_begin + l1_out->numel());
-    auto l1_in_vec = std::vector(l1_in_begin, l1_in_begin + l1_in->numel());
+    auto l1_out_vec = std::vector(l1_out_begin, l1_out_begin + l1_out.numel());
+    auto l1_in_vec = std::vector(l1_in_begin, l1_in_begin + l1_in.numel());
 
     using Catch::Matchers::Approx;
     REQUIRE_THAT(l1_out_vec, Approx(l1_in_vec));
 
-    auto l2_out = model_out.get_parameter("linear2.weight");
-    auto l2_in = model_in.get_parameter("linear2.weight");
-    auto l2_out_begin = static_cast<bf16*>(l2_out->data());
-    auto l2_in_begin = static_cast<bf16*>(l2_in->data());
+    auto& l2_out = model_out.parameter("linear2.weight");
+    auto& l2_in = model_in.parameter("linear2.weight");
+    auto l2_out_begin = static_cast<bf16*>(l2_out.data());
+    auto l2_in_begin = static_cast<bf16*>(l2_in.data());
 
-    auto l2_out_vec = std::vector(l2_out_begin, l2_out_begin + l2_out->numel());
-    auto l2_in_vec = std::vector(l2_in_begin, l2_in_begin + l2_in->numel());
+    auto l2_out_vec = std::vector(l2_out_begin, l2_out_begin + l2_out.numel());
+    auto l2_in_vec = std::vector(l2_in_begin, l2_in_begin + l2_in.numel());
 
     REQUIRE_THAT(l2_out_vec, Approx(l2_in_vec));
 }

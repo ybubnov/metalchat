@@ -50,7 +50,7 @@ concept language_transformer = requires {
     typename Transformer::tokenizer_type;
     typename Transformer::tokenizer_loader;
 
-    requires nn::layer<typename Transformer::layer_type>;
+    requires nn::mutable_layer<typename Transformer::layer_type>;
     requires contiguous_container<typename Transformer::container_type>;
     requires safetensor_serializer<typename Transformer::layer_serializer>;
     requires stream_serializer<typename Transformer::options_serializer>;

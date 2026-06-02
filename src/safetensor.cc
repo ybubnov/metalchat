@@ -278,8 +278,8 @@ safetensor_document::load(nn::basic_layer& layer) const
 {
     for (auto it = begin(); it != end(); ++it) {
         auto safetensor = *it;
-        auto parameter = layer.get_parameter(safetensor.name());
-        load(safetensor, *parameter);
+        auto& parameter = layer.parameter(safetensor.name());
+        load(safetensor, parameter);
     }
 }
 

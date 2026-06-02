@@ -8,6 +8,7 @@
 #include <metalchat/nn/cache.h>
 #include <metalchat/nn/embedding.h>
 #include <metalchat/nn/layer.h>
+#include <metalchat/nn/layer_array.h>
 #include <metalchat/nn/linear.h>
 #include <metalchat/nn/llama.h>
 #include <metalchat/nn/options.h>

@@ -87,10 +87,6 @@ public:
       _M_options(options),
       _M_scale(options.scale()),
       _M_clone(accelerator)
-    {}
-
-    void
-    initialize()
     {
         _M_wq = register_polymorphic_layer<Linear>("wq");
         _M_wk = register_polymorphic_layer<Linear>("wk");

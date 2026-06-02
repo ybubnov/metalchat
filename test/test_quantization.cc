@@ -28,14 +28,14 @@ TEST_CASE("Test replace QLoRa linear", "[quantization]")
 
     nn::indirect_layer<FeedForward> input_layer(gpu0);
 
-    auto params_before = input_layer.get_parameters();
+    auto params_before = input_layer.parameters();
     REQUIRE(params_before.size() == 3);
 
     replace_layer(input_layer, is_basic_linear, [&] {
         return nn::indirect_layer<QLoraLinear>(1.0, 32, gpu0);
     });
 
-    auto params_after = input_layer.get_parameters();
+    auto params_after = input_layer.parameters();
     REQUIRE(params_after.size() == 12);
 }
 

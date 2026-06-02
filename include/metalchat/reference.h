@@ -19,7 +19,7 @@ namespace metalchat {
 namespace reference {
 
 
-template <nn::layer Layer> class llama3_safetensor_serializer {
+template <nn::mutable_layer Layer> class llama3_safetensor_serializer {
 public:
     using value_type = nn::indirect_layer<Layer>;
 

@@ -21,10 +21,10 @@ TEST_CASE("Test layer copy assignment", "[layer]")
     nn::indirect_layer<Linear> linear0(gpu0);
     auto linear1 = linear0;
 
-    auto weight = linear1.get_parameter("weight");
-    REQUIRE(weight->dimensions() == 2);
-    REQUIRE(weight->size(0) == 0);
-    REQUIRE(weight->size(1) == 0);
+    auto& weight = linear1.parameter("weight");
+    REQUIRE(weight.dimensions() == 2);
+    REQUIRE(weight.size(0) == 0);
+    REQUIRE(weight.size(1) == 0);
 }
 
 
@@ -37,17 +37,17 @@ TEST_CASE("Test layer parameters", "[layer]")
 
     linear.set_parameter("weight", full<float>({3, 5}, 4.0));
 
-    auto weight = linear.get_parameter("weight");
-    REQUIRE(weight->dimensions() == 2);
-    REQUIRE(weight->size(0) == 3);
-    REQUIRE(weight->size(1) == 5);
+    auto& weight = linear.parameter("weight");
+    REQUIRE(weight.dimensions() == 2);
+    REQUIRE(weight.size(0) == 3);
+    REQUIRE(weight.size(1) == 5);
 
     auto output = linear(shared_tensor(full<float>({10, 5}, 2.0))).get();
     REQUIRE(output.dim() == 2);
     REQUIRE(output.size(0) == 10);
     REQUIRE(output.size(1) == 3);
 
-    auto params = linear.get_parameters();
+    auto params = linear.parameters();
     REQUIRE(params.size() == 1);
 }
 
@@ -83,23 +83,23 @@ TEST_CASE("Test recurse parameter query", "[layer]")
     hardware_accelerator gpu0;
     nn::indirect_layer<test_layer_outer> tl(gpu0);
 
-    auto param = tl.get_parameter("inner.layer1.weight");
-    REQUIRE(param->dimensions() == 2);
-    REQUIRE(param->size(0) == 3);
-    REQUIRE(param->size(1) == 4);
+    auto& param1 = tl.parameter("inner.layer1.weight");
+    REQUIRE(param1.dimensions() == 2);
+    REQUIRE(param1.size(0) == 3);
+    REQUIRE(param1.size(1) == 4);
 
-    param = tl.get_parameter("linear0.weight");
-    REQUIRE(param->dimensions() == 2);
-    REQUIRE(param->size(0) == 1);
-    REQUIRE(param->size(1) == 2);
+    auto& param0 = tl.parameter("linear0.weight");
+    REQUIRE(param0.dimensions() == 2);
+    REQUIRE(param0.size(0) == 1);
+    REQUIRE(param0.size(1) == 2);
 
     auto match_not_registered = Catch::Matchers::ContainsSubstring("is not registered");
 
-    REQUIRE_THROWS_WITH(tl.get_parameter("inner.linear3.weight"), match_not_registered);
-    REQUIRE_THROWS_WITH(tl.get_parameter("inner.linear1"), match_not_registered);
-    REQUIRE_THROWS_WITH(tl.get_parameter("."), match_not_registered);
-    REQUIRE_THROWS_WITH(tl.get_parameter("inner....."), match_not_registered);
-    REQUIRE_THROWS_WITH(tl.get_parameter(""), match_not_registered);
+    REQUIRE_THROWS_WITH(tl.parameter("inner.linear3.weight"), match_not_registered);
+    REQUIRE_THROWS_WITH(tl.parameter("inner.linear1"), match_not_registered);
+    REQUIRE_THROWS_WITH(tl.parameter("."), match_not_registered);
+    REQUIRE_THROWS_WITH(tl.parameter("inner....."), match_not_registered);
+    REQUIRE_THROWS_WITH(tl.parameter(""), match_not_registered);
 }
 
 
