@@ -11,18 +11,10 @@ namespace metalchat {
 namespace nn {
 
 
-shared_layer::shared_layer(const std::shared_ptr<basic_layer>& layer_ptr)
-: basic_layer(layer_ptr->accelerator()),
-  _M_value(layer_ptr)
-{
-    _M_layers = std::make_shared<proxying_covariant_mapping<layer_type>>(layer_ptr->_M_layers);
-    _M_params = std::make_shared<proxying_covariant_mapping<parameter_type>>(layer_ptr->_M_params);
-}
-
-
 basic_layer::basic_layer(const hardware_accelerator& accelerator, char delimiter)
-: _M_layers(std::make_shared<unordered_covariant_mapping<basic_layer>>()),
-  _M_params(std::make_shared<unordered_covariant_mapping<basic_tensor>>()),
+: _M_layers(),
+  _M_params(),
+  _M_polymorphic_pointers(),
   _M_accelerator(accelerator),
   _M_delimiter(delimiter)
 {}
@@ -74,7 +66,7 @@ basic_layer::layer_ptr(const std::string& name) const
     }
 
     try {
-        return layer->_M_layers->find(layer_name);
+        return layer->_M_layers.at(layer_name);
     } catch (std::out_of_range) {
         throw std::runtime_error(
             std::format("nn::basic_layer::layer_ptr: '{}' is not registered", name)
@@ -102,7 +94,7 @@ basic_layer::layer_parent(const std::string& name) const
         start_pos = pos + 1;
 
         try {
-            this_layer = this_layer->_M_layers->find(layer_name).get();
+            this_layer = this_layer->_M_layers.at(layer_name).get();
         } catch (std::out_of_range) {
             throw std::runtime_error(
                 std::format("nn::basic_layer::layer_parent: '{}' is not registered", name)
@@ -143,7 +135,7 @@ basic_layer::parameter_ptr(const std::string& name) const
 
     // Create a shared pointer without a deleter to prevent freeing
     // the memory of the current class instance.
-    std::shared_ptr<const basic_layer> layer(this, [](const basic_layer*){});
+    std::shared_ptr<const basic_layer> layer(this, [](const basic_layer*) {});
 
     if (delim_pos != std::string::npos) {
         param_name = name.substr(delim_pos + 1);
@@ -151,7 +143,7 @@ basic_layer::parameter_ptr(const std::string& name) const
     }
 
     try {
-        return layer->_M_params->find(param_name);
+        return layer->_M_params.at(param_name);
     } catch (std::out_of_range) {
         throw std::runtime_error(
             std::format("nn::basic_layer::parameter_ptr: '{}' is not registered", name)
@@ -160,18 +152,16 @@ basic_layer::parameter_ptr(const std::string& name) const
 }
 
 
-//const basic_layer::parameter_container
-//basic_layer::parameters(bool recurse)
-//{
-//    parameter_container params;
-//
-//    auto fn = [&](named_parameter parameter) {
-//        params.insert_or_assign(parameter.path, parameter.ptr);
-//    };
-//
-//    apply(fn, recurse);
-//    return params;
-//}
+std::vector<named_parameter>
+basic_layer::parameters(bool recurse) const
+{
+    std::vector<named_parameter> params;
+
+    auto fn = [&](named_parameter parameter) { params.push_back(parameter); };
+
+    apply(fn, recurse);
+    return params;
+}
 
 
 } // namespace nn
