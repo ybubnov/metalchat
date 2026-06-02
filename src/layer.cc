@@ -120,6 +120,13 @@ basic_layer::parameter(const std::string& name)
 }
 
 
+const basic_layer::parameter_type&
+basic_layer::parameter(const std::string& name) const
+{
+    return *parameter_ptr(name);
+}
+
+
 basic_layer::parameter_pointer&
 basic_layer::parameter_ptr(const std::string& name)
 {

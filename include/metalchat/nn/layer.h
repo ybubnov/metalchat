@@ -299,8 +299,16 @@ public:
     const layer_type&
     layer_parent(const std::string& name) const;
 
+    /// Return a reference to the registered parameter by the specified name.
+    ///
+    /// This method also supports recursive lookup of the parameter within children layers
+    /// if the name contains a dot ('.') delimiter.
     parameter_type&
     parameter(const std::string& name);
+
+    /// \copydoc parameter(const std::string&)
+    const parameter_type&
+    parameter(const std::string& name) const;
 
     /// Return a set of parameters with fully-qualified names. Parameters of different layers
     /// are separated using a configured delimiter symbol.
@@ -317,6 +325,7 @@ public:
     parameter_pointer&
     parameter_ptr(const std::string& name);
 
+    /// \copydoc parameter_ptr(const std::string&)
     const parameter_pointer&
     parameter_ptr(const std::string& name) const;
 
@@ -351,8 +360,8 @@ public:
 
     /// Add a parameter to the layer.
     ///
-    /// The parameter can be accessed using `basic_layer::parameter` method and updated with
-    /// `basic_layer::set_parameter` method respectively.
+    /// The parameter can be accessed using  \ref basic_layer::parameter method and updated with
+    /// \ref basic_layer::set_parameter method respectively.
     ///
     /// A common practice is registering parameters of the layers that could be updated
     /// externally (loaded from a file, or stored after inference):

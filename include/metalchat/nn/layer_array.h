@@ -17,7 +17,7 @@ namespace nn {
 /// Sequential container of layers.
 ///
 /// \ref layer_array can be indexed like a random access container, but layers it contains are
-/// properly registered, and will be visible by all \ref layer methods.
+/// properly registered, and will be visible by all \ref basic_layer methods.
 ///
 /// \tparam Layer a type of the layers this module stores.
 ///
@@ -55,7 +55,8 @@ namespace nn {
 /// };
 /// ```
 ///
-/// \note You can access elements of the layer array through \ref basic_layer::parameter
+/// \note You can access elements of the layer array through
+/// \ref basic_layer::parameter(const std::string&) const
 /// method by using the following syntax: `array.0`.
 template <mutable_layer Layer> class layer_array : public basic_layer {
 public:
