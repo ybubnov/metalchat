@@ -10,6 +10,7 @@
 #include <fstream>
 #include <istream>
 #include <numeric>
+#include <regex>
 #include <streambuf>
 #include <unordered_map>
 #include <unordered_set>
@@ -155,6 +156,26 @@ public:
       _M_dtype(dtype),
       _M_shape(shape),
       _M_container(container_ptr)
+    {}
+
+    safetensor(
+        const std::string& name,
+        const std::string& dtype,
+        const std::span<std::size_t>& shape,
+        const container_pointer& container_ptr
+    )
+    : safetensor(name, dtype, shape.begin(), shape.end(), container_ptr)
+    {}
+
+    template <std::forward_iterator ForwardIt>
+    safetensor(
+        const std::string& name,
+        const std::string& dtype,
+        ForwardIt first,
+        ForwardIt last,
+        const container_pointer& container_ptr
+    )
+    : safetensor(name, dtype, shape_type(first, last), container_ptr)
     {}
 
     /// Returns a name of the tensor (a complete path as in the original safetensor document).
@@ -809,6 +830,26 @@ public:
     insert(const nn::indirect_layer<Layer>& layer)
     {
         insert(*layer);
+    }
+
+    template <std::forward_iterator ForwardIt>
+    requires std::same_as<typename ForwardIt::value_type, std::pair<std::regex, std::string>>
+    safetensor_document
+    rename(ForwardIt first, ForwardIt last) const
+    {
+        safetensor_document doc;
+        for (auto tensor_it = begin(); tensor_it != end(); ++tensor_it) {
+            auto st = *tensor_it;
+            auto name = st.name();
+
+            for (auto regex_it = first; regex_it != last; ++regex_it) {
+                const auto& [re, replacement] = *regex_it;
+                name = std::regex_replace(name, re, replacement);
+            }
+
+            doc.insert(safetensor(name, st.dtype(), st.sizes(), st.container_ptr()));
+        }
+        return doc;
     }
 
     /// Load tensors from a safetensor document into the layer's registered parameters.
