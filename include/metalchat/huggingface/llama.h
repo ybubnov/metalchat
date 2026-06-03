@@ -86,8 +86,6 @@ public:
     safetensor_document
     adapt(const safetensor_document& document) const
     {
-        safetensor_document doc;
-
         const std::vector<std::pair<std::regex, std::string>> mapping = {
             {std::regex(R"(model\.(layers\.\d+)\.input_layernorm)"), "$1.attention_norm"},
             {std::regex(R"(model\.(layers\.\d+)\.post_attention_layernorm)"), "$1.ffn_norm"},
@@ -102,21 +100,9 @@ public:
             {std::regex(R"(model.embed_tokens)"), "tok_embeddings"},
         };
 
-        for (auto it = document.begin(); it != document.end(); ++it) {
-            auto st = *it;
-            auto name = st.name();
-
-            for (const auto& [re, replacement] : mapping) {
-                name = std::regex_replace(name, re, replacement);
-            }
-
-            auto sizes = st.sizes();
-            auto shape = std::vector<std::size_t>(sizes.begin(), sizes.end());
-
-            doc.insert(safetensor(name, st.dtype(), shape, st.container_ptr()));
-        }
-
+        auto doc = document.rename(mapping.begin(), mapping.end());
         doc.insert("output.weight", "tok_embeddings.weight");
+
         return doc;
     }
 

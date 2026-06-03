@@ -70,12 +70,15 @@ public:
 };
 
 
-template <typename T, contiguous_container Container = hardware_memory_container<T>>
+template <
+    typename T,
+    contiguous_container Container = hardware_memory_container<T>,
+    typename Activation = kernel::silu<T>>
 class transformer : public basic_layer {
 private:
     using RMSNorm = nn::rmsnorm<T, Container>;
     using Attention = nn::attention<T, Container>;
-    using FeedForward = nn::feed_forward<T, Container>;
+    using FeedForward = nn::feed_forward<T, Container, Activation>;
 
     indirect_layer<Attention> _M_attention;
     indirect_layer<RMSNorm> _M_attention_norm;
@@ -100,12 +103,15 @@ public:
     auto
     operator()(Input input, Cache& cache, std::size_t start_pos = 0)
     {
-        auto norm = _M_attention_norm(input);
-        auto h = add(input, _M_attention(norm, cache, start_pos), accelerator());
+        auto hidden_states = _M_attention_norm(input);
+        hidden_states = _M_attention(hidden_states, cache, start_pos);
+        hidden_states = add(input, hidden_states, accelerator());
 
-        auto ff_norm = _M_ff_norm(h);
-        auto result = add(h, _M_ff(ff_norm), accelerator());
-        return result;
+        auto residual = hidden_states;
+        hidden_states = _M_ff_norm(hidden_states);
+        hidden_states = _M_ff(hidden_states);
+        hidden_states = add(residual, hidden_states, accelerator());
+        return hidden_states;
     }
 
     friend std::ostream&
