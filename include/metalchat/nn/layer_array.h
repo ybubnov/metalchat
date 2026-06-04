@@ -89,6 +89,20 @@ public:
         return *_M_pointers[pos];
     }
 
+    /// Returns a reference to the last element in the container.
+    reference
+    back()
+    {
+        return *_M_pointers.back();
+    }
+
+    /// Returns a const reference to the last element in the container.
+    const_reference
+    back() const
+    {
+        return *_M_pointers.back();
+    }
+
     /// Returns a constant reference to the `pos`-element of the layer array.
     ///
     /// \param pos the position of a layer in the array.

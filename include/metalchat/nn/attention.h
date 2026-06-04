@@ -15,6 +15,7 @@
 #include <metalchat/nn/embedding.h>
 #include <metalchat/nn/layer.h>
 #include <metalchat/nn/linear.h>
+#include <metalchat/nn/rmsnorm.h>
 #include <metalchat/tensor/future.h>
 
 
@@ -29,7 +30,12 @@ struct attention_options {
     std::size_t max_seq_len;
     std::size_t max_batch_size;
     float rope_theta;
-    float norm_eps;
+
+    /// Enables RMS-normalization to queries and values, when the value is provided.
+    ///
+    /// \note The layer won't even register RMS-normalization layers, when the value
+    /// is empty.
+    std::optional<float> norm_eps = std::nullopt;
 
     inline std::size_t
     repeats() const
@@ -51,11 +57,15 @@ private:
 
     using BasicLinear = nn::basic_linear<T, Container>;
     using Linear = nn::linear<T, Container>;
+    using RMSNorm = nn::rmsnorm<T, Container>;
 
     polymorphic_layer<BasicLinear> _M_wq;
     polymorphic_layer<BasicLinear> _M_wk;
     polymorphic_layer<BasicLinear> _M_wv;
     polymorphic_layer<BasicLinear> _M_wo;
+
+    indirect_layer<RMSNorm> _M_wq_norm;
+    indirect_layer<RMSNorm> _M_wk_norm;
 
     nn::rope<T> _M_rope;
     nn::attention_options _M_options;
@@ -92,6 +102,18 @@ public:
         _M_wk = register_polymorphic_layer<Linear>("wk");
         _M_wv = register_polymorphic_layer<Linear>("wv");
         _M_wo = register_polymorphic_layer<Linear>("wo");
+
+        if (options.norm_eps) {
+            enable_norm(options.norm_eps.value());
+        }
+    }
+
+    /// Enable RMS-normalization of keys and queries.
+    void
+    enable_norm(float eps)
+    {
+        _M_wq_norm = register_layer<RMSNorm>("q_norm", eps);
+        _M_wk_norm = register_layer<RMSNorm>("k_norm", eps);
     }
 
     template <immutable_tensor3_t<T> Input, cache_t<T> Cache>
@@ -109,8 +131,8 @@ public:
         auto k = _M_wk(input).view({bs, len, n_kv_heads, head_dim});
         auto v = _M_wv(input).view({bs, len, n_kv_heads, head_dim});
 
-        q = _M_rope(q, /*start_pos=*/start_pos);
-        k = _M_rope(k, /*start_pos=*/start_pos);
+        q = _M_rope(_M_wq_norm ? _M_wq_norm(q) : q, /*start_pos=*/start_pos);
+        k = _M_rope(_M_wk_norm ? _M_wk_norm(k) : k, /*start_pos=*/start_pos);
 
         auto [kk, vv, mask] = cache.update(k, v, start_pos);
 

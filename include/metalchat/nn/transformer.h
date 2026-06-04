@@ -82,36 +82,60 @@ private:
 
     indirect_layer<Attention> _M_attention;
     indirect_layer<RMSNorm> _M_attention_norm;
+    indirect_layer<RMSNorm> _M_attention_post_norm;
 
     indirect_layer<FeedForward> _M_ff;
     indirect_layer<RMSNorm> _M_ff_norm;
+    indirect_layer<RMSNorm> _M_ff_post_norm;
 
 public:
     using value_type = T;
     using container_type = Container;
 
-    transformer(const attention_options& options, hardware_accelerator accelerator)
+    transformer(const attention_options& options, hardware_accelerator& accelerator)
     : basic_layer(accelerator)
     {
         _M_attention = register_layer<Attention>("attention", options);
-        _M_attention_norm = register_layer<RMSNorm>("attention_norm", options.norm_eps);
         _M_ff = register_layer<FeedForward>("feed_forward");
-        _M_ff_norm = register_layer<RMSNorm>("ffn_norm", options.norm_eps);
+    }
+
+    /// Enable normalization of the attention and feed-forward layers.
+    ///
+    /// The method registers two additional RMS-normalization layers that are executed
+    /// before the attention and feed-forward layers respectively.
+    void
+    enable_norm(float eps)
+    {
+        _M_attention_norm = register_layer<RMSNorm>("attention_norm", eps);
+        _M_ff_norm = register_layer<RMSNorm>("ffn_norm", eps);
+    }
+
+    /// Enable post-normalization of the attention and feed-forward (also called MLP) layers.
+    ///
+    /// The method registers two additional RMS-normalization layers that are executed
+    /// right after the attention and feed-forward layers respectively.
+    void
+    enable_post_norm(float eps)
+    {
+        _M_attention_post_norm = register_layer<RMSNorm>("attention_post_norm", eps);
+        _M_ff_post_norm = register_layer<RMSNorm>("ffn_post_norm", eps);
     }
 
     template <immutable_tensor3_t<T> Input, cache_t<T> Cache>
     auto
     operator()(Input input, Cache& cache, std::size_t start_pos = 0)
     {
-        auto hidden_states = _M_attention_norm(input);
-        hidden_states = _M_attention(hidden_states, cache, start_pos);
-        hidden_states = add(input, hidden_states, accelerator());
+        auto hidden = _M_attention_norm ? _M_attention_norm(input) : input;
+        hidden = _M_attention(hidden, cache, start_pos);
+        hidden = _M_attention_post_norm ? _M_attention_post_norm(hidden) : hidden;
+        hidden = add(input, hidden, accelerator());
 
-        auto residual = hidden_states;
-        hidden_states = _M_ff_norm(hidden_states);
-        hidden_states = _M_ff(hidden_states);
-        hidden_states = add(residual, hidden_states, accelerator());
-        return hidden_states;
+        auto residual = hidden;
+        hidden = _M_ff_norm ? _M_ff_norm(hidden) : hidden;
+        hidden = _M_ff(hidden);
+        hidden = _M_ff_post_norm ? _M_ff_post_norm(hidden) : hidden;
+        hidden = add(residual, hidden, accelerator());
+        return hidden;
     }
 
     friend std::ostream&

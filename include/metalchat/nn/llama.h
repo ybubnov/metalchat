@@ -69,7 +69,7 @@ public:
         _M_embedding = register_polymorphic_layer<Embedding>("tok_embeddings");
         _M_output = register_polymorphic_layer<Linear>("output");
 
-        const auto caching_opts = caching_options{
+        caching_options caching_opts{
             .head_dim = options.head_dim(),
             .n_heads = options.n_heads(),
             .n_kv_heads = options.n_kv_heads(),
@@ -77,17 +77,20 @@ public:
             .max_batch_size = 1
         };
 
-        const auto attention_opts = attention_options{
+        attention_options attention_opts{
             .head_dim = options.head_dim(),
             .n_heads = options.n_heads(),
             .n_kv_heads = options.n_kv_heads(),
             .max_seq_len = options.max_seq_len(),
             .rope_theta = options.rope_theta(),
-            .norm_eps = options.norm_eps()
+            // Llama3 models does not implement RMS-normalization of keys
+            // and queries in the attention layer, so we disable it here.
+            .norm_eps = std::nullopt
         };
 
         for (std::size_t i = 0; i < options.n_layers(); i++) {
             _M_transforms->emplace_back(attention_opts, accelerator);
+            _M_transforms->back().enable_norm(options.norm_eps());
             _M_caches->emplace_back(caching_opts, accelerator);
         }
     }
