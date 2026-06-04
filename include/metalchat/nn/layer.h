@@ -203,6 +203,13 @@ public:
         return *this;
     }
 
+    /// Checks if the `*this` stores a null layer pointer.
+    explicit
+    operator bool() const noexcept
+    {
+        return _M_value != nullptr;
+    }
+
     /// \copydoc basic_layer::accelerator() const
     const hardware_accelerator&
     accelerator() const;
