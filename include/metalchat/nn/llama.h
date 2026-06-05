@@ -124,7 +124,7 @@ public:
             auto alloc = accelerator().get_allocator();
             auto m = full<T>({len, end_pos}, -infinity, alloc);
 
-            triu(m.narrow(1, end_pos - len, len));
+            triu(m.narrow(1, end_pos - len, len), /*diagonal=*/1);
             mask = std::make_optional(std::move(m));
         }
 
