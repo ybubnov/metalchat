@@ -56,11 +56,8 @@ struct attention_options {
 ///
 /// This \ref attention layer implements the original architecture described in the
 /// <a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need paper</a>.
-template <
-    typename T,
-    contiguous_container Container,
-    cache_t<T> Cache = sink_cache<T>
-> class attention : public basic_layer {
+template <typename T, contiguous_container Container, cache_t<T> Cache = sink_cache<T>>
+class attention : public basic_layer {
 private:
     static constexpr std::size_t input_size = 4;
 

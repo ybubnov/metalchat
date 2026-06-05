@@ -151,7 +151,6 @@ public:
     }
 
 private:
-
     auto
     alloc(const caching_options& options)
     {
