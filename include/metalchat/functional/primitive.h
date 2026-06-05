@@ -222,22 +222,33 @@ multinomial(Tensor t, std::size_t sample_size, hardware_accelerator& gpu)
 }
 
 
-template <typename T, contiguous_container Container>
+/// Sets elements of the lower triangular part of a tensor to 0, the upper
+/// triangular part of the result is retained.
+///
+/// The method modified the data of a tensor in-place.
+///
+/// \param input the input tensor.
+/// \param diagonal the diagonal to consider.
+template <immutable_tensor Tensor>
 void
-triu(tensor<T, 2, Container>& t)
+triu(Tensor& input, int diagonal = 0)
 {
-    for (std::size_t i = 0; i < t.size(0); i++) {
-        for (std::size_t j = 0; j <= i && j < t.size(1); j++) {
-            t[i][j] = T(0);
+    std::size_t first = diagonal > 0 ? 0 : 1 - diagonal;
+    std::size_t last = diagonal < 0 ? 1 : diagonal;
+
+    for (std::size_t i = first; i < input.size(0); i++, last++) {
+        for (std::size_t j = 0; j < last && j < input.size(1); j++) {
+            input[i][j] = typename Tensor::value_type(0);
         }
     }
 }
 
-template <typename T, contiguous_container Container>
+
+template <immutable_tensor Tensor>
 void
-triu(tensor<T, 2, Container>&& t)
+triu(Tensor&& input, int diagonal = 0)
 {
-    triu(t);
+    triu(input, diagonal);
 }
 
 

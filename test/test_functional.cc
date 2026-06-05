@@ -17,7 +17,7 @@ TEST_CASE("Test repeat interleave", "[functional::repeat_interleave]")
 {
     auto original = shared_tensor(rand<float>({1, 6, 8, 64}));
 
-    metalchat::hardware_accelerator gpu0;
+    hardware_accelerator gpu0;
     auto output = repeat_interleave(original, 4, /*dim=*/2, gpu0).get();
 
     REQUIRE(output.dim() == 5);
@@ -38,4 +38,11 @@ TEST_CASE("Test repeat interleave", "[functional::repeat_interleave]")
             }
         }
     }
+}
+
+
+TEST_CASE("Test triu (diagonal=0)", "[functional::triu]")
+{
+    auto T = full({10, 10}, 1);
+    triu(T, /*diagonal=*/0);
 }

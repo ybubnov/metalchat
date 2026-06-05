@@ -19,6 +19,7 @@ namespace fmt {
 
 constexpr std::size_t precision = 3;
 constexpr std::size_t edgeitems = 4;
+constexpr std::size_t maxitems = 16;
 
 
 struct comma {
@@ -65,7 +66,7 @@ struct tensor_format : public basic_tensor_format<T, N, Container> {
     operator<<(std::ostream& os, const tensor_format<T, N, Container>& tf)
     {
         auto size = tf.t.size(0);
-        auto max_size = fmt::edgeitems * 2 + 1;
+        auto max_size = std::max(fmt::maxitems, fmt::edgeitems * 2 + 1);
 
         using format_type = tensor_format<T, N - 1, Container>;
 
@@ -108,7 +109,7 @@ struct tensor_format<T, 1, Container> : public basic_tensor_format<T, 1, Contain
     operator<<(std::ostream& os, const tensor_format<T, 1, Container>& tf)
     {
         auto size = tf.t.size(0);
-        auto max_size = fmt::edgeitems * 2 + 1;
+        auto max_size = std::max(fmt::maxitems, fmt::edgeitems * 2 + 1);
 
         using format_type = tensor_format<T, 0, Container>;
 
