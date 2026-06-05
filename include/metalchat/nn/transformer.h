@@ -10,7 +10,6 @@
 #include <metalchat/container.h>
 #include <metalchat/functional.h>
 #include <metalchat/nn/attention.h>
-#include <metalchat/nn/cache.h>
 #include <metalchat/nn/layer.h>
 #include <metalchat/nn/linear.h>
 #include <metalchat/nn/rmsnorm.h>
@@ -121,12 +120,12 @@ public:
         _M_ff_post_norm = register_layer<RMSNorm>("ffn_post_norm", eps);
     }
 
-    template <immutable_tensor3_t<T> Input, cache_t<T> Cache>
+    template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
     auto
-    operator()(Input input, Cache& cache, std::size_t start_pos = 0)
+    operator()(Input input, std::optional<Mask> mask = std::nullopt, std::size_t start_pos = 0)
     {
         auto hidden = _M_attention_norm ? _M_attention_norm(input) : input;
-        hidden = _M_attention(hidden, cache, start_pos);
+        hidden = _M_attention(hidden, mask, start_pos);
         hidden = _M_attention_post_norm ? _M_attention_post_norm(hidden) : hidden;
         hidden = add(input, hidden, accelerator());
 

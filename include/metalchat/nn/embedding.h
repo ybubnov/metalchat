@@ -43,6 +43,10 @@ public:
 };
 
 
+/// A simple lookup table that stores embeddings of a fixed dictionary and size.
+///
+/// This module is often used to store word embeddings and retrieve them using indices. The input
+/// to the module is a list of indices, and the output is the corresponding word embeddings.
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class embedding : public basic_embedding<T, Container> {
     using _Base = basic_embedding<T, Container>;
@@ -159,7 +163,7 @@ private:
     }
 
 public:
-    rope(std::size_t dim, std::size_t max_seq_len, float theta, hardware_accelerator accelerator)
+    rope(std::size_t dim, std::size_t max_seq_len, float theta, hardware_accelerator& accelerator)
     : basic_layer(accelerator),
       _M_start_pos(0),
       _M_dim(dim),
