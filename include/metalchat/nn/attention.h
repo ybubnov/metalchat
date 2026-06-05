@@ -23,10 +23,15 @@ namespace nn {
 
 
 struct attention_options {
+    /// Per-attention head embedding dimension.
     std::size_t head_dim;
+    /// Number of query heads.
     std::size_t n_heads;
+    /// Number of key and value heads.
     std::size_t n_kv_heads;
+    /// Maximum sequence length model will be run with.
     std::size_t max_seq_len;
+    /// Batch size the model will be run with.
     std::size_t max_batch_size;
     float rope_theta;
 
@@ -51,27 +56,30 @@ struct attention_options {
 ///
 /// This \ref attention layer implements the original architecture described in the
 /// <a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need paper</a>.
-template <typename T, contiguous_container Container> class attention : public basic_layer {
+template <typename T, contiguous_container Container, cache_t<T> Cache = sink_cache<T>>
+class attention : public basic_layer {
 private:
     static constexpr std::size_t input_size = 4;
 
     using BasicLinear = nn::basic_linear<T, Container>;
     using Linear = nn::linear<T, Container>;
     using RMSNorm = nn::rmsnorm<T, Container>;
+    using RotaryPositionalEmbedding = nn::rope<T>;
 
     polymorphic_layer<BasicLinear> _M_wq;
     polymorphic_layer<BasicLinear> _M_wk;
     polymorphic_layer<BasicLinear> _M_wv;
     polymorphic_layer<BasicLinear> _M_wo;
 
+    indirect_layer<RotaryPositionalEmbedding> _M_rope;
     indirect_layer<RMSNorm> _M_wq_norm;
     indirect_layer<RMSNorm> _M_wk_norm;
+    indirect_layer<Cache> _M_cache;
 
-    nn::rope<T> _M_rope;
     nn::attention_options _M_options;
-    T _M_scale;
-
     kernel::clone<T> _M_clone;
+
+    T _M_scale;
 
     template <immutable_tensor_t<T> Input>
     auto
@@ -95,13 +103,23 @@ public:
     : basic_layer(accelerator),
       _M_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
       _M_options(options),
-      _M_scale(options.scale),
-      _M_clone(accelerator)
+      _M_clone(accelerator),
+      _M_scale(options.scale)
     {
         _M_wq = register_polymorphic_layer<Linear>("wq");
         _M_wk = register_polymorphic_layer<Linear>("wk");
         _M_wv = register_polymorphic_layer<Linear>("wv");
         _M_wo = register_polymorphic_layer<Linear>("wo");
+
+        caching_options cache_options{
+            .head_dim = options.head_dim,
+            .n_heads = options.n_heads,
+            .n_kv_heads = options.n_kv_heads,
+            .max_seq_len = options.max_seq_len,
+            .max_batch_size = options.max_batch_size,
+        };
+
+        _M_cache = register_layer<Cache>("cache", cache_options);
 
         if (options.norm_eps) {
             enable_norm(options.norm_eps.value());
@@ -116,9 +134,13 @@ public:
         _M_wk_norm = register_layer<RMSNorm>("k_norm", eps);
     }
 
-    template <immutable_tensor3_t<T> Input, cache_t<T> Cache>
+    /// Compute multi-head attention of the input sequence.
+    ///
+    /// \param input an input embedding.
+    /// \param mask if specified, a 2-dim mask preventing attention to certain positions.
+    template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
     auto
-    operator()(Input input, Cache& cache, std::size_t start_pos = 0)
+    operator()(Input input, std::optional<Mask> mask = std::nullopt, std::size_t start_pos = 0)
     {
         int bs = input.size(0);
         int len = input.size(1);
@@ -134,7 +156,7 @@ public:
         q = _M_rope(_M_wq_norm ? _M_wq_norm(q) : q, /*start_pos=*/start_pos);
         k = _M_rope(_M_wk_norm ? _M_wk_norm(k) : k, /*start_pos=*/start_pos);
 
-        auto [kk, vv, mask] = cache.update(k, v, start_pos);
+        auto [kk, vv] = _M_cache->update(k, v, start_pos);
 
         auto repeat_kv = [&]<immutable_tensor4_t<T> Tensor>(Tensor&& t) -> auto {
             int slen = t.size(1);

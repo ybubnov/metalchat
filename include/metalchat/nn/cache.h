@@ -28,10 +28,6 @@ template <typename T> struct caching_result {
 
     /// A future tensor that will contain a result of values caching query.
     future_tensor<T, 4> values;
-
-    /// An optional future tensor that will contain a result of additive causal mask creation.
-    /// This mask is created only when the length of keys (or values) is larger than `1`.
-    std::optional<future_tensor<T, 2>> mask;
 };
 
 
@@ -101,7 +97,6 @@ template <typename T> class sink_cache : public basic_layer {
 public:
     using value_type = T;
     using input_tensor = future_tensor<T, 4>;
-    using mask_tensor = std::optional<future_tensor<T, 2>>;
 
     /// Constructs a new instance of the sink cache.
     ///
@@ -109,7 +104,7 @@ public:
     /// \param options caching options for the KV cache.
     /// \param accelerator a hardware accelerator instance.
     sink_cache(
-        std::size_t pre_len, const caching_options& options, hardware_accelerator accelerator
+        std::size_t pre_len, const caching_options& options, hardware_accelerator& accelerator
     )
     : basic_layer(accelerator),
       _M_clone(accelerator),
@@ -152,32 +147,10 @@ public:
         _M_vals = cache_vals;
         update_parameters();
 
-        auto len = keys.size(1);
-        auto mask_len = k.size(1);
-        auto mask = create_additive_causal_mask(len, mask_len);
-
-        return caching_result{k, v, mask};
+        return caching_result{k, v};
     }
 
 private:
-    auto
-    create_additive_causal_mask(std::size_t len, std::size_t mask_len) const
-    {
-        mask_tensor mask;
-
-        if (len > 1) {
-            const T infinity = T(std::numeric_limits<float>::infinity());
-
-            auto alloc = accelerator().get_allocator();
-            auto m = full<T>({len, mask_len}, -infinity, alloc);
-
-            triu(m.narrow(1, mask_len - len, len));
-            mask = std::make_optional(std::move(m));
-        }
-
-        return mask;
-    }
-
     auto
     alloc(const caching_options& options)
     {
