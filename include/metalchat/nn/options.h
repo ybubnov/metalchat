@@ -9,6 +9,7 @@ namespace metalchat {
 namespace nn {
 
 
+/// Configuration options for Llama3 model.
 struct llama3_options {
 public:
     llama3_options();

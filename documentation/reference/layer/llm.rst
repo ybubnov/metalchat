@@ -13,6 +13,9 @@ These are the building blocks of language models. This library could be used lik
 Meta Llama 3
 ------------
 
+.. doxygenstruct:: metalchat::nn::llama3_options
+   :members:
+
 .. doxygenclass:: metalchat::nn::llama3
    :members:
 
@@ -38,8 +41,8 @@ For example, to access cache for the 2-nd layer use the following approach:
    hardware_accelerator accelerator;
    nn::llama3<bf16> llm(default_llama3_1b_options(), accelerator);
 
-   std::cout << llm.get_parameter("caches.2.keys")->sizes() << std::endl;:
-   std::cout << llm.get_parameter("caches.2.values")->sizes() << std::endl;
+   std::cout << llm.get_parameter("layers.2.attention.cache.keys")->sizes() << std::endl;:
+   std::cout << llm.get_parameter("layers.2.attention.cache.values")->sizes() << std::endl;
    // out:
    // 1, 1024, 8, 64
    // 1, 1024, 8, 64

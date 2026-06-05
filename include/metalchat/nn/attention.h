@@ -138,6 +138,7 @@ public:
     ///
     /// \param input an input embedding.
     /// \param mask if specified, a 2-dim mask preventing attention to certain positions.
+    /// \param start_pos a start position of the input sequence.
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
     auto
     operator()(Input input, std::optional<Mask> mask = std::nullopt, std::size_t start_pos = 0)
