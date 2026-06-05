@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cmath>
 #include <list>
 #include <optional>
 #include <vector>
@@ -83,6 +84,7 @@ public:
             .n_kv_heads = options.n_kv_heads(),
             .max_seq_len = options.max_seq_len(),
             .rope_theta = options.rope_theta(),
+            .scale = 1.0f / std::sqrt(float(options.head_dim())),
             // Llama3 models does not implement RMS-normalization of keys
             // and queries in the attention layer, so we disable it here.
             .norm_eps = std::nullopt
