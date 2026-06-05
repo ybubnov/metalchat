@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <cmath>
 #include <optional>
 #include <ranges>
 
@@ -31,6 +30,9 @@ struct attention_options {
     std::size_t max_batch_size;
     float rope_theta;
 
+    /// Scaling factor applied prior to softmax.
+    float scale;
+
     /// Enables RMS-normalization to queries and values, when the value is provided.
     ///
     /// \note The layer won't even register RMS-normalization layers, when the value
@@ -42,15 +44,13 @@ struct attention_options {
     {
         return n_heads / n_kv_heads;
     }
-
-    inline float
-    scale() const
-    {
-        return 1.0 / std::sqrt(float(head_dim));
-    }
 };
 
 
+/// Allows the model to jointly attend to information from different representation subspaces.
+///
+/// This \ref attention layer implements the original architecture described in the
+/// <a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need paper</a>.
 template <typename T, contiguous_container Container> class attention : public basic_layer {
 private:
     static constexpr std::size_t input_size = 4;
@@ -95,7 +95,7 @@ public:
     : basic_layer(accelerator),
       _M_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
       _M_options(options),
-      _M_scale(options.scale()),
+      _M_scale(options.scale),
       _M_clone(accelerator)
     {
         _M_wq = register_polymorphic_layer<Linear>("wq");
