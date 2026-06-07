@@ -13,6 +13,7 @@
 #include <metalchat/container.h>
 #include <metalchat/dtype.h>
 #include <metalchat/functional.h>
+#include <metalchat/nn/attention.h>
 #include <metalchat/nn/embedding.h>
 #include <metalchat/nn/layer.h>
 #include <metalchat/nn/options.h>
@@ -98,7 +99,7 @@ public:
 
         auto len = x.size(1);
         auto end_pos = std::min(start_pos + len, _M_options.max_seq_len());
-        auto mask = create_additive_causal_mask(len, end_pos);
+        auto mask = make_causal_mask<T>(len, end_pos, accelerator());
 
         for (std::size_t i = 0; i < _M_transforms->size(); i++) {
             auto& transform = _M_transforms->at(i);
@@ -111,24 +112,6 @@ public:
         output = output.narrow(1, len - 1, 1);
 
         return _M_output(output);
-    }
-
-    auto
-    create_additive_causal_mask(std::size_t len, std::size_t end_pos) const
-    {
-        std::optional<future_tensor<T, 2>> mask;
-
-        if (len > 1) {
-            const T infinity = T(std::numeric_limits<float>::infinity());
-
-            auto alloc = accelerator().get_allocator();
-            auto m = full<T>({len, end_pos}, -infinity, alloc);
-
-            triu(m.narrow(1, end_pos - len, len), /*diagonal=*/1);
-            mask = std::make_optional(std::move(m));
-        }
-
-        return mask;
     }
 };
 

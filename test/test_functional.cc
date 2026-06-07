@@ -39,10 +39,3 @@ TEST_CASE("Test repeat interleave", "[functional::repeat_interleave]")
         }
     }
 }
-
-
-TEST_CASE("Test triu (diagonal=0)", "[functional::triu]")
-{
-    auto T = full({10, 10}, 1);
-    triu(T, /*diagonal=*/0);
-}
