@@ -194,5 +194,50 @@ public:
 };
 
 
+template <typename T>
+auto
+make_causal_mask(std::size_t size0, std::size_t size1, hardware_accelerator& accelerator)
+{
+    auto alloc = accelerator.get_allocator();
+    std::optional<future_tensor<T, 2>> mask;
+
+    if (size0 > 1) {
+        const T infinity = static_cast<T>(std::numeric_limits<float>::infinity());
+
+        auto m = full<T>({size0, size1}, -infinity, alloc);
+        triu(m.narrow(1, size1 - size0, size0), /*diagonal=*/1);
+        mask = std::make_optional(std::move(m));
+    }
+
+    return mask;
+}
+
+
+template <typename T>
+auto
+make_sliding_causal_mask(
+    std::size_t size0, std::size_t size1, std::size_t window, hardware_accelerator& accelerator
+)
+{
+    auto alloc = accelerator.get_allocator();
+    std::optional<future_tensor<T, 2>> mask;
+
+    if (size0 > 1) {
+        const T infinity = static_cast<T>(std::numeric_limits<float>::infinity());
+
+        auto upper = full<T>({size0, size1}, -infinity, alloc);
+        auto lower = full<T>({size0, size1}, -infinity, alloc);
+
+        triu(upper.narrow(1, size1 - size0, size0), /*diagonal=*/1);
+        triu(lower.narrow(1, size1 - size0, size0).t(), /*diagonal=*/window);
+
+        auto m = add(upper, lower, accelerator);
+        mask = std::make_optional(std::move(m));
+    }
+
+    return mask;
+}
+
+
 } // namespace nn
 } // namespace metalchat
