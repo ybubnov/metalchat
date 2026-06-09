@@ -24,6 +24,7 @@ gemma3_options_serializer::load(std::istream& is) const
 
     return nn::gemma3_options{
         .head_dim = options.head_dim,
+        .hidden_dim = options.hidden_size,
         .n_heads = options.num_attention_heads,
         .n_kv_heads = options.num_key_value_heads,
         .n_layers = options.num_hidden_layers,
@@ -45,6 +46,7 @@ gemma3_options_serializer::save(std::ostream& os, const nn::gemma3_options& opti
 
     auto hf_options = options_type{
         .head_dim = options.head_dim,
+        .hidden_size = options.hidden_dim,
         .num_hidden_layers = options.n_layers,
         .num_attention_heads = options.n_heads,
         .num_key_value_heads = options.n_kv_heads,
