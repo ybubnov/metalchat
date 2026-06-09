@@ -69,7 +69,7 @@ gelu(
         const float x3 = x * x * x;
         const float inner = beta * (x + kappa * x3);
 
-        params.output.at(i, k) = T(0.5f * x * (1 + metal::precise::tanh(inner)));
+        params.output.at(i, k) = T(0.5f * x * (1.0f + metal::precise::tanh(inner)));
     }
 }
 
