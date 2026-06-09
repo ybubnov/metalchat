@@ -88,6 +88,10 @@ concept immutable_tensor = requires(std::remove_reference_t<Tensor> const t) {
 };
 
 
+template <typename Tensor>
+concept immutable_tensor2 = immutable_tensor<Tensor> && Tensor::dim() == 2;
+
+
 template <immutable_tensor Tensor, std::size_t N> struct change_tensor_dimensions;
 
 
@@ -140,6 +144,13 @@ concept immutable_hardware_tensor_t =
 template <typename Tensor, typename T>
 concept immutable_hardware_tensor4_t =
     immutable_tensor4_t<Tensor, T> && std::same_as<
+                                          typename Tensor::container_type,
+                                          hardware_memory_container<typename Tensor::value_type>>;
+
+
+template <typename Tensor, typename T>
+concept immutable_hardware_tensor2_t =
+    immutable_tensor2_t<Tensor, T> && std::same_as<
                                           typename Tensor::container_type,
                                           hardware_memory_container<typename Tensor::value_type>>;
 

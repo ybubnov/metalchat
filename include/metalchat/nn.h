@@ -10,8 +10,6 @@
 #include <metalchat/nn/layer.h>
 #include <metalchat/nn/layer_array.h>
 #include <metalchat/nn/linear.h>
-#include <metalchat/nn/llama.h>
-#include <metalchat/nn/options.h>
 #include <metalchat/nn/rmsnorm.h>
 #include <metalchat/nn/sampling.h>
 #include <metalchat/nn/transformer.h>

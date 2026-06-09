@@ -61,13 +61,20 @@ gelu(
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
+    constexpr T limit = T(4);
+
     if (i < row_size && k < dim_size) {
-        const auto sqrt_2_pi = metal::fast::sqrt(0.5 * M_PI_F);
-
         const T x = params.input.at(i, k);
-        const T xh = x + T(0.044715) * x * x * x;
+        if (x >= limit) {
+            params.output.at(i, k) = x;
+        } else if (x <= -limit) {
+            params.output.at(i, k) = T(0);
+        } else {
+            const float sqrt_2_pi = metal::sqrt(2.0 / M_PI_F);
+            const float xh = x + 0.044715f * metal::pow(x, 3);
 
-        params.output.at(i, k) = x * T(0.5) * T(1.0 + metal::tanh(sqrt_2_pi * xh));
+            params.output.at(i, k) = T(x * 0.5 * (1.0 + metal::tanh(sqrt_2_pi * xh)));
+        }
     }
 }
 

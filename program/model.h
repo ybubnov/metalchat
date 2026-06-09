@@ -244,7 +244,7 @@ public:
 
         auto inference = _M_manifest.inference.value_or(inference_section{});
         if (inference.max_sequence_length) {
-            options = options.max_seq_len(inference.max_sequence_length.value());
+            options.max_seq_len = inference.max_sequence_length.value();
         }
 
         return options;

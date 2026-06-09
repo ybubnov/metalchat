@@ -23,6 +23,7 @@ def prepare_test_fixture(repo_id: str, root_path: str = "text_fixture") -> None:
 
 
 def prepare_test_fixtures(root_path: str = "test_fixture") -> None:
+    prepare_test_fixture("google/gemma-3-270m-it", root_path)
     prepare_test_fixture("meta-llama/Llama-3.2-1B-Instruct", root_path)
     prepare_test_fixture("meta-llama/LLama-3.2-1B-Instruct-QLORA_INT4_EO8", root_path)
 

@@ -5,9 +5,6 @@
 #pragma once
 
 #include <cmath>
-#include <list>
-#include <optional>
-#include <vector>
 
 #include <metalchat/accelerator.h>
 #include <metalchat/container.h>
@@ -15,15 +12,29 @@
 #include <metalchat/functional.h>
 #include <metalchat/nn/attention.h>
 #include <metalchat/nn/embedding.h>
-#include <metalchat/nn/layer.h>
-#include <metalchat/nn/options.h>
+#include <metalchat/nn/layer_array.h>
 #include <metalchat/nn/rmsnorm.h>
 #include <metalchat/nn/transformer.h>
-#include <metalchat/safetensor.h>
 
 
 namespace metalchat {
 namespace nn {
+
+
+/// Configuration options for Llama3 model.
+struct llama3_options {
+    std::size_t head_dim = 0;
+    std::size_t n_heads = 0;
+    std::size_t n_kv_heads = 0;
+    std::size_t n_layers = 0;
+    std::size_t max_seq_len = 0;
+    float rope_theta = 0.0f;
+    float norm_eps = 0.0f;
+};
+
+
+llama3_options
+default_llama3_1b_options();
 
 
 /// Llama 3 is an auto-regressive language model that uses an optimized transformer architecture.
@@ -33,7 +44,7 @@ template <typename T, contiguous_container Container = hardware_memory_container
 class llama3 : public basic_layer {
 private:
     using Transformer = nn::transformer<T, Container>;
-    using TransformerArray = layer_array<Transformer>;
+    using TransformerArray = nn::layer_array<Transformer>;
     using BasicEmbedding = nn::basic_embedding<T, Container>;
     using Embedding = nn::embedding<T, Container>;
     using RMSNorm = nn::rmsnorm<T, Container>;
@@ -59,28 +70,28 @@ public:
     : basic_layer(accelerator),
       _M_options(options)
     {
-        _M_norm = register_layer<RMSNorm>("norm", options.norm_eps());
+        _M_norm = register_layer<RMSNorm>("norm", options.norm_eps);
         _M_transforms = register_layer<TransformerArray>("layers");
 
         _M_embedding = register_polymorphic_layer<Embedding>("tok_embeddings");
         _M_output = register_polymorphic_layer<Linear>("output");
 
         attention_options attention_opts{
-            .head_dim = options.head_dim(),
-            .n_heads = options.n_heads(),
-            .n_kv_heads = options.n_kv_heads(),
-            .max_seq_len = options.max_seq_len(),
+            .head_dim = options.head_dim,
+            .n_heads = options.n_heads,
+            .n_kv_heads = options.n_kv_heads,
+            .max_seq_len = options.max_seq_len,
             .max_batch_size = 1,
-            .rope_theta = options.rope_theta(),
-            .scale = 1.0f / std::sqrt(float(options.head_dim())),
+            .rope_theta = options.rope_theta,
+            .scale = 1.0f / std::sqrt(float(options.head_dim)),
             // Llama3 models does not implement RMS-normalization of keys
             // and queries in the attention layer, so we disable it here.
             .norm_eps = std::nullopt
         };
 
-        for (std::size_t i = 0; i < options.n_layers(); i++) {
+        for (std::size_t i = 0; i < options.n_layers; i++) {
             _M_transforms->emplace_back(attention_opts, accelerator);
-            _M_transforms->back().enable_norm(options.norm_eps());
+            _M_transforms->back().enable_norm(options.norm_eps);
         }
     }
 
@@ -98,7 +109,7 @@ public:
         auto x = _M_embedding(input);
 
         auto len = x.size(1);
-        auto end_pos = std::min(start_pos + len, _M_options.max_seq_len());
+        auto end_pos = std::min(start_pos + len, _M_options.max_seq_len);
         auto mask = make_causal_mask<T>(len, end_pos, accelerator());
 
         for (std::size_t i = 0; i < _M_transforms->size(); i++) {

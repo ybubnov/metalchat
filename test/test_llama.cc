@@ -23,7 +23,9 @@ TEST_CASE("Test reference implementation inference", "[llama][integration]")
     auto gpu0 = metalchat::hardware_accelerator(64);
     auto repository = filesystem_repository<reference::llama3>(repo_path, gpu0);
 
-    auto options = nn::default_llama3_1b_options().max_seq_len(16);
+    auto options = nn::default_llama3_1b_options();
+    options.max_seq_len = 16;
+
     auto transformer = repository.retrieve_transformer("model.safetensors", options);
     auto tokenizer = repository.retrieve_tokenizer("tokenizer.model");
 

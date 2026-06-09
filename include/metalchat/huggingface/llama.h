@@ -10,7 +10,7 @@
 
 #include <metalchat/container.h>
 #include <metalchat/dtype.h>
-#include <metalchat/nn.h>
+#include <metalchat/nn/llama.h>
 #include <metalchat/quantization.h>
 #include <metalchat/reference.h>
 #include <metalchat/safetensor.h>
@@ -46,7 +46,7 @@ template <typename T, nn::mutable_layer Layer> class llama3_safetensor_serialize
 public:
     using value_type = nn::indirect_layer<Layer>;
 
-    /// Creates a new instance of a layer serializer with the Llama3 options.
+    /// Creates a new instance of a layer serializer with Llama3 options.
     llama3_safetensor_serializer(
         const nn::llama3_options& options, hardware_accelerator& accelerator
     )
@@ -122,8 +122,8 @@ public:
     adapt(value_type& layer)
     {
         const std::vector<std::pair<std::regex, std::size_t>> permutations = {
-            {std::regex(R"(layers\.(\d+)\.attention\.wk\.weight)"), _M_options.n_kv_heads()},
-            {std::regex(R"(layers\.(\d+)\.attention\.wq\.weight)"), _M_options.n_heads()},
+            {std::regex(R"(layers\.(\d+)\.attention\.wk\.weight)"), _M_options.n_kv_heads},
+            {std::regex(R"(layers\.(\d+)\.attention\.wq\.weight)"), _M_options.n_heads},
         };
 
         // Create a typed container, duplicate accessor attributes (strides, sizes, and offsets);
@@ -132,7 +132,7 @@ public:
         auto permute_attention = [&](nn::named_parameter param) {
             for (auto& [re, n_heads] : permutations) {
                 if (std::regex_match(param.path, re)) {
-                    permute_attention_heads(param.ptr, n_heads);
+                    nn::permute_attention_heads<T>(param.ptr, n_heads, _M_accelerator);
                     break;
                 }
             }
@@ -142,52 +142,6 @@ public:
     }
 
 private:
-    using tensor_pointer = std::shared_ptr<basic_tensor>;
-
-    void
-    permute_attention_heads(tensor_pointer ptr, std::size_t n_heads)
-    {
-        using container_type = hardware_memory_container<T>;
-        using tensor_type = tensor<T, 2, container_type>;
-
-        auto weight = shared_tensor(tensor_type());
-        tensor_accessor::resize(*ptr, weight.accessor(), ptr->dimensions());
-        weight.set_container(ptr->container_ptr());
-
-        weight = permute_attention_heads(weight, n_heads);
-        ptr->set_container(weight.container_ptr());
-    }
-
-    template <immutable_tensor2_t<T> Input> requires std::default_initializable<Input>
-    auto
-    permute_attention_heads(const Input& input, std::size_t n_heads)
-    {
-        std::size_t size = input.sizes().front();
-        std::size_t attention_heads = size / n_heads / 2;
-
-        // Transposition of the dimension 1 and 2 results in a discontiguous container layout,
-        // therefore we need to copy elements row-wise (by the last dimension).
-        //
-        // This implementation performs transposition on-the-fly, inserts rows into the necessary
-        // positions given the strides of the input and output tensors.
-        tensor_accessor input_layout({n_heads, 2, attention_heads});
-        tensor_accessor output_layout({n_heads, attention_heads, 2});
-
-        std::vector<Input> tensors(size);
-        for (std::size_t input_index = 0; input_index < size; input_index++) {
-            auto i = input_index / input_layout.stride(0);
-            auto rem = input_index % input_layout.stride(0);
-            auto j = rem / input_layout.stride(1);
-            auto k = rem % input_layout.stride(1);
-
-            const auto output_index = i * output_layout.stride(0) + k * output_layout.stride(1) + j;
-            tensors[output_index] = input.narrow(0, input_index, 1);
-        }
-
-        auto output = concatenate<T>(tensors.begin(), tensors.end(), 0, _M_accelerator);
-        return output.get();
-    }
-
     nn::llama3_options _M_options;
     hardware_accelerator _M_accelerator;
 };

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <map>
+#include <optional>
 #include <variant>
 #include <vector>
 
@@ -16,16 +17,32 @@ namespace huggingface {
 namespace detail {
 
 
-/// Partial view of the HuggingFace's model of the LLM configuration. The original model
-/// supports more parameters. But MetalChat has no use of that, therefore only supported
-/// subset of options is defined in this structure.
-struct options {
-    std::size_t head_dim;
-    std::size_t num_hidden_layers;
-    std::size_t num_attention_heads;
-    std::size_t num_key_value_heads;
-    float rms_norm_eps;
-    float rope_theta;
+/// Partial view of the HuggingFace's Llama configuration. The original model
+/// supports more parameters. But MetalChat has no use of that, therefore only
+/// supported subset of options is defined in this structure.
+struct llama3_options {
+    std::size_t head_dim = 0;
+    std::size_t num_hidden_layers = 0;
+    std::size_t num_attention_heads = 0;
+    std::size_t num_key_value_heads = 0;
+    float rms_norm_eps = 0.0f;
+    float rope_theta = 0.0f;
+};
+
+
+/// Partial view of the HuggingFace's Gemma3 configuration.
+struct gemma3_options {
+    std::size_t head_dim = 0;
+    std::size_t num_hidden_layers = 0;
+    std::size_t num_attention_heads = 0;
+    std::size_t num_key_value_heads = 0;
+    std::size_t sliding_window = 0;
+    std::optional<std::size_t> sliding_window_pattern = std::nullopt;
+    std::optional<std::size_t> _sliding_window_pattern = std::nullopt;
+    float query_pre_attn_scalar = 0.0f;
+    float rms_norm_eps = 0.0f;
+    float rope_theta = 0.0f;
+    float rope_local_base_freq = 0.0f;
 };
 
 
@@ -42,6 +59,7 @@ struct special_token {
 
 struct split_pattern {
     std::string Regex;
+    std::string String;
 };
 
 
@@ -102,7 +120,7 @@ namespace hf = metalchat::huggingface::detail;
 
 // clang-format off
 JSONCONS_ALL_MEMBER_TRAITS(
-    hf::options,
+    hf::llama3_options,
     head_dim,
     num_hidden_layers,
     num_attention_heads,
@@ -110,6 +128,23 @@ JSONCONS_ALL_MEMBER_TRAITS(
     rms_norm_eps,
     rope_theta
 );
+
+JSONCONS_N_MEMBER_TRAITS(
+    hf::gemma3_options,
+    9,
+    head_dim,
+    num_hidden_layers,
+    num_attention_heads,
+    num_key_value_heads,
+    query_pre_attn_scalar,
+    rms_norm_eps,
+    rope_theta,
+    rope_local_base_freq,
+    sliding_window,
+    sliding_window_pattern,
+    _sliding_window_pattern
+);
+
 JSONCONS_ALL_MEMBER_TRAITS(hf::special_token, id, content, single_word, lstrip, rstrip, normalized, special);
 JSONCONS_ALL_MEMBER_TRAITS(hf::split_pattern, Regex);
 JSONCONS_ALL_MEMBER_TRAITS(hf::split_tokenizer, type, behavior, pattern, invert);

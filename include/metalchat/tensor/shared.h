@@ -38,6 +38,10 @@ public:
     : _M_value(std::make_shared<tensor_type>(std::move(t)))
     {}
 
+    shared_tensor_ptr(const std::shared_ptr<tensor_type>& ptr)
+    : _M_value(ptr)
+    {}
+
     shared_tensor_ptr()
     : _M_value(nullptr)
     {}

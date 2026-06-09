@@ -56,7 +56,6 @@ public:
     {
         auto input2 = _M_w3(input);
         auto input1 = _M_activation(_M_w1(input));
-
         return _M_w2(hadamard(input1, input2, accelerator()));
     }
 
