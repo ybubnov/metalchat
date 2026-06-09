@@ -56,12 +56,12 @@ llama3_options_serializer::load(std::istream& is) const
 
     return nn::llama3_options{
         .head_dim = options.dim / options.n_heads,
-        .n_layers = options.n_layers,
         .n_heads = options.n_heads,
         .n_kv_heads = options.n_kv_heads,
+        .n_layers = options.n_layers,
+        .max_seq_len = 1024,
         .rope_theta = static_cast<float>(options.rope_theta),
-        .norm_eps = static_cast<float>(options.norm_eps),
-        .max_seq_len = 1024
+        .norm_eps = static_cast<float>(options.norm_eps)
     };
 }
 
