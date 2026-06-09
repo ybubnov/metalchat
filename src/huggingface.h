@@ -33,6 +33,7 @@ struct llama3_options {
 /// Partial view of the HuggingFace's Gemma3 configuration.
 struct gemma3_options {
     std::size_t head_dim = 0;
+    std::size_t hidden_size = 0;
     std::size_t num_hidden_layers = 0;
     std::size_t num_attention_heads = 0;
     std::size_t num_key_value_heads = 0;
@@ -131,8 +132,9 @@ JSONCONS_ALL_MEMBER_TRAITS(
 
 JSONCONS_N_MEMBER_TRAITS(
     hf::gemma3_options,
-    9,
+    10,
     head_dim,
+    hidden_size,
     num_hidden_layers,
     num_attention_heads,
     num_key_value_heads,

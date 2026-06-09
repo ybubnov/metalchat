@@ -56,8 +56,8 @@ gelu(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    constexpr float gelu_limit = 4.0f;
-    constexpr float gelu_coeff = 0.044714f;
+    constexpr float beta = M_SQRT2_F * M_2_SQRTPI_F * 0.5f;
+    constexpr float kappa = 0.044715f;
 
     const uint row_size = params.input.size(0);
     const uint dim_size = params.input.size(1);
@@ -65,18 +65,11 @@ gelu(
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (i < row_size && k < dim_size) {
-        const T x = params.input.at(i, k);
+        const float x = params.input.at(i, k);
+        const float x3 = x * x * x;
+        const float inner = beta * (x + kappa * x3);
 
-        if (x >= gelu_limit) {
-            params.output.at(i, k) = x;
-        } else if (x <= -gelu_limit) {
-            params.output.at(i, k) = T(0);
-        } else {
-            const float sqrt_2_pi = metal::fast::sqrt(2.0 / M_PI_F);
-            const float xh = x + gelu_coeff * metal::fast::pow(x, 3);
-
-            params.output.at(i, k) = T(x * 0.5 * (1.0 + metal::tanh(sqrt_2_pi * xh)));
-        }
+        params.output.at(i, k) = T(0.5f * x * (1 + metal::precise::tanh(inner)));
     }
 }
 
