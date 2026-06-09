@@ -45,11 +45,11 @@ TEST_CASE("GELU nan result", "[kernel::gelu]")
     metalchat::hardware_accelerator gpu0;
     kernel::gelu<bf16> gelu(gpu0);
 
-    auto input = shared_tensor(full<bf16>({1, 10}, bf16(9.0)));
+    auto input = shared_tensor(full<bf16>({1, 10}, bf16(12.0)));
     auto output = gelu(input).get();
 
     for (std::size_t i = 0; i < output.size(1); i++) {
-        REQUIRE_THAT((output[0, i]), Catch::Matchers::WithinAbs(9.0, 0.00001));
+        REQUIRE_THAT((output[0, i]), Catch::Matchers::WithinAbs(12.0, 0.00001));
     }
 }
 

@@ -20,6 +20,7 @@ template <typename T> struct __rmsnorm_parameters {
     constant tensor_layout<1>& weight_layout;
     device const T* weight;
     constant float& eps;
+    constant float& mu;
     constant uint& block_size;
 };
 
@@ -60,7 +61,9 @@ rmsnorm(
     threadgroup float threadgroup_sum[SIMD_SIZE];
 
     //  Initialize shared memory
-    threadgroup_sum[tid] = 0;
+    if (simd_gid == 0) {
+        threadgroup_sum[simd_tid] = 0;
+    }
     threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     // Write simd accumulations into shared memory
@@ -81,7 +84,7 @@ rmsnorm(
 
     // Write the outputs
     for (uint j = begin; j < end && j < dim_size; j++) {
-        out.at(i, j) = w.at(j) * T(in.at(i, j) * threadgroup_inv_mean[0]);
+        out.at(i, j) = T((w.at(j) + params.mu) * in.at(i, j) * threadgroup_inv_mean[0]);
     }
 }
 
