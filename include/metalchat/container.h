@@ -1055,4 +1055,24 @@ template <typename T> struct container_remove_type<offsetted_container_adapter<T
 };
 
 
+template <typename T>
+concept hardware_accessor = requires {
+    typename T::value_type;
+    typename T::container_type;
+
+    requires std::same_as<
+        typename T::container_type, hardware_memory_container<typename T::value_type>>;
+};
+
+
+template <typename T>
+concept filebuf_accessor = requires {
+    typename T::value_type;
+    typename T::container_type;
+
+    requires std::same_as<
+        typename T::container_type, filebuf_memory_container<typename T::value_type>>;
+};
+
+
 } // namespace metalchat

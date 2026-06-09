@@ -135,24 +135,23 @@ concept immutable_tensor4_t = immutable_tensor_t<Tensor, T> && Tensor::dim() == 
 
 
 template <typename Tensor, typename T>
-concept immutable_hardware_tensor_t =
-    immutable_tensor_t<Tensor, T> && std::same_as<
-                                         typename Tensor::container_type,
-                                         hardware_memory_container<typename Tensor::value_type>>;
+concept immutable_hardware_tensor_t = immutable_tensor_t<Tensor, T> && hardware_accessor<Tensor>;
 
 
 template <typename Tensor, typename T>
-concept immutable_hardware_tensor4_t =
-    immutable_tensor4_t<Tensor, T> && std::same_as<
-                                          typename Tensor::container_type,
-                                          hardware_memory_container<typename Tensor::value_type>>;
+concept immutable_hardware_tensor1_t = immutable_tensor1_t<Tensor, T> && hardware_accessor<Tensor>;
 
 
 template <typename Tensor, typename T>
-concept immutable_hardware_tensor2_t =
-    immutable_tensor2_t<Tensor, T> && std::same_as<
-                                          typename Tensor::container_type,
-                                          hardware_memory_container<typename Tensor::value_type>>;
+concept immutable_hardware_tensor2_t = immutable_tensor2_t<Tensor, T> && hardware_accessor<Tensor>;
+
+
+template <typename Tensor, typename T>
+concept immutable_hardware_tensor3_t = immutable_tensor3_t<Tensor, T> && hardware_accessor<Tensor>;
+
+
+template <typename Tensor, typename T>
+concept immutable_hardware_tensor4_t = immutable_tensor4_t<Tensor, T> && hardware_accessor<Tensor>;
 
 
 template <typename Tensor, typename T> struct optional_tensor : public std::false_type {};
@@ -168,10 +167,7 @@ concept optional_tensor_t = optional_tensor<Tensor, T>::value;
 
 
 template <typename Tensor, typename T>
-concept immutable_filebuf_tensor_t =
-    immutable_tensor_t<Tensor, T> && std::same_as<
-                                         typename Tensor::container_type,
-                                         filebuf_memory_container<typename Tensor::value_type>>;
+concept immutable_filebuf_tensor_t = immutable_tensor_t<Tensor, T> && filebuf_accessor<Tensor>;
 
 
 } // namespace metalchat
