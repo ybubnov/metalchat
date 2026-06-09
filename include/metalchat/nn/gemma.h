@@ -71,7 +71,7 @@ public:
     : basic_layer(accelerator),
       _M_options(options)
     {
-        _M_norm = register_layer<RMSNorm>("norm", options.norm_eps);
+        _M_norm = register_layer<RMSNorm>("norm", options.norm_eps, /*mu=*/1.0f);
         _M_transforms = register_layer<TransformerArray>("layers");
         _M_embedding = register_layer<Embedding>("tok_embeddings");
         _M_output = register_layer<Linear>("output");
@@ -86,13 +86,14 @@ public:
                 .max_seq_len = options.max_seq_len,
                 .max_batch_size = 1,
                 .rope_theta = rope_theta,
-                .scale = float(1.0 / std::sqrt(double(options.attn_scale))),
+                .scale = 1.0f / std::sqrt(options.attn_scale),
                 .norm_eps = options.norm_eps,
+                .norm_mu = 1.0f
             };
 
             _M_transforms->emplace_back(attention_opts, accelerator);
-            _M_transforms->back().enable_norm(options.norm_eps);
-            _M_transforms->back().enable_post_norm(options.norm_eps);
+            _M_transforms->back().enable_norm(options.norm_eps, /*mu=*/1.0f);
+            _M_transforms->back().enable_post_norm(options.norm_eps, /*mu=*/1.0f);
         }
     }
 

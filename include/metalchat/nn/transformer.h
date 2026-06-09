@@ -102,10 +102,10 @@ public:
     /// The method registers two additional RMS-normalization layers that are executed
     /// before the attention and feed-forward layers respectively.
     void
-    enable_norm(float eps)
+    enable_norm(float eps, float mu = 0.0f)
     {
-        _M_attention_norm = register_layer<RMSNorm>("attention_norm", eps);
-        _M_ff_norm = register_layer<RMSNorm>("ffn_norm", eps);
+        _M_attention_norm = register_layer<RMSNorm>("attention_norm", eps, mu);
+        _M_ff_norm = register_layer<RMSNorm>("ffn_norm", eps, mu);
     }
 
     /// Enable post-normalization of the attention and feed-forward (also called MLP) layers.
@@ -113,10 +113,10 @@ public:
     /// The method registers two additional RMS-normalization layers that are executed
     /// right after the attention and feed-forward layers respectively.
     void
-    enable_post_norm(float eps)
+    enable_post_norm(float eps, float mu = 0.0f)
     {
-        _M_attention_post_norm = register_layer<RMSNorm>("attention_post_norm", eps);
-        _M_ff_post_norm = register_layer<RMSNorm>("ffn_post_norm", eps);
+        _M_attention_post_norm = register_layer<RMSNorm>("attention_post_norm", eps, mu);
+        _M_ff_post_norm = register_layer<RMSNorm>("ffn_post_norm", eps, mu);
     }
 
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>

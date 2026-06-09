@@ -15,6 +15,7 @@ namespace metalchat {
 namespace kernel {
 
 
+/// Applies Root Mean Square Layer Normalization.
 template <typename T> class rmsnorm {
 private:
     basic_kernel _M_kernel;
@@ -26,7 +27,7 @@ public:
 
     template <immutable_tensor_t<T> Input, immutable_tensor1_t<T> Weight>
     auto
-    operator()(Input input, Weight weight, const float eps = 1e-5)
+    operator()(Input input, Weight weight, const float eps = 1e-5f, const float mu = 0.0f)
     {
         auto dim_size = input.sizes().back();
         auto num_rows = input.numel() / dim_size;
@@ -45,7 +46,7 @@ public:
 
         auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(
-            output_view, input_view, expected_weight, scalar<float>(eps),
+            output_view, input_view, expected_weight, scalar<float>(eps), scalar<float>(mu),
             scalar<uint32_t>(block_size)
         );
 

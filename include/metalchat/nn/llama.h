@@ -86,7 +86,8 @@ public:
             .scale = 1.0f / std::sqrt(float(options.head_dim)),
             // Llama3 models does not implement RMS-normalization of keys
             // and queries in the attention layer, so we disable it here.
-            .norm_eps = std::nullopt
+            .norm_eps = std::nullopt,
+            .norm_mu = std::nullopt,
         };
 
         for (std::size_t i = 0; i < options.n_layers; i++) {

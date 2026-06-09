@@ -44,6 +44,12 @@ struct attention_options {
     /// is empty.
     std::optional<float> norm_eps = std::nullopt;
 
+    /// When RMS is distributed as residuals from a mean, then this parameter is used
+    /// to restore the weight of RMS to the original state.
+    ///
+    /// \note This option has no effect on attention normalization, when `norm_eps` is unset.
+    std::optional<float> norm_mu = std::nullopt;
+
     inline std::size_t
     repeats() const
     {
@@ -122,16 +128,16 @@ public:
         _M_cache = register_layer<Cache>("cache", cache_options);
 
         if (options.norm_eps) {
-            enable_norm(options.norm_eps.value());
+            enable_norm(options.norm_eps.value(), options.norm_mu.value_or(0.0f));
         }
     }
 
     /// Enable RMS-normalization of keys and queries.
     void
-    enable_norm(float eps)
+    enable_norm(float eps, float mu)
     {
-        _M_wq_norm = register_layer<RMSNorm>("q_norm", eps);
-        _M_wk_norm = register_layer<RMSNorm>("k_norm", eps);
+        _M_wq_norm = register_layer<RMSNorm>("q_norm", eps, mu);
+        _M_wk_norm = register_layer<RMSNorm>("k_norm", eps, mu);
     }
 
     /// Compute multi-head attention of the input sequence.
