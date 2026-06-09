@@ -24,8 +24,9 @@ TEST_CASE("Test transformer options merging", "[transformer]")
         {{"rope_theta", 40000.0f}, {"some.unknown.field", true}}
     );
 
-    auto options_in = nn::llama3_options().rope_theta(20000.0);
-    auto options_out = TransformerTraits::merge_options(options.begin(), options.end(), options_in);
+    auto options_in = nn::llama3_options();
+    options_in.rope_theta = 20000.0;
 
-    REQUIRE(options_out.rope_theta() == 40000.0);
+    auto options_out = TransformerTraits::merge_options(options.begin(), options.end(), options_in);
+    REQUIRE(options_out.rope_theta == 40000.0);
 }

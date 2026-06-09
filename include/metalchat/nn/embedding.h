@@ -29,7 +29,7 @@ public:
     using basic_layer::basic_layer;
 
     virtual result_type
-    operator()(input_type input);
+    operator()(input_type input) = 0;
 
     template <immutable_tensor2_t<int32_t> Input>
     auto
@@ -49,20 +49,20 @@ public:
 /// to the module is a list of indices, and the output is the corresponding word embeddings.
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class embedding : public basic_embedding<T, Container> {
-    using _Base = basic_embedding<T, Container>;
-
 public:
+    using Embedding = basic_embedding<T, Container>;
+
     using value_type = T;
     using container_type = T;
     using weight_type = tensor<T, 2, Container>;
     using weight_pointer = shared_tensor_ptr<weight_type>;
 
     embedding(weight_pointer weight_ptr, hardware_accelerator& accelerator)
-    : _Base(accelerator),
+    : Embedding(accelerator),
       _M_weight(weight_ptr),
       _M_embedding(accelerator)
     {
-        _Base::register_parameter("weight", _M_weight);
+        Embedding::register_parameter("weight", _M_weight);
     }
 
     embedding(weight_type&& weight, hardware_accelerator& accelerator)
@@ -79,8 +79,8 @@ public:
     : embedding(shared_tensor(weight_type()), accelerator)
     {}
 
-    _Base::result_type
-    operator()(_Base::input_type input)
+    Embedding::result_type
+    operator()(Embedding::input_type input)
     {
         return _M_embedding(input, _M_weight);
     }

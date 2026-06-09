@@ -60,9 +60,7 @@ rmsnorm(
     threadgroup float threadgroup_sum[SIMD_SIZE];
 
     //  Initialize shared memory
-    if (simd_gid == 0) {
-        threadgroup_sum[simd_tid] = 0;
-    }
+    threadgroup_sum[tid] = 0;
     threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     // Write simd accumulations into shared memory
@@ -75,7 +73,8 @@ rmsnorm(
     if (simd_gid == 0) {
         acc = metal::simd_sum(threadgroup_sum[simd_tid]);
         if (simd_tid == 0) {
-            threadgroup_inv_mean[0] = metal::fast::rsqrt((acc / dim_size) + params.eps);
+            const float var = (acc / dim_size);
+            threadgroup_inv_mean[0] = metal::rsqrt(var + params.eps);
         }
     }
     threadgroup_barrier(metal::mem_flags::mem_threadgroup);

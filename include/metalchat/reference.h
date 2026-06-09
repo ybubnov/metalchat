@@ -8,7 +8,7 @@
 #include <string_view>
 
 #include <metalchat/allocator.h>
-#include <metalchat/nn.h>
+#include <metalchat/nn/llama.h>
 #include <metalchat/safetensor.h>
 #include <metalchat/tensor/concept.h>
 #include <metalchat/text.h>

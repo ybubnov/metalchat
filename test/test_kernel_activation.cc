@@ -40,6 +40,20 @@ TEST_CASE("SiLU function", "[kernel::silu]")
 }
 
 
+TEST_CASE("GELU nan result", "[kernel::gelu]")
+{
+    metalchat::hardware_accelerator gpu0;
+    kernel::gelu<bf16> gelu(gpu0);
+
+    auto input = shared_tensor(full<bf16>({1, 10}, bf16(9.0)));
+    auto output = gelu(input).get();
+
+    for (std::size_t i = 0; i < output.size(1); i++) {
+        REQUIRE_THAT((output[0, i]), Catch::Matchers::WithinAbs(9.0, 0.00001));
+    }
+}
+
+
 TEST_CASE("GELU function", "[kernel::gelu]")
 {
     metalchat::hardware_accelerator gpu0;
@@ -53,13 +67,13 @@ TEST_CASE("GELU function", "[kernel::gelu]")
     REQUIRE(output.size(1) == 5);
     REQUIRE(output.size(2) == 8192);
 
-    const auto sqrt_2_pi = std::sqrt(0.5 * std::numbers::pi);
+    const auto sqrt_2_pi = std::sqrt(2.0f / std::numbers::pi);
 
     for (auto i = 0; i < output.size(0); i++) {
         for (auto j = 0; j < output.size(1); j++) {
             for (auto k = 0; k < output.size(2); k++) {
                 const auto x = input[i, j, k];
-                const auto xh = x + 0.044715 * x * x * x;
+                const auto xh = x + 0.044715 * std::pow(x, 3);
                 const auto result = x * 0.5 * (1.0 + std::tanh(sqrt_2_pi * xh));
 
                 REQUIRE_THAT((output[i, j, k]), Catch::Matchers::WithinAbs(result, 0.00001));

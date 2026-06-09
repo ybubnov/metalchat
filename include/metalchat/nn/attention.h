@@ -173,7 +173,8 @@ public:
         keys = keys.transpose({0, 2, 3, 1});
         values = values.transpose({0, 2, 1, 3});
 
-        auto scores = mul(matmul(queries, keys, accelerator()), _M_scale, accelerator());
+        auto scores = matmul(queries, keys, accelerator());
+        scores = mul(scores, _M_scale, accelerator());
         if (mask.has_value()) {
             scores = add_broadcast(scores, mask.value(), accelerator());
         }
@@ -192,6 +193,70 @@ public:
         return os;
     }
 };
+
+
+/// This method performs adaptation of HuggingFace-style attention weight matrices (K, Q) to
+/// Meta-style shape.
+///
+/// \tparam Input type of the input tensor.
+/// \param input input attention tensor.
+/// \param n_heads number of the attention heads in the input tensor.
+/// \param accelerator a reference to a hardware accelerator.
+template <immutable_tensor2 Input> requires std::default_initializable<Input>
+auto
+permute_attention_heads(const Input& input, std::size_t n_heads, hardware_accelerator& accelerator)
+{
+    std::size_t size = input.sizes().front();
+    std::size_t attention_heads = size / n_heads / 2;
+
+    // Transposition of the dimension 1 and 2 results in a discontiguous container layout,
+    // therefore we need to copy elements row-wise (by the last dimension).
+    //
+    // This implementation performs transposition on-the-fly, inserts rows into the necessary
+    // positions given the strides of the input and output tensors.
+    tensor_accessor input_layout({n_heads, 2, attention_heads});
+    tensor_accessor output_layout({n_heads, attention_heads, 2});
+
+    std::vector<Input> tensors(size);
+    for (std::size_t input_index = 0; input_index < size; input_index++) {
+        auto i = input_index / input_layout.stride(0);
+        auto rem = input_index % input_layout.stride(0);
+        auto j = rem / input_layout.stride(1);
+        auto k = rem % input_layout.stride(1);
+
+        const auto output_index = i * output_layout.stride(0) + k * output_layout.stride(1) + j;
+        tensors[output_index] = input.narrow(0, input_index, 1);
+    }
+
+    using value_type = typename Input::value_type;
+    auto output = concatenate<value_type>(tensors.begin(), tensors.end(), 0, accelerator);
+
+    return output.get();
+}
+
+
+/// This method performs adaptation of HuggingFace-style attention weight matrices (K, Q) to
+/// Meta-style shape.
+///
+/// \tparam T a data type of the input tensor.
+/// \param ptr a pointer to the input tensor.
+/// \param n_heads a number of the attention heads in the input tensor.
+template <typename T>
+void
+permute_attention_heads(
+    std::shared_ptr<basic_tensor>& ptr, std::size_t n_heads, hardware_accelerator& accelerator
+)
+{
+    using container_type = hardware_memory_container<T>;
+    using tensor_type = tensor<T, 2, container_type>;
+
+    auto weight = shared_tensor(tensor_type());
+    tensor_accessor::resize(*ptr, weight.accessor(), ptr->dimensions());
+    weight.set_container(ptr->container_ptr());
+
+    weight = permute_attention_heads(weight, n_heads, accelerator);
+    ptr->set_container(weight.container_ptr());
+}
 
 
 template <typename T>

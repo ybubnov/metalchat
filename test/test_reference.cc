@@ -34,12 +34,12 @@ TEST_CASE("Test llama3 options serializer", "[reference]")
     reference::llama3_options_serializer serializer;
     auto options = serializer.load(input);
 
-    REQUIRE(options.head_dim() == 64);
-    REQUIRE(options.n_layers() == 16);
-    REQUIRE(options.n_heads() == 32);
-    REQUIRE(options.n_kv_heads() == 8);
-    REQUIRE(options.max_seq_len() == 1024);
+    REQUIRE(options.head_dim == 64);
+    REQUIRE(options.n_layers == 16);
+    REQUIRE(options.n_heads == 32);
+    REQUIRE(options.n_kv_heads == 8);
+    REQUIRE(options.max_seq_len == 1024);
 
-    REQUIRE_THAT(options.rope_theta(), WithinRel(500000.0, 0.01));
-    REQUIRE_THAT(options.norm_eps(), WithinRel(1e-5, 0.01));
+    REQUIRE_THAT(options.rope_theta, WithinRel(500000.0, 0.01));
+    REQUIRE_THAT(options.norm_eps, WithinRel(1e-5, 0.01));
 }

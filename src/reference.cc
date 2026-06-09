@@ -4,7 +4,7 @@
 
 #include <jsoncons/json.hpp>
 
-#include <metalchat/nn/options.h>
+#include <metalchat/nn/llama.h>
 #include <metalchat/reference.h>
 
 
@@ -54,13 +54,15 @@ llama3_options_serializer::load(std::istream& is) const
     using options_type = metalchat::detail::llama3_reference_options;
     auto options = jsoncons::decode_json<options_type>(is);
 
-    return nn::llama3_options()
-        .head_dim(options.dim / options.n_heads)
-        .n_layers(options.n_layers)
-        .n_heads(options.n_heads)
-        .n_kv_heads(options.n_kv_heads)
-        .rope_theta(options.rope_theta)
-        .norm_eps(options.norm_eps);
+    return nn::llama3_options{
+        .head_dim = options.dim / options.n_heads,
+        .n_heads = options.n_heads,
+        .n_kv_heads = options.n_kv_heads,
+        .n_layers = options.n_layers,
+        .max_seq_len = 1024,
+        .rope_theta = static_cast<float>(options.rope_theta),
+        .norm_eps = static_cast<float>(options.norm_eps)
+    };
 }
 
 

@@ -133,8 +133,6 @@ public:
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class lora_embedding : public nn::basic_embedding<T, Container> {
 private:
-    using _Base = nn::basic_embedding<T, Container>;
-
     using weight_traits = tensor_traits<std::int8_t, 2, Container>;
     using scales_traits = tensor_traits<float, 2, Container>;
 
@@ -146,26 +144,28 @@ private:
     bool _M_weight_done;
 
 public:
+    using Embedding = nn::basic_embedding<T, Container>;
+
     using value_type = T;
     using container_type = Container;
 
     lora_embedding(hardware_accelerator& accelerator)
-    : _Base(accelerator),
+    : Embedding(accelerator),
       _M_weight(typename weight_traits::type()),
       _M_scales(typename scales_traits::type()),
       _M_embedding(accelerator),
       _M_weight_dequant(),
       _M_weight_done(false)
     {
-        _Base::register_parameter("weight", _M_weight);
-        _Base::register_parameter("scales", _M_scales);
+        Embedding::register_parameter("weight", _M_weight);
+        Embedding::register_parameter("scales", _M_scales);
     }
 
-    _Base::result_type
-    operator()(_Base::input_type input)
+    Embedding::result_type
+    operator()(Embedding::input_type input)
     {
         if (!_M_weight_done) {
-            auto& accelerator = _Base::accelerator();
+            auto& accelerator = Embedding::accelerator();
             auto weight_dequant = hadamard_broadcast<T>(_M_weight, _M_scales, accelerator);
             _M_weight_dequant = future_tensor(weight_dequant);
             _M_weight_done = true;
