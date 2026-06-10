@@ -43,10 +43,12 @@ default_llama3_1b_options();
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class llama3 : public basic_layer {
 private:
+    using Attention = nn::attention<T, Container>;
     using Transformer = nn::transformer<T, Container>;
     using TransformerArray = nn::layer_array<Transformer>;
     using BasicEmbedding = nn::basic_embedding<T, Container>;
     using Embedding = nn::embedding<T, Container>;
+    using RotaryPositionalEmbedding = nn::rope<T>;
     using RMSNorm = nn::rmsnorm<T, Container>;
     using BasicLinear = nn::basic_linear<T, Container>;
     using Linear = nn::linear<T, Container>;
@@ -90,8 +92,13 @@ public:
             .norm_mu = std::nullopt,
         };
 
+        indirect_layer<RotaryPositionalEmbedding> rope(
+            options.head_dim, options.max_seq_len, options.rope_theta, accelerator
+        );
+
         for (std::size_t i = 0; i < options.n_layers; i++) {
-            _M_transforms->emplace_back(attention_opts, accelerator);
+            indirect_layer<Attention> attention(attention_opts, rope);
+            _M_transforms->emplace_back(attention);
             _M_transforms->back().enable_norm(options.norm_eps);
         }
     }

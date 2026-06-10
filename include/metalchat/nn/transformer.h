@@ -90,12 +90,16 @@ public:
     using value_type = T;
     using container_type = Container;
 
-    transformer(const attention_options& options, hardware_accelerator& accelerator)
-    : basic_layer(accelerator)
+    transformer(const indirect_layer<Attention>& attention)
+    : basic_layer(attention.accelerator())
     {
-        _M_attention = register_layer<Attention>("attention", options);
+        _M_attention = register_layer("attention", attention);
         _M_ff = register_layer<FeedForward>("feed_forward");
     }
+
+    transformer(const attention_options& options, hardware_accelerator& accelerator)
+    : transformer(indirect_layer<Attention>(options, accelerator))
+    {}
 
     /// Enable normalization of the attention and feed-forward layers.
     ///
