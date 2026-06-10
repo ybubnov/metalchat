@@ -42,9 +42,11 @@ struct gemma3_options {
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class gemma3 : public basic_layer {
 private:
+    using Attention = nn::attention<T, Container>;
     using Transformer = nn::transformer<T, Container, kernel::gelu<T>>;
     using TransformerArray = nn::layer_array<Transformer>;
     using Embedding = nn::embedding<T, Container>;
+    using RotaryPositionalEmbedding = nn::rope<T>;
     using RMSNorm = nn::rmsnorm<T, Container>;
     using Linear = nn::linear<T, Container>;
 
@@ -77,8 +79,15 @@ public:
         _M_embedding = register_layer<Embedding>("tok_embeddings");
         _M_output = register_layer<Linear>("output");
 
+        indirect_layer<RotaryPositionalEmbedding> sliding_rope(
+            options.head_dim, options.max_seq_len, options.rope_sliding_theta, accelerator
+        );
+        indirect_layer<RotaryPositionalEmbedding> rolling_rope(
+            options.head_dim, options.max_seq_len, options.rope_theta, accelerator
+        );
+
         for (std::size_t i = 0; i < options.n_layers; i++) {
-            auto rope_theta = is_sliding(i) ? options.rope_sliding_theta : options.rope_theta;
+            auto rope = is_sliding(i) ? sliding_rope : rolling_rope;
 
             attention_options attention_opts{
                 .head_dim = options.head_dim,
@@ -86,13 +95,13 @@ public:
                 .n_kv_heads = options.n_kv_heads,
                 .max_seq_len = options.max_seq_len,
                 .max_batch_size = 1,
-                .rope_theta = rope_theta,
+                .rope_theta = options.rope_theta,
                 .scale = 1.0f / std::sqrt(options.attn_scale),
                 .norm_eps = options.norm_eps,
                 .norm_mu = 1.0f
             };
 
-            _M_transforms->emplace_back(attention_opts, accelerator);
+            _M_transforms->emplace_back(indirect_layer<Attention>(attention_opts, rope));
             _M_transforms->back().enable_norm(options.norm_eps, /*mu=*/1.0f);
             _M_transforms->back().enable_post_norm(options.norm_eps, /*mu=*/1.0f);
         }

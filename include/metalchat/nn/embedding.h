@@ -126,7 +126,8 @@ private:
     auto
     alloc()
     {
-        return future_tensor(empty<float>({_M_seq_len, _M_dim / 2}, accelerator().get_allocator()));
+        auto allocator = accelerator().get_allocator();
+        return future_tensor(empty<float>({_M_seq_len, _M_dim / 2}, allocator));
     }
 
     void

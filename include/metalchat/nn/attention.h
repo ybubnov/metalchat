@@ -105,11 +105,13 @@ public:
     using value_type = T;
     using container_type = Container;
 
-    attention(const attention_options& options, hardware_accelerator accelerator)
-    : basic_layer(accelerator),
-      _M_rope(options.head_dim, options.max_seq_len, /*thetha=*/options.rope_theta, accelerator),
+    attention(
+        const attention_options& options, const indirect_layer<RotaryPositionalEmbedding>& rope
+    )
+    : basic_layer(rope.accelerator()),
+      _M_rope(rope),
       _M_options(options),
-      _M_clone(accelerator),
+      _M_clone(accelerator()),
       _M_scale(options.scale)
     {
         _M_wq = register_polymorphic_layer<Linear>("wq");
@@ -131,6 +133,15 @@ public:
             enable_norm(options.norm_eps.value(), options.norm_mu.value_or(0.0f));
         }
     }
+
+    attention(const attention_options& options, hardware_accelerator& accelerator)
+    : attention(
+          options,
+          indirect_layer<RotaryPositionalEmbedding>(
+              options.head_dim, options.max_seq_len, options.rope_theta, accelerator
+          )
+      )
+    {}
 
     /// Enable RMS-normalization of keys and queries.
     void
