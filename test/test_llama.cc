@@ -6,7 +6,7 @@
 
 #include <metalchat/accelerator.h>
 #include <metalchat/functional.h>
-#include <metalchat/reference.h>
+#include <metalchat/huggingface/llama.h>
 #include <metalchat/repository.h>
 #include <metalchat/tensor.h>
 #include <metalchat/text.h>
@@ -16,18 +16,18 @@
 using namespace metalchat;
 
 
-TEST_CASE("Test reference implementation inference", "[llama][integration]")
+TEST_CASE("Test Llama3 implementation", "[llama][integration]")
 {
-    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
+    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct";
 
-    auto gpu0 = metalchat::hardware_accelerator(64);
-    auto repository = filesystem_repository<reference::llama3>(repo_path, gpu0);
+    metalchat::hardware_accelerator gpu0;
+    filesystem_repository<huggingface::llama3> repository(repo_path, gpu0);
 
     auto options = nn::default_llama3_1b_options();
     options.max_seq_len = 16;
 
     auto transformer = repository.retrieve_transformer("model.safetensors", options);
-    auto tokenizer = repository.retrieve_tokenizer("tokenizer.model");
+    auto tokenizer = repository.retrieve_tokenizer("tokenizer.json");
 
     auto heap_size = std::size_t(512) * 1024 * 1024;
     auto alloc0 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);

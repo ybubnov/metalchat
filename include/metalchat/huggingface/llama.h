@@ -62,7 +62,6 @@ public:
         auto doc = adapt(document);
         doc.load(layer);
 
-        adapt(layer);
         return layer;
     }
 
@@ -104,41 +103,6 @@ public:
         doc.insert("output.weight", "tok_embeddings.weight");
 
         return doc;
-    }
-
-    /// Perform permutation of the attention heads within Wq and Wk layers so that the order
-    /// of elements as in the Meta's reference implementation.
-    ///
-    /// The Meta's reference implementation of attention layer differs from HuggingFace's
-    /// implementation. Specifically, the attention heads are permuted. This layer adaptor
-    /// performs a permutation to the shape expected in the reference implementation.
-    ///
-    /// The side-effect of this adaptor is increase of a memory required to launch the model,
-    /// since after permutations weight tensors become discontiguous and their usage requires
-    /// copying them.
-    ///
-    /// \param layer a layer to adapt to the reference implementation.
-    void
-    adapt(value_type& layer)
-    {
-        const std::vector<std::pair<std::regex, std::size_t>> permutations = {
-            {std::regex(R"(layers\.(\d+)\.attention\.wk\.weight)"), _M_options.n_kv_heads},
-            {std::regex(R"(layers\.(\d+)\.attention\.wq\.weight)"), _M_options.n_heads},
-        };
-
-        // Create a typed container, duplicate accessor attributes (strides, sizes, and offsets);
-        // and use the same container. After permutations, override the original container with
-        // the resulting container.
-        auto permute_attention = [&](nn::named_parameter param) {
-            for (auto& [re, n_heads] : permutations) {
-                if (std::regex_match(param.path, re)) {
-                    nn::permute_attention_heads<T>(param.ptr, n_heads, _M_accelerator);
-                    break;
-                }
-            }
-        };
-
-        layer.apply(permute_attention);
     }
 
 private:

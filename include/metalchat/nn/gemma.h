@@ -103,7 +103,7 @@ public:
     operator()(Input input, std::size_t start_pos = 0)
     {
         auto x = _M_embedding(input);
-        x = mul(x, T(std::sqrt(_M_options.hidden_dim)), accelerator());
+        x = mul(x, T(std::sqrt(float(_M_options.hidden_dim))), accelerator());
 
         auto len = x.size(1);
         auto end_pos = std::min(start_pos + len, _M_options.max_seq_len);

@@ -43,7 +43,7 @@ softmax(
 
     for (uint j = begin; j < end && j < dim_size; j++) {
         float xj = float(params.input.at(i, j));
-        threadlocal_sum += metal::fast::exp(xj);
+        threadlocal_sum += metal::precise::exp(xj);
     }
 
     float acc = metal::simd_sum(threadlocal_sum);
@@ -52,7 +52,7 @@ softmax(
     threadgroup float threadgroup_sum[SIMD_SIZE];
 
     //  Initialize shared memory
-    if (simd_gid == 0) {
+    if (simd_tid < SIMD_SIZE) {
         threadgroup_sum[simd_tid] = 0;
     }
     threadgroup_barrier(metal::mem_flags::mem_threadgroup);
@@ -67,15 +67,16 @@ softmax(
     if (simd_gid == 0) {
         acc = metal::simd_sum(threadgroup_sum[simd_tid]);
         if (simd_tid == 0) {
-            threadgroup_exp_sum[0] = 1 / acc;
+            threadgroup_exp_sum[0] = 1.0f / acc;
         }
     }
     threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     // Write the outputs
-    T exp_sum = T(threadgroup_exp_sum[0]);
+    const float exp_sum = threadgroup_exp_sum[0];
     for (uint j = begin; j < end && j < dim_size; j++) {
-        params.output.at(i, j) = T(exp(params.input.at(i, j))) * exp_sum;
+        const float x = params.input.at(i, j);
+        params.output.at(i, j) = T(metal::precise::exp(x) * exp_sum);
     }
 }
 
