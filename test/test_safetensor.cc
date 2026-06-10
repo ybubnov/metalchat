@@ -62,7 +62,7 @@ public:
 TEST_CASE("Test model load", "[safetensor][integration]")
 {
     using layer_type = nn::llama3<bf16>;
-    using serializer_type = reference::llama3_safetensor_serializer<layer_type>;
+    using serializer_type = reference::llama3_safetensor_serializer<bf16, layer_type>;
     auto options = nn::default_llama3_1b_options();
 
     hardware_accelerator gpu0(16);

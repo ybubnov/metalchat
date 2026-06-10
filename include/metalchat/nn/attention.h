@@ -136,6 +136,8 @@ public:
     void
     enable_norm(float eps, float mu)
     {
+        _M_options.norm_eps = eps;
+        _M_options.norm_mu = mu;
         _M_wq_norm = register_layer<RMSNorm>("q_norm", eps, mu);
         _M_wk_norm = register_layer<RMSNorm>("k_norm", eps, mu);
     }
@@ -201,8 +203,9 @@ public:
 };
 
 
-/// This method performs adaptation of HuggingFace-style attention weight matrices (K, Q) to
-/// Meta-style shape.
+/// This method performs adaptation of reference Meta-style K and Q weight matrices to the
+/// HuggingFace-style attention weight matrices. This adaptation is necessary since MetalChat
+/// uses HuggingFace's approach to compute rotary position embeddings.
 ///
 /// \tparam Input type of the input tensor.
 /// \param input input attention tensor.
@@ -220,8 +223,8 @@ permute_attention_heads(const Input& input, std::size_t n_heads, hardware_accele
     //
     // This implementation performs transposition on-the-fly, inserts rows into the necessary
     // positions given the strides of the input and output tensors.
-    tensor_accessor input_layout({n_heads, 2, attention_heads});
-    tensor_accessor output_layout({n_heads, attention_heads, 2});
+    tensor_accessor input_layout({n_heads, attention_heads, 2});
+    tensor_accessor output_layout({n_heads, 2, attention_heads});
 
     std::vector<Input> tensors(size);
     for (std::size_t input_index = 0; input_index < size; input_index++) {

@@ -36,7 +36,7 @@ rmsnorm(
     uint simd_gid [[simdgroup_index_in_threadgroup]]
 )
 {
-    constexpr int SIMD_SIZE = 32;
+    constexpr uint SIMD_SIZE = 32;
 
     tensor2<const T> in(params.input_layout, params.input);
     tensor<const T, 1> w{params.weight, params.weight_layout};
@@ -51,7 +51,7 @@ rmsnorm(
     const uint end = begin + params.block_size;
 
     for (uint j = begin; j < end && j < dim_size; j++) {
-        float xj = float(in.at(i, j));
+        float xj = in.at(i, j);
         threadlocal_sum += xj * xj;
     }
 
@@ -61,8 +61,8 @@ rmsnorm(
     threadgroup float threadgroup_sum[SIMD_SIZE];
 
     //  Initialize shared memory
-    if (simd_gid == 0) {
-        threadgroup_sum[simd_tid] = 0;
+    if (simd_tid < SIMD_SIZE) {
+        threadgroup_sum[simd_tid] = 0.0f;
     }
     threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
@@ -76,15 +76,17 @@ rmsnorm(
     if (simd_gid == 0) {
         acc = metal::simd_sum(threadgroup_sum[simd_tid]);
         if (simd_tid == 0) {
-            const float var = (acc / dim_size);
-            threadgroup_inv_mean[0] = metal::rsqrt(var + params.eps);
+            const float mean_sq = (acc / dim_size);
+            threadgroup_inv_mean[0] = metal::precise::rsqrt(mean_sq + params.eps);
         }
     }
     threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     // Write the outputs
     for (uint j = begin; j < end && j < dim_size; j++) {
-        out.at(i, j) = T((w.at(j) + params.mu) * in.at(i, j) * threadgroup_inv_mean[0]);
+        const float x = in.at(i, j);
+        const float weight = params.mu + w.at(j);
+        out.at(i, j) = T(weight * x * threadgroup_inv_mean[0]);
     }
 }
 

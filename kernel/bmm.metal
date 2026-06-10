@@ -37,8 +37,8 @@ bmm(__bmm_parameters<T> params,
     const uint K = m1.size(2);
     const uint N = m2.size(2);
 
-    threadgroup T m1_local[BlockSize][BlockSize];
-    threadgroup T m2_local[BlockSize][BlockSize];
+    threadgroup float m1_local[BlockSize][BlockSize];
+    threadgroup float m2_local[BlockSize][BlockSize];
 
     const uint block_row = group_id.x * BlockSize;
     const uint block_col = group_id.y * BlockSize;
@@ -47,43 +47,33 @@ bmm(__bmm_parameters<T> params,
     const uint thread_row = thread_id.x;
     const uint thread_col = thread_id.y;
 
-    T partial = T(0.0);
+    float partial = 0.0f;
 
-    uint r1 = metal::min(block_row + thread_row, M - 1);
-    uint c2 = metal::min(block_col + thread_col, N - 1);
+    uint r1 = block_row + thread_row;
+    uint c2 = block_col + thread_col;
 
     for (uint k = 0; k < K; k += BlockSize) {
         uint c1 = k + thread_col;
-        if (c1 < K) {
-            m1_local[thread_row][thread_col] = m1.at(batch, r1, c1);
-        } else {
-            m1_local[thread_row][thread_col] = T(0.0);
-        }
+        m1_local[thread_row][thread_col] = (r1 < M && c1 < K) ? m1.at(batch, r1, c1) : 0.0f;
 
         uint r2 = k + thread_row;
-        if (r2 < K) {
-            m2_local[thread_row][thread_col] = m2.at(batch, r2, c2);
-        } else {
-            m2_local[thread_row][thread_col] = T(0.0);
-        }
+        m2_local[thread_row][thread_col] = (r2 < K && c2 < N) ? m2.at(batch, r2, c2) : 0.0f;
 
         threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
-        partial += m1_local[thread_row][0] * m2_local[0][thread_col];
-        partial += m1_local[thread_row][1] * m2_local[1][thread_col];
-        partial += m1_local[thread_row][2] * m2_local[2][thread_col];
-        partial += m1_local[thread_row][3] * m2_local[3][thread_col];
-        partial += m1_local[thread_row][4] * m2_local[4][thread_col];
-        partial += m1_local[thread_row][5] * m2_local[5][thread_col];
-        partial += m1_local[thread_row][6] * m2_local[6][thread_col];
-        partial += m1_local[thread_row][7] * m2_local[7][thread_col];
+#pragma unroll(BlockSize)
+        for (uint j = 0; j < BlockSize; ++j) {
+            partial += m1_local[thread_row][j] * m2_local[j][thread_col];
+        }
+
+        threadgroup_barrier(metal::mem_flags::mem_threadgroup);
     }
 
     uint row = block_row + thread_row;
     uint col = block_col + thread_col;
 
     if (row < M && col < N) {
-        out.at(batch, row, col) = partial;
+        out.at(batch, row, col) = T(partial);
     }
 }
 

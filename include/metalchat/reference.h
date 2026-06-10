@@ -19,7 +19,7 @@ namespace metalchat {
 namespace reference {
 
 
-template <nn::mutable_layer Layer> class llama3_safetensor_serializer {
+template <typename T, nn::mutable_layer Layer> class llama3_safetensor_serializer {
 public:
     using value_type = nn::indirect_layer<Layer>;
 
@@ -37,6 +37,7 @@ public:
         value_type layer(_M_options, _M_accelerator);
         auto doc = adapt(document);
         doc.load(layer);
+        adapt(layer);
         return layer;
     }
 
@@ -55,6 +56,41 @@ public:
         auto doc = document;
         doc.insert("output.weight", "tok_embeddings.weight");
         return doc;
+    }
+
+    /// Perform permutation of the attention heads within Wq and Wk layers so that the order
+    /// of elements as in the HuggingFace's implementation.
+    ///
+    /// The Meta's reference implementation of attention layer differs from HuggingFace's
+    /// implementation. Specifically, the attention heads are permuted. This layer adaptor
+    /// performs a permutation to the shape expected in the HuggingFace's implementation.
+    ///
+    /// The side-effect of this adaptor is increase of a memory required to launch the model,
+    /// since after permutations weight tensors become discontiguous and their usage requires
+    /// copying them.
+    ///
+    /// \param layer a layer to adapt to the HuggingFace's implementation.
+    void
+    adapt(value_type& layer)
+    {
+        const std::vector<std::pair<std::regex, std::size_t>> permutations = {
+            {std::regex(R"(layers\.(\d+)\.attention\.wk\.weight)"), _M_options.n_kv_heads},
+            {std::regex(R"(layers\.(\d+)\.attention\.wq\.weight)"), _M_options.n_heads},
+        };
+
+        // Create a typed container, duplicate accessor attributes (strides, sizes, and offsets);
+        // and use the same container. After permutations, override the original container with
+        // the resulting container.
+        auto permute_attention = [&](nn::named_parameter param) {
+            for (auto& [re, n_heads] : permutations) {
+                if (std::regex_match(param.path, re)) {
+                    nn::permute_attention_heads<T>(param.ptr, n_heads, _M_accelerator);
+                    break;
+                }
+            }
+        };
+
+        layer.apply(permute_attention);
     }
 
 private:
@@ -137,7 +173,7 @@ template <contiguous_container Container> struct llama3_traits {
     using options_type = nn::llama3_options;
     using options_serializer = llama3_options_serializer;
     using layer_type = nn::llama3<value_type, container_type>;
-    using layer_serializer = llama3_safetensor_serializer<layer_type>;
+    using layer_serializer = llama3_safetensor_serializer<value_type, layer_type>;
     using tokenizer_type = text::byte_pair_encoder<text::regexp>;
     using tokenizer_loader = llama3_tokenizer_loader;
 };
