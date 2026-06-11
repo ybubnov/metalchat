@@ -59,7 +59,7 @@ private:
     gemma3_options _M_options;
 
     inline bool
-    is_sliding(std::size_t i) const
+    uses_sliding_attention(std::size_t i) const
     {
         return (i + 1) % _M_options.sliding_stride;
     }
@@ -87,7 +87,7 @@ public:
         );
 
         for (std::size_t i = 0; i < options.n_layers; i++) {
-            auto rope = is_sliding(i) ? sliding_rope : rolling_rope;
+            auto rope = uses_sliding_attention(i) ? sliding_rope : rolling_rope;
 
             attention_options attention_opts{
                 .head_dim = options.head_dim,
@@ -124,7 +124,7 @@ public:
 
         for (std::size_t i = 0; i < _M_transforms->size(); i++) {
             auto& transform = _M_transforms->at(i);
-            auto& mask = is_sliding(i) ? sliding_mask : rolling_mask;
+            auto& mask = uses_sliding_attention(i) ? sliding_mask : rolling_mask;
             x = transform(x, mask, start_pos);
         }
 
