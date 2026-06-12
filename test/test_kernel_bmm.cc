@@ -65,7 +65,6 @@ TEST_CASE("Matmul single batch multiplication", "[kernel::matmul]")
     auto input2 = shared_tensor(rand<float>({8192, 2048}).t()); // j, k
 
     auto output = mm(input1, input2).get();
-    std::cout << output << std::endl;
 
     REQUIRE(output.dim() == 3);
     REQUIRE(output.size(0) == 1);
