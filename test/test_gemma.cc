@@ -34,7 +34,7 @@ TEST_CASE("Test gemma3", "[gemma][integration]")
 
     std::cout << id.get()[0, 0];
 
-    for (std::size_t i = input0.size(1); i < 32; i++) {
+    for (std::size_t i = input0.size(1); i < 64; i++) {
         id = transformer.transform(id, i);
         std::cout << ", " << id.get()[0, 0] << std::flush;
     }

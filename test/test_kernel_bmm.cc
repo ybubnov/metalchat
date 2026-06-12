@@ -39,7 +39,6 @@ TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
     auto input2 = shared_tensor(rand<float>({8192, 2048}).t()); // j, k
 
     auto output = mm(input1, input2).get();
-    std::cout << output << std::endl;
 
     REQUIRE(output.dim() == 3);
     REQUIRE(output.size(0) == 1);
@@ -64,10 +63,10 @@ TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
 TEST_CASE("Matmul large 2d", "[!benchmark][kernel::bmm]")
 {
     metalchat::hardware_accelerator gpu0;
-    kernel::bmm<float> mm(gpu0);
+    kernel::bmm<bf16> mm(gpu0);
 
-    auto input1 = shared_tensor(full<float>({8, 2048}, 2.0));
-    auto input2 = shared_tensor(full<float>({2048, 128256}, 1.0));
+    auto input1 = shared_tensor(full<bf16>({8, 2048}, 2.0));
+    auto input2 = shared_tensor(full<bf16>({128256, 2048}, 1.0).t());
 
     BENCHMARK("multiply 128256 elements")
     {

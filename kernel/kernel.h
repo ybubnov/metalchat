@@ -86,5 +86,5 @@ template <typename T> T inline __ceil_div(T a, T b) { return (a + b - 1) / b; }
     template [[host_name(__lib_metalchat_concatenate3(function_name, block_size, type))]] \
     kernel void                                                                           \
     function_name<type, block_size>(                                                      \
-        __##function_name##_parameters<type>, uint3, uint3, uint3                         \
+        __##function_name##_parameters<type>, uint3, uint3, uint3, uint, uint             \
     )

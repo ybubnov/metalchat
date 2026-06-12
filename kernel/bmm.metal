@@ -1,10 +1,11 @@
 // vi: set filetype=cpp :
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #include <metal_common>
+#include <metal_simdgroup_matrix>
 #include <metal_stdlib>
 
 #include "kernel.h"
@@ -27,7 +28,9 @@ kernel void
 bmm(__bmm_parameters<T> params,
     uint3 group_id [[threadgroup_position_in_grid]],
     uint3 thread_id [[thread_position_in_threadgroup]],
-    uint3 threadgroup_size [[threads_per_threadgroup]])
+    uint3 threadgroup_size [[threads_per_threadgroup]],
+    uint simd_gid [[simdgroup_index_in_threadgroup]],
+    uint simdgroup_size [[simdgroups_per_threadgroup]])
 {
     tensor3<const T> m1(params.mat1_layout, params.mat1);
     tensor3<const T> m2(params.mat2_layout, params.mat2);
@@ -37,46 +40,71 @@ bmm(__bmm_parameters<T> params,
     const uint K = m1.size(2);
     const uint N = m2.size(2);
 
-    threadgroup float m1_local[BlockSize][BlockSize];
-    threadgroup float m2_local[BlockSize][BlockSize];
+    threadgroup T m1_local[BlockSize][BlockSize];
+    threadgroup T m2_local[BlockSize][BlockSize];
 
     const uint block_row = group_id.x * BlockSize;
     const uint block_col = group_id.y * BlockSize;
 
     const uint batch = group_id.z;
-    const uint thread_row = thread_id.x;
+    const uint thread_row_a = thread_id.x;
+    const uint thread_row_b = thread_id.x + threadgroup_size.x;
     const uint thread_col = thread_id.y;
 
-    float partial = 0.0f;
+    constexpr uint tile_size = 8;
+    constexpr uint tiles_per_simdgroup = BlockSize / tile_size;
 
-    uint r1 = block_row + thread_row;
-    uint c2 = block_col + thread_col;
+    const uint simd_row = (simd_gid / tiles_per_simdgroup) * tile_size;
+    const uint simd_col = (simd_gid % tiles_per_simdgroup) * tile_size;
+
+    using SimdTensor = metal::simdgroup_matrix<T, tile_size, tile_size>;
+    using SimdData = threadgroup T*;
+
+    thread SimdTensor mm_simd(0);
+    thread SimdTensor m1_simd;
+    thread SimdTensor m2_simd;
+
+    uint row_a = block_row + thread_row_a;
+    uint row_b = block_row + thread_row_b;
+    uint col = block_col + thread_col;
 
     for (uint k = 0; k < K; k += BlockSize) {
         uint c1 = k + thread_col;
-        m1_local[thread_row][thread_col] = (r1 < M && c1 < K) ? m1.at(batch, r1, c1) : 0.0f;
+        m1_local[thread_row_a][thread_col] = (row_a < M && c1 < K) ? m1.at(batch, row_a, c1) : 0;
+        m1_local[thread_row_b][thread_col] = (row_b < M && c1 < K) ? m1.at(batch, row_b, c1) : 0;
 
-        uint r2 = k + thread_row;
-        m2_local[thread_row][thread_col] = (r2 < K && c2 < N) ? m2.at(batch, r2, c2) : 0.0f;
+        uint r2a = k + thread_row_a;
+        uint r2b = k + thread_row_b;
+        m2_local[thread_row_a][thread_col] = (r2a < K && col < N) ? m2.at(batch, r2a, col) : 0;
+        m2_local[thread_row_b][thread_col] = (r2b < K && col < N) ? m2.at(batch, r2b, col) : 0;
 
         threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
-#pragma unroll(BlockSize)
-        for (uint j = 0; j < BlockSize; ++j) {
-            partial += m1_local[thread_row][j] * m2_local[j][thread_col];
+#pragma clang loop unroll(full)
+        for (uint j = 0; j < BlockSize; j += tile_size) {
+            metal::simdgroup_load(m1_simd, SimdData(m1_local), BlockSize, ulong2(j, simd_row));
+            metal::simdgroup_load(m2_simd, SimdData(m2_local), BlockSize, ulong2(simd_col, j));
+            metal::simdgroup_multiply_accumulate(mm_simd, m1_simd, m2_simd, mm_simd);
         }
 
         threadgroup_barrier(metal::mem_flags::mem_threadgroup);
     }
 
-    uint row = block_row + thread_row;
-    uint col = block_col + thread_col;
+    metal::simdgroup_store(mm_simd, SimdData(m1_local), BlockSize, ulong2(simd_col, simd_row));
+    threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
-    if (row < M && col < N) {
-        out.at(batch, row, col) = T(partial);
+    if (row_a < M && col < N) {
+        out.at(batch, row_a, col) = m1_local[thread_row_a][thread_col];
+    }
+    if (row_b < M && col < N) {
+        out.at(batch, row_b, col) = m1_local[thread_row_b][thread_col];
     }
 }
 
 
 __lib_metalchat_kernel3_tiled(bmm, 8, bfloat);
+__lib_metalchat_kernel3_tiled(bmm, 16, bfloat);
+__lib_metalchat_kernel3_tiled(bmm, 32, bfloat);
 __lib_metalchat_kernel3_tiled(bmm, 8, float);
+__lib_metalchat_kernel3_tiled(bmm, 16, float);
+__lib_metalchat_kernel3_tiled(bmm, 32, float);
