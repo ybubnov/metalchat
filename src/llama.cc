@@ -81,18 +81,24 @@ llama3_options_serializer::save(std::ostream& os, const nn::llama3_options& opti
 llama3_tokenizer_loader::type
 llama3_tokenizer_loader::load(std::istream& is) const
 {
-    using model_type = metalchat::huggingface::detail::tokenizer;
-    using split_tokenizer_type = metalchat::huggingface::detail::split_tokenizer;
-    using loader_type = metalchat::reference::llama3_tokenizer_loader;
-
-    auto model_file = jsoncons::decode_json<model_type>(is);
+    namespace hf = metalchat::huggingface::detail;
+    auto model_file = jsoncons::decode_json<hf::tokenizer>(is);
     std::string token_regex;
 
-    for (const auto& tokenizer : model_file.pre_tokenizer.pretokenizers) {
-        if (const auto split = std::get_if<split_tokenizer_type>(&tokenizer)) {
-            token_regex = split->pattern.Regex;
-            break;
+    if (const auto seq = std::get_if<hf::sequence_tokenizer>(&model_file.pre_tokenizer)) {
+        for (const auto tokenizer : seq->pretokenizers) {
+            if (const auto split = std::get_if<hf::split_tokenizer>(&tokenizer)) {
+                token_regex = split->pattern.Regex;
+                break;
+            }
         }
+    }
+
+    if (token_regex.empty()) {
+        throw std::runtime_error(
+            "llama3_tokenizer_loader::load: the JSON encoding does not provide "
+            "an input sequence regular expression"
+        );
     }
 
     text::gpt2_codec codec;
@@ -103,6 +109,7 @@ llama3_tokenizer_loader::load(std::istream& is) const
         tokenizer.insert(val, key, text::token::regular);
     }
 
+    using loader_type = metalchat::reference::llama3_tokenizer_loader;
     loader_type::insert_control_tokens(tokenizer);
     return tokenizer;
 }

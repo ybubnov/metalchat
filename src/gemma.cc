@@ -2,6 +2,9 @@
 // SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
+#include <codecvt>
+#include <locale>
+
 #include <jsoncons/json.hpp>
 
 #include <metalchat/huggingface/gemma.h>
@@ -63,6 +66,44 @@ gemma3_options_serializer::save(std::ostream& os, const nn::gemma3_options& opti
                               .precision(os.precision());
 
     jsoncons::encode_json<options_type>(hf_options, os, encode_options);
+}
+
+
+gemma3_tokenizer_loader::type
+gemma3_tokenizer_loader::load(std::istream& is) const
+{
+    using model_type = metalchat::huggingface::detail::tokenizer;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    using codecvt_type = std::codecvt_utf8<char32_t>;
+    using convert_type = std::wstring_convert<codecvt_type, char32_t>;
+    convert_type convert;
+#pragma clang diagnostic pop
+
+    auto model_file = jsoncons::decode_json<model_type>(is);
+    gemma3_tokenizer_loader::type tokenizer(UR"(.*)");
+
+    for (const auto& [value, key] : model_file.model.vocab) {
+        tokenizer.insert(convert.from_bytes(value), key, text::token::regular);
+    }
+    for (const auto& token : model_file.added_tokens) {
+        tokenizer.insert(convert.from_bytes(token.content), token.id, text::tokenkind(token.id));
+    }
+
+    return tokenizer;
+}
+
+gemma3_tokenizer_loader::type
+gemma3_tokenizer_loader::load(const std::filesystem::path& p) const
+{
+    std::ifstream file(p, std::ios::binary | std::ios::in);
+    if (!file.is_open()) {
+        throw std::invalid_argument(
+            std::format("gemma3_tokenizer_loader: failed opening file '{}'", p.string())
+        );
+    }
+
+    return load(file);
 }
 
 

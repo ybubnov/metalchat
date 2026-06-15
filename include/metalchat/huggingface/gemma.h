@@ -88,6 +88,17 @@ private:
 };
 
 
+struct gemma3_tokenizer_loader {
+    using type = text::byte_pair_encoder<char32_t>;
+
+    type
+    load(std::istream& is) const;
+
+    type
+    load(const std::filesystem::path& p) const;
+};
+
+
 template <contiguous_container Container> struct gemma3_traits {
     using value_type = Container::value_type;
     using container_type = Container;
@@ -98,8 +109,8 @@ template <contiguous_container Container> struct gemma3_traits {
     using options_type = nn::gemma3_options;
     using options_serializer = gemma3_options_serializer;
 
-    using tokenizer_type = text::byte_pair_encoder<text::regexp>;
-    using tokenizer_loader = void;
+    using tokenizer_type = text::byte_pair_encoder<char32_t>;
+    using tokenizer_loader = gemma3_tokenizer_loader;
 };
 
 

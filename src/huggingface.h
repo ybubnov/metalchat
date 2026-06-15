@@ -48,7 +48,7 @@ struct gemma3_options {
 
 
 struct special_token {
-    std::string id;
+    std::size_t id;
     std::string content;
     bool single_word;
     bool lstrip;
@@ -106,7 +106,7 @@ struct bpe {
 struct tokenizer {
     std::string version;
     std::vector<special_token> added_tokens;
-    sequence_tokenizer pre_tokenizer;
+    std::variant<sequence_tokenizer, split_tokenizer> pre_tokenizer;
     bpe model;
 };
 
@@ -148,10 +148,10 @@ JSONCONS_N_MEMBER_TRAITS(
 );
 
 JSONCONS_ALL_MEMBER_TRAITS(hf::special_token, id, content, single_word, lstrip, rstrip, normalized, special);
-JSONCONS_ALL_MEMBER_TRAITS(hf::split_pattern, Regex);
+JSONCONS_N_MEMBER_TRAITS(hf::split_pattern, 0, Regex, String);
 JSONCONS_ALL_MEMBER_TRAITS(hf::split_tokenizer, type, behavior, pattern, invert);
 JSONCONS_ALL_MEMBER_TRAITS(hf::bytelevel_tokenizer, type, add_prefix_space, trim_offsets, use_regex);
 JSONCONS_ALL_MEMBER_TRAITS(hf::sequence_tokenizer, type, pretokenizers);
 JSONCONS_ALL_MEMBER_TRAITS(hf::bpe, fuse_unk, byte_fallback, ignore_merges, vocab, merges);
-JSONCONS_ALL_MEMBER_TRAITS(hf::tokenizer, version, added_tokens, pre_tokenizer, model);
+JSONCONS_N_MEMBER_TRAITS(hf::tokenizer, 0, version, added_tokens, pre_tokenizer, model);
 // clang-format on
