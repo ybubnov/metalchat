@@ -186,7 +186,7 @@ private:
 /// queries necessary tokens of data from the `tokenizer.json` file in order to replicate the
 /// original tiktoken format.
 struct llama3_tokenizer_loader {
-    using type = text::byte_pair_encoder<text::regexp>;
+    using type = text::byte_pair_encoder<char>;
 
     /// Load the tokenizer from the specified input stream.
     ///
@@ -212,7 +212,7 @@ template <contiguous_container Container> struct llama3_traits {
     using options_type = nn::llama3_options;
     using options_serializer = llama3_options_serializer;
 
-    using tokenizer_type = text::byte_pair_encoder<text::regexp>;
+    using tokenizer_type = text::byte_pair_encoder<char>;
     using tokenizer_loader = llama3_tokenizer_loader;
 
     static constexpr std::string_view tokenizer_location = "tokenizer.json";
@@ -232,7 +232,7 @@ template <contiguous_container Container> struct llama3_qlora_traits {
     using options_type = nn::llama3_options;
     using options_serializer = llama3_options_serializer;
 
-    using tokenizer_type = text::byte_pair_encoder<text::regexp>;
+    using tokenizer_type = text::byte_pair_encoder<char>;
     using tokenizer_loader = reference::llama3_tokenizer_loader;
 };
 

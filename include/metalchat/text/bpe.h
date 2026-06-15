@@ -59,10 +59,10 @@ make_reserved_token(int32_t index);
 
 /// A concept that requires an iterator to dereference a tuple comprised of three elements:
 /// (i) token string representation, (ii) token index, and (iii) type of the token.
-template <typename It, typename T = std::iterator_traits<It>::value_type>
+template <typename It, typename CharT, typename T = std::iterator_traits<It>::value_type>
 concept input_token_iterator_t = requires {
     requires std::input_iterator<It>;
-    requires std::same_as<T, std::tuple<std::string, int32_t, tokenkind>>;
+    requires std::same_as<T, std::tuple<std::basic_string<CharT>, int32_t, tokenkind>>;
 };
 
 
@@ -88,16 +88,17 @@ concept input_token_iterator_t = requires {
 /// ```cpp
 /// using namespace metalchat::text;
 ///
-/// byte_pair_encoder<text::regexp> tokenizer("tokenizer.model");
+/// byte_pair_encoder<char> tokenizer("tokenizer.model");
 /// auto tokens = tokenizer.encode("This is a test sentence.");
 /// auto string = tokenizer.decode(tokens.begin(), tokens.end());
 ///
 /// std::cout << string << std::endl;
 /// // output: This is a test sentence.
 /// ```
-template <typename RegularExpression> class byte_pair_encoder {
+template <typename CharT, typename RegularExpression = unicode_regexp<CharT>>
+class byte_pair_encoder {
 public:
-    using string_type = std::string;
+    using string_type = std::basic_string<CharT>;
 
     /// Type used to indicate position of the token in the model (token dictionary).
     using index_type = int32_t;
@@ -130,7 +131,7 @@ private:
     /// 4. Then push encodings to the specified container of identifiers.
     template <std::output_iterator<index_type> OutputIt>
     void
-    _M_encode_byte_pairs(const std::string& s, OutputIt output) const
+    _M_encode_unicode_pairs(const string_type& s, OutputIt output) const
     {
         std::size_t priority_limit = std::numeric_limits<index_type>::max();
 
@@ -142,7 +143,7 @@ private:
 
         // Get the priority from the map, when the key is not presented, return a
         // limit of the priority type.
-        auto get_priority = [&](const std::string& key) -> index_type {
+        auto get_priority = [&](const string_type& key) -> index_type {
             if (auto it = _M_forward_mapping.find(key); it != _M_forward_mapping.end()) {
                 return it->second;
             }
@@ -195,7 +196,8 @@ public:
     /// The \ref byte_pair_encoder copy constructor.
     byte_pair_encoder(const byte_pair_encoder&) = default;
 
-    byte_pair_encoder(const std::string& token_regex)
+    byte_pair_encoder(const string_type& token_regex)
+        requires std::constructible_from<RegularExpression, string_type>
     : _M_forward_mapping(),
       _M_inverse_mapping(),
       _M_control_mapping(),
@@ -209,12 +211,12 @@ public:
     ///
     /// \param is An input stream containing tokenizer model.
     /// \param token_regex A regular expression to split the input string into tokens.
-    byte_pair_encoder(std::istream& is, const std::string& token_regex)
+    byte_pair_encoder(std::istream& is, const string_type& token_regex)
     : byte_pair_encoder(token_regex)
     {
-        std::string line;
+        string_type line;
         while (std::getline(is, line)) {
-            auto delim = line.find(" ");
+            auto delim = line.find(' ');
             auto key_part = line.substr(0, delim);
             auto value_part = line.substr(delim + 1);
 
@@ -225,8 +227,8 @@ public:
         }
     }
 
-    template <input_token_iterator_t InputIt>
-    byte_pair_encoder(InputIt first, InputIt last, const std::string& token_regex)
+    template <input_token_iterator_t<CharT> InputIt>
+    byte_pair_encoder(InputIt first, InputIt last, const string_type& token_regex)
     : byte_pair_encoder(token_regex)
     {
         for (auto it = first; it != last; ++it) {
@@ -235,7 +237,7 @@ public:
         }
     }
 
-    byte_pair_encoder(std::istream&& is, const std::string& token_regex)
+    byte_pair_encoder(std::istream&& is, const string_type& token_regex)
     : byte_pair_encoder(is, token_regex)
     {}
 
@@ -246,7 +248,7 @@ public:
     ///
     /// \param p A path to the tokenizer model.
     /// \param token_regex A regular expression to split the input string into tokens.
-    byte_pair_encoder(const std::filesystem::path& p, const std::string& token_regex)
+    byte_pair_encoder(const std::filesystem::path& p, const string_type& token_regex)
     : byte_pair_encoder(std::ifstream(p, std::ios::binary), token_regex)
     {}
 
@@ -254,7 +256,7 @@ public:
     ///
     /// \param path A path to the tokenizer model.
     /// \param token_regex A regular expression to split the input string into tokens.
-    byte_pair_encoder(const char* path, const std::string& token_regex)
+    byte_pair_encoder(const char* path, const string_type& token_regex)
     : byte_pair_encoder(std::filesystem::path(path), token_regex)
     {}
 
@@ -264,7 +266,7 @@ public:
     /// \param key Target encoding of a token (a position in the token embedding).
     /// \param kind A type of the token, used for special token binding.
     void
-    insert(const std::string& value, index_type key, tokenkind kind = token::regular)
+    insert(const string_type& value, index_type key, tokenkind kind = token::regular)
     {
         _M_forward_mapping.insert_or_assign(value, key);
         _M_inverse_mapping.insert_or_assign(key, value);
@@ -279,7 +281,7 @@ public:
     /// \param value A string representation of a token.
     /// \param kind A type of the token, used for special token binding.
     void
-    insert_back(const std::string& value, tokenkind kind = token::regular)
+    insert_back(const string_type& value, tokenkind kind = token::regular)
     {
         auto key = static_cast<index_type>(size());
         insert(value, key, kind);
@@ -300,14 +302,14 @@ public:
     /// appended to the end of the container.
     template <std::output_iterator<index_type> OutputIt>
     void
-    encode(const std::string& s, OutputIt output) const
+    encode(const string_type& s, OutputIt output) const
     {
         for (auto match = _M_re->begin(s); match != _M_re->end(); ++match) {
             auto key = (*match);
             if (auto it = _M_forward_mapping.find(key); it != _M_forward_mapping.end()) {
                 *output++ = it->second;
             } else {
-                _M_encode_byte_pairs(key, output);
+                _M_encode_unicode_pairs(key, output);
             }
         }
     }
@@ -316,7 +318,7 @@ public:
     ///
     /// Method returns a position of a special token within a tokenizer model. When a token is
     /// a `token::regular` kind, then method raises an exception. Regular token encoding is
-    /// available through \ref encode(const std::string&, OutputIt) const method.
+    /// available through \ref encode(const string_type&, OutputIt) const method.
     index_type
     encode(tokenkind kind) const
     {
@@ -339,7 +341,7 @@ public:
     }
 
     auto
-    encode(const std::string& s) const
+    encode(const string_type& s) const
     {
         std::vector<index_type> output;
         encode(s, std::back_inserter(output));
@@ -350,7 +352,7 @@ public:
     ///
     /// Method at first attempts to find a token within a model token map, then tries to
     /// query special tokens. In token is not found, method raises an exception.
-    const std::string
+    const string_type
     decode(index_type id) const
     {
         if (auto tok = _M_inverse_mapping.find(id); tok != _M_inverse_mapping.end()) {
@@ -364,7 +366,7 @@ public:
     /// The result of decoding is sequentially appended to the specified container. If one
     /// of the tokens is not decoded correctly, an exception is raised. All successfully
     /// decoded tokens before thrown exception are left in the container.
-    template <std::forward_iterator ForwardIt, std::output_iterator<std::string> OutputIt>
+    template <std::forward_iterator ForwardIt, std::output_iterator<string_type> OutputIt>
     void
     decode(ForwardIt first, ForwardIt last, OutputIt output) const
     {
@@ -377,17 +379,17 @@ public:
     ///
     /// All decoded tokens will be concatenated into a resulting string.
     template <std::forward_iterator ForwardIt>
-    std::string
+    string_type
     decode(ForwardIt first, ForwardIt last) const
     {
-        std::stringstream output;
-        decode(first, last, std::ostream_iterator<std::string>(output));
+        std::basic_stringstream<CharT> output;
+        decode(first, last, std::ostream_iterator<string_type>(output));
         return output.str();
     }
 };
 
 
-using bpe = byte_pair_encoder<regexp>;
+using bpe = byte_pair_encoder<char>;
 
 
 } // namespace text

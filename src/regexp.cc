@@ -35,8 +35,8 @@ regexp::regexp(const std::string& regex)
     PCRE2_SIZE error_offset;
 
     auto re_ptr = pcre2_compile(
-        reinterpret_cast<PCRE2_SPTR>(regex.c_str()), PCRE2_ZERO_TERMINATED, 0, &error_code,
-        &error_offset, nullptr
+        reinterpret_cast<PCRE2_SPTR>(regex.data()), regex.size(), 0, &error_code, &error_offset,
+        nullptr
     );
 
     if (re_ptr == nullptr) {
@@ -74,35 +74,31 @@ struct regexp_iterator::_RegularExpressionIterator {
     friend class regexp;
 
     const std::shared_ptr<pcre2_code> _M_re = nullptr;
-    pcre2_match_data* _M_data = nullptr;
-    const PCRE2_SPTR _M_subject = nullptr;
-    const PCRE2_SIZE _M_subject_length = 0;
+    std::shared_ptr<pcre2_match_data> _M_data = nullptr;
+    std::string _M_subject;
     PCRE2_SIZE _M_offset = 0;
     bool _M_end = false;
 
     _RegularExpressionIterator()
     : _M_re(nullptr),
       _M_data(nullptr),
-      _M_subject(nullptr),
-      _M_subject_length(0),
+      _M_subject(),
       _M_offset(0),
       _M_end(true)
     {}
 
     _RegularExpressionIterator(const regexp& regex, const std::string& input)
     : _M_re(regex._M_impl->ptr),
-      _M_data(pcre2_match_data_create_from_pattern(regex._M_impl->ptr.get(), nullptr)),
-      _M_subject(reinterpret_cast<PCRE2_SPTR>(input.c_str())),
-      _M_subject_length(input.size()),
+      _M_data(nullptr),
+      _M_subject(input),
       _M_offset(0),
       _M_end(false)
-    {}
-
-    ~_RegularExpressionIterator()
     {
-        if (_M_data != nullptr) {
-            pcre2_match_data_free(_M_data);
-        }
+        pcre2_code* code = regex._M_impl->ptr.get();
+        pcre2_match_data* match_data = pcre2_match_data_create_from_pattern(code, nullptr);
+
+        _M_data = std::shared_ptr<pcre2_match_data>(match_data, pcre2_match_data_free);
+        _M_end = pcre2_get_ovector_count(match_data) == 0;
     }
 };
 
@@ -152,22 +148,28 @@ regexp_iterator::get()
         );
     }
 
-    PCRE2_SIZE* ovector = pcre2_get_ovector_pointer(_M_impl->_M_data);
-    PCRE2_SIZE length = ovector[1] - ovector[0];
+    pcre2_match_data* match_data = _M_impl->_M_data.get();
 
-    _M_impl->_M_offset = ovector[1];
+    PCRE2_SIZE* slice = pcre2_get_ovector_pointer(match_data);
+    PCRE2_SIZE length = slice[1] - slice[0];
 
-    value_type result(reinterpret_cast<const char*>(_M_impl->_M_subject + ovector[0]), length);
-    return result;
+    auto data = _M_impl->_M_subject.data() + _M_impl->_M_offset;
+    _M_impl->_M_offset = slice[1];
+    _M_impl->_M_end |= _M_impl->_M_subject.size() == _M_impl->_M_offset;
+
+    return value_type(reinterpret_cast<const char*>(data), length);
 }
 
 
 void
 regexp_iterator::next()
 {
+    pcre2_match_data* match_data = _M_impl->_M_data.get();
+    const PCRE2_SPTR subject = reinterpret_cast<PCRE2_SPTR>(_M_impl->_M_subject.data());
+    const PCRE2_SIZE subject_size = _M_impl->_M_subject.size();
+
     auto rc = pcre2_match(
-        _M_impl->_M_re.get(), _M_impl->_M_subject, _M_impl->_M_subject_length, _M_impl->_M_offset,
-        0, _M_impl->_M_data, NULL
+        _M_impl->_M_re.get(), subject, subject_size, _M_impl->_M_offset, 0, match_data, NULL
     );
     if (rc < 0) {
         _M_impl->_M_end = true;

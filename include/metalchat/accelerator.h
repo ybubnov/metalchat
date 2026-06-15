@@ -29,7 +29,16 @@ static const std::string framework_identifier = __lib_metalchat_framework_identi
 
 struct _StringHash {
     std::size_t
-    operator()(const std::string& s) const noexcept;
+    operator()(const void* s, std::size_t len) const noexcept;
+
+    template <typename CharT>
+    std::size_t
+    operator()(const std::basic_string<CharT>& s) const noexcept
+    {
+        using String = std::basic_string<CharT>;
+
+        return operator()(s.data(), sizeof(typename String::value_type) * s.size());
+    }
 };
 
 

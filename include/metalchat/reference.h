@@ -117,7 +117,7 @@ struct llama3_options_serializer {
 /// This loader implements loading of a tokenizer model in a reference (tiktoken) format. It
 /// expects that `load` methods receives a file in a tiktoken format.
 struct llama3_tokenizer_loader {
-    using type = text::byte_pair_encoder<text::regexp>;
+    using type = text::byte_pair_encoder<char>;
 
     /// A regular expression string that is used to split the input text into tokens.
     // clang-format off
@@ -174,7 +174,7 @@ template <contiguous_container Container> struct llama3_traits {
     using options_serializer = llama3_options_serializer;
     using layer_type = nn::llama3<value_type, container_type>;
     using layer_serializer = llama3_safetensor_serializer<value_type, layer_type>;
-    using tokenizer_type = text::byte_pair_encoder<text::regexp>;
+    using tokenizer_type = text::byte_pair_encoder<char>;
     using tokenizer_loader = llama3_tokenizer_loader;
 };
 

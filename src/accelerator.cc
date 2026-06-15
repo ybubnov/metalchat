@@ -17,9 +17,9 @@ namespace metalchat {
 
 
 std::size_t
-_StringHash::operator()(const std::string& s) const noexcept
+_StringHash::operator()(const void* s, std::size_t len) const noexcept
 {
-    return rapidhash(s.c_str(), s.size());
+    return rapidhash(s, len);
 }
 
 
