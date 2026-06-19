@@ -81,7 +81,7 @@ gemma3_tokenizer_loader::load(std::istream& is) const
 #pragma clang diagnostic pop
 
     auto model_file = jsoncons::decode_json<model_type>(is);
-    gemma3_tokenizer_loader::type tokenizer(UR"(.*)");
+    gemma3_tokenizer_loader::type tokenizer;
 
     for (const auto& [value, key] : model_file.model.vocab) {
         tokenizer.insert(convert.from_bytes(value), key, text::token::regular);

@@ -261,6 +261,7 @@ permute_attention_heads(const Input& input, std::size_t n_heads, hardware_accele
 /// \tparam T a data type of the input tensor.
 /// \param ptr a pointer to the input tensor.
 /// \param n_heads a number of the attention heads in the input tensor.
+/// \param accelerator a hardware accelerator instance.
 template <typename T>
 void
 permute_attention_heads(

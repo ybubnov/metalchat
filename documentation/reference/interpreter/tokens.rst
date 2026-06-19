@@ -39,6 +39,13 @@ Byte pair encoder
 .. doxygenvariable:: metalchat::text::token::ipython
 
 
+Sentence Piece
+--------------
+
+.. doxygenclass:: metalchat::text::sentence_piece
+   :members:
+
+
 Regular expression
 ------------------
 

@@ -7,3 +7,4 @@
 #include <metalchat/text/bpe.h>
 #include <metalchat/text/gpt.h>
 #include <metalchat/text/regexp.h>
+#include <metalchat/text/sentence_piece.h>
