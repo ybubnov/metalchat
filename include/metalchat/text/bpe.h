@@ -211,7 +211,7 @@ public:
     ///
     /// \param is An input stream containing tokenizer model.
     /// \param token_regex A regular expression to split the input string into tokens.
-    byte_pair_encoder(std::istream& is, const string_type& token_regex)
+    byte_pair_encoder(std::basic_istream<CharT>& is, const string_type& token_regex)
     : byte_pair_encoder(token_regex)
     {
         string_type line;
@@ -352,7 +352,7 @@ public:
     ///
     /// Method at first attempts to find a token within a model token map, then tries to
     /// query special tokens. In token is not found, method raises an exception.
-    const string_type
+    string_type
     decode(index_type id) const
     {
         if (auto tok = _M_inverse_mapping.find(id); tok != _M_inverse_mapping.end()) {
@@ -383,7 +383,7 @@ public:
     decode(ForwardIt first, ForwardIt last) const
     {
         std::basic_stringstream<CharT> output;
-        decode(first, last, std::ostream_iterator<string_type>(output));
+        decode(first, last, std::ostream_iterator<string_type, CharT>(output));
         return output.str();
     }
 };
