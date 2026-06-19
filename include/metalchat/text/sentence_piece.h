@@ -97,7 +97,7 @@ public:
     }
 
     /// \copydoc byte_pair_encoder::decode(ForwardIt, ForwardIt, OutputIt) const
-    template <std::forward_iterator ForwardIt, std::output_iterator<std::string> OutputIt>
+    template <std::forward_iterator ForwardIt, std::output_iterator<string_type> OutputIt>
     void
     decode(ForwardIt first, ForwardIt last, OutputIt output) const
     {
