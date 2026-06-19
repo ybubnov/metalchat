@@ -28,7 +28,7 @@ TEST_CASE("Test gemma3", "[gemma][integration]")
 
     std::vector<int32_t> ids;
     tokenizer.encode(text::token::begin_text, std::back_inserter(ids));
-    tokenizer.encode(UR"(I have a dog called)", std::back_inserter(ids));
+    tokenizer.encode("I have a dog called", std::back_inserter(ids));
 
     auto transformer = repository.retrieve_transformer("model.safetensors", options);
 
@@ -40,17 +40,11 @@ TEST_CASE("Test gemma3", "[gemma][integration]")
     auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));
     auto id = transformer.transform(input0);
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    using convert_type = std::wstring_convert<std::codecvt_utf8<char32_t>, char32_t>;
-    convert_type convert;
-#pragma clang diagnostic pop
-
     std::cout << "I have a dog called";
-    std::cout << convert.to_bytes(tokenizer.decode(id.get()[0, 0]));
+    std::cout << tokenizer.decode(id.get()[0, 0]);
 
     for (std::size_t i = input0.size(1); i < 32; i++) {
         id = transformer.transform(id, i);
-        std::cout << convert.to_bytes(tokenizer.decode(id.get()[0, 0])) << std::flush;
+        std::cout << tokenizer.decode(id.get()[0, 0]) << std::flush;
     }
 }
