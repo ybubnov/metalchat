@@ -79,8 +79,9 @@ TEST_CASE("Test QLoRA inference", "[quantization][integration]")
     auto input_text = std::string("I have a dog called");
 
     std::vector<int32_t> ids;
-    tokenizer.encode(text::token::begin_text, std::back_inserter(ids));
-    tokenizer.encode(input_text, std::back_inserter(ids));
+    auto output = std::back_inserter(ids);
+    tokenizer.encode(text::token::begin_text, output);
+    tokenizer.encode(input_text, output);
 
     auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));
     auto id = transformer.transform(input0);

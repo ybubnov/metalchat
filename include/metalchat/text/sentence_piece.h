@@ -62,7 +62,7 @@ public:
     /// then encodes the whole sequence using byte-pair encoding.
     template <std::output_iterator<index_type> OutputIt>
     void
-    encode(const string_type& s, OutputIt output) const
+    encode(const string_type& s, OutputIt& output) const
     {
         auto input = s;
         std::replace(input.begin(), input.end(), whitespace_forward, whitespace_inverse);
@@ -79,7 +79,7 @@ public:
     /// \copydoc byte_pair_encoder::encode(tokenkind, OutputIt) const
     template <std::output_iterator<index_type> OutputIt>
     void
-    encode(tokenkind kind, OutputIt output) const
+    encode(tokenkind kind, OutputIt& output) const
     {
         _M_bpe.encode(kind, output);
     }
@@ -99,7 +99,7 @@ public:
     /// \copydoc byte_pair_encoder::decode(ForwardIt, ForwardIt, OutputIt) const
     template <std::forward_iterator ForwardIt, std::output_iterator<string_type> OutputIt>
     void
-    decode(ForwardIt first, ForwardIt last, OutputIt output) const
+    decode(ForwardIt first, ForwardIt last, OutputIt& output) const
     {
         for (auto id = first; id != last; ++id) {
             *output++ = decode(*id);

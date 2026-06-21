@@ -131,7 +131,7 @@ private:
     /// 4. Then push encodings to the specified container of identifiers.
     template <std::output_iterator<index_type> OutputIt>
     void
-    _M_encode_unicode_pairs(const string_type& s, OutputIt output) const
+    _M_encode_unicode_pairs(const string_type& s, OutputIt& output) const
     {
         std::size_t priority_limit = std::numeric_limits<index_type>::max();
 
@@ -302,7 +302,7 @@ public:
     /// appended to the end of the container.
     template <std::output_iterator<index_type> OutputIt>
     void
-    encode(const string_type& s, OutputIt output) const
+    encode(const string_type& s, OutputIt& output) const
     {
         for (auto match = _M_re->begin(s); match != _M_re->end(); ++match) {
             auto key = (*match);
@@ -335,7 +335,7 @@ public:
     /// Method encodes the provided special token and pushes the result to the output iterator.
     template <std::output_iterator<index_type> OutputIt>
     void
-    encode(tokenkind kind, OutputIt output) const
+    encode(tokenkind kind, OutputIt& output) const
     {
         *output++ = encode(kind);
     }
@@ -344,7 +344,8 @@ public:
     encode(const string_type& s) const
     {
         std::vector<index_type> output;
-        encode(s, std::back_inserter(output));
+        auto output_it = std::back_inserter(output);
+        encode(s, output_it);
         return to_tensor<index_type>({output.size()}, output.cbegin(), output.cend());
     }
 
@@ -368,7 +369,7 @@ public:
     /// decoded tokens before thrown exception are left in the container.
     template <std::forward_iterator ForwardIt, std::output_iterator<string_type> OutputIt>
     void
-    decode(ForwardIt first, ForwardIt last, OutputIt output) const
+    decode(ForwardIt first, ForwardIt last, OutputIt& output) const
     {
         for (auto id = first; id != last; ++id) {
             *output++ = decode(*id);
@@ -383,7 +384,8 @@ public:
     decode(ForwardIt first, ForwardIt last) const
     {
         std::basic_stringstream<CharT> output;
-        decode(first, last, std::ostream_iterator<string_type, CharT>(output));
+        std::ostream_iterator<string_type, CharT> output_it(output);
+        decode(first, last, output_it);
         return output.str();
     }
 };

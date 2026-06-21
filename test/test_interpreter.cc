@@ -70,13 +70,16 @@ You have access to the following tools:
 )";
 
     interp.declare_variable("extra_instructions", "answer in json");
-    interp.declare_command(command, [](const command_statement&) -> std::string {
+    interp.declare_command(command, [](const command_statement& stmt) -> std::string {
+        CHECK(stmt.get_parameter("a").value() == R"("12135")");
+        CHECK(stmt.get_parameter("b").value() == R"("9312")");
         return R"(print 113001120)";
     });
     interp.write(basic_message("system", prompt));
     interp.write(basic_message("user", "What is 12135 multiplied by 9312?"));
 
-    std::cout << interp.exec().content() << std::endl;
+    auto result = interp.exec().content();
+    CHECK(result == "113001120");
 
     interp.write(basic_message("user", "what is the capital of Belgium?"));
     std::cout << interp.read_text() << std::endl;

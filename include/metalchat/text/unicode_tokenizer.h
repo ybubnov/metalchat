@@ -27,7 +27,7 @@ public:
 
     template <std::output_iterator<index_type> OutputIt>
     void
-    encode(const std::string& s, OutputIt output) const
+    encode(const std::string& s, OutputIt& output) const
     {
         encode(decode_bytes<char_type>(s), output);
     }
@@ -40,7 +40,7 @@ public:
 
     template <std::forward_iterator ForwardIt, std::output_iterator<std::string> OutputIt>
     void
-    decode(ForwardIt first, ForwardIt last, OutputIt output) const
+    decode(ForwardIt first, ForwardIt last, OutputIt& output) const
     {
         for (auto id = first; id != last; ++id) {
             *output++ = decode(*id);

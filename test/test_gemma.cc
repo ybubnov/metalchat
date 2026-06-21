@@ -26,9 +26,12 @@ TEST_CASE("Test gemma3", "[gemma][integration]")
     auto options = repository.retrieve_options("config.json");
     auto tokenizer = repository.retrieve_tokenizer("tokenizer.json");
 
+    auto input_text = std::string("I have a dog called");
+
     std::vector<int32_t> ids;
-    tokenizer.encode(text::token::begin_text, std::back_inserter(ids));
-    tokenizer.encode("I have a dog called", std::back_inserter(ids));
+    auto output = std::back_inserter(ids);
+    tokenizer.encode(text::token::begin_text, output);
+    tokenizer.encode(input_text, output);
 
     auto transformer = repository.retrieve_transformer("model.safetensors", options);
 
@@ -40,7 +43,7 @@ TEST_CASE("Test gemma3", "[gemma][integration]")
     auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));
     auto id = transformer.transform(input0);
 
-    std::cout << "I have a dog called";
+    std::cout << input_text;
     std::cout << tokenizer.decode(id.get()[0, 0]);
 
     for (std::size_t i = input0.size(1); i < 32; i++) {
