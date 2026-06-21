@@ -253,11 +253,11 @@ public:
     using index_type = int32_t;
     using tensor_type = future_tensor<index_type, 2>;
 
-    virtual tensor_type
-    transform(tensor_type, std::size_t start_pos) = 0;
-
     virtual hardware_accelerator&
     accelerator() = 0;
+
+    virtual tensor_type
+    transform(tensor_type, std::size_t start_pos) = 0;
 };
 
 
@@ -280,7 +280,7 @@ public:
     hardware_accelerator&
     accelerator()
     {
-        return _M_transformer.get_layer().accelerator();
+        return _M_transformer.accelerator();
     }
 
 private:
@@ -308,6 +308,12 @@ public:
     : _M_layer(layer),
       _M_sampler(nn::make_default_sampler<value_type>())
     {}
+
+    hardware_accelerator&
+    accelerator()
+    {
+        return _M_layer.accelerator();
+    }
 
     /// Replace current sampler with the specified implementation.
     ///

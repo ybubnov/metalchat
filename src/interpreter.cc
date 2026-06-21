@@ -69,19 +69,20 @@ struct interpreter::_Members {
 
 interpreter::interpreter(
     std::shared_ptr<basic_transformer> transformer_ptr,
-    const text::bpe& encoder,
-    std::size_t max_pos
+    std::shared_ptr<basic_tokenizer> tokenizer_ptr
 )
 : _M_members(std::make_shared<_Members>()),
   _M_transformer(transformer_ptr),
+  _M_tokenizer(tokenizer_ptr),
   _M_token_scanner(std::make_shared<limit_token_scanner>(50)),
   _M_command_scanner(std::make_shared<json_command_scanner>()),
   _M_commands(),
-  _M_encoder(encoder),
-  _M_max_pos(max_pos),
   _M_start_pos(0),
-  _M_buf(1, encoder.encode(text::token::begin_text))
+  _M_buf()
 {
+    auto output = std::back_inserter(_M_buf);
+    _M_tokenizer->encode(text::token::begin_text, output);
+
     // Do not escape characters, leave them as is. This is the global configuration,
     // so unfortunately this line changes behaviour for the whole library.
     mustache::config::escape = [](const std::string& str) -> std::string { return str; };
@@ -116,10 +117,10 @@ interpreter::write_header(const std::string& role)
 {
     auto output = std::back_inserter(_M_buf);
 
-    _M_encoder.encode(text::token::begin_header, output);
-    _M_encoder.encode(role, output);
-    _M_encoder.encode(text::token::end_header, output);
-    _M_encoder.encode("\n\n", output);
+    _M_tokenizer->encode(text::token::begin_header, output);
+    _M_tokenizer->encode(role, output);
+    _M_tokenizer->encode(text::token::end_header, output);
+    _M_tokenizer->encode("\n\n", output);
 }
 
 
@@ -130,8 +131,8 @@ interpreter::write(const basic_message& message)
 
     auto output = std::back_inserter(_M_buf);
     auto content = mustache::render(message.content(), _M_members->context());
-    _M_encoder.encode(content, output);
-    _M_encoder.encode(text::token::end_turn, output);
+    _M_tokenizer->encode(content, output);
+    _M_tokenizer->encode(text::token::end_turn, output);
 }
 
 
