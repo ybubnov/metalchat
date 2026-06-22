@@ -97,11 +97,15 @@ program::transform(const program_scope& scope, const std::string& prompt) const
     auto transformer = repo.retrieve_transformer();
     auto tokenizer = repo.retrieve_tokenizer();
 
+    using Tokenizer = decltype(tokenizer);
+    using TokenizerTraits = text::tokenizer_traits<Tokenizer>;
+
     auto interp = metalchat::interpreter(transformer, tokenizer);
     // TODO: extract terminal tokens from the huggingface tokenizer configuration.
     interp.set_token_scanner(match_token_scanner(
-        {tokenizer.encode(text::token::end_text), tokenizer.encode(text::token::end_turn),
-         tokenizer.encode(text::token::end_message)}
+        {TokenizerTraits::encode(tokenizer, text::token::end_text),
+         TokenizerTraits::encode(tokenizer, text::token::end_turn),
+         TokenizerTraits::encode(tokenizer, text::token::end_message)}
     ));
 
     auto system_prompt = scope.manifest.system_prompt(scope.path);

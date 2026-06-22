@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
@@ -13,41 +13,17 @@
 #include <iterator>
 #include <memory>
 #include <queue>
-#include <sstream>
 #include <string>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
 
-#include <metalchat/container.h>
-#include <metalchat/tensor.h>
 #include <metalchat/text/regexp.h>
+#include <metalchat/text/tokenizer.h>
 
 
 namespace metalchat {
 namespace text {
-
-
-/// Specifies kind of the token.
-///
-/// Tokens are used to transform a natural language sentences into a vector of integers
-/// mapping them to a embedding space of the respective language model. There are specific
-/// kinds of tokens that allow to instruct the model for a specific behaviour.
-using tokenkind = int32_t;
-
-
-struct token {
-    static constexpr tokenkind regular = 1 << 0;
-    static constexpr tokenkind begin_text = 1 << 1;
-    static constexpr tokenkind end_text = 1 << 2;
-    static constexpr tokenkind reserved = 1 << 3;
-    static constexpr tokenkind finetune_right_pad = 1 << 4;
-    static constexpr tokenkind begin_header = 1 << 5;
-    static constexpr tokenkind end_header = 1 << 6;
-    static constexpr tokenkind end_message = 1 << 7;
-    static constexpr tokenkind end_turn = 1 << 8;
-    static constexpr tokenkind ipython = 1 << 9;
-};
 
 
 /// Returns a reserved token string representation for the specified index.
@@ -88,9 +64,12 @@ concept input_token_iterator_t = requires {
 /// ```cpp
 /// using namespace metalchat::text;
 ///
-/// byte_pair_encoder<char> tokenizer("tokenizer.model");
-/// auto tokens = tokenizer.encode("This is a test sentence.");
-/// auto string = tokenizer.decode(tokens.begin(), tokens.end());
+/// using Tokenizer = byte_pair_encoder<char>;
+/// using TokenizerTraits = tokenizer_traits<Tokenizer>;
+///
+/// Tokenizer tokenizer("tokenizer.model");
+/// auto tokens = TokenizerTraits::encode(tokenizer, "This is a test sentence.");
+/// auto string = TokenizerTraits::decode(tokenizer, tokens.begin(), tokens.end());
 ///
 /// std::cout << string << std::endl;
 /// // output: This is a test sentence.
@@ -98,10 +77,13 @@ concept input_token_iterator_t = requires {
 template <typename CharT, typename RegularExpression = unicode_regexp<CharT>>
 class byte_pair_encoder {
 public:
+    /// Type used to indicate position of the token in the model (token dictionary).
+    using char_type = CharT;
+    using index_type = int32_t;
     using string_type = std::basic_string<CharT>;
 
-    /// Type used to indicate position of the token in the model (token dictionary).
-    using index_type = int32_t;
+    using encoding_iterator = basic_output_iterator<index_type>;
+    using decoding_iterator = basic_output_iterator<string_type>;
 
 private:
     std::unordered_map<string_type, index_type, _StringHash> _M_forward_mapping;
@@ -187,7 +169,8 @@ private:
 
         for (auto& e : encoding) {
             if (e.priority < priority_limit) {
-                *output++ = e.priority;
+                *output = e.priority;
+                ++output;
             }
         }
     }
@@ -300,14 +283,14 @@ public:
     /// token index into end of the provided iterator `output`. When the token is not presented
     /// in the token dictionary, it is divided into byte-pairs, then index of the byte pair is
     /// appended to the end of the container.
-    template <std::output_iterator<index_type> OutputIt>
     void
-    encode(const string_type& s, OutputIt& output) const
+    encode(const string_type& s, encoding_iterator& output) const
     {
         for (auto match = _M_re->begin(s); match != _M_re->end(); ++match) {
             auto key = (*match);
             if (auto it = _M_forward_mapping.find(key); it != _M_forward_mapping.end()) {
-                *output++ = it->second;
+                *output = it->second;
+                ++output;
             } else {
                 _M_encode_unicode_pairs(key, output);
             }
@@ -319,11 +302,13 @@ public:
     /// Method returns a position of a special token within a tokenizer model. When a token is
     /// a `token::regular` kind, then method raises an exception. Regular token encoding is
     /// available through \ref encode(const string_type&, OutputIt) const method.
-    index_type
-    encode(tokenkind kind) const
+    void
+    encode(tokenkind kind, encoding_iterator& output) const
     {
         if (auto it = _M_control_mapping.find(kind); it != _M_control_mapping.end()) {
-            return it->second;
+            *output = it->second;
+            ++output;
+            return;
         }
         throw std::invalid_argument(
             std::format("byte_pair_encoder: unknown control token '{}'", kind)
@@ -337,56 +322,23 @@ public:
     void
     encode(tokenkind kind, OutputIt& output) const
     {
-        *output++ = encode(kind);
-    }
-
-    auto
-    encode(const string_type& s) const
-    {
-        std::vector<index_type> output;
-        auto output_it = std::back_inserter(output);
-        encode(s, output_it);
-        return to_tensor<index_type>({output.size()}, output.cbegin(), output.cend());
+        *output = encode(kind);
+        ++output;
     }
 
     /// Decode a single position-encoded token to the string representation.
     ///
     /// Method at first attempts to find a token within a model token map, then tries to
     /// query special tokens. In token is not found, method raises an exception.
-    string_type
-    decode(index_type id) const
+    void
+    decode(index_type id, decoding_iterator& output) const
     {
         if (auto tok = _M_inverse_mapping.find(id); tok != _M_inverse_mapping.end()) {
-            return tok->second;
+            *output = tok->second;
+            ++output;
+            return;
         }
         throw std::runtime_error(std::format("byte_pair_encoder: unable to decode id '{}'", id));
-    }
-
-    /// Iteratively decode a sequence of position-encoded tokens.
-    ///
-    /// The result of decoding is sequentially appended to the specified container. If one
-    /// of the tokens is not decoded correctly, an exception is raised. All successfully
-    /// decoded tokens before thrown exception are left in the container.
-    template <std::forward_iterator ForwardIt, std::output_iterator<string_type> OutputIt>
-    void
-    decode(ForwardIt first, ForwardIt last, OutputIt& output) const
-    {
-        for (auto id = first; id != last; ++id) {
-            *output++ = decode(*id);
-        }
-    }
-
-    /// Iteratively decode a sequence of position-encoded tokens.
-    ///
-    /// All decoded tokens will be concatenated into a resulting string.
-    template <std::forward_iterator ForwardIt>
-    string_type
-    decode(ForwardIt first, ForwardIt last) const
-    {
-        std::basic_stringstream<CharT> output;
-        std::ostream_iterator<string_type, CharT> output_it(output);
-        decode(first, last, output_it);
-        return output.str();
     }
 };
 

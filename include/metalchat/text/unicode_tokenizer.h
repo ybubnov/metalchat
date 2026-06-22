@@ -15,63 +15,63 @@ namespace text {
 
 template <typename Tokenizer> class unicode_tokenizer_adaptor : public Tokenizer {
 public:
-    using char_type = Tokenizer::char_type;
+    using char_type = char;
     using index_type = Tokenizer::index_type;
+    using string_type = std::string;
 
-    using Tokenizer::decode;
-    using Tokenizer::encode;
+    using encoding_iterator = basic_output_iterator<index_type>;
+    using decoding_iterator = basic_output_iterator<string_type>;
+
     using Tokenizer::Tokenizer;
 
     /// The \ref unicode_tokenizer_adaptor copy constructor.
     unicode_tokenizer_adaptor(const unicode_tokenizer_adaptor&) = default;
 
-    template <std::output_iterator<index_type> OutputIt>
     void
-    encode(const std::string& s, OutputIt& output) const
+    encode(const string_type& s, encoding_iterator& output) const
     {
-        encode(decode_bytes<char_type>(s), output);
+        Tokenizer::encode(decode_bytes(s), output);
     }
 
-    std::string
-    decode(index_type id) const
-    {
-        return encode_bytes(Tokenizer::decode(id));
-    }
-
-    template <std::forward_iterator ForwardIt, std::output_iterator<std::string> OutputIt>
     void
-    decode(ForwardIt first, ForwardIt last, OutputIt& output) const
+    encode(tokenkind kind, encoding_iterator& output) const
     {
-        for (auto id = first; id != last; ++id) {
-            *output++ = decode(*id);
-        }
+        Tokenizer::encode(kind, output);
     }
 
-    template <std::forward_iterator ForwardIt>
-    std::string
-    decode(ForwardIt first, ForwardIt last) const
+    void
+    decode(index_type id, decoding_iterator& output) const
     {
-        return encode_bytes(Tokenizer::decode(first, last));
+        using value_type = Tokenizer::string_type;
+        using iterator = value_type*;
+        using iterator_wrapper = output_iterator_wrapper<value_type, iterator>;
+
+        value_type s;
+        value_type* s_ptr = &s;
+        iterator_wrapper output_it(s_ptr);
+
+        Tokenizer::decode(id, output_it);
+        *output = encode_bytes(s);
+        ++output;
     }
 
 private:
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    using codecvt_type = std::codecvt_utf8<char_type>;
-    using convert_type = std::wstring_convert<codecvt_type, char_type>;
+    using rune_type = Tokenizer::char_type;
+    using codecvt_type = std::codecvt_utf8<rune_type>;
+    using convert_type = std::wstring_convert<codecvt_type, rune_type>;
 #pragma clang diagnostic pop
 
-    template <typename CharT>
-    static std::string
-    encode_bytes(const std::basic_string<CharT>& s)
+    static string_type
+    encode_bytes(const std::basic_string<rune_type>& s)
     {
         convert_type convert;
         return convert.to_bytes(s);
     }
 
-    template <typename CharT>
-    static std::basic_string<CharT>
-    decode_bytes(const std::string& b)
+    static std::basic_string<rune_type>
+    decode_bytes(const string_type& b)
     {
         convert_type convert;
         return convert.from_bytes(b);
