@@ -22,6 +22,9 @@ public:
     using string_type = Tokenizer::string_type;
     using index_type = Tokenizer::index_type;
 
+    using encoding_iterator = basic_output_iterator<index_type>;
+    using decoding_iterator = basic_output_iterator<string_type>;
+
     /// The \ref sentence_piece copy constructor.
     sentence_piece(const sentence_piece&) = default;
 
@@ -60,26 +63,17 @@ public:
     ///
     /// The method replaces all white space characters with a special unicode symbols, and
     /// then encodes the whole sequence using byte-pair encoding.
-    template <std::output_iterator<index_type> OutputIt>
     void
-    encode(const string_type& s, OutputIt& output) const
+    encode(const string_type& s, encoding_iterator& output) const
     {
         auto input = s;
         std::replace(input.begin(), input.end(), whitespace_forward, whitespace_inverse);
         _M_bpe.encode(input, output);
     }
 
-    /// \copydoc byte_pair_encoder::encode(tokenkind) const
-    index_type
-    encode(tokenkind kind) const
-    {
-        return _M_bpe.encode(kind);
-    }
-
     /// \copydoc byte_pair_encoder::encode(tokenkind, OutputIt) const
-    template <std::output_iterator<index_type> OutputIt>
     void
-    encode(tokenkind kind, OutputIt& output) const
+    encode(tokenkind kind, encoding_iterator& output) const
     {
         _M_bpe.encode(kind, output);
     }
@@ -88,32 +82,20 @@ public:
     ///
     /// Method replaces all whitespace-replacement unicode code points with a unicode code
     /// point of the regular white space.
-    string_type
-    decode(index_type id) const
-    {
-        auto s = _M_bpe.decode(id);
-        std::replace(s.begin(), s.end(), whitespace_inverse, whitespace_forward);
-        return s;
-    }
-
-    /// \copydoc byte_pair_encoder::decode(ForwardIt, ForwardIt, OutputIt) const
-    template <std::forward_iterator ForwardIt, std::output_iterator<string_type> OutputIt>
     void
-    decode(ForwardIt first, ForwardIt last, OutputIt& output) const
+    decode(index_type id, decoding_iterator& output) const
     {
-        for (auto id = first; id != last; ++id) {
-            *output++ = decode(*id);
-        }
-    }
+        using iterator = string_type*;
+        using iterator_wrapper = output_iterator_wrapper<string_type, iterator>;
 
-    /// \copydoc byte_pair_encoder::decode(ForwardIt, ForwardIt) const
-    template <std::forward_iterator ForwardIt>
-    string_type
-    decode(ForwardIt first, ForwardIt last) const
-    {
-        std::basic_stringstream<char_type> output;
-        decode(first, last, std::ostream_iterator<string_type, char_type>(output));
-        return output.str();
+        string_type s;
+        string_type* s_ptr = &s;
+        iterator_wrapper output_it(s_ptr);
+
+        _M_bpe.decode(id, output_it);
+        std::replace(s.begin(), s.end(), whitespace_inverse, whitespace_forward);
+        *output = s;
+        ++output;
     }
 
 private:

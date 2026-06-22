@@ -80,17 +80,20 @@ TEST_CASE("Test QLoRA inference", "[quantization][integration]")
 
     std::vector<int32_t> ids;
     auto output = std::back_inserter(ids);
-    tokenizer.encode(text::token::begin_text, output);
-    tokenizer.encode(input_text, output);
+
+    using Tokenizer = decltype(tokenizer);
+    using TokenizerTraits = text::tokenizer_traits<Tokenizer>;
+    TokenizerTraits::encode(tokenizer, text::token::begin_text, output);
+    TokenizerTraits::encode(tokenizer, input_text, output);
 
     auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));
     auto id = transformer.transform(input0);
 
     std::cout << input_text;
-    std::cout << tokenizer.decode(id.get()[0, 0]);
+    std::cout << TokenizerTraits::decode(tokenizer, id.get()[0, 0]);
 
     for (std::size_t i = input0.size(1); i < 32; i++) {
         id = transformer.transform(id, i);
-        std::cout << tokenizer.decode(id.get()[0, 0]) << std::flush;
+        std::cout << TokenizerTraits::decode(tokenizer, id.get()[0, 0]) << std::flush;
     }
 }

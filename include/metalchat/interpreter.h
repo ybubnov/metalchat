@@ -57,167 +57,6 @@ private:
 };
 
 
-struct basic_tokenizer {
-    template <typename T> struct basic_output_iterator {
-        using iterator_category = std::output_iterator_tag;
-        using value_type = void;
-        using pointer = void;
-        using reference = void;
-        using difference_type = std::ptrdiff_t;
-
-        virtual basic_output_iterator&
-        operator++()
-        {
-            return *this;
-        };
-
-        virtual basic_output_iterator&
-        operator++(int)
-        {
-            return *this;
-        }
-
-        virtual basic_output_iterator&
-        operator*()
-        {
-            return *this;
-        };
-
-        virtual basic_output_iterator&
-        operator=(const T&)
-        {
-            return *this;
-        };
-
-        virtual basic_output_iterator&
-        operator=(T&&)
-        {
-            return *this;
-        };
-
-        virtual ~basic_output_iterator() = default;
-    };
-
-    static_assert(std::output_iterator<basic_output_iterator<int>, int>);
-
-    template <typename T, std::output_iterator<T> OutputIt>
-    struct output_iterator_wrapper : public basic_output_iterator<T> {
-    private:
-        OutputIt* _M_it;
-
-    public:
-        using value_type = T;
-        using basic_type = basic_output_iterator<value_type>;
-
-        output_iterator_wrapper(OutputIt& output)
-        : _M_it(std::addressof(output))
-        {}
-
-        basic_type&
-        operator++() override
-        {
-            ++(*_M_it);
-            return *this;
-        }
-
-        basic_type&
-        operator++(int) override
-        {
-            ++(*_M_it);
-            return *this;
-        }
-
-        basic_type&
-        operator*() override
-        {
-            return *this;
-        }
-
-        basic_type&
-        operator=(const value_type& value) override
-        {
-            **_M_it = value;
-            return *this;
-        }
-
-        basic_type&
-        operator=(value_type&& value) override
-        {
-            **_M_it = std::move(value);
-            return *this;
-        }
-    };
-
-    using index_type = int32_t;
-    using string_type = std::string;
-    using output_iterator = basic_output_iterator<index_type>;
-
-    virtual std::string decode(index_type) const = 0;
-
-    virtual void
-    encode(text::tokenkind kind, output_iterator& output) const = 0;
-
-    template <std::output_iterator<index_type> OutputIt>
-    void
-    encode(text::tokenkind kind, OutputIt& output) const
-    {
-        using iterator = output_iterator_wrapper<index_type, OutputIt>;
-
-        iterator output_it(output);
-        encode(kind, output_it);
-    }
-
-    virtual void
-    encode(const string_type& s, output_iterator& output) const = 0;
-
-    template <std::output_iterator<index_type> OutputIt>
-    void
-    encode(const string_type& s, OutputIt& output) const
-    {
-        using iterator = output_iterator_wrapper<index_type, OutputIt>;
-
-        iterator output_it(output);
-        encode(s, output_it);
-    }
-
-    /// The \ref basic_tokenizer default destructor.
-    virtual ~basic_tokenizer() = default;
-};
-
-
-template <typename Tokenizer> class tokenizer_wrapper : public basic_tokenizer {
-public:
-    tokenizer_wrapper(Tokenizer&& encoder)
-    : _M_tokenizer(std::move(encoder))
-    {}
-
-    tokenizer_wrapper(const Tokenizer& encoder)
-    : _M_tokenizer(encoder)
-    {}
-
-    string_type
-    decode(index_type id) const
-    {
-        return _M_tokenizer.decode(id);
-    }
-
-    void
-    encode(text::tokenkind kind, output_iterator& output) const
-    {
-        return _M_tokenizer.encode(kind, output);
-    }
-
-    void
-    encode(const string_type& s, output_iterator& output) const
-    {
-        return _M_tokenizer.encode(s, output);
-    }
-
-private:
-    Tokenizer _M_tokenizer;
-};
-
-
 class basic_token_scanner {
 public:
     using index_type = int32_t;
@@ -345,6 +184,9 @@ private:
     using tensor_type = future_tensor<index_type, 2>;
     using container_type = vector_memory_container<index_type>;
 
+    using tokenizer_type = text::basic_tokenizer<index_type, char>;
+    using tokenizer_traits = text::tokenizer_traits<tokenizer_type>;
+
     template <typename Transformer>
     static std::shared_ptr<basic_transformer>
     polymorphic_cast_transformer(const Transformer& transformer)
@@ -353,10 +195,10 @@ private:
     }
 
     template <typename Tokenizer>
-    static std::shared_ptr<basic_tokenizer>
+    static std::shared_ptr<tokenizer_type>
     polymorphic_cast_tokenizer(const Tokenizer& tokenizer)
     {
-        return std::make_shared<tokenizer_wrapper<Tokenizer>>(tokenizer);
+        return std::make_shared<text::tokenizer_wrapper<Tokenizer>>(tokenizer);
     }
 
 public:
@@ -372,7 +214,7 @@ public:
 
     interpreter(
         std::shared_ptr<basic_transformer> transformer_ptr,
-        std::shared_ptr<basic_tokenizer> tokenizer_ptr
+        std::shared_ptr<tokenizer_type> tokenizer_ptr
     );
 
     void
@@ -484,7 +326,7 @@ public:
 private:
     std::shared_ptr<_Members> _M_members;
     std::shared_ptr<basic_transformer> _M_transformer;
-    std::shared_ptr<basic_tokenizer> _M_tokenizer;
+    std::shared_ptr<tokenizer_type> _M_tokenizer;
     std::shared_ptr<basic_token_scanner> _M_token_scanner;
     std::shared_ptr<basic_command_scanner> _M_command_scanner;
     std::unordered_map<std::string, command_type> _M_commands;
@@ -523,7 +365,7 @@ private:
         auto token = stream.get()[0, 0];
 
         while (_M_token_scanner->scan(token)) {
-            *it++ = _M_tokenizer->decode(token);
+            tokenizer_traits::decode(*_M_tokenizer, token, it);
             stream = _M_transformer->transform(stream, _M_start_pos++);
             token = stream.get()[0, 0];
         }

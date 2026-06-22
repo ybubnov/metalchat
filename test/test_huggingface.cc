@@ -125,7 +125,10 @@ TEST_CASE("Test llama3 tokenizer loader", "[huggingface]")
     huggingface::llama3_tokenizer_loader loader;
     auto tokenizer = loader.load(input);
 
+    using Tokenizer = decltype(tokenizer);
+    using TokenizerTraits = text::tokenizer_traits<Tokenizer>;
+
     REQUIRE(tokenizer.size() == 16);
-    REQUIRE(tokenizer.decode(4) == "%");
-    REQUIRE(tokenizer.encode("#")[0] == 2);
+    REQUIRE(TokenizerTraits::decode(tokenizer, 4) == "%");
+    REQUIRE(TokenizerTraits::encode(tokenizer, "#")[0] == 2);
 }

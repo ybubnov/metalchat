@@ -69,7 +69,7 @@ struct interpreter::_Members {
 
 interpreter::interpreter(
     std::shared_ptr<basic_transformer> transformer_ptr,
-    std::shared_ptr<basic_tokenizer> tokenizer_ptr
+    std::shared_ptr<tokenizer_type> tokenizer_ptr
 )
 : _M_members(std::make_shared<_Members>()),
   _M_transformer(transformer_ptr),
@@ -81,7 +81,7 @@ interpreter::interpreter(
   _M_buf()
 {
     auto output = std::back_inserter(_M_buf);
-    _M_tokenizer->encode(text::token::begin_text, output);
+    tokenizer_traits::encode(*_M_tokenizer, text::token::begin_text, output);
 
     // Do not escape characters, leave them as is. This is the global configuration,
     // so unfortunately this line changes behaviour for the whole library.
@@ -117,10 +117,10 @@ interpreter::write_header(const std::string& role)
 {
     auto output = std::back_inserter(_M_buf);
 
-    _M_tokenizer->encode(text::token::begin_header, output);
-    _M_tokenizer->encode(role, output);
-    _M_tokenizer->encode(text::token::end_header, output);
-    _M_tokenizer->encode("\n\n", output);
+    tokenizer_traits::encode(*_M_tokenizer, text::token::begin_header, output);
+    tokenizer_traits::encode(*_M_tokenizer, role, output);
+    tokenizer_traits::encode(*_M_tokenizer, text::token::end_header, output);
+    tokenizer_traits::encode(*_M_tokenizer, "\n\n", output);
 }
 
 
@@ -131,8 +131,8 @@ interpreter::write(const basic_message& message)
 
     auto output = std::back_inserter(_M_buf);
     auto content = mustache::render(message.content(), _M_members->context());
-    _M_tokenizer->encode(content, output);
-    _M_tokenizer->encode(text::token::end_turn, output);
+    tokenizer_traits::encode(*_M_tokenizer, content, output);
+    tokenizer_traits::encode(*_M_tokenizer, text::token::end_turn, output);
 }
 
 
