@@ -82,9 +82,6 @@ public:
     using index_type = int32_t;
     using string_type = std::basic_string<CharT>;
 
-    using encoding_iterator = basic_output_iterator<index_type>;
-    using decoding_iterator = basic_output_iterator<string_type>;
-
 private:
     std::unordered_map<string_type, index_type, _StringHash> _M_forward_mapping;
     std::unordered_map<index_type, string_type> _M_inverse_mapping;
@@ -112,8 +109,8 @@ private:
     /// 3. Join to adjacent encodings, only when such encoding exists.
     /// 4. Then push encodings to the specified container of identifiers.
     template <std::output_iterator<index_type> OutputIt>
-    void
-    _M_encode_unicode_pairs(const string_type& s, OutputIt& output) const
+    OutputIt
+    _M_encode_unicode_pairs(const string_type& s, OutputIt output) const
     {
         std::size_t priority_limit = std::numeric_limits<index_type>::max();
 
@@ -173,6 +170,8 @@ private:
                 ++output;
             }
         }
+
+        return output;
     }
 
 public:
@@ -283,8 +282,9 @@ public:
     /// token index into end of the provided iterator `output`. When the token is not presented
     /// in the token dictionary, it is divided into byte-pairs, then index of the byte pair is
     /// appended to the end of the container.
-    void
-    encode(const string_type& s, encoding_iterator& output) const
+    template <std::output_iterator<index_type> OutputIt>
+    OutputIt
+    encode(const string_type& s, OutputIt output) const
     {
         for (auto match = _M_re->begin(s); match != _M_re->end(); ++match) {
             auto key = (*match);
@@ -292,9 +292,10 @@ public:
                 *output = it->second;
                 ++output;
             } else {
-                _M_encode_unicode_pairs(key, output);
+                output = _M_encode_unicode_pairs(key, output);
             }
         }
+        return output;
     }
 
     /// Encode a special token.
@@ -302,41 +303,32 @@ public:
     /// Method returns a position of a special token within a tokenizer model. When a token is
     /// a `token::regular` kind, then method raises an exception. Regular token encoding is
     /// available through \ref encode(const string_type&, OutputIt) const method.
-    void
-    encode(tokenkind kind, encoding_iterator& output) const
+    template <std::output_iterator<index_type> OutputIt>
+    OutputIt
+    encode(tokenkind kind, OutputIt output) const
     {
         if (auto it = _M_control_mapping.find(kind); it != _M_control_mapping.end()) {
             *output = it->second;
             ++output;
-            return;
+            return output;
         }
         throw std::invalid_argument(
             std::format("byte_pair_encoder: unknown control token '{}'", kind)
         );
     }
 
-    /// Encode a special token.
-    ///
-    /// Method encodes the provided special token and pushes the result to the output iterator.
-    template <std::output_iterator<index_type> OutputIt>
-    void
-    encode(tokenkind kind, OutputIt& output) const
-    {
-        *output = encode(kind);
-        ++output;
-    }
-
     /// Decode a single position-encoded token to the string representation.
     ///
     /// Method at first attempts to find a token within a model token map, then tries to
     /// query special tokens. In token is not found, method raises an exception.
-    void
-    decode(index_type id, decoding_iterator& output) const
+    template <std::output_iterator<string_type> OutputIt>
+    OutputIt
+    decode(index_type id, OutputIt output) const
     {
         if (auto tok = _M_inverse_mapping.find(id); tok != _M_inverse_mapping.end()) {
             *output = tok->second;
             ++output;
-            return;
+            return output;
         }
         throw std::runtime_error(std::format("byte_pair_encoder: unable to decode id '{}'", id));
     }

@@ -19,40 +19,35 @@ public:
     using index_type = Tokenizer::index_type;
     using string_type = std::string;
 
-    using encoding_iterator = basic_output_iterator<index_type>;
-    using decoding_iterator = basic_output_iterator<string_type>;
-
     using Tokenizer::Tokenizer;
 
     /// The \ref unicode_tokenizer_adaptor copy constructor.
     unicode_tokenizer_adaptor(const unicode_tokenizer_adaptor&) = default;
 
-    void
-    encode(const string_type& s, encoding_iterator& output) const
+    template <std::output_iterator<index_type> OutputIt>
+    OutputIt
+    encode(const string_type& s, OutputIt output) const
     {
-        Tokenizer::encode(decode_bytes(s), output);
+        return Tokenizer::encode(decode_bytes(s), output);
     }
 
-    void
-    encode(tokenkind kind, encoding_iterator& output) const
+    template <std::output_iterator<index_type> OutputIt>
+    OutputIt
+    encode(tokenkind kind, OutputIt output) const
     {
-        Tokenizer::encode(kind, output);
+        return Tokenizer::encode(kind, output);
     }
 
-    void
+    template <std::output_iterator<string_type> OutputIt>
+    OutputIt
     decode(index_type id, decoding_iterator& output) const
     {
-        using value_type = Tokenizer::string_type;
-        using iterator = value_type*;
-        using iterator_wrapper = output_iterator_wrapper<value_type, iterator>;
-
         value_type s;
-        value_type* s_ptr = &s;
-        iterator_wrapper output_it(s_ptr);
+        Tokenizer::decode(id, &s);
 
-        Tokenizer::decode(id, output_it);
         *output = encode_bytes(s);
         ++output;
+        return output;
     }
 
 private:

@@ -22,9 +22,6 @@ public:
     using string_type = Tokenizer::string_type;
     using index_type = Tokenizer::index_type;
 
-    using encoding_iterator = basic_output_iterator<index_type>;
-    using decoding_iterator = basic_output_iterator<string_type>;
-
     /// The \ref sentence_piece copy constructor.
     sentence_piece(const sentence_piece&) = default;
 
@@ -63,39 +60,38 @@ public:
     ///
     /// The method replaces all white space characters with a special unicode symbols, and
     /// then encodes the whole sequence using byte-pair encoding.
-    void
-    encode(const string_type& s, encoding_iterator& output) const
+    template <std::output_iterator<index_type> OutputIt>
+    OutputIt
+    encode(const string_type& s, OutputIt output) const
     {
         auto input = s;
         std::replace(input.begin(), input.end(), whitespace_forward, whitespace_inverse);
-        _M_bpe.encode(input, output);
+        return _M_bpe.encode(input, output);
     }
 
     /// \copydoc byte_pair_encoder::encode(tokenkind, OutputIt) const
-    void
-    encode(tokenkind kind, encoding_iterator& output) const
+    template <std::output_iterator<index_type> OutputIt>
+    OutputIt
+    encode(tokenkind kind, OutputIt output) const
     {
-        _M_bpe.encode(kind, output);
+        return _M_bpe.encode(kind, output);
     }
 
     /// Decode a single position-encoded token to the string representation.
     ///
     /// Method replaces all whitespace-replacement unicode code points with a unicode code
     /// point of the regular white space.
-    void
-    decode(index_type id, decoding_iterator& output) const
+    template <std::output_iterator<string_type> OutputIt>
+    OutputIt
+    decode(index_type id, OutputIt output) const
     {
-        using iterator = string_type*;
-        using iterator_wrapper = output_iterator_wrapper<string_type, iterator>;
-
         string_type s;
-        string_type* s_ptr = &s;
-        iterator_wrapper output_it(s_ptr);
-
-        _M_bpe.decode(id, output_it);
+        _M_bpe.decode(id, &s);
         std::replace(s.begin(), s.end(), whitespace_inverse, whitespace_forward);
+
         *output = s;
         ++output;
+        return output;
     }
 
 private:

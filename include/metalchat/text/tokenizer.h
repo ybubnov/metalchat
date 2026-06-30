@@ -157,34 +157,24 @@ template <typename Tokenizer> struct tokenizer_traits {
     using decoding_iterator = Tokenizer::decoding_iterator;
 
     template <std::output_iterator<index_type> OutputIt>
-    static void
-    encode(const Tokenizer& t, const string_type& s, OutputIt& output)
+    static OutputIt
+    encode(const Tokenizer& t, const string_type& s, OutputIt output)
     {
-        using iterator_wrapper = output_iterator_wrapper<index_type, OutputIt>;
-        iterator_wrapper output_it(output);
-        t.encode(s, output_it);
+        return t.encode(s, output);
     }
 
     template <std::output_iterator<index_type> OutputIt>
-    static void
-    encode(const Tokenizer& t, tokenkind kind, OutputIt& output)
+    static OutputIt
+    encode(const Tokenizer& t, tokenkind kind, OutputIt output)
     {
-        using iterator_wrapper = output_iterator_wrapper<index_type, OutputIt>;
-        iterator_wrapper output_it(output);
-        t.encode(kind, output_it);
+        return t.encode(kind, output);
     }
 
     static index_type
     encode(const Tokenizer& t, tokenkind kind)
     {
-        using iterator = index_type*;
-        using iterator_wrapper = output_iterator_wrapper<index_type, iterator>;
-
         index_type id;
-        index_type* id_ptr = &id;
-        iterator_wrapper output_it(id_ptr);
-
-        t.encode(kind, output_it);
+        t.encode(kind, &id);
         return id;
     }
 
@@ -195,8 +185,7 @@ template <typename Tokenizer> struct tokenizer_traits {
         using storage_type = container_type::storage_type;
 
         storage_type output;
-        auto output_it = std::back_inserter(output);
-        encode(t, s, output_it);
+        encode(t, s, std::back_inserter(output));
 
         auto container_size = output.size();
         auto container_ptr = std::make_shared<container_type>(std::move(output));
@@ -210,22 +199,19 @@ template <typename Tokenizer> struct tokenizer_traits {
     /// of the tokens is not decoded correctly, an exception is raised. All successfully
     /// decoded tokens before thrown exception are left in the container.
     template <forward_iterator<index_type> ForwardIt, std::output_iterator<string_type> OutputIt>
-    static void
-    decode(const Tokenizer& t, ForwardIt first, ForwardIt last, OutputIt& output)
+    static OutputIt
+    decode(const Tokenizer& t, ForwardIt first, ForwardIt last, OutputIt output)
     {
-        using iterator_wrapper = output_iterator_wrapper<string_type, OutputIt>;
-        iterator_wrapper output_it(output);
-
         for (auto id = first; id != last; ++id) {
-            t.decode(*id, output_it);
+            output = t.decode(*id, output);
         }
     }
 
     template <std::output_iterator<string_type> OutputIt>
-    static void
-    decode(const Tokenizer& t, index_type id, OutputIt& output)
+    static OutputIt
+    decode(const Tokenizer& t, index_type id, OutputIt output)
     {
-        decode(t, &id, &id + 1, output);
+        return decode(t, &id, &id + 1, output);
     }
 
     /// Iteratively decode a sequence of position-encoded tokens.
