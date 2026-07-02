@@ -6,9 +6,9 @@
 
 #include <metalchat/allocator.h>
 #include <metalchat/command.h>
+#include <metalchat/huggingface/llama.h>
 #include <metalchat/interpreter.h>
 #include <metalchat/nn.h>
-#include <metalchat/reference.h>
 #include <metalchat/repository.h>
 
 #include "metalchat/testing.h"
@@ -17,33 +17,17 @@
 using namespace metalchat;
 
 
-namespace testing {
-
-auto
-make_token_scanner()
-{
-    auto terminal_tokens_scanner = match_token_scanner({128001, 128008, 128009});
-
-    return composite_token_scanner<std::logical_and<bool>>(
-        {std::make_shared<limit_token_scanner>(100),
-         std::make_shared<match_token_scanner>(std::move(terminal_tokens_scanner))}
-    );
-}
-
-} // namespace testing
-
-
 TEST_CASE("Test interpreter", "[llama][integration]")
 {
-    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct/original";
+    auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct";
 
-    auto repository = filesystem_repository<reference::llama3>(repo_path);
+    auto repository = filesystem_repository<huggingface::llama3>(repo_path);
     auto options = nn::default_llama3_1b_options();
-    auto tokenizer = repository.retrieve_tokenizer("tokenizer.model");
+    auto tokenizer = repository.retrieve_tokenizer("tokenizer.json");
     auto transformer = repository.retrieve_transformer("model.safetensors", options);
+    auto formatter = huggingface::llama3_formatter(tokenizer);
 
-    auto interp = interpreter(transformer, tokenizer);
-    interp.set_token_scanner(testing::make_token_scanner());
+    auto interp = interpreter(std::move(transformer), std::move(formatter));
 
     auto command = R"({"name":"multiply",
 "type": "function",
@@ -71,18 +55,21 @@ You have access to the following tools:
 
     interp.declare_variable("extra_instructions", "answer in json");
     interp.declare_command(command, [](const command_statement& stmt) -> std::string {
-        CHECK(stmt.get_parameter("a").value() == R"("12135")");
-        CHECK(stmt.get_parameter("b").value() == R"("9312")");
+        REQUIRE(stmt.get_parameter("a").value() == R"("12135")");
+        REQUIRE(stmt.get_parameter("b").value() == R"("9312")");
         return R"(print 113001120)";
     });
-    interp.write(basic_message("system", prompt));
-    interp.write(basic_message("user", "What is 12135 multiplied by 9312?"));
+    interp.write(message::system(prompt));
+    interp.write(message::request("What is 12135 multiplied by 9312?"));
 
-    auto result = interp.exec().content();
-    CHECK(result == "113001120");
+    auto result = interp.exec();
+    CHECK(result.role() == role::response);
+    CHECK(result.content() == "113001120");
 
-    interp.write(basic_message("user", "what is the capital of Belgium?"));
-    std::cout << interp.read_text() << std::endl;
+    interp.write(message::request("what is the capital of Belgium?"));
+    result = interp.read();
+    CHECK(result.role() == role::response);
+    CHECK(result.content() == "The capital of Belgium is Brussels.");
 }
 
 
@@ -100,12 +87,12 @@ TEST_CASE("Test filebuf interpreter", "[llama][integration]")
     auto options = nn::default_llama3_1b_options();
     auto tokenizer = repository.retrieve_tokenizer("tokenizer.model");
     auto transformer = repository.retrieve_transformer("model.safetensors", options, Allocator());
+    auto formatter = huggingface::llama3_formatter(tokenizer);
 
-    auto interp = interpreter(transformer, tokenizer);
-    interp.set_token_scanner(testing::make_token_scanner());
+    auto interp = interpreter(std::move(transformer), std::move(formatter));
 
-    interp.write(basic_message("system", "You are a helpful assistant"));
-    interp.write(basic_message("user", "What is the capital of Germany?"));
+    interp.write(message::system("You are a helpful assistant"));
+    interp.write(message::request("What is the capital of Germany?"));
 
-    std::cout << interp.read_text() << std::endl;
+    std::cout << interp.read().content() << std::endl;
 }

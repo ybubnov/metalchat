@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #include <jsoncons/json.hpp>
 
+#include <metalchat/huggingface/llama.h>
 #include <metalchat/nn/llama.h>
 #include <metalchat/reference.h>
 
@@ -77,7 +78,18 @@ llama3_tokenizer_loader::type
 llama3_tokenizer_loader::load(std::istream& is, const std::string& token_regex) const
 {
     type tokenizer(is, token_regex);
-    insert_control_tokens(tokenizer);
+
+    tokenizer.insert_back(huggingface::llama3_prompt::begin_text);
+    tokenizer.insert_back(huggingface::llama3_prompt::end_text);
+    tokenizer.insert_back(huggingface::llama3_prompt::make_reserved_token(0));
+    tokenizer.insert_back(huggingface::llama3_prompt::make_reserved_token(1));
+    tokenizer.insert_back(huggingface::llama3_prompt::finetune_right_pad);
+    tokenizer.insert_back(huggingface::llama3_prompt::make_reserved_token(2));
+    tokenizer.insert_back(huggingface::llama3_prompt::begin_header);
+    tokenizer.insert_back(huggingface::llama3_prompt::end_header);
+    tokenizer.insert_back(huggingface::llama3_prompt::end_message);
+    tokenizer.insert_back(huggingface::llama3_prompt::end_turn);
+    tokenizer.insert_back(huggingface::llama3_prompt::ipython);
     return tokenizer;
 }
 
@@ -112,19 +124,7 @@ llama3_tokenizer_loader::load(const std::filesystem::path& p) const
 
 void
 llama3_tokenizer_loader::insert_control_tokens(type& tokenizer)
-{
-    tokenizer.insert_back("<|begin_of_text|>", text::token::begin_text);
-    tokenizer.insert_back("<|end_of_text|>", text::token::end_text);
-    tokenizer.insert_back(text::make_reserved_token(0), text::token::reserved);
-    tokenizer.insert_back(text::make_reserved_token(1), text::token::reserved);
-    tokenizer.insert_back("<|finetune_right_pad_id|>", text::token::finetune_right_pad);
-    tokenizer.insert_back(text::make_reserved_token(2), text::token::reserved);
-    tokenizer.insert_back("<|start_header_id|>", text::token::begin_header);
-    tokenizer.insert_back("<|end_header_id|>", text::token::end_header);
-    tokenizer.insert_back("<|eom_id|>", text::token::end_message);
-    tokenizer.insert_back("<|eot_id|>", text::token::end_turn);
-    tokenizer.insert_back("<|python_tag|>", text::token::ipython);
-}
+{}
 
 
 } // namespace reference

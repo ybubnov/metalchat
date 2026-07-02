@@ -597,6 +597,10 @@ public:
     : _M_storage(std::move(storage))
     {}
 
+    vector_memory_container(const storage_type& storage)
+    : _M_storage(storage)
+    {}
+
     /// Constructs an empty container.
     vector_memory_container()
     : _M_storage()

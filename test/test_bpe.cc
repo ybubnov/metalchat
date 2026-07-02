@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #include <catch2/catch_test_macros.hpp>
@@ -115,7 +115,19 @@ TEST_CASE("Decode control token", "[bpe][integration]")
     using Tokenizer = decltype(tokenizer);
     using TokenizerTraits = text::tokenizer_traits<Tokenizer>;
 
-    auto token = TokenizerTraits::decode(tokenizer, 128001);
+    auto str = TokenizerTraits::decode(tokenizer, 128001);
+    REQUIRE(str == "<|end_of_text|>");
+}
 
-    REQUIRE(token == "<|end_of_text|>");
+
+TEST_CASE("Encode control token", "[bpe][integration]")
+{
+    auto tokenizer = make_tokenizer();
+    using Tokenizer = decltype(tokenizer);
+    using TokenizerTraits = text::tokenizer_traits<Tokenizer>;
+
+    std::vector<int32_t> output;
+    TokenizerTraits::encode(tokenizer, "<|end_of_text|>", std::back_inserter(output));
+    REQUIRE(output.size() == 1);
+    REQUIRE(output.front() == 128001);
 }

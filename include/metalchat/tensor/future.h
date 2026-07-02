@@ -212,6 +212,13 @@ public:
         _M_result = result_type();
     }
 
+    /// Checks if the `*this` stores a null tensor pointer.
+    explicit
+    operator bool() const noexcept
+    {
+        return _M_result;
+    }
+
     /// Waits for (by calling \ref future_tensor::wait) until the shared tensor is ready, then
     /// retrieves the value stored in the shared state.
     result_type

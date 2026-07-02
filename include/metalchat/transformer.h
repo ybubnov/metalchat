@@ -248,49 +248,9 @@ concept has_tokenizer_location = requires {
 };
 
 
-class basic_transformer {
+template <typename Layer, typename Index = std::int32_t> class transformer {
 public:
-    using index_type = int32_t;
-    using tensor_type = future_tensor<index_type, 2>;
-
-    virtual hardware_accelerator&
-    accelerator() = 0;
-
-    virtual tensor_type
-    transform(tensor_type, std::size_t start_pos) = 0;
-};
-
-
-template <typename Transformer> class transformer_wrapper : public basic_transformer {
-public:
-    transformer_wrapper(Transformer&& transformer)
-    : _M_transformer(std::move(transformer))
-    {}
-
-    transformer_wrapper(const Transformer& transformer)
-    : _M_transformer(transformer)
-    {}
-
-    tensor_type
-    transform(tensor_type input, std::size_t start_pos)
-    {
-        return _M_transformer.transform(input, start_pos);
-    }
-
-    hardware_accelerator&
-    accelerator()
-    {
-        return _M_transformer.accelerator();
-    }
-
-private:
-    Transformer _M_transformer;
-};
-
-
-template <typename Layer> class transformer {
-public:
-    using index_type = std::int32_t;
+    using index_type = Index;
     using value_type = Layer::value_type;
 
     using layer_type = Layer;
@@ -363,9 +323,178 @@ public:
         return _M_sampler->sample(logits, accelerator);
     }
 
+    template <immutable_tensor_t<index_type> Input>
+    auto
+    transform(Input input, std::size_t start_pos = 0)
+    {
+        return transform(input.expand_dims(0), start_pos);
+    }
+
 private:
     nn::indirect_layer<layer_type> _M_layer;
     sampler_pointer _M_sampler;
+};
+
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+template <typename Layer, typename CharT, typename Traits = std::char_traits<CharT>>
+#pragma clang diagnostic pop
+class basic_layerbuf : public std::basic_streambuf<CharT, Traits> {
+public:
+    using streambuf_type = std::basic_streambuf<CharT, Traits>;
+    using traits_type = streambuf_type::traits_type;
+    using char_type = streambuf_type::char_type;
+    using int_type = streambuf_type::int_type;
+    using pos_type = streambuf_type::pos_type;
+    using off_type = streambuf_type::off_type;
+
+    using transformer_type = transformer<Layer>;
+    using transformer_pointer = std::shared_ptr<transformer_type>;
+
+    basic_layerbuf(const transformer_pointer& ptr, std::size_t size, std::size_t pos = 0)
+    : streambuf_type(),
+      _M_transformer(ptr),
+      _M_pbuf(size),
+      _M_gbuf(size),
+      _M_queue(),
+      _M_bufsize(size),
+      _M_pos(pos)
+    {
+        streambuf_type::setg(
+            _M_gbuf.data(), _M_gbuf.data() + _M_gbuf.size(), _M_gbuf.data() + _M_gbuf.size()
+        );
+
+        // The subtract of 1 is necessary to guarantee that buffer fits into the
+        // transformer cache, which is expected to be limited by a put buffer size.
+        streambuf_type::setp(_M_pbuf.data(), _M_pbuf.data() + _M_pbuf.size() - 1);
+    }
+
+    basic_layerbuf(const nn::indirect_layer<Layer>& layer, pos_type size, pos_type pos = 0)
+    : basic_layerbuf(std::make_shared<transformer_type>(layer), size, pos)
+    {}
+
+    basic_layerbuf(basic_layerbuf&& other)
+    : streambuf_type(),
+      _M_transformer(other._M_transformer),
+      _M_bufsize(other._M_bufsize),
+      _M_pos(other._M_pos)
+    {
+        _M_queue.swap(other._M_queue);
+        _M_gbuf.swap(other._M_gbuf);
+        _M_pbuf.swap(other._M_pbuf);
+
+        setg(other.eback(), other.gptr(), other.egptr());
+        setp(other.pptr(), other.epptr());
+    }
+
+    basic_layerbuf&
+    operator=(basic_layerbuf&& other)
+    {
+        _M_transformer = other._M_transformer;
+        _M_bufsize = other._M_bufsize;
+        _M_pos = other._M_pos;
+        _M_queue.swap(other._M_queue);
+        _M_gbuf.swap(other._M_gbuf);
+        _M_pbuf.swap(other._M_pbuf);
+
+        setg(other.eback(), other.gptr(), other.egptr());
+        setp(other.pptr(), other.epptr());
+    }
+
+protected:
+    using tensor_type = future_tensor<char_type, 2>;
+    using buffer_type = std::vector<char_type>;
+
+    std::streamsize
+    showmanyc() override
+    {
+        return _M_queue.empty() ? -1 : _M_queue.size();
+    }
+
+    int_type
+    uflow() override
+    {
+        return underflow();
+    }
+
+    int_type
+    underflow() override
+    {
+        if (streambuf_type::gptr() != streambuf_type::egptr()) {
+            return traits_type::eof();
+        }
+
+        /// The user is expected to provide at least a single input to make the
+        /// stream readable. So return end-of-file, when the get token is empty.
+        if (_M_queue.empty()) {
+            return traits_type::eof();
+        }
+
+        auto ch = _M_queue.front().get()[0, 0];
+        auto token = _M_transformer->transform(_M_queue.front(), _M_pos++);
+
+        *_M_gbuf.data() = ch;
+        streambuf_type::setg(_M_gbuf.data(), _M_gbuf.data(), _M_gbuf.data() + 1);
+
+        _M_queue.pop();
+        _M_queue.push(std::move(token));
+        return traits_type::to_int_type(ch);
+    }
+
+    int_type
+    overflow(int_type c = traits_type::eof()) override
+    {
+        char_type ch = traits_type::to_char_type(c);
+        buffer_type output;
+
+        std::size_t size = streambuf_type::pptr() - streambuf_type::pbase();
+        // Put area is empty and the character is set of the end of file,
+        // there is nothing to do, simply return end of file.
+        if (size == 0 && traits_type::eq_int_type(c, traits_type::eof())) {
+            return traits_type::eof();
+        }
+
+        // This is safe, since the put buffer is exactly one character less, so overflow
+        // happens on the buffer being smaller by a size of 1.
+        if (!traits_type::eq_int_type(c, traits_type::eof())) {
+            *streambuf_type::pptr() = ch;
+            size++;
+        }
+
+        buffer_type pbuf(_M_bufsize);
+        _M_pbuf.swap(pbuf);
+        streambuf_type::setp(_M_pbuf.data(), _M_pbuf.data() + _M_pbuf.size() - 1);
+
+        using container_type = vector_memory_container<CharT>;
+
+        auto container_ptr = std::make_shared<container_type>(std::move(pbuf));
+        auto pending = tensor({size}, container_ptr);
+        auto token = _M_transformer->transform(pending, _M_pos);
+
+        std::queue<tensor_type>().swap(_M_queue);
+        _M_queue.push(std::move(token));
+        _M_pos += size;
+
+        if (traits_type::eq_int_type(c, traits_type::eof())) {
+            return traits_type::not_eof(c);
+        }
+        return c;
+    }
+
+    int
+    sync() override
+    {
+        return overflow(traits_type::eof());
+    }
+
+private:
+    transformer_pointer _M_transformer;
+    buffer_type _M_pbuf;
+    buffer_type _M_gbuf;
+    std::queue<tensor_type> _M_queue;
+    std::size_t _M_bufsize;
+    std::size_t _M_pos;
 };
 
 

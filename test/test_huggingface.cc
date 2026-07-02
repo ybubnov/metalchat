@@ -90,7 +90,22 @@ TEST_CASE("Test llama3 tokenizer loader", "[huggingface]")
       "version": "1.0",
       "truncation": null,
       "padding": null,
-      "added_tokens": [],
+      "added_tokens": [
+        {"content": "<|begin_of_text|>",
+         "id": 128000,
+         "single_word": false,
+         "lstrip": false,
+         "rstrip": false,
+         "normalized": false,
+         "special": true},
+        {"content": "<|end_of_text|>",
+         "id": 128001,
+         "single_word": false,
+         "lstrip": false,
+         "rstrip": false,
+         "normalized": false,
+         "special": true}
+      ],
       "normalizer": null,
       "pre_tokenizer": {
         "type": "Sequence",
@@ -128,7 +143,8 @@ TEST_CASE("Test llama3 tokenizer loader", "[huggingface]")
     using Tokenizer = decltype(tokenizer);
     using TokenizerTraits = text::tokenizer_traits<Tokenizer>;
 
-    REQUIRE(tokenizer.size() == 16);
+    REQUIRE(tokenizer.size() == 7);
     REQUIRE(TokenizerTraits::decode(tokenizer, 4) == "%");
     REQUIRE(TokenizerTraits::encode(tokenizer, "#")[0] == 2);
+    REQUIRE(TokenizerTraits::encode(tokenizer, "<|begin_of_text|>")[0] == 128000);
 }

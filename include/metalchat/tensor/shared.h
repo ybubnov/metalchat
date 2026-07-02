@@ -53,6 +53,13 @@ public:
         return tensor_type::dim();
     }
 
+    /// Checks if the `*this` stores a null tensor pointer.
+    explicit
+    operator bool() const noexcept
+    {
+        return _M_value != nullptr;
+    }
+
     std::shared_ptr<tensor_type>
     get() const
     {
