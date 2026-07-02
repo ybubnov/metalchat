@@ -374,6 +374,34 @@ public:
     : basic_layerbuf(std::make_shared<transformer_type>(layer), size, pos)
     {}
 
+    basic_layerbuf(basic_layerbuf&& other)
+    : streambuf_type(),
+      _M_transformer(other._M_transformer),
+      _M_bufsize(other._M_bufsize),
+      _M_pos(other._M_pos)
+    {
+        _M_queue.swap(other._M_queue);
+        _M_gbuf.swap(other._M_gbuf);
+        _M_pbuf.swap(other._M_pbuf);
+
+        setg(other.eback(), other.gptr(), other.egptr());
+        setp(other.pptr(), other.epptr());
+    }
+
+    basic_layerbuf&
+    operator=(basic_layerbuf&& other)
+    {
+        _M_transformer = other._M_transformer;
+        _M_bufsize = other._M_bufsize;
+        _M_pos = other._M_pos;
+        _M_queue.swap(other._M_queue);
+        _M_gbuf.swap(other._M_gbuf);
+        _M_pbuf.swap(other._M_pbuf);
+
+        setg(other.eback(), other.gptr(), other.egptr());
+        setp(other.pptr(), other.epptr());
+    }
+
 protected:
     using tensor_type = future_tensor<char_type, 2>;
     using buffer_type = std::vector<char_type>;
@@ -393,6 +421,10 @@ protected:
     int_type
     underflow() override
     {
+        if (streambuf_type::gptr() != streambuf_type::egptr()) {
+            return traits_type::eof();
+        }
+
         /// The user is expected to provide at least a single input to make the
         /// stream readable. So return end-of-file, when the get token is empty.
         if (_M_queue.empty()) {
@@ -400,10 +432,10 @@ protected:
         }
 
         auto ch = _M_queue.front().get()[0, 0];
-        *streambuf_type::gptr() = ch;
-        streambuf_type::gbump(-1);
-
         auto token = _M_transformer->transform(_M_queue.front(), _M_pos++);
+
+        *_M_gbuf.data() = ch;
+        streambuf_type::setg(_M_gbuf.data(), _M_gbuf.data(), _M_gbuf.data() + 1);
 
         _M_queue.pop();
         _M_queue.push(std::move(token));
@@ -433,16 +465,11 @@ protected:
         buffer_type pbuf(_M_bufsize);
         _M_pbuf.swap(pbuf);
         streambuf_type::setp(_M_pbuf.data(), _M_pbuf.data() + _M_pbuf.size() - 1);
-        for (const auto& t : pbuf) {
-            std::cout << t << ",";
-        }
-        std::cout << std::endl;
 
         using container_type = vector_memory_container<CharT>;
 
         auto container_ptr = std::make_shared<container_type>(std::move(pbuf));
         auto pending = tensor({size}, container_ptr);
-
         auto token = _M_transformer->transform(pending, _M_pos);
 
         std::queue<tensor_type>().swap(_M_queue);

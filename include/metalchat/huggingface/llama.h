@@ -289,28 +289,14 @@ public:
         std::istreambuf_iterator<index_type> input(is);
         std::basic_stringstream<char_type> content_stream;
 
-        auto token = *input;
-        if (tokenizer_traits::decode(_M_tokenizer, token) != prompt_type::begin_header) {
-            throw std::runtime_error(std::format(
-                "llama3_formatter::parse: message should start with a header, got {}", token
-            ));
-        }
-        for (_M_scanner->reset(); _M_scanner->scan(token); token = *++input) {
+        _M_scanner->reset();
+        for (auto token = *input; _M_scanner->scan(token); ++input, token = *input) {
             content_stream << tokenizer_traits::decode(_M_tokenizer, token);
         }
+        ++input;
 
         auto content = content_stream.str();
-        message_type message(role::undefined, content);
-
-        for (const auto& [rolename, r] : _M_parse_roles) {
-            const std::string header = std::format(
-                "{}{}{}\n\n", prompt_type::begin_header, rolename, prompt_type::end_header
-            );
-            if (content.starts_with(header)) {
-                message = message_type(r, content.substr(header.size()));
-                break;
-            }
-        }
+        message_type message(role::response, content);
 
         if (message.content().starts_with(prompt_type::ipython)) {
             content = message.content().substr(prompt_type::ipython.size());
@@ -329,22 +315,36 @@ public:
             tokenizer_traits::encode(_M_tokenizer, llama3_prompt::begin_text, output);
             _M_first = true;
         }
-        if (auto it = _M_format_roles.find(message.role()); it != _M_format_roles.end()) {
+
+        format_header(message.role(), output);
+        format_content(message.content(), output);
+    }
+
+private:
+    template <typename OutputIt>
+    void
+    format_header(rolekind role, OutputIt output) const
+    {
+        if (auto it = _M_format_roles.find(role); it != _M_format_roles.end()) {
             tokenizer_traits::encode(_M_tokenizer, llama3_prompt::begin_header, output);
             tokenizer_traits::encode(_M_tokenizer, it->second, output);
             tokenizer_traits::encode(_M_tokenizer, llama3_prompt::end_header, output);
             tokenizer_traits::encode(_M_tokenizer, "\n\n", output);
         } else {
-            throw std::runtime_error(
-                std::format("llama3_formatter: role {} not found", message.role())
-            );
+            throw std::runtime_error(std::format("llama3_formatter: role {} not found", role));
         }
-
-        tokenizer_traits::encode(_M_tokenizer, message.content(), output);
-        tokenizer_traits::encode(_M_tokenizer, llama3_prompt::end_turn, output);
     }
 
-private:
+    template <typename OutputIt>
+    void
+    format_content(const std::basic_string<char_type>& content, OutputIt output) const
+    {
+        if (!content.empty()) {
+            tokenizer_traits::encode(_M_tokenizer, content, output);
+            tokenizer_traits::encode(_M_tokenizer, llama3_prompt::end_turn, output);
+        }
+    }
+
     template <std::size_t... Indices>
     void
     register_default_roles(std::index_sequence<Indices...>)

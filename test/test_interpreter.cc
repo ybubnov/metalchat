@@ -55,19 +55,21 @@ You have access to the following tools:
 
     interp.declare_variable("extra_instructions", "answer in json");
     interp.declare_command(command, [](const command_statement& stmt) -> std::string {
-        CHECK(stmt.get_parameter("a").value() == R"("12135")");
-        CHECK(stmt.get_parameter("b").value() == R"("9312")");
+        REQUIRE(stmt.get_parameter("a").value() == R"("12135")");
+        REQUIRE(stmt.get_parameter("b").value() == R"("9312")");
         return R"(print 113001120)";
     });
     interp.write(message::system(prompt));
     interp.write(message::request("What is 12135 multiplied by 9312?"));
 
     auto result = interp.exec();
-    std::cout << "RESULT.role = " << result.role() << std::endl;
+    CHECK(result.role() == role::response);
     CHECK(result.content() == "113001120");
 
-    // interp.write(message::request("what is the capital of Belgium?"));
-    // std::cout << interp.read().content() << std::endl;
+    interp.write(message::request("what is the capital of Belgium?"));
+    result = interp.read();
+    CHECK(result.role() == role::response);
+    CHECK(result.content() == "The capital of Belgium is Brussels.");
 }
 
 

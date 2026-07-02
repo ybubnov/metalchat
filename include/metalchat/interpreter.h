@@ -114,8 +114,8 @@ public:
     message_type
     read()
     {
+        write(message_type(role::response));
         *_M_stream << std::flush;
-        std::cout << "READ" << std::endl;
         return _M_formatter->parse(*_M_stream);
     }
 
@@ -135,10 +135,9 @@ public:
 
             auto& statement = command_statement.value();
             auto& command = _M_commands[statement.get_name()];
-            auto response = command(statement);
-            std::cout << "RESPONSE = " << response << std::endl;
+            auto result = command(statement);
 
-            write(message_type(role::response, response));
+            write(message_type(role::result, result));
         }
     }
 
