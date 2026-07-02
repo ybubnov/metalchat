@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
 
+#include <format>
 #include <istream>
 #include <regex>
+#include <string_view>
 #include <vector>
 
 #include <metalchat/container.h>
 #include <metalchat/dtype.h>
+#include <metalchat/format.h>
 #include <metalchat/nn/llama.h>
 #include <metalchat/quantization.h>
 #include <metalchat/reference.h>
@@ -21,6 +24,9 @@
 
 namespace metalchat {
 namespace huggingface {
+
+
+using namespace std::literals;
 
 
 /// Llama3 options serializer for configuration distributed through HuggingFace repository.
@@ -199,6 +205,171 @@ struct llama3_tokenizer_loader {
     /// \param p A path to the JSON-encoded tokenizer model (HuggingFace format).
     type
     load(const std::filesystem::path& p) const;
+};
+
+
+struct llama3_prompt {
+    static constexpr std::string_view begin_text = "<|begin_of_text|>";
+    static constexpr std::string_view finetune_right_pad = "<|finetune_right_pad_id|>";
+    static constexpr std::string_view end_text = "<|end_of_text|>";
+    static constexpr std::string_view begin_header = "<|start_header_id|>";
+    static constexpr std::string_view end_header = "<|end_header_id|>";
+    static constexpr std::string_view end_message = "<|eom_id|>";
+    static constexpr std::string_view end_turn = "<|eot_id|>";
+    static constexpr std::string_view ipython = "<|python_tag|>";
+
+    /// Returns a reserved token string representation for the specified index.
+    ///
+    /// \param index An index of the token.
+    static std::string
+    make_reserved_token(int32_t id)
+    {
+        return std::format("<|reserved_special_token_{}|>", id);
+    }
+};
+
+
+template <typename Tokenizer> class llama3_formatter : public basic_formatter<int32_t, char> {
+public:
+    static constexpr auto default_roles = std::make_tuple(
+        std::make_pair(role::system, "system"sv),
+        std::make_pair(role::request, "user"sv),
+        std::make_pair(role::response, "assistant"sv),
+        std::make_pair(role::result, "ipython"sv)
+    );
+
+    using index_type = int32_t;
+    using char_type = char;
+
+    using formatter_type = basic_formatter<index_type, char_type>;
+    using scanner_type = basic_token_scanner<index_type>;
+    using scanner_pointer = std::shared_ptr<scanner_type>;
+
+    using prompt_type = llama3_prompt;
+    using tokenizer_type = Tokenizer;
+    using tokenizer_traits = text::tokenizer_traits<tokenizer_type>;
+
+    using istream_type = formatter_type::istream_type;
+    using ostream_type = formatter_type::ostream_type;
+    using message_type = formatter_type::message_type;
+
+    llama3_formatter(const Tokenizer& tokenizer)
+    : _M_tokenizer(tokenizer),
+      _M_scanner(nullptr),
+      _M_first(false),
+      _M_format_roles(),
+      _M_parse_roles()
+    {
+        constexpr auto default_roles_size = std::tuple_size_v<decltype(default_roles)>;
+        register_default_roles(std::make_index_sequence<default_roles_size>{});
+
+        std::vector<index_type> terminal_tokens;
+        auto terminal_tokens_iterator = std::back_inserter(terminal_tokens);
+
+        tokenizer_traits::encode(_M_tokenizer, prompt_type::end_text, terminal_tokens_iterator);
+        tokenizer_traits::encode(_M_tokenizer, prompt_type::end_turn, terminal_tokens_iterator);
+        tokenizer_traits::encode(_M_tokenizer, prompt_type::end_message, terminal_tokens_iterator);
+
+        using ScannerCompositor = std::logical_and<bool>;
+        using Scanner = composite_token_scanner<index_type, ScannerCompositor>;
+
+        Scanner scanner(
+            {std::make_shared<limit_token_scanner<index_type>>(100),
+             std::make_shared<match_token_scanner<index_type>>(
+                 terminal_tokens.cbegin(), terminal_tokens.cend()
+             )}
+        );
+
+        _M_scanner = std::make_shared<Scanner>(std::move(scanner));
+    }
+
+    message_type
+    parse(istream_type& is)
+    {
+        std::istreambuf_iterator<index_type> input(is);
+        std::basic_stringstream<char_type> content_stream;
+
+        auto token = *input;
+        if (tokenizer_traits::decode(_M_tokenizer, token) != prompt_type::begin_header) {
+            throw std::runtime_error(std::format(
+                "llama3_formatter::parse: message should start with a header, got {}", token
+            ));
+        }
+        for (_M_scanner->reset(); _M_scanner->scan(token); token = *++input) {
+            content_stream << tokenizer_traits::decode(_M_tokenizer, token);
+        }
+
+        auto content = content_stream.str();
+        message_type message(role::undefined, content);
+
+        for (const auto& [rolename, r] : _M_parse_roles) {
+            const std::string header = std::format(
+                "{}{}{}\n\n", prompt_type::begin_header, rolename, prompt_type::end_header
+            );
+            if (content.starts_with(header)) {
+                message = message_type(r, content.substr(header.size()));
+                break;
+            }
+        }
+
+        if (message.content().starts_with(prompt_type::ipython)) {
+            content = message.content().substr(prompt_type::ipython.size());
+            message = message_type(role::command, content);
+        }
+        return message;
+    }
+
+    void
+    format(const message_type& message, ostream_type& os)
+    {
+        std::ostreambuf_iterator<index_type> output(os);
+
+        // Begin formatting with the begin-of-text token.
+        if (!_M_first) {
+            tokenizer_traits::encode(_M_tokenizer, llama3_prompt::begin_text, output);
+            _M_first = true;
+        }
+        if (auto it = _M_format_roles.find(message.role()); it != _M_format_roles.end()) {
+            tokenizer_traits::encode(_M_tokenizer, llama3_prompt::begin_header, output);
+            tokenizer_traits::encode(_M_tokenizer, it->second, output);
+            tokenizer_traits::encode(_M_tokenizer, llama3_prompt::end_header, output);
+            tokenizer_traits::encode(_M_tokenizer, "\n\n", output);
+        } else {
+            throw std::runtime_error(
+                std::format("llama3_formatter: role {} not found", message.role())
+            );
+        }
+
+        tokenizer_traits::encode(_M_tokenizer, message.content(), output);
+        tokenizer_traits::encode(_M_tokenizer, llama3_prompt::end_turn, output);
+    }
+
+private:
+    template <std::size_t... Indices>
+    void
+    register_default_roles(std::index_sequence<Indices...>)
+    {
+        (register_default_role<Indices>(), ...);
+    }
+
+    template <std::size_t Index>
+    void
+    register_default_role()
+    {
+        auto default_role = std::get<Index>(default_roles);
+        auto role = default_role.first;
+        auto role_synonym = std::string(default_role.second);
+
+        _M_format_roles.insert_or_assign(role, role_synonym);
+        _M_parse_roles.insert_or_assign(role_synonym, role);
+    }
+
+    tokenizer_type _M_tokenizer;
+    scanner_pointer _M_scanner;
+    bool _M_first;
+
+    std::unordered_map<rolekind, std::string> _M_format_roles;
+    std::unordered_map<std::string, rolekind> _M_parse_roles;
 };
 
 

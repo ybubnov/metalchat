@@ -17,27 +17,6 @@ namespace metalchat {
 namespace text {
 
 
-/// Specifies kind of the token.
-///
-/// Tokens are used to transform a natural language sentences into a vector of integers
-/// mapping them to a embedding space of the respective language model. There are specific
-/// kinds of tokens that allow to instruct the model for a specific behaviour.
-using tokenkind = int32_t;
-
-
-struct token {
-    static constexpr tokenkind regular = 1 << 0;
-    static constexpr tokenkind begin_text = 1 << 1;
-    static constexpr tokenkind end_text = 1 << 2;
-    static constexpr tokenkind reserved = 1 << 3;
-    static constexpr tokenkind finetune_right_pad = 1 << 4;
-    static constexpr tokenkind begin_header = 1 << 5;
-    static constexpr tokenkind end_header = 1 << 6;
-    static constexpr tokenkind end_message = 1 << 7;
-    static constexpr tokenkind end_turn = 1 << 8;
-    static constexpr tokenkind ipython = 1 << 9;
-};
-
 template <typename T> struct basic_output_iterator {
     using iterator_category = std::output_iterator_tag;
     using value_type = void;
@@ -125,36 +104,15 @@ public:
 };
 
 
-template <typename Index, typename CharT> struct basic_tokenizer {
-    using index_type = Index;
-    using string_type = std::basic_string<CharT>;
-    using encoding_iterator = basic_output_iterator<index_type>;
-    using decoding_iterator = basic_output_iterator<string_type>;
-
-    virtual void
-    encode(tokenkind kind, encoding_iterator& output) const = 0;
-
-    virtual void
-    encode(const string_type& s, encoding_iterator& output) const = 0;
-
-    virtual void
-    decode(index_type id, decoding_iterator& output) const = 0;
-
-    /// The \ref basic_tokenizer default destructor.
-    virtual ~basic_tokenizer() = default;
-};
-
-
 template <typename I, typename T>
 concept forward_iterator = std::forward_iterator<I> && std::same_as<std::iter_value_t<I>, T>;
 
 
 template <typename Tokenizer> struct tokenizer_traits {
+    using char_type = Tokenizer::string_type::value_type;
     using index_type = Tokenizer::index_type;
     using string_type = Tokenizer::string_type;
-    using char_type = string_type::value_type;
-    using encoding_iterator = Tokenizer::encoding_iterator;
-    using decoding_iterator = Tokenizer::decoding_iterator;
+    using string_view_type = std::basic_string_view<char_type>;
 
     template <std::output_iterator<index_type> OutputIt>
     static OutputIt
@@ -165,17 +123,16 @@ template <typename Tokenizer> struct tokenizer_traits {
 
     template <std::output_iterator<index_type> OutputIt>
     static OutputIt
-    encode(const Tokenizer& t, tokenkind kind, OutputIt output)
+    encode(const Tokenizer& t, const string_view_type& sv, OutputIt output)
     {
-        return t.encode(kind, output);
+        return t.encode(string_type(sv), output);
     }
 
-    static index_type
-    encode(const Tokenizer& t, tokenkind kind)
+    template <std::output_iterator<index_type> OutputIt>
+    static OutputIt
+    encode(const Tokenizer& t, const char_type* s, OutputIt output)
     {
-        index_type id;
-        t.encode(kind, &id);
-        return id;
+        return t.encode(string_type(s), output);
     }
 
     static auto
@@ -205,6 +162,7 @@ template <typename Tokenizer> struct tokenizer_traits {
         for (auto id = first; id != last; ++id) {
             output = t.decode(*id, output);
         }
+        return output;
     }
 
     template <std::output_iterator<string_type> OutputIt>
@@ -233,49 +191,6 @@ template <typename Tokenizer> struct tokenizer_traits {
     {
         return decode(t, &id, &id + 1);
     }
-};
-
-
-template <typename Tokenizer>
-class tokenizer_wrapper
-: public basic_tokenizer<typename Tokenizer::index_type, typename Tokenizer::char_type> {
-private:
-public:
-    using char_type = Tokenizer::char_type;
-    using index_type = Tokenizer::index_type;
-    using string_type = Tokenizer::string_type;
-    using encoding_iterator = Tokenizer::encoding_iterator;
-    using decoding_iterator = Tokenizer::decoding_iterator;
-
-    tokenizer_wrapper(Tokenizer&& t)
-    : _M_tokenizer(std::move(t))
-    {}
-
-    tokenizer_wrapper(const Tokenizer& t)
-    : _M_tokenizer(t)
-    {}
-
-    void
-    encode(tokenkind kind, encoding_iterator& output) const
-    {
-        return _M_tokenizer.encode(kind, output);
-    }
-
-    void
-    encode(const string_type& s, encoding_iterator& output) const
-    {
-        return _M_tokenizer.encode(s, output);
-    }
-
-    void
-    decode(index_type id, decoding_iterator& output) const
-    {
-        _M_tokenizer.decode(id, output);
-    }
-
-
-private:
-    Tokenizer _M_tokenizer;
 };
 
 

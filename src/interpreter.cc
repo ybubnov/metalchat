@@ -71,6 +71,7 @@ void
 interpreter::construct()
 {
     _M_members = std::make_shared<_Members>();
+    _M_command_scanner = std::make_shared<json_command_scanner>();
 
     // Do not escape characters, leave them as is. This is the global configuration,
     // so unfortunately this line changes behaviour for the whole library.
@@ -98,7 +99,7 @@ void
 interpreter::write(const message_type& message)
 {
     auto content = mustache::render(message.content(), _M_members->context());
-    _M_format->format(message_type(message.role(), content), _M_stream);
+    _M_formatter->format(message_type(message.role(), content), *_M_stream);
 }
 
 

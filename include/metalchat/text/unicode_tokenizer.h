@@ -31,18 +31,11 @@ public:
         return Tokenizer::encode(decode_bytes(s), output);
     }
 
-    template <std::output_iterator<index_type> OutputIt>
-    OutputIt
-    encode(tokenkind kind, OutputIt output) const
-    {
-        return Tokenizer::encode(kind, output);
-    }
-
     template <std::output_iterator<string_type> OutputIt>
     OutputIt
-    decode(index_type id, decoding_iterator& output) const
+    decode(index_type id, OutputIt output) const
     {
-        value_type s;
+        typename Tokenizer::string_type s;
         Tokenizer::decode(id, &s);
 
         *output = encode_bytes(s);

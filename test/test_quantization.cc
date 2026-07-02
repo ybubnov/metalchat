@@ -81,9 +81,10 @@ TEST_CASE("Test QLoRA inference", "[quantization][integration]")
     std::vector<int32_t> ids;
     auto output = std::back_inserter(ids);
 
+    using Prompt = huggingface::llama3_prompt;
     using Tokenizer = decltype(tokenizer);
     using TokenizerTraits = text::tokenizer_traits<Tokenizer>;
-    TokenizerTraits::encode(tokenizer, text::token::begin_text, output);
+    TokenizerTraits::encode(tokenizer, Prompt::begin_text, output);
     TokenizerTraits::encode(tokenizer, input_text, output);
 
     auto input0 = shared_tensor(to_tensor<int32_t>({1, ids.size()}, ids.begin(), ids.end()));

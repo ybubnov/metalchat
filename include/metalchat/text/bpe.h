@@ -26,19 +26,12 @@ namespace metalchat {
 namespace text {
 
 
-/// Returns a reserved token string representation for the specified index.
-///
-/// \param index An index of the token.
-std::string
-make_reserved_token(int32_t index);
-
-
 /// A concept that requires an iterator to dereference a tuple comprised of three elements:
 /// (i) token string representation, (ii) token index, and (iii) type of the token.
 template <typename It, typename CharT, typename T = std::iterator_traits<It>::value_type>
 concept input_token_iterator_t = requires {
     requires std::input_iterator<It>;
-    requires std::same_as<T, std::tuple<std::basic_string<CharT>, int32_t, tokenkind>>;
+    requires std::same_as<T, std::tuple<std::basic_string<CharT>, int32_t>>;
 };
 
 
@@ -81,11 +74,11 @@ public:
     using char_type = CharT;
     using index_type = int32_t;
     using string_type = std::basic_string<CharT>;
+    using string_view_type = std::basic_string_view<CharT>;
 
 private:
     std::unordered_map<string_type, index_type, _StringHash> _M_forward_mapping;
     std::unordered_map<index_type, string_type> _M_inverse_mapping;
-    std::unordered_map<tokenkind, index_type> _M_control_mapping;
 
     std::shared_ptr<RegularExpression> _M_re;
 
@@ -182,7 +175,6 @@ public:
         requires std::constructible_from<RegularExpression, string_type>
     : _M_forward_mapping(),
       _M_inverse_mapping(),
-      _M_control_mapping(),
       _M_re(std::make_shared<RegularExpression>(token_regex))
     {}
 
@@ -214,8 +206,8 @@ public:
     : byte_pair_encoder(token_regex)
     {
         for (auto it = first; it != last; ++it) {
-            auto [key, value, kind] = *it;
-            insert(value, key, kind);
+            auto [key, value] = *it;
+            insert(value, key);
         }
     }
 
@@ -246,27 +238,28 @@ public:
     ///
     /// \param value A string representation of a token.
     /// \param key Target encoding of a token (a position in the token embedding).
-    /// \param kind A type of the token, used for special token binding.
+    /// \param kind A type of the token, used for control token binding.
     void
-    insert(const string_type& value, index_type key, tokenkind kind = token::regular)
+    insert(const string_type& value, index_type id)
     {
-        _M_forward_mapping.insert_or_assign(value, key);
-        _M_inverse_mapping.insert_or_assign(key, value);
-
-        if (kind != token::regular) {
-            _M_control_mapping.insert_or_assign(kind, key);
-        }
+        _M_forward_mapping.insert_or_assign(value, id);
+        _M_inverse_mapping.insert_or_assign(id, value);
     }
 
     /// Insert a new token by binding it to the last position (in the token embedding).
     ///
     /// \param value A string representation of a token.
-    /// \param kind A type of the token, used for special token binding.
     void
-    insert_back(const string_type& value, tokenkind kind = token::regular)
+    insert_back(const string_type& value)
     {
         auto key = static_cast<index_type>(size());
-        insert(value, key, kind);
+        insert(value, key);
+    }
+
+    void
+    insert_back(const string_view_type& value)
+    {
+        insert_back(std::string(value));
     }
 
     /// Returns the number of all available tokens in the encoder.
@@ -286,6 +279,11 @@ public:
     OutputIt
     encode(const string_type& s, OutputIt output) const
     {
+        if (auto it = _M_forward_mapping.find(s); it != _M_forward_mapping.end()) {
+            *output = it->second;
+            ++output;
+            return output;
+        }
         for (auto match = _M_re->begin(s); match != _M_re->end(); ++match) {
             auto key = (*match);
             if (auto it = _M_forward_mapping.find(key); it != _M_forward_mapping.end()) {
@@ -298,29 +296,10 @@ public:
         return output;
     }
 
-    /// Encode a special token.
-    ///
-    /// Method returns a position of a special token within a tokenizer model. When a token is
-    /// a `token::regular` kind, then method raises an exception. Regular token encoding is
-    /// available through \ref encode(const string_type&, OutputIt) const method.
-    template <std::output_iterator<index_type> OutputIt>
-    OutputIt
-    encode(tokenkind kind, OutputIt output) const
-    {
-        if (auto it = _M_control_mapping.find(kind); it != _M_control_mapping.end()) {
-            *output = it->second;
-            ++output;
-            return output;
-        }
-        throw std::invalid_argument(
-            std::format("byte_pair_encoder: unknown control token '{}'", kind)
-        );
-    }
-
     /// Decode a single position-encoded token to the string representation.
     ///
     /// Method at first attempts to find a token within a model token map, then tries to
-    /// query special tokens. In token is not found, method raises an exception.
+    /// query control tokens. In token is not found, method raises an exception.
     template <std::output_iterator<string_type> OutputIt>
     OutputIt
     decode(index_type id, OutputIt output) const

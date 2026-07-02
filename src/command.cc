@@ -129,15 +129,8 @@ json_command_scanner::declare(const std::string& decl)
 std::optional<command_statement>
 json_command_scanner::scan(const std::string& text)
 {
-    auto tag = std::string("<|python_tag|>");
-
-    if (!text.starts_with(tag)) {
-        return std::nullopt;
-    }
-    auto str = text.substr(tag.size(), text.size() - tag.size());
-
     try {
-        auto command = jsoncons::json::parse(str);
+        auto command = jsoncons::json::parse(text);
         auto command_name = command["name"].as<std::string>();
         auto& command_schema = _M_data->commands.at(command_name);
 
@@ -146,7 +139,7 @@ json_command_scanner::scan(const std::string& text)
         }
 
         auto stmt = json_command_statement(json_command_statement::_Members{
-            .str = str,
+            .str = text,
             .name = command_name,
             .params = std::move(command["parameters"]),
         });

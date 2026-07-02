@@ -33,7 +33,7 @@ TEST_CASE("Test gemma3", "[gemma][integration]")
 
     using Tokenizer = decltype(tokenizer);
     using TokenizerTraits = text::tokenizer_traits<Tokenizer>;
-    TokenizerTraits::encode(tokenizer, text::token::begin_text, output);
+    TokenizerTraits::encode(tokenizer, "<bos>", output);
     TokenizerTraits::encode(tokenizer, input_text, output);
 
     auto transformer = repository.retrieve_transformer("model.safetensors", options);

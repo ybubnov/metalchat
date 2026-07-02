@@ -6,6 +6,7 @@
 
 #include <istream>
 #include <ostream>
+#include <unordered_set>
 
 
 namespace metalchat {
@@ -16,11 +17,12 @@ using rolekind = int32_t;
 
 
 struct role {
-    static constexpr rolekind system = 1 << 0;
-    static constexpr rolekind request = 1 << 1;
-    static constexpr rolekind response = 1 << 2;
-    static constexpr rolekind command = 1 << 3;
-    static constexpr rolekind result = 1 << 4;
+    static constexpr rolekind undefined = 1 << 0;
+    static constexpr rolekind system = 1 << 1;
+    static constexpr rolekind request = 1 << 2;
+    static constexpr rolekind response = 1 << 3;
+    static constexpr rolekind command = 1 << 4;
+    static constexpr rolekind result = 1 << 5;
 };
 
 
@@ -58,6 +60,12 @@ public:
     }
 
     static basic_message
+    system(const content_type& content)
+    {
+        return basic_message(role::system, content);
+    }
+
+    static basic_message
     request(const content_type& content)
     {
         return basic_message(role::request, content);
@@ -69,9 +77,12 @@ private:
 };
 
 
-class basic_token_scanner {
+using message = basic_message<char>;
+
+
+template <typename Index> class basic_token_scanner {
 public:
-    using index_type = int32_t;
+    using index_type = Index;
 
     virtual void
     reset() = 0;
@@ -84,8 +95,10 @@ public:
 };
 
 
-class match_token_scanner : public basic_token_scanner {
+template <typename Index> class match_token_scanner : public basic_token_scanner<Index> {
 public:
+    using index_type = Index;
+
     match_token_scanner(std::initializer_list<index_type> tokens)
     : match_token_scanner(tokens.begin(), tokens.end())
     {}
@@ -111,8 +124,10 @@ private:
 };
 
 
-class limit_token_scanner : public basic_token_scanner {
+template <typename Index> class limit_token_scanner : public basic_token_scanner<Index> {
 public:
+    using index_type = Index;
+
     limit_token_scanner(std::size_t lim)
     : _M_lim(lim),
       _M_scanned(0)
@@ -136,9 +151,11 @@ private:
 };
 
 
-template <typename LogicalOp> class composite_token_scanner : public basic_token_scanner {
+template <typename Index, typename LogicalOp>
+class composite_token_scanner : public basic_token_scanner<Index> {
 public:
-    using scanner_type = basic_token_scanner;
+    using index_type = Index;
+    using scanner_type = basic_token_scanner<index_type>;
     using scanner_pointer = std::shared_ptr<scanner_type>;
 
     composite_token_scanner(std::initializer_list<scanner_pointer> scanners)
@@ -197,7 +214,7 @@ template <typename Index, typename CharT> struct basic_formatter {
     parse(istream_type& is) = 0;
 
     virtual void
-    format(const message_type& message, ostream_type& os) const = 0;
+    format(const message_type& message, ostream_type& os) = 0;
 
     /// The \ref basic_formatter virtual destructor.
     virtual ~basic_formatter() = default;

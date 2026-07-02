@@ -42,8 +42,8 @@ public:
     using formatter_type = basic_formatter<index_type, char_type>;
     using message_type = basic_message<char_type>;
 
-    template <typename Layer>
-    interpreter(transformer<Layer>&& t, formatter_type&& fmt)
+    template <typename Layer, typename Formatter>
+    interpreter(const transformer<Layer>& t, const Formatter& fmt)
     : _M_streambuf(nullptr),
       _M_stream(nullptr),
       _M_formatter(nullptr),
@@ -51,11 +51,16 @@ public:
       _M_command_scanner(nullptr),
       _M_commands()
     {
-        auto tptr = std::make_shared<transformer<Layer>>(std::move(t));
+        using Transformer = transformer<Layer>;
+        using TransformerStreambuf = basic_layerbuf<Layer, index_type>;
 
-        _M_streambuf = std::make_shared<streambuf_type>(tptr);
-        _M_iostream = std::make_shared<stream_type>(*_M_streambuf);
-        _M_formatter = std::make_shared<formatter_type>(std::move(fmt));
+        auto formatter_ = fmt;
+        auto transformer_ = t;
+        auto transformer_ptr = std::make_shared<Transformer>(std::move(transformer_));
+
+        _M_streambuf = std::make_shared<TransformerStreambuf>(transformer_ptr, 1024);
+        _M_stream = std::make_shared<stream_type>(_M_streambuf.get());
+        _M_formatter = std::make_shared<Formatter>(std::move(formatter_));
 
         construct();
     }
@@ -106,17 +111,19 @@ public:
     void
     write(const message_type& message);
 
-    basic_message
+    message_type
     read()
     {
-        return _M_formatter->parse(_M_stream);
+        *_M_stream << std::flush;
+        std::cout << "READ" << std::endl;
+        return _M_formatter->parse(*_M_stream);
     }
 
-    basic_message
+    message_type
     exec()
     {
         for (;;) {
-            auto message = _M_formatter->parse(_M_stream);
+            auto message = read();
             if (message.role() != role::command) {
                 return message;
             }
@@ -128,9 +135,10 @@ public:
 
             auto& statement = command_statement.value();
             auto& command = _M_commands[statement.get_name()];
-            auto response = message_type::response(command(statement));
+            auto response = command(statement);
+            std::cout << "RESPONSE = " << response << std::endl;
 
-            _M_formatter->format(response, _M_stream);
+            write(message_type(role::response, response));
         }
     }
 

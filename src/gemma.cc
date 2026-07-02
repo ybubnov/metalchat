@@ -84,10 +84,10 @@ gemma3_tokenizer_loader::load(std::istream& is) const
     gemma3_tokenizer_loader::type tokenizer;
 
     for (const auto& [value, key] : model_file.model.vocab) {
-        tokenizer.insert(convert.from_bytes(value), key, text::token::regular);
+        tokenizer.insert(convert.from_bytes(value), key);
     }
     for (const auto& token : model_file.added_tokens) {
-        tokenizer.insert(convert.from_bytes(token.content), token.id, text::tokenkind(token.id));
+        tokenizer.insert(convert.from_bytes(token.content), token.id);
     }
 
     return tokenizer;

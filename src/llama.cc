@@ -105,12 +105,12 @@ llama3_tokenizer_loader::load(std::istream& is) const
     llama3_tokenizer_loader::type tokenizer(token_regex);
 
     for (const auto& [value, key] : model_file.model.vocab) {
-        auto val = codec.decode(value);
-        tokenizer.insert(val, key, text::token::regular);
+        tokenizer.insert(codec.decode(value), key);
+    }
+    for (const auto& token : model_file.added_tokens) {
+        tokenizer.insert(codec.decode(token.content), token.id);
     }
 
-    using loader_type = metalchat::reference::llama3_tokenizer_loader;
-    loader_type::insert_control_tokens(tokenizer);
     return tokenizer;
 }
 

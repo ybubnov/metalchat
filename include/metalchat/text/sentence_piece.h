@@ -37,16 +37,16 @@ public:
 
     /// \copydoc byte_pair_encoder::insert
     void
-    insert(const string_type& value, index_type key, tokenkind kind = token::regular)
+    insert(const string_type& value, index_type id)
     {
-        _M_bpe.insert(value, key, kind);
+        _M_bpe.insert(value, id);
     }
 
     /// \copydoc byte_pair_encoder::insert_back
     void
-    insert_back(const string_type& value, tokenkind kind = token::regular)
+    insert_back(const string_type& value)
     {
-        _M_bpe.insert_back(value, kind);
+        _M_bpe.insert_back(value);
     }
 
     /// \copydoc byte_pair_encoder::size
@@ -67,14 +67,6 @@ public:
         auto input = s;
         std::replace(input.begin(), input.end(), whitespace_forward, whitespace_inverse);
         return _M_bpe.encode(input, output);
-    }
-
-    /// \copydoc byte_pair_encoder::encode(tokenkind, OutputIt) const
-    template <std::output_iterator<index_type> OutputIt>
-    OutputIt
-    encode(tokenkind kind, OutputIt output) const
-    {
-        return _M_bpe.encode(kind, output);
     }
 
     /// Decode a single position-encoded token to the string representation.
