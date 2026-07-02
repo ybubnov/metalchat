@@ -111,6 +111,14 @@ public:
     void
     write(const message_type& message);
 
+    void
+    read(std::ostream& os)
+    {
+        write(message_type(role::response));
+        *_M_stream << std::flush;
+        _M_formatter->parse(*_M_stream, os);
+    }
+
     message_type
     read()
     {

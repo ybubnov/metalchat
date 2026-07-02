@@ -286,14 +286,8 @@ public:
     message_type
     parse(istream_type& is)
     {
-        std::istreambuf_iterator<index_type> input(is);
         std::basic_stringstream<char_type> content_stream;
-
-        _M_scanner->reset();
-        for (auto token = *input; _M_scanner->scan(token); ++input, token = *input) {
-            content_stream << tokenizer_traits::decode(_M_tokenizer, token);
-        }
-        ++input;
+        parse(is, content_stream);
 
         auto content = content_stream.str();
         message_type message(role::response, content);
@@ -303,6 +297,27 @@ public:
             message = message_type(role::command, content);
         }
         return message;
+    }
+
+    void
+    parse(istream_type& is, std::basic_ostream<char_type>& os)
+    {
+        std::istreambuf_iterator<index_type> input(is);
+        std::ostreambuf_iterator<char_type> output(os);
+
+        parse(input, output);
+    }
+
+    template <std::input_iterator InputIt, std::output_iterator<char_type> OutputIt>
+    void
+    parse(InputIt input, OutputIt output)
+    {
+        _M_scanner->reset();
+        for (auto token = *input; _M_scanner->scan(token); ++input, token = *input) {
+            auto str = tokenizer_traits::decode(_M_tokenizer, token);
+            std::copy(str.cbegin(), str.cend(), output);
+        }
+        ++input;
     }
 
     void
@@ -385,6 +400,7 @@ template <contiguous_container Container> struct llama3_traits {
 
     using tokenizer_type = text::byte_pair_encoder<char>;
     using tokenizer_loader = llama3_tokenizer_loader;
+    using formatter_type = llama3_formatter<tokenizer_type>;
 
     static constexpr std::string_view tokenizer_location = "tokenizer.json";
     static constexpr std::string_view options_location = "config.json";
@@ -405,6 +421,7 @@ template <contiguous_container Container> struct llama3_qlora_traits {
 
     using tokenizer_type = text::byte_pair_encoder<char>;
     using tokenizer_loader = reference::llama3_tokenizer_loader;
+    using formatter_type = llama3_formatter<tokenizer_type>;
 };
 
 

@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
+#include <cstdio>
 #include <cstdlib>
 
 #include <metalchat/huggingface/llama.h>
@@ -92,6 +93,8 @@ void
 program::transform(const program_scope& scope, const std::string& prompt) const
 {
     using Transformer = huggingface::llama3;
+    using Formatter = Transformer::formatter_type;
+    using Message = Formatter::message_type;
 
     scoped_repository_adapter<Transformer> repo(scope.repo_path, scope.manifest);
     auto transformer = repo.retrieve_transformer();
@@ -100,23 +103,18 @@ program::transform(const program_scope& scope, const std::string& prompt) const
     using Tokenizer = decltype(tokenizer);
     using TokenizerTraits = text::tokenizer_traits<Tokenizer>;
 
-    auto interp = metalchat::interpreter(transformer, tokenizer);
-    // TODO: extract terminal tokens from the huggingface tokenizer configuration.
-    interp.set_token_scanner(match_token_scanner(
-        {TokenizerTraits::encode(tokenizer, text::token::end_text),
-         TokenizerTraits::encode(tokenizer, text::token::end_turn),
-         TokenizerTraits::encode(tokenizer, text::token::end_message)}
-    ));
+    auto formatter = Formatter(tokenizer);
+    auto interp = metalchat::interpreter(transformer, formatter);
 
     auto system_prompt = scope.manifest.system_prompt(scope.path);
     if (system_prompt) {
-        interp.write(basic_message("system", system_prompt.value()));
+        interp.write(Message(role::system, system_prompt.value()));
     }
-    interp.write(basic_message("user", prompt));
+    interp.write(Message(role::request, prompt));
 
     // TODO: ensure that encoded context does not exceed the model limit.
-    std::ostream_iterator<std::string> content_iterator(std::cout << std::unitbuf);
-    interp.read(content_iterator);
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
+    interp.read(std::cout);
 }
 
 

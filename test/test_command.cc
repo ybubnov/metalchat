@@ -29,7 +29,7 @@ TEST_CASE("Test JSON command scanner", "[json_command_scanner]")
     auto command_name = scanner.declare(statement);
     REQUIRE(command_name == "get_weather");
 
-    auto text = R"(<|python_tag|>{"name": "get_weather", "parameters": {"location": "Berlin"}})";
+    auto text = R"({"name": "get_weather", "parameters": {"location": "Berlin"}})";
     auto stmt = scanner.scan(text);
 
     REQUIRE(stmt.has_value());
@@ -41,7 +41,7 @@ TEST_CASE("Test JSON command scanner", "[json_command_scanner]")
 TEST_CASE("Test skip without leading python tag", "[json_command_scanner]")
 {
     json_command_scanner scanner;
-    auto stmt = scanner.scan(R"({"name": "get_weather", "parameter": {"location": "Berlin"}})");
+    auto stmt = scanner.scan(R"({"name": "get_weather", "parameters": {"location": "Berlin"}})");
     REQUIRE_FALSE(stmt.has_value());
 }
 
@@ -49,7 +49,7 @@ TEST_CASE("Test skip without leading python tag", "[json_command_scanner]")
 TEST_CASE("Test JSON errors are skipped", "[json_command_scanner]")
 {
     json_command_scanner scanner;
-    auto stmt = scanner.scan("<|python_tag|>this is invalid JSON.");
+    auto stmt = scanner.scan("this is invalid JSON.");
 
     REQUIRE_FALSE(stmt.has_value());
 }

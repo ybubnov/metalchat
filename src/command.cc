@@ -132,8 +132,13 @@ json_command_scanner::scan(const std::string& text)
     try {
         auto command = jsoncons::json::parse(text);
         auto command_name = command["name"].as<std::string>();
-        auto& command_schema = _M_data->commands.at(command_name);
 
+        auto command_it = _M_data->commands.find(command_name);
+        if (command_it == _M_data->commands.end()) {
+            return std::nullopt;
+        }
+
+        auto& command_schema = command_it->second;
         if (!command_schema.is_valid(command)) {
             return std::nullopt;
         }

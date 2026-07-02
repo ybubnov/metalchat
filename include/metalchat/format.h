@@ -214,6 +214,9 @@ template <typename Index, typename CharT> struct basic_formatter {
     parse(istream_type& is) = 0;
 
     virtual void
+    parse(istream_type& is, std::basic_ostream<char_type>& os) = 0;
+
+    virtual void
     format(const message_type& message, ostream_type& os) = 0;
 
     /// The \ref basic_formatter virtual destructor.

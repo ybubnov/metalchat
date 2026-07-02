@@ -20,6 +20,7 @@ namespace runtime {
 
 struct architecture {
     static std::string llama3;
+    static std::string gemma3;
 };
 
 
