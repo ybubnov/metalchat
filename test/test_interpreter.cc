@@ -66,7 +66,7 @@ You have access to the following tools:
     CHECK(result.role() == role::response);
     CHECK(result.content() == "113001120");
 
-    interp.write(message::request("what is the capital of Belgium?"));
+    interp.write(message::request("What is the capital of Belgium?"));
     result = interp.read();
     CHECK(result.role() == role::response);
     CHECK(result.content() == "The capital of Belgium is Brussels.");

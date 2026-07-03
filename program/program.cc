@@ -2,12 +2,7 @@
 // SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
-#include <cstdio>
 #include <cstdlib>
-
-#include <metalchat/huggingface/llama.h>
-#include <metalchat/metalchat.h>
-
 
 #include "config.h"
 #include "model.h"
@@ -28,6 +23,9 @@ program::program()
   _M_checkout("checkout"),
   _M_model_id()
 {
+    constexpr auto arch_size = std::tuple_size_v<decltype(supported_architectures)>;
+    register_supported_architechtures(std::make_index_sequence<arch_size>{});
+
     auto config_path = std::filesystem::path("~") / default_path / default_config_path;
 
     _M_command.add_description("A self-sufficient runtime for large language models");
@@ -90,35 +88,6 @@ program::resolve_program_scope(const command_context& context, const std::string
 
 
 void
-program::transform(const program_scope& scope, const std::string& prompt) const
-{
-    using Transformer = huggingface::llama3;
-    using Formatter = Transformer::formatter_type;
-    using Message = Formatter::message_type;
-
-    scoped_repository_adapter<Transformer> repo(scope.repo_path, scope.manifest);
-    auto transformer = repo.retrieve_transformer();
-    auto tokenizer = repo.retrieve_tokenizer();
-
-    using Tokenizer = decltype(tokenizer);
-    using TokenizerTraits = text::tokenizer_traits<Tokenizer>;
-
-    auto formatter = Formatter(tokenizer);
-    auto interp = metalchat::interpreter(transformer, formatter);
-
-    auto system_prompt = scope.manifest.system_prompt(scope.path);
-    if (system_prompt) {
-        interp.write(Message(role::system, system_prompt.value()));
-    }
-    interp.write(Message(role::request, prompt));
-
-    // TODO: ensure that encoded context does not exceed the model limit.
-    std::setvbuf(stdout, nullptr, _IONBF, 0);
-    interp.read(std::cout);
-}
-
-
-void
 program::handle_prompt(const command_context& context)
 {
     std::string input;
@@ -139,7 +108,9 @@ program::handle_prompt(const command_context& context)
     }
 
     auto scope = resolve_program_scope(context, _M_prompt);
-    transform(scope, input);
+
+    auto& transformer = _M_transformers.at(scope.manifest.model.architecture);
+    transformer(scope, input);
 }
 
 
@@ -156,7 +127,8 @@ program::handle_stdin(const command_context& context)
         scope = resolve_program_scope(context, _M_stdin);
     }
 
-    transform(scope, input);
+    auto& transformer = _M_transformers.at(scope.manifest.model.architecture);
+    transformer(scope, input);
 }
 
 

@@ -41,8 +41,13 @@ options_command::options_command(basic_command& parent)
   _M_list("list"),
   _M_name(),
   _M_value(),
-  _M_type()
+  _M_type(),
+  _M_option_getters(),
+  _M_option_listers()
 {
+    constexpr auto arch_size = std::tuple_size_v<decltype(supported_architectures)>;
+    register_supported_architechtures(std::make_index_sequence<arch_size>{});
+
     add_scope_arguments(_M_command);
     _M_command.add_description("manage model run options");
 
@@ -98,19 +103,10 @@ options_command::get(const command_context& context) const
 
     auto manifest = resolve_manifest(context, _M_command).read();
     auto model = models.find(manifest.id());
+    model_info scoped_model{.path = model.path, .manifest = manifest};
 
-    using Transformer = huggingface::llama3;
-    using TransformerTraits = transformer_traits<Transformer>;
-
-    std::optional<std::string> option_value;
-    auto option_iterator = function_output_iterator([&](auto option) {
-        if (option.first == _M_name) {
-            option_value = option.second;
-        }
-    });
-
-    scoped_repository_adapter<Transformer> repo(model.path, manifest);
-    TransformerTraits::iter_options(repo.retrieve_options(), option_iterator);
+    auto& option_getter = _M_option_getters.at(manifest.model.architecture);
+    auto option_value = option_getter(scoped_model, _M_name);
 
     if (option_value) {
         std::cout << option_value.value() << std::endl;
@@ -167,32 +163,17 @@ options_command::list(const command_context& context) const
     auto model = models.find(manifest.id());
     auto scope = resolve_scope(_M_command);
 
-    using options_type = std::tuple<std::string, std::string, std::string>;
-    std::vector<options_type> runtime_options;
+    model_info scoped_model{.path = model.path, .manifest = manifest};
+    auto& option_lister = _M_option_listers.at(manifest.model.architecture);
 
-    // Insert the options into the runtime options container, so that it is possible
-    // to sort the values in a container and print options sorted by scope.
-    auto back_inserter = function_output_iterator([&](auto option) {
-        auto option_scope_name = context_scope::string(scope);
-        if (!manifest.get_option(option.first)) {
-            option_scope_name = context_scope::string(context_scope::model);
+    std::vector<option> runtime_options;
+    option_lister(scoped_model, scope, runtime_options);
+
+    auto less = [](option o1, option o2) {
+        if (o1.scope == o2.scope) {
+            return o1.name < o2.name;
         }
-        runtime_options.emplace_back(option_scope_name, option.first, option.second);
-    });
-
-    using Transformer = huggingface::llama3;
-    using TransformerTraits = transformer_traits<Transformer>;
-
-    scoped_repository_adapter<Transformer> repo(model.path, manifest);
-    TransformerTraits::iter_options(repo.retrieve_options(), back_inserter);
-
-    auto less = [](options_type o1, options_type o2) {
-        const auto& [scope1, key1, value1] = o1;
-        const auto& [scope2, key2, value2] = o2;
-        if (scope1 == scope2) {
-            return key1 < key2;
-        }
-        return scope1 < scope2;
+        return o1.scope < o2.scope;
     };
 
     std::sort(runtime_options.begin(), runtime_options.end(), less);

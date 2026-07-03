@@ -257,30 +257,20 @@ public:
     : _M_tokenizer(tokenizer),
       _M_scanner(nullptr),
       _M_first(false),
-      _M_format_roles(),
-      _M_parse_roles()
+      _M_format_roles()
     {
         constexpr auto default_roles_size = std::tuple_size_v<decltype(default_roles)>;
         register_default_roles(std::make_index_sequence<default_roles_size>{});
 
-        std::vector<index_type> terminal_tokens;
-        auto terminal_tokens_iterator = std::back_inserter(terminal_tokens);
+        std::vector<index_type> terminals;
+        auto terminals_iterator = std::back_inserter(terminals);
 
-        tokenizer_traits::encode(_M_tokenizer, prompt_type::end_text, terminal_tokens_iterator);
-        tokenizer_traits::encode(_M_tokenizer, prompt_type::end_turn, terminal_tokens_iterator);
-        tokenizer_traits::encode(_M_tokenizer, prompt_type::end_message, terminal_tokens_iterator);
+        tokenizer_traits::encode(_M_tokenizer, prompt_type::end_text, terminals_iterator);
+        tokenizer_traits::encode(_M_tokenizer, prompt_type::end_turn, terminals_iterator);
+        tokenizer_traits::encode(_M_tokenizer, prompt_type::end_message, terminals_iterator);
 
-        using ScannerCompositor = std::logical_and<bool>;
-        using Scanner = composite_token_scanner<index_type, ScannerCompositor>;
-
-        Scanner scanner(
-            {std::make_shared<limit_token_scanner<index_type>>(100),
-             std::make_shared<match_token_scanner<index_type>>(
-                 terminal_tokens.cbegin(), terminal_tokens.cend()
-             )}
-        );
-
-        _M_scanner = std::make_shared<Scanner>(std::move(scanner));
+        auto scanner = make_default_scanner(terminals.cbegin(), terminals.cend(), 1024);
+        _M_scanner = std::make_shared<decltype(scanner)>(std::move(scanner));
     }
 
     message_type
@@ -313,7 +303,7 @@ public:
     parse(InputIt input, OutputIt output)
     {
         _M_scanner->reset();
-        for (auto token = *input; _M_scanner->scan(token); ++input, token = *input) {
+        for (auto token = *input; _M_scanner->scan(token); token = *++input) {
             auto str = tokenizer_traits::decode(_M_tokenizer, token);
             std::copy(str.cbegin(), str.cend(), output);
         }
@@ -376,7 +366,6 @@ private:
         auto role_synonym = std::string(default_role.second);
 
         _M_format_roles.insert_or_assign(role, role_synonym);
-        _M_parse_roles.insert_or_assign(role_synonym, role);
     }
 
     tokenizer_type _M_tokenizer;
@@ -384,7 +373,6 @@ private:
     bool _M_first;
 
     std::unordered_map<rolekind, std::string> _M_format_roles;
-    std::unordered_map<std::string, rolekind> _M_parse_roles;
 };
 
 

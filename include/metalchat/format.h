@@ -5,6 +5,7 @@
 #pragma once
 
 #include <istream>
+#include <list>
 #include <ostream>
 #include <unordered_set>
 
@@ -175,6 +176,18 @@ public:
     {}
 
     void
+    push_front(const scanner_pointer& ptr)
+    {
+        _M_scanners.push_front(ptr);
+    }
+
+    void
+    push_back(const scanner_pointer& ptr)
+    {
+        _M_scanners.push_back(ptr);
+    }
+
+    void
     reset()
     {
         for (auto& scanner : _M_scanners) {
@@ -190,17 +203,36 @@ public:
             return result;
         }
 
-        result = _M_scanners.front()->scan(token);
-        for (std::size_t i = 1; i < _M_scanners.size(); i++) {
-            result = _M_logical_op(result, _M_scanners[i]->scan(token));
+        auto scanner_it = _M_scanners.begin();
+        result = (*scanner_it)->scan(token);
+        for (; scanner_it != _M_scanners.end(); ++scanner_it) {
+            result = _M_logical_op(result, (*scanner_it)->scan(token));
         }
         return result;
     }
 
 private:
-    std::vector<scanner_pointer> _M_scanners;
+    std::list<scanner_pointer> _M_scanners;
     LogicalOp _M_logical_op;
 };
+
+
+template <std::input_iterator InputIt, typename Index = std::iter_value_t<InputIt>>
+auto
+make_default_scanner(
+    InputIt first, InputIt last, std::optional<std::size_t> max_length = std::nullopt
+)
+{
+    using CompositeScanner = composite_token_scanner<Index, std::logical_and<bool>>;
+    using TokenScanner = match_token_scanner<Index>;
+    using LimitScanner = limit_token_scanner<Index>;
+
+    CompositeScanner scanner({std::make_shared<TokenScanner>(first, last)});
+    if (max_length) {
+        scanner.push_front(std::make_shared<LimitScanner>(max_length.value()));
+    }
+    return scanner;
+}
 
 
 template <typename Index, typename CharT> struct basic_formatter {

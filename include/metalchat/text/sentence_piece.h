@@ -64,7 +64,7 @@ public:
     OutputIt
     encode(const string_type& s, OutputIt output) const
     {
-        auto input = s;
+        string_type input = s;
         std::replace(input.begin(), input.end(), whitespace_forward, whitespace_inverse);
         return _M_bpe.encode(input, output);
     }

@@ -8,6 +8,8 @@
 #include <string_view>
 #include <variant>
 
+#include <metalchat/huggingface/gemma.h>
+#include <metalchat/huggingface/llama.h>
 #include <toml.hpp>
 
 
@@ -18,9 +20,30 @@ namespace metalchat {
 namespace runtime {
 
 
+using namespace std::literals;
+
+
 struct architecture {
     static std::string llama3;
     static std::string gemma3;
+};
+
+
+static constexpr auto supported_architectures = std::make_tuple(
+    std::make_pair("llama3"sv, std::type_identity<huggingface::llama3>{}),
+    std::make_pair("gemma3"sv, std::type_identity<huggingface::gemma3>{})
+);
+
+
+template <std::size_t I> struct architecture_typeinfo {
+private:
+    static constexpr auto info = std::get<I>(supported_architectures);
+    using sequence_type = decltype(supported_architectures);
+
+public:
+    static constexpr auto name = info.first;
+    using type = std::tuple_element_t<I, sequence_type>;
+    using transformer_type = std::tuple_element_t<1, type>::type;
 };
 
 
