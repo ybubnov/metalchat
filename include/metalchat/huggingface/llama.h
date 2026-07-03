@@ -220,7 +220,7 @@ struct llama3_prompt {
 
     /// Returns a reserved token string representation for the specified index.
     ///
-    /// \param index An index of the token.
+    /// \param id An index of the token.
     static std::string
     make_reserved_token(int32_t id)
     {
