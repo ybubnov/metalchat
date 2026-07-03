@@ -35,8 +35,8 @@ regexp::regexp(const std::string& regex)
     PCRE2_SIZE error_offset;
 
     auto re_ptr = pcre2_compile(
-        reinterpret_cast<PCRE2_SPTR>(regex.data()), regex.size(), 0, &error_code, &error_offset,
-        nullptr
+        reinterpret_cast<PCRE2_SPTR>(regex.data()), regex.size(), PCRE2_MULTILINE | PCRE2_DOTALL,
+        &error_code, &error_offset, nullptr
     );
 
     if (re_ptr == nullptr) {

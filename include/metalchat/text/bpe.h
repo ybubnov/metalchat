@@ -105,6 +105,10 @@ private:
     OutputIt
     _M_encode_unicode_pairs(const string_type& s, OutputIt output) const
     {
+        if (s.size() == 0) {
+            return output;
+        }
+
         std::size_t priority_limit = std::numeric_limits<index_type>::max();
 
         using pair_type = std::pair<index_type, std::size_t>;
@@ -121,6 +125,7 @@ private:
             }
             return priority_limit;
         };
+
 
         for (std::size_t i = 0; i < s.size() - 1; i++) {
             auto key = s.substr(i, 1);

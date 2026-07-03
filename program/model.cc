@@ -158,7 +158,7 @@ model_command::model_command(basic_command& parent)
         .help("a model architecture")
         .metavar("<architecture>")
         .choices(architecture::llama3, architecture::gemma3)
-        .nargs(1)
+        .required()
         .store_into(_M_arch);
     _M_pull.add_argument("-V", "--variant")
         .help("a model implementation variant")
@@ -171,7 +171,7 @@ model_command::model_command(basic_command& parent)
         .help("a model partitioning strategy")
         .metavar("<partitioning>")
         .choices(partitioning::consolidated, partitioning::sharded)
-        .nargs(1)
+        .default_value(partitioning::consolidated)
         .store_into(_M_partitioning);
     push_handler(_M_pull, [&](const command_context& c) { pull(c); });
 
