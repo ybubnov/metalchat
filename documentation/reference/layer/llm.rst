@@ -20,6 +20,16 @@ Meta Llama 3
    :members:
 
 
+Google Gemma 3
+--------------
+
+.. doxygenstruct:: metalchat::nn::gemma3_options
+   :members:
+
+.. doxygenclass:: metalchat::nn::gemma3
+   :members:
+
+
 Key-value caching
 -----------------
 

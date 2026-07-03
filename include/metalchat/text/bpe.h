@@ -242,8 +242,7 @@ public:
     /// Insert a new token-pair into the encoder.
     ///
     /// \param value A string representation of a token.
-    /// \param key Target encoding of a token (a position in the token embedding).
-    /// \param kind A type of the token, used for control token binding.
+    /// \param id Target encoding of a token (a position in the token embedding).
     void
     insert(const string_type& value, index_type id)
     {

@@ -85,13 +85,16 @@ template <typename Index> class basic_token_scanner {
 public:
     using index_type = Index;
 
+    /// Rests the state of a scanner.
+    ///
+    /// The default implementation does nothing.
     virtual void
-    reset() = 0;
+    reset() {};
 
     virtual bool
     scan(index_type token) = 0;
 
-    /// The /ref basic_token_scanner default destructor.
+    /// The \ref basic_token_scanner default destructor.
     virtual ~basic_token_scanner() = default;
 };
 
@@ -110,8 +113,9 @@ public:
     : _M_tokens(first, last)
     {}
 
+    /// Does nothing, \ref match_token_scanner is stateless.
     void
-    reset()
+    reset() override
     {}
 
     bool
@@ -134,8 +138,9 @@ public:
       _M_scanned(0)
     {}
 
+    /// Resets the number of tokens scanned since the last reset.
     void
-    reset()
+    reset() override
     {
         _M_scanned = 0;
     }
@@ -187,8 +192,9 @@ public:
         _M_scanners.push_back(ptr);
     }
 
+    /// Resets the states of all underlying token scallers.
     void
-    reset()
+    reset() override
     {
         for (auto& scanner : _M_scanners) {
             scanner->reset();

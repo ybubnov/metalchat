@@ -4,6 +4,7 @@ Interpreter library
 .. toctree::
    :maxdepth: 1
 
+   format
    tokens
 
 
@@ -11,10 +12,6 @@ Interpreter
 -----------
 
 .. doxygenclass:: metalchat::interpreter
-   :members:
-
-
-.. doxygenclass:: metalchat::basic_message
    :members:
 
 
@@ -32,9 +29,13 @@ Repository
 Transformer
 -----------
 
-.. doxygenclass:: metalchat::basic_transformer
+.. doxygenclass:: metalchat::transformer
    :members:
 
 
-.. doxygenclass:: metalchat::transformer
+.. doxygenstruct:: metalchat::transformer_traits
+   :members:
+
+
+.. doxygenclass:: metalchat::basic_layerbuf
    :members:
