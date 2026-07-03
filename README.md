@@ -1,7 +1,8 @@
-# MetalChat - Llama inference for Apple Silicon
+# MetalChat - LLM inference for Apple Silicon
 
 MetalChat is a [Metal](https://developer.apple.com/metal/)-accelerated C++ framework and command
-line interpreter for inference of [Meta Llama](https://www.llama.com/) models.
+line interpreter for inference of [Meta Llama](https://www.llama.com/) and
+[Google Gemma](https://ai.google.dev/gemma/docs) models.
 
 > [!IMPORTANT]
 > The library API and CLI are under active development, therefore they may change without any
