@@ -91,6 +91,7 @@ jobs:
       run: |
         cd bottles
         git checkout -b ${{ steps.metadata.outputs.branch }}
+        brew trust --formula $HOMEBREW_TAP/metalchat
         brew pr-upload --upload-only --root-url $HOMEBREW_ROOT_URL
         brew bottle --write --merge *.bottle.json
 
