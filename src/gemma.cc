@@ -73,21 +73,15 @@ gemma3_tokenizer_loader::type
 gemma3_tokenizer_loader::load(std::istream& is) const
 {
     using model_type = metalchat::huggingface::detail::tokenizer;
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    using codecvt_type = std::codecvt_utf8<char32_t>;
-    using convert_type = std::wstring_convert<codecvt_type, char32_t>;
-    convert_type convert;
-#pragma clang diagnostic pop
 
     auto model_file = jsoncons::decode_json<model_type>(is);
     gemma3_tokenizer_loader::type tokenizer;
 
     for (const auto& [value, key] : model_file.model.vocab) {
-        tokenizer.insert(convert.from_bytes(value), key);
+        tokenizer.insert(value, key);
     }
     for (const auto& token : model_file.added_tokens) {
-        tokenizer.insert(convert.from_bytes(token.content), token.id);
+        tokenizer.insert(token.content, token.id);
     }
 
     return tokenizer;

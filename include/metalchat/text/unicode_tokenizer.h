@@ -24,6 +24,18 @@ public:
     /// The \ref unicode_tokenizer_adaptor copy constructor.
     unicode_tokenizer_adaptor(const unicode_tokenizer_adaptor&) = default;
 
+    void
+    insert(const string_type& value, index_type id)
+    {
+        Tokenizer::insert(decode_bytes(value), id);
+    }
+
+    void
+    insert_back(const string_type& value)
+    {
+        Tokenizer::insert(decode_bytes(value));
+    }
+
     template <std::output_iterator<index_type> OutputIt>
     OutputIt
     encode(const string_type& s, OutputIt output) const
