@@ -4,12 +4,12 @@
 
 #pragma once
 
-#include <codecvt>
 #include <format>
 #include <iterator>
-#include <locale>
 #include <memory>
 #include <string>
+
+#include <metalchat/text/unicode.h>
 
 
 namespace metalchat {
@@ -93,13 +93,8 @@ private:
 
 template <typename CharT> class unicode_regexp_iterator {
 private:
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    using codecvt_type = std::codecvt_utf8<CharT>;
-    using convert_type = std::wstring_convert<codecvt_type, CharT>;
-#pragma clang diagnostic pop
+    using UnicodeCodec = utf8_codec<CharT>;
 
-    convert_type _M_convert;
     regexp_iterator _M_it;
 
 public:
@@ -110,13 +105,11 @@ public:
     using difference_type = std::ptrdiff_t;
 
     unicode_regexp_iterator()
-    : _M_convert(),
-      _M_it()
+    : _M_it()
     {}
 
     unicode_regexp_iterator(const regexp_iterator& it)
-    : _M_convert(),
-      _M_it(it)
+    : _M_it(it)
     {}
 
     unicode_regexp_iterator&
@@ -130,7 +123,7 @@ public:
     operator*()
     {
         auto us = *_M_it;
-        return _M_convert.from_bytes(us);
+        return UnicodeCodec::decode(us);
     }
 
     bool
@@ -143,32 +136,25 @@ public:
 
 template <typename CharT> class unicode_regexp {
 private:
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    using codecvt_type = std::codecvt_utf8<CharT>;
-    using convert_type = std::wstring_convert<codecvt_type, CharT>;
-#pragma clang diagnostic pop
+    using UnicodeCodec = utf8_codec<CharT>;
 
-    convert_type _M_convert;
     regexp _M_re;
 
 public:
     using iterator = unicode_regexp_iterator<CharT>;
 
     unicode_regexp(const std::basic_string<CharT>& regex)
-    : _M_convert(),
-      _M_re(_M_convert.to_bytes(regex.data(), regex.data() + regex.size()))
+    : _M_re(UnicodeCodec::encode(regex))
     {}
 
     unicode_regexp(const std::string& regex)
-    : _M_convert(),
-      _M_re(regex)
+    : _M_re(regex)
     {}
 
     iterator
     begin(const std::basic_string<CharT>& s)
     {
-        auto bytes = _M_convert.to_bytes(s.data(), s.data() + s.size());
+        auto bytes = UnicodeCodec::encode(s);
         return iterator(_M_re.begin(bytes));
     }
 
@@ -183,13 +169,6 @@ public:
 template <> class unicode_regexp<char> : public regexp {
 public:
     using regexp::regexp;
-};
-
-
-class base64 {
-public:
-    static std::string
-    decode(const std::string&);
 };
 
 

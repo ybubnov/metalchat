@@ -3,13 +3,12 @@
 // SPDX-FileType: SOURCE
 
 #include <algorithm>
-#include <codecvt>
 #include <iostream>
-#include <locale>
 #include <queue>
 #include <sstream>
 
 #include <metalchat/text/gpt.h>
+#include <metalchat/text/unicode.h>
 
 
 namespace metalchat {
@@ -51,11 +50,6 @@ gpt2_codec::gpt2_codec()
 std::string
 gpt2_codec::encode(const std::string& input) const
 {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> converter;
-#pragma clang diagnostic pop
-
     std::basic_stringstream<char16_t> output;
 
     const auto bytes = reinterpret_cast<const char8_t*>(input.data());
@@ -70,7 +64,8 @@ gpt2_codec::encode(const std::string& input) const
         }
     }
 
-    return converter.to_bytes(output.str());
+    using UnicodeCodec = utf8_codec<char16_t>;
+    return UnicodeCodec::encode(output.str());
 }
 
 
@@ -79,12 +74,8 @@ gpt2_codec::decode(const std::string& input) const
 {
     std::basic_stringstream<char> output;
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> converter;
-#pragma clang diagnostic pop
-
-    auto winput = converter.from_bytes(input);
+    using UnicodeCodec = utf8_codec<char16_t>;
+    auto winput = UnicodeCodec::decode(input);
 
     const auto runes = winput.data();
     const auto runes_size = winput.size();

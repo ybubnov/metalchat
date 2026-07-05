@@ -25,7 +25,7 @@ endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-find_package(cppcodec CONFIG REQUIRED)
+find_package(simdutf CONFIG REQUIRED)
 find_package(jsoncons CONFIG REQUIRED)
 find_package(mbits-mstch CONFIG REQUIRED)
 find_package(metal-cpp CONFIG REQUIRED)
@@ -108,7 +108,7 @@ add_custom_target(copy_headers ALL
 )
 
 target_link_libraries(${metalchat_FRAMEWORK}
-    cppcodec::cppcodec
+    simdutf::simdutf
     jsoncons
     rapidhash::rapidhash
     mbits::mstch
