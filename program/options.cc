@@ -103,7 +103,7 @@ options_command::get(const command_context& context) const
 
     auto manifest = resolve_manifest(context, _M_command).read();
     auto model = models.find(manifest.id());
-    model_info scoped_model{.path = model.path, .manifest = manifest};
+    model_info scoped_model{.manifest = manifest, .path = model.path};
 
     auto& option_getter = _M_option_getters.at(manifest.model.architecture);
     auto option_value = option_getter(scoped_model, _M_name);
@@ -163,7 +163,7 @@ options_command::list(const command_context& context) const
     auto model = models.find(manifest.id());
     auto scope = resolve_scope(_M_command);
 
-    model_info scoped_model{.path = model.path, .manifest = manifest};
+    model_info scoped_model{.manifest = manifest, .path = model.path};
     auto& option_lister = _M_option_listers.at(manifest.model.architecture);
 
     std::vector<option> runtime_options;

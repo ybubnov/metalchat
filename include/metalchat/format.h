@@ -119,7 +119,7 @@ public:
     {}
 
     bool
-    scan(index_type token)
+    scan(index_type token) override
     {
         return _M_tokens.find(token) == _M_tokens.end();
     }
@@ -146,7 +146,7 @@ public:
     }
 
     bool
-    scan(index_type token)
+    scan(index_type token) override
     {
         return (++_M_scanned) < _M_lim;
     }
@@ -202,7 +202,7 @@ public:
     }
 
     bool
-    scan(index_type token)
+    scan(index_type token) override
     {
         bool result = false;
         if (_M_scanners.size() == 0) {
