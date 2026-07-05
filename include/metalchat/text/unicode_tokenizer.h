@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <codecvt>
 #include <iterator>
-#include <locale>
+
+#include <metalchat/text/unicode.h>
 
 
 namespace metalchat {
@@ -20,6 +20,7 @@ public:
     using string_type = std::string;
 
     using Tokenizer::Tokenizer;
+    using UnicodeCodec = utf8_codec<typename Tokenizer::char_type>;
 
     /// The \ref unicode_tokenizer_adaptor copy constructor.
     unicode_tokenizer_adaptor(const unicode_tokenizer_adaptor&) = default;
@@ -27,20 +28,20 @@ public:
     void
     insert(const string_type& value, index_type id)
     {
-        Tokenizer::insert(decode_bytes(value), id);
+        Tokenizer::insert(UnicodeCodec::decode(value), id);
     }
 
     void
     insert_back(const string_type& value)
     {
-        Tokenizer::insert(decode_bytes(value));
+        Tokenizer::insert(UnicodeCodec::decode(value));
     }
 
     template <std::output_iterator<index_type> OutputIt>
     OutputIt
     encode(const string_type& s, OutputIt output) const
     {
-        return Tokenizer::encode(decode_bytes(s), output);
+        return Tokenizer::encode(UnicodeCodec::decode(s), output);
     }
 
     template <std::output_iterator<string_type> OutputIt>
@@ -50,31 +51,9 @@ public:
         typename Tokenizer::string_type s;
         Tokenizer::decode(id, &s);
 
-        *output = encode_bytes(s);
+        *output = UnicodeCodec::encode(s);
         ++output;
         return output;
-    }
-
-private:
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    using rune_type = Tokenizer::char_type;
-    using codecvt_type = std::codecvt_utf8<rune_type>;
-    using convert_type = std::wstring_convert<codecvt_type, rune_type>;
-#pragma clang diagnostic pop
-
-    static string_type
-    encode_bytes(const std::basic_string<rune_type>& s)
-    {
-        convert_type convert;
-        return convert.to_bytes(s);
-    }
-
-    static std::basic_string<rune_type>
-    decode_bytes(const string_type& b)
-    {
-        convert_type convert;
-        return convert.from_bytes(b);
     }
 };
 

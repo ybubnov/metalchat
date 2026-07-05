@@ -200,7 +200,7 @@ public:
             auto value_part = line.substr(delim + 1);
 
             index_type key = std::stoi(value_part);
-            string_type value = base64::decode(key_part);
+            string_type value = base64_codec::decode(key_part);
 
             insert(value, key);
         }

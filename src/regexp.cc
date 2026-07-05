@@ -17,12 +17,72 @@ namespace text {
 
 
 std::string
-base64::decode(const std::string& s)
+base64_codec::decode(const std::string& s)
 {
     std::string output(simdutf::maximal_binary_length_from_base64(s.data(), s.size()), 0);
     auto result = simdutf::base64_to_binary(s.data(), s.size(), output.data());
-    if (result.error) {
+    if (result.error != simdutf::error_code::SUCCESS) {
         throw std::runtime_error(std::format("base64: failed decoding string {}", s));
+    }
+    output.resize(result.count);
+    return output;
+}
+
+
+std::basic_string<char>
+utf8_codec<char16_t>::encode(const std::basic_string<char16_t>& s)
+{
+    std::basic_string<char> output(simdutf::utf8_length_from_utf16(s.data(), s.size()), 0);
+    auto result = simdutf::convert_utf16_to_utf8_with_errors(s.data(), s.size(), output.data());
+    if (result.error != simdutf::error_code::SUCCESS) {
+        throw std::runtime_error(
+            std::format("utf8_codec: failed encoding string at position ({})", result.count)
+        );
+    }
+    output.resize(result.count);
+    return output;
+}
+
+
+std::basic_string<char16_t>
+utf8_codec<char16_t>::decode(const std::basic_string<char>& s)
+{
+    std::basic_string<char16_t> output(simdutf::utf16_length_from_utf8(s.data(), s.size()), 0);
+    auto result = simdutf::convert_utf8_to_utf16_with_errors(s.data(), s.size(), output.data());
+    if (result.error != simdutf::error_code::SUCCESS) {
+        throw std::runtime_error(
+            std::format("utf8_codec: failed decoding string at position ({})", result.count)
+        );
+    }
+    output.resize(result.count);
+    return output;
+}
+
+
+std::basic_string<char>
+utf8_codec<char32_t>::encode(const std::basic_string<char32_t>& s)
+{
+    std::basic_string<char> output(simdutf::utf8_length_from_utf32(s.data(), s.size()), 0);
+    auto result = simdutf::convert_utf32_to_utf8_with_errors(s.data(), s.size(), output.data());
+    if (result.error != simdutf::error_code::SUCCESS) {
+        throw std::runtime_error(
+            std::format("utf8_codec: failed encoding string at position ({})", result.count)
+        );
+    }
+    output.resize(result.count);
+    return output;
+}
+
+
+std::basic_string<char32_t>
+utf8_codec<char32_t>::decode(const std::basic_string<char>& s)
+{
+    std::basic_string<char32_t> output(simdutf::utf32_length_from_utf8(s.data(), s.size()), 0);
+    auto result = simdutf::convert_utf8_to_utf32_with_errors(s.data(), s.size(), output.data());
+    if (result.error != simdutf::error_code::SUCCESS) {
+        throw std::runtime_error(
+            std::format("utf8_codec: failed decoding string at position ({})", result.count)
+        );
     }
     output.resize(result.count);
     return output;

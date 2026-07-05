@@ -2,9 +2,6 @@
 // SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
-#include <codecvt>
-#include <locale>
-
 #include <catch2/catch_test_macros.hpp>
 
 #include <metalchat/huggingface/gemma.h>
