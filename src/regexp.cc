@@ -4,8 +4,10 @@
 
 #define PCRE2_CODE_UNIT_WIDTH 8
 
-#include <cppcodec/base64_rfc4648.hpp>
+#include <format>
+
 #include <pcre2.h>
+#include <simdutf.h>
 
 #include <metalchat/text/regexp.h>
 
@@ -17,7 +19,13 @@ namespace text {
 std::string
 base64::decode(const std::string& s)
 {
-    return cppcodec::base64_rfc4648::decode<std::string>(s);
+    std::string output(simdutf::maximal_binary_length_from_base64(s.data(), s.size()), 0);
+    auto result = simdutf::base64_to_binary(s.data(), s.size(), output.data());
+    if (result.error) {
+        throw std::runtime_error(std::format("base64: failed decoding string {}", s));
+    }
+    output.resize(result.count);
+    return output;
 }
 
 
