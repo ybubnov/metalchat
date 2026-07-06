@@ -63,9 +63,9 @@ gemm(
     using SimdTensor = metal::simdgroup_matrix<T, tile_size, tile_size>;
     using SimdData = threadgroup T*;
 
-    thread SimdTensor mm_simd(0);
-    thread SimdTensor m1_simd;
-    thread SimdTensor m2_simd;
+    SimdTensor mm_simd(0);
+    SimdTensor m1_simd;
+    SimdTensor m2_simd;
 
     uint row_a = block_row + thread_row_a;
     uint row_b = block_row + thread_row_b;
