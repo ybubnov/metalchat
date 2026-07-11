@@ -1,12 +1,13 @@
 :html_theme.sidebar_secondary.remove: true
 
-Llama inference for Apple Devices
-=================================
+LLM inference for Apple Devices
+===============================
 
 MetalChat is a `Metal <https://developer.apple.com/metal/>`_-accelerated C++ framework and command
-line interpreter for inference of `Meta Llama <https://www.llama.com/>`_ models. MetalChat is
-designed as a full-stack framework, allowing to provide access to both low-level GPU kernels and
-high-level LLM interpreter API.
+line interpreter for inference of `Meta Llama <https://www.llama.com/>`_ and
+`Google Gemma <https://ai.google.dev/gemma/docs>`_ models. MetalChat is designed as a full-stack
+framework, allowing to provide access to both low-level GPU kernels and high-level
+LLM interpreter API.
 
 .. grid:: 1 2 2 3
    :gutter: 3
