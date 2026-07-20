@@ -4,6 +4,8 @@
 // SPDX-FileCopyrightText: 2025 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
+#pragma once
+
 #include <metal_common>
 #include <metal_stdlib>
 

@@ -9,9 +9,40 @@
 #include <catch2/matchers/catch_matchers_vector.hpp>
 
 #include <metalchat/kernel/sort.h>
+#include <metalchat/tensor/format.h>
 
 
 using namespace metalchat;
+
+
+TEST_CASE("Test bucketize", "[kernel::bucketize]")
+{
+    hardware_accelerator gpu0;
+    kernel::bucketize<float> bucketize(gpu0);
+
+    auto input = tensor<float, 2>({{3, 6, 9}, {3, 6, 9}});
+    auto boundaries = tensor<float, 1>({1, 3, 5, 7, 9});
+
+    auto output_right = bucketize(input, boundaries, /*right=*/true).get();
+    auto expect_right = tensor<float, 2>({{2, 3, 5}, {2, 3, 5}});
+
+    REQUIRE(output_right.dim() == 2);
+    for (std::size_t i = 0; i < output_right.size(0); i++) {
+        for (std::size_t j = 0; j < output_right.size(1); j++) {
+            REQUIRE((output_right[i, j]) == (expect_right[i, j]));
+        }
+    }
+
+    auto output_left = bucketize(input, boundaries, /*right=*/false).get();
+    auto expect_left = tensor<float, 2>({{1, 3, 4}, {1, 3, 4}});
+
+    REQUIRE(output_left.dim() == 2);
+    for (std::size_t i = 0; i < output_left.size(0); i++) {
+        for (std::size_t j = 0; j < output_left.size(1); j++) {
+            REQUIRE((output_left[i, j]) == (expect_left[i, j]));
+        }
+    }
+}
 
 
 TEST_CASE("Test sorting", "[kernel::sort]")
