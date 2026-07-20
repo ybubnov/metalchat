@@ -8,6 +8,13 @@
 template <typename T> T inline __ceil_div(T a, T b) { return (a + b - 1) / b; }
 
 
+inline uint
+__mean(uint a, uint b)
+{
+    return (a & b) + ((a ^ b) >> 1);
+}
+
+
 #define __lib_metalchat_stringify(x) #x
 
 

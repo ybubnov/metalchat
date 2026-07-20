@@ -30,6 +30,9 @@ Arithmetic kernels
 Comparison kernels
 ------------------
 
+.. doxygenclass:: metalchat::kernel::bucketize
+   :members:
+
 .. doxygenclass:: metalchat::kernel::gt
    :members:
 

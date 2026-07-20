@@ -61,11 +61,11 @@ template <typename T>
 uint
 __binary_search(thread tensor2<const T> data, uint batch, T value)
 {
-    int low = 0;
-    int high = data.size(1);
+    uint low = 0;
+    uint high = data.size(1);
 
     while (low < high) {
-        uint mid = (low + high) / 2;
+        uint mid = __mean(low, high);
         T value_m = data.at(batch, mid);
 
         if (value_m > value) {
@@ -75,7 +75,7 @@ __binary_search(thread tensor2<const T> data, uint batch, T value)
         }
     }
 
-    return metal::max(low, 1) - 1;
+    return metal::max(int(low), 1) - 1;
 }
 
 
