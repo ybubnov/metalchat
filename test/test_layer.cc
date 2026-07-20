@@ -28,6 +28,29 @@ TEST_CASE("Test layer copy assignment", "[layer]")
 }
 
 
+TEST_CASE("Test linear layer bias", "[layer]")
+{
+    using Linear = nn::linear<float>;
+
+    hardware_accelerator gpu0;
+    nn::indirect_layer<Linear> linear(3, 4, /*bias=*/true, gpu0);
+
+    auto& weight = linear.parameter("weight");
+    REQUIRE(weight.dimensions() == 2);
+    REQUIRE(weight.size(0) == 4);
+    REQUIRE(weight.size(1) == 3);
+
+    auto& bias = linear.parameter("bias");
+    REQUIRE(bias.dimensions() == 1);
+    REQUIRE(bias.size(0) == 4);
+
+    auto output = linear(rand<float>({8, 3})).get();
+    REQUIRE(output.dim() == 2);
+    REQUIRE(output.size(0) == 8);
+    REQUIRE(output.size(1) == 4);
+}
+
+
 TEST_CASE("Test layer parameters", "[layer]")
 {
     using Linear = nn::linear<float, random_memory_container<float>>;
@@ -54,7 +77,7 @@ TEST_CASE("Test layer parameters", "[layer]")
 
 TEST_CASE("Test recurse parameter query", "[layer]")
 {
-    using Linear = nn::linear<float, random_memory_container<float>>;
+    using Linear = nn::linear<float, hardware_memory_container<float>>;
 
     struct test_layer : public nn::basic_layer {
         nn::indirect_layer<Linear> linear1;
@@ -63,8 +86,8 @@ TEST_CASE("Test recurse parameter query", "[layer]")
         test_layer(hardware_accelerator gpu)
         : nn::basic_layer(gpu)
         {
-            linear1 = register_layer<Linear>("layer1", full<float>({3, 4}, 3.0));
-            linear2 = register_layer<Linear>("layer2", full<float>({4, 5}, 4.0));
+            linear1 = register_layer<Linear>("layer1", 3, 4);
+            linear2 = register_layer<Linear>("layer2", 4, 5);
         }
     };
 
@@ -76,7 +99,7 @@ TEST_CASE("Test recurse parameter query", "[layer]")
         : nn::basic_layer(gpu)
         {
             inner = register_layer<test_layer>("inner");
-            linear0 = register_layer<Linear>("linear0", full<float>({1, 2}, 5.0));
+            linear0 = register_layer<Linear>("linear0", 1, 2);
         }
     };
 
@@ -85,13 +108,13 @@ TEST_CASE("Test recurse parameter query", "[layer]")
 
     auto& param1 = tl.parameter("inner.layer1.weight");
     REQUIRE(param1.dimensions() == 2);
-    REQUIRE(param1.size(0) == 3);
-    REQUIRE(param1.size(1) == 4);
+    REQUIRE(param1.size(0) == 4);
+    REQUIRE(param1.size(1) == 3);
 
     auto& param0 = tl.parameter("linear0.weight");
     REQUIRE(param0.dimensions() == 2);
-    REQUIRE(param0.size(0) == 1);
-    REQUIRE(param0.size(1) == 2);
+    REQUIRE(param0.size(0) == 2);
+    REQUIRE(param0.size(1) == 1);
 
     auto match_not_registered = Catch::Matchers::ContainsSubstring("is not registered");
 

@@ -33,10 +33,6 @@ public:
 
 
 /// Applies an affine linear transformation to the input data.
-///
-/// This module does not support bias adjustment to the input tensor, and only multiplies
-/// it (input) by the specified weight tensor. Meaning it effectively works as matrix
-/// multiplication operation.
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class linear : public basic_linear<T, Container> {
     using _Base = basic_linear<T, Container>;
@@ -44,52 +40,115 @@ class linear : public basic_linear<T, Container> {
 public:
     using value_type = T;
     using container_type = Container;
+    using bias_type = tensor<T, 1, Container>;
+    using bias_pointer = shared_tensor<T, 1, Container>;
     using weight_type = tensor<T, 2, Container>;
     using weight_pointer = shared_tensor_ptr<weight_type>;
 
-    linear(weight_pointer weight_ptr, hardware_accelerator& accelerator)
+    /// The linear layer constructor.
+    ///
+    /// \param in_features The size of each input sample.
+    /// \param out_features The size of each output sample.
+    /// \param bias If set to true, the layer adds an additive bias.
+    /// \param accelerator The hardware accelerator.
+    linear(
+        std::size_t in_features,
+        std::size_t out_features,
+        bool bias,
+        hardware_accelerator& accelerator
+    ) requires std::same_as<Container, hardware_memory_container<T>>
+    : linear(
+          initialize({out_features, in_features}, accelerator.get_allocator()),
+          bias ? initialize({out_features}, accelerator.get_allocator()) : bias_pointer(nullptr),
+          accelerator
+      )
+    {}
+
+    linear(std::size_t in_features, std::size_t out_features, hardware_accelerator& accelerator)
+    : linear(in_features, out_features, false, accelerator)
+    {}
+
+    linear(hardware_accelerator& accelerator)
     : _Base(accelerator),
-      _M_weight(weight_ptr)
+      _M_weight(shared_tensor(weight_type())),
+      _M_bias()
     {
         _Base::register_parameter("weight", _M_weight);
     }
 
-    linear(weight_type&& weight, hardware_accelerator& accelerator)
-    : linear(shared_tensor(std::move(weight)), accelerator)
-    {}
-
-    linear(std::size_t in_features, std::size_t out_features, hardware_accelerator& accelerator)
-        requires std::same_as<Container, hardware_memory_container<T>>
-    : linear(rand<T>({out_features, in_features}, accelerator), accelerator)
-    {}
-
-    linear(hardware_accelerator& accelerator)
-    : linear(shared_tensor(weight_type()), accelerator)
-    {}
+    /// Enable additive bias.
+    ///
+    /// The method registers a bias parameter, which is added to the output after
+    /// the multiplication operation.
+    void
+    enable_bias()
+    {
+        _Base::register_parameter("bias", _M_bias);
+    }
 
     template <immutable_tensor_t<T> Input>
     auto
     operator()(Input input)
     {
-        return matmul(input, _M_weight.transpose({1, 0}), _Base::accelerator());
+        return forward(input);
     }
 
     _Base::result_type
     operator()(_Base::input_type input)
     {
-        return matmul(input, _M_weight.transpose({1, 0}), _Base::accelerator());
+        return forward(input);
     }
 
     friend std::ostream&
     operator<<(std::ostream& os, const linear& l)
     {
         os << "nn::linear<" << type_traits<T>::name() << ">";
-        os << "(" << l._M_weight.sizes() << ")";
+        os << "(in_features=" << l._M_weight.size(0) << ", ";
+        os << "out_features=" << l._M_weight.size(1) << ", ";
+        os << "bias=" << std::boolalpha << bool(l._M_bias) << ")";
         return os;
     }
 
 private:
+    linear(weight_pointer weight_ptr, bias_pointer bias_ptr, hardware_accelerator& accelerator)
+    : _Base(accelerator),
+      _M_weight(weight_ptr),
+      _M_bias(bias_ptr)
+    {
+        _Base::register_parameter("weight", _M_weight);
+        if (_M_bias) {
+            enable_bias();
+        }
+    }
+
+    template <allocator_t<void> Allocator, std::size_t N>
+    auto
+    initialize(std::size_t (&&sizes)[N], Allocator alloc) const
+    {
+        auto typed_alloc = rebind_allocator<T, Allocator>(alloc);
+        return shared_tensor(rand<T>(std::move(sizes), typed_alloc));
+    }
+
+    template <allocator_t<T> Allocator, std::size_t N>
+    auto
+    initialize(std::size_t (&&sizes)[N], Allocator alloc) const
+    {
+        return shared_tensor(rand<T>(std::move(sizes), alloc));
+    }
+
+    template <immutable_tensor_t<T> Input>
+    auto
+    forward(Input input)
+    {
+        auto output = matmul(input, _M_weight.transpose({1, 0}), _Base::accelerator());
+        if (_M_bias) {
+            output = add_broadcast(output, _M_bias, _Base::accelerator());
+        }
+        return output;
+    }
+
     weight_pointer _M_weight;
+    bias_pointer _M_bias;
 };
 
 

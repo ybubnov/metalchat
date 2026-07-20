@@ -64,16 +64,22 @@ public:
         return future_tensor(output, std::move(task_future));
     }
 
+    template <immutable_tensor_t<T> Input1, immutable_tensor1_t<T> Input2>
+    requires(Input1::dim() > 2)
+    auto
+    operator()(Input1 input1, Input2 input2)
+    {
+        auto input2_dim = static_cast<int32_t>(input2.size(0));
+        auto output = operator()(input1.view({-1, input2_dim}), input2);
+        return output.view(input1.shape());
+    }
+
     template <immutable_tensor_t<T> Input1, immutable_tensor_t<T> Input2>
     requires(Input1::dim() > 2 && Input2::dim() >= 2)
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        auto input2_view = flatten<1>(input2);
-        auto input2_dim = static_cast<int32_t>(input2_view.size(0));
-
-        auto output = operator()(input1.view({-1, input2_dim}), input2_view);
-        return output.view(input1.shape());
+        return operator()(input1, flatten<1>(input2));
     }
 };
 

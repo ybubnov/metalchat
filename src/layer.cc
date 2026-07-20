@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #include <metalchat/accelerator.h>
@@ -22,6 +22,11 @@ basic_layer::basic_layer(const hardware_accelerator& accelerator, char delimiter
 
 basic_layer::basic_layer(const hardware_accelerator& accelerator)
 : basic_layer(accelerator, '.')
+{}
+
+
+basic_layer::basic_layer()
+: basic_layer(hardware_accelerator())
 {}
 
 
