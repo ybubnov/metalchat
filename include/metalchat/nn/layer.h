@@ -288,6 +288,9 @@ public:
     /// The layer is constructed with a default - `.` (dot) delimiter.
     basic_layer(const hardware_accelerator& accelerator);
 
+    /// Construct a layer with a default hardware accelerator and default delimiter.
+    basic_layer();
+
     /// Return a delimiter used to join names of layers and parameters of nested layers.
     char
     delimiter() const;

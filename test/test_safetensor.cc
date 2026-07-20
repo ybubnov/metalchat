@@ -88,7 +88,7 @@ template <> struct __libcpp_random_is_valid_realtype<bf16> : true_type {};
 }; // namespace std
 
 
-template <typename T> using linear_layer = nn::linear<T, random_memory_container<T>>;
+template <typename T> using Linear = nn::linear<T, random_memory_container<T>>;
 
 
 TEST_CASE("Test write and read small model", "[safetensor]")
@@ -97,11 +97,11 @@ TEST_CASE("Test write and read small model", "[safetensor]")
         model(hardware_accelerator& accelerator)
         : nn::basic_layer(accelerator)
         {
-            auto w1 = rand<float>({10, 20});
-            auto w2 = rand<bf16>({3, 4});
+            auto linear1 = register_layer<Linear<float>>("linear1");
+            linear1.set_parameter("weight", rand<float>({10, 20}));
 
-            register_layer<linear_layer<float>>("linear1", std::move(w1));
-            register_layer<linear_layer<bf16>>("linear2", std::move(w2));
+            auto linear2 = register_layer<Linear<bf16>>("linear2");
+            linear2.set_parameter("weight", rand<bf16>({3, 4}));
         }
     };
 

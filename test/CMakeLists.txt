@@ -1,6 +1,7 @@
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_WARN_DEPRECATED OFF)
 set(metalchat_TEST_SPEC ${CATCH_TEST_SPEC})
 
 find_package(Catch2 3 REQUIRED)
