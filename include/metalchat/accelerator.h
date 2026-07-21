@@ -59,10 +59,12 @@ public:
     using allocator_type = polymorphic_hardware_allocator<void>;
 
 private:
+    using kernel_container_type = std::unordered_map<std::string, basic_kernel, _StringHash>;
+
     metal::shared_device _M_device;
     metal::shared_library _M_library;
 
-    std::unordered_map<std::string, basic_kernel> _M_kernels;
+    std::shared_ptr<kernel_container_type> _M_kernels;
     std::shared_ptr<recursive_kernel_thread> _M_thread;
 
 public:

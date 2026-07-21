@@ -28,7 +28,7 @@ hardware_accelerator::hardware_accelerator(
 )
 : _M_device(metal::make_device()),
   _M_library(metal::make_library(path, _M_device)),
-  _M_kernels(),
+  _M_kernels(std::make_shared<kernel_container_type>(/*bucket_size=*/128)),
   _M_thread(std::make_shared<recursive_kernel_thread>(_M_device, thread_capacity))
 {}
 
@@ -36,37 +36,45 @@ hardware_accelerator::hardware_accelerator(
 hardware_accelerator::hardware_accelerator(std::size_t thread_capacity)
 : _M_device(metal::make_device()),
   _M_library(),
-  _M_kernels(),
+  _M_kernels(std::make_shared<kernel_container_type>(/*bucket_size=*/128)),
   _M_thread(std::make_shared<recursive_kernel_thread>(_M_device, thread_capacity))
 {
-    auto bundle_id = CFStringCreateWithCString(
-        kCFAllocatorDefault, framework_identifier.c_str(), kCFStringEncodingUTF8
-    );
+    auto make_shared_pointer = [](auto p) {
+        using value_type = std::remove_pointer_t<decltype(p)>;
+        return std::shared_ptr<value_type>((value_type*)p, [](value_type* ptr) { CFRelease(ptr); });
+    };
 
-    auto bundle = CFBundleGetBundleWithIdentifier(bundle_id);
+    auto bundle_id = make_shared_pointer(CFStringCreateWithCString(
+        kCFAllocatorDefault, framework_identifier.c_str(), kCFStringEncodingUTF8
+    ));
+    if (!bundle_id) {
+        throw std::invalid_argument(std::format(
+            "accelerator: unable to create a bundle identifier '{}'", framework_identifier
+        ));
+    }
+
+    // Bundle should not be deallocated since it's not created by this routine.
+    auto bundle = CFBundleGetBundleWithIdentifier(bundle_id.get());
     if (!bundle) {
         throw std::invalid_argument(std::format(
             "accelerator: the binary is not linked with framework '{}'", framework_identifier
         ));
     }
-    auto resources_url = CFBundleCopyResourcesDirectoryURL(bundle);
+
+    auto resources_url = make_shared_pointer(CFBundleCopyResourcesDirectoryURL(bundle));
     if (!resources_url) {
         throw std::runtime_error(
             "accelerator: cannot extract resource URL from the framework bundle"
         );
     }
 
-    auto library_name = CFSTR("metalchat.metallib");
-    auto library_url = CFURLCreateCopyAppendingPathComponent(
-        kCFAllocatorDefault, resources_url, library_name, /*isDirectory=*/false
-    );
+    auto library_name = make_shared_pointer(CFSTR("metalchat.metallib"));
+    auto library_url = make_shared_pointer(CFURLCreateCopyAppendingPathComponent(
+        kCFAllocatorDefault, resources_url.get(), library_name.get(), /*isDirectory=*/false
+    ));
 
-    _M_library = metal::make_library(reinterpret_cast<const NS::URL*>(library_url), _M_device);
-
-    CFRelease(library_url);
-    CFRelease(library_name);
-    CFRelease(resources_url);
-    CFRelease(bundle_id);
+    auto url = reinterpret_cast<const NS::URL*>(library_url.get());
+    _M_library = metal::make_library(url, _M_device);
 }
 
 
@@ -116,7 +124,7 @@ hardware_accelerator::name() const
 const basic_kernel&
 hardware_accelerator::load(const std::string& name)
 {
-    if (auto it = _M_kernels.find(name); it != _M_kernels.end()) {
+    if (auto it = _M_kernels->find(name); it != _M_kernels->end()) {
         return it->second;
     }
 
@@ -152,9 +160,9 @@ hardware_accelerator::load(const std::string& name)
     auto kernel_ptr = std::make_shared<metal::kernel>(fn_ptr, pipeline_ptr);
     auto kernel = basic_kernel(kernel_ptr, *this);
 
-    _M_kernels.insert_or_assign(name, kernel);
+    _M_kernels->insert_or_assign(name, kernel);
 
-    return _M_kernels.at(name);
+    return _M_kernels->at(name);
 }
 
 
