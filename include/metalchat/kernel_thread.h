@@ -11,6 +11,7 @@
 #include <iostream>
 #include <memory>
 
+#include <metalchat/accelerator.h>
 #include <metalchat/allocator.h>
 #include <metalchat/metal.h>
 #include <metalchat/tensor/concept.h>
@@ -292,6 +293,14 @@ public:
     std::shared_ptr<kernel_thread>
     get_this_thread();
 };
+
+
+template <hardware_allocator_t<void> Allocator>
+void
+hardware_accelerator::set_allocator(Allocator&& alloc)
+{
+    _M_thread->set_allocator(std::move(alloc));
+}
 
 
 } // namespace metalchat
