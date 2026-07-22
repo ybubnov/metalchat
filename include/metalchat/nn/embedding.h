@@ -57,6 +57,41 @@ public:
     using weight_type = tensor<T, 2, Container>;
     using weight_pointer = shared_tensor_ptr<weight_type>;
 
+    /// The embedding layer constructor.
+    ///
+    /// \param num_embeddings Size of the dictionary of embeddings.
+    /// \param embedding_dim Size of each embedding vector.
+    /// \param accelerator A hardware accelerator.
+    embedding(
+        std::size_t num_embeddings, std::size_t embedding_dim, hardware_accelerator& accelerator
+    )
+    : embedding(empty<T>({num_embeddings, embedding_dim}, accelerator), accelerator)
+    {}
+
+    /// The embedding layer constructor.
+    ///
+    /// \param accelerator A hardware accelerator.
+    embedding(hardware_accelerator& accelerator)
+    : embedding(shared_tensor(weight_type()), accelerator)
+    {}
+
+    Embedding::result_type
+    operator()(Embedding::input_type input)
+    {
+        return _M_embedding(input, _M_weight);
+    }
+
+    /// Formats the layer name and it's parameters.
+    friend std::ostream&
+    operator<<(std::ostream& os, const embedding& e)
+    {
+        os << "nn::embedding<" << type_traits<T>::name() << ">";
+        os << "(num_embeddings=" << e._M_weight.size(0) << ", ";
+        os << "embedding_dim=" << e._M_weight.size(1) << ")";
+        return os;
+    }
+
+private:
     embedding(weight_pointer weight_ptr, hardware_accelerator& accelerator)
     : Embedding(accelerator),
       _M_weight(weight_ptr),
@@ -69,31 +104,6 @@ public:
     : embedding(shared_tensor(std::move(weight)), accelerator)
     {}
 
-    embedding(
-        std::size_t num_embeddings, std::size_t embedding_dim, hardware_accelerator& accelerator
-    )
-    : embedding(empty<T>({num_embeddings, embedding_dim}, accelerator), accelerator)
-    {}
-
-    embedding(hardware_accelerator& accelerator)
-    : embedding(shared_tensor(weight_type()), accelerator)
-    {}
-
-    Embedding::result_type
-    operator()(Embedding::input_type input)
-    {
-        return _M_embedding(input, _M_weight);
-    }
-
-    friend std::ostream&
-    operator<<(std::ostream& os, const embedding& e)
-    {
-        os << "nn::embedding<" << type_traits<T>::name() << ">";
-        os << "(" << e._M_weight.sizes() << ")";
-        return os;
-    }
-
-private:
     weight_pointer _M_weight;
     kernel::embedding<T> _M_embedding;
 };

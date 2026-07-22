@@ -298,12 +298,52 @@ protected:
 };
 
 
+template <typename T> class unary_kernel_wrapper {
+private:
+    basic_kernel _M_kernel;
+
+public:
+    unary_kernel_wrapper(const basic_kernel& kernel)
+    : _M_kernel(kernel)
+    {}
+
+    std::string
+    name() const
+    {
+        return _M_kernel.name();
+    }
+
+    hardware_accelerator&
+    get_accelerator()
+    {
+        return _M_kernel.get_accelerator();
+    }
+
+    template <immutable_tensor_t<T> Input>
+    auto
+    operator()(Input input)
+    {
+        auto input_view = flatten<2>(input);
+        auto output_view = shared_empty_like<T>(input_view, _M_kernel.get_allocator());
+
+        auto max_threads = _M_kernel.max_threads_per_threadgroup();
+        auto [grid, thread] = make_kernel_grid_2d(input, max_threads);
+
+        auto task = kernel_task(_M_kernel, grid, thread);
+        auto task_future = task.bind_front(output_view, input_view);
+
+        auto output = future_tensor(output_view, std::move(task_future));
+        return output.view(input.shape());
+    }
+};
+
+
 template <typename T> class binary_kernel_wrapper {
 private:
     basic_kernel _M_kernel;
 
 public:
-    binary_kernel_wrapper(basic_kernel kernel)
+    binary_kernel_wrapper(const basic_kernel& kernel)
     : _M_kernel(kernel)
     {}
 

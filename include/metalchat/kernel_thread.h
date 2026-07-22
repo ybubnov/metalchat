@@ -96,7 +96,7 @@ private:
     on_completed(kernel_callback_type callback);
 
 public:
-    hardware_function_encoder(std::shared_ptr<kernel_queue> queue, allocator_type alloc);
+    hardware_function_encoder(const std::shared_ptr<kernel_queue>& queue, allocator_type alloc);
 
     void
     initialize(const std::string& name, const metal::shared_kernel kernel);

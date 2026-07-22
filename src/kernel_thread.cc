@@ -57,7 +57,7 @@ struct kernel_queue {
 
 
 hardware_function_encoder::hardware_function_encoder(
-    std::shared_ptr<kernel_queue> queue_ptr, hardware_function_encoder::allocator_type alloc
+    const std::shared_ptr<kernel_queue>& queue_ptr, hardware_function_encoder::allocator_type alloc
 )
 : _M_allocator(alloc),
   _M_queue(queue_ptr),
