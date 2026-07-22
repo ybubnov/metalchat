@@ -7,8 +7,8 @@
 #include <filesystem>
 #include <unordered_map>
 
+#include <metalchat/allocator.h>
 #include <metalchat/dtype.h>
-#include <metalchat/kernel_thread.h>
 #include <metalchat/metal.h>
 
 
@@ -43,6 +43,8 @@ struct _StringHash {
 
 
 class basic_kernel;
+class kernel_thread;
+class recursive_kernel_thread;
 
 
 /// Hardware accelerator is an abstraction of the kernel execution pipeline.
@@ -128,10 +130,7 @@ public:
     /// Set allocator to the current thread.
     template <hardware_allocator_t<void> Allocator>
     void
-    set_allocator(Allocator&& alloc)
-    {
-        _M_thread->set_allocator(std::move(alloc));
-    }
+    set_allocator(Allocator&& alloc);
 
     /// Load the kernel from the kernel library.
     ///

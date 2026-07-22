@@ -121,7 +121,7 @@ public:
     ///
     /// \param options caching options for the KV cache.
     /// \param accelerator a hardware accelerator instance.
-    sink_cache(const caching_options& options, hardware_accelerator accelerator)
+    sink_cache(const caching_options& options, hardware_accelerator& accelerator)
     : sink_cache(std::bit_width(options.max_seq_len) - 1, options, accelerator)
     {}
 

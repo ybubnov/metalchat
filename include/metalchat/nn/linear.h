@@ -35,9 +35,9 @@ public:
 /// Applies an affine linear transformation to the input data.
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class linear : public basic_linear<T, Container> {
-    using _Base = basic_linear<T, Container>;
-
 public:
+    using Linear = basic_linear<T, Container>;
+
     using value_type = T;
     using container_type = Container;
     using bias_type = tensor<T, 1, Container>;
@@ -69,11 +69,11 @@ public:
     {}
 
     linear(hardware_accelerator& accelerator)
-    : _Base(accelerator),
+    : Linear(accelerator),
       _M_weight(shared_tensor(weight_type())),
       _M_bias()
     {
-        _Base::register_parameter("weight", _M_weight);
+        Linear::register_parameter("weight", _M_weight);
     }
 
     /// Enable additive bias.
@@ -83,7 +83,7 @@ public:
     void
     enable_bias()
     {
-        _Base::register_parameter("bias", _M_bias);
+        Linear::register_parameter("bias", _M_bias);
     }
 
     template <immutable_tensor_t<T> Input>
@@ -93,8 +93,8 @@ public:
         return forward(input);
     }
 
-    _Base::result_type
-    operator()(_Base::input_type input)
+    Linear::result_type
+    operator()(Linear::input_type input)
     {
         return forward(input);
     }
@@ -111,11 +111,11 @@ public:
 
 private:
     linear(weight_pointer weight_ptr, bias_pointer bias_ptr, hardware_accelerator& accelerator)
-    : _Base(accelerator),
+    : Linear(accelerator),
       _M_weight(weight_ptr),
       _M_bias(bias_ptr)
     {
-        _Base::register_parameter("weight", _M_weight);
+        Linear::register_parameter("weight", _M_weight);
         if (_M_bias) {
             enable_bias();
         }
@@ -140,9 +140,9 @@ private:
     auto
     forward(Input input)
     {
-        auto output = matmul(input, _M_weight.transpose({1, 0}), _Base::accelerator());
+        auto output = matmul(input, _M_weight.transpose({1, 0}), Linear::accelerator());
         if (_M_bias) {
-            output = add_broadcast(output, _M_bias, _Base::accelerator());
+            output = add_broadcast(output, _M_bias, Linear::accelerator());
         }
         return output;
     }

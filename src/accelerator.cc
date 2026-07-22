@@ -9,6 +9,7 @@
 
 #include <metalchat/accelerator.h>
 #include <metalchat/kernel.h>
+#include <metalchat/kernel_thread.h>
 
 #include "metal_impl.h"
 

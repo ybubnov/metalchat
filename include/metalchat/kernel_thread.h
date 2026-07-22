@@ -11,6 +11,7 @@
 #include <iostream>
 #include <memory>
 
+#include <metalchat/accelerator.h>
 #include <metalchat/allocator.h>
 #include <metalchat/metal.h>
 #include <metalchat/tensor/concept.h>
@@ -96,7 +97,7 @@ private:
     on_completed(kernel_callback_type callback);
 
 public:
-    hardware_function_encoder(std::shared_ptr<kernel_queue> queue, allocator_type alloc);
+    hardware_function_encoder(const std::shared_ptr<kernel_queue>& queue, allocator_type alloc);
 
     void
     initialize(const std::string& name, const metal::shared_kernel kernel);
@@ -292,6 +293,14 @@ public:
     std::shared_ptr<kernel_thread>
     get_this_thread();
 };
+
+
+template <hardware_allocator_t<void> Allocator>
+void
+hardware_accelerator::set_allocator(Allocator&& alloc)
+{
+    _M_thread->set_allocator(std::move(alloc));
+}
 
 
 } // namespace metalchat

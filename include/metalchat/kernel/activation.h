@@ -17,7 +17,7 @@ namespace kernel {
 /// Applies the Sigmoid Linear Unit (SiLU) function, element-wise.
 template <typename T> class silu {
 private:
-    basic_kernel _M_kernel;
+    unary_kernel_wrapper<T> _M_kernel;
 
 public:
     silu(hardware_accelerator& accelerator)
@@ -28,17 +28,7 @@ public:
     auto
     operator()(Input input)
     {
-        auto input_view = flatten<2>(input);
-        auto output_view = shared_empty_like<T>(input_view, _M_kernel.get_allocator());
-
-        auto max_threads = _M_kernel.max_threads_per_threadgroup();
-        auto [grid, thread] = make_kernel_grid_2d(input, max_threads);
-
-        auto task = kernel_task(_M_kernel, grid, thread);
-        auto task_future = task.bind_front(output_view, input_view);
-
-        auto output = future_tensor(output_view, std::move(task_future));
-        return output.view(input.shape());
+        return _M_kernel(input);
     }
 };
 
@@ -46,7 +36,7 @@ public:
 /// Applies the Gaussian Error Linear Units function.
 template <typename T> class gelu {
 private:
-    basic_kernel _M_kernel;
+    unary_kernel_wrapper<T> _M_kernel;
 
 public:
     gelu(hardware_accelerator& accelerator)
@@ -57,17 +47,7 @@ public:
     auto
     operator()(Input input)
     {
-        auto input_view = flatten<2>(input);
-        auto output_view = shared_empty_like<T>(input_view, _M_kernel.get_allocator());
-
-        auto max_threads = _M_kernel.max_threads_per_threadgroup();
-        auto [grid, thread] = make_kernel_grid_2d(input, max_threads);
-
-        auto task = kernel_task(_M_kernel, grid, thread);
-        auto task_future = task.bind_front(output_view, input_view);
-
-        auto output = future_tensor(output_view, std::move(task_future));
-        return output.view(input.shape());
+        return _M_kernel(input);
     }
 };
 
