@@ -247,8 +247,10 @@ public:
         using index_type = context_type::index_type;
 
         auto k = std::min(context.logits.size(1), _M_k);
-        auto values = clone(context.logits, accelerator).get();
-        auto indices = clone(context.indices, accelerator).get();
+        // This actually modifies the underlying data of the tensors, since down below
+        // we perform partial in-place sorting of the elements.
+        auto values = logits_tensor(context.logits).get();
+        auto indices = index_tensor(context.indices).get();
 
         for (std::size_t i = 0; i < indices.size(0); i++) {
             auto value = values[i].data_ptr();
