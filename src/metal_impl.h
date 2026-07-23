@@ -69,7 +69,7 @@ make_buffer(MTL::Buffer* p, buffer::deleter_type deleter);
 struct device {
     NS::SharedPtr<MTL::Device> ptr;
 
-    device(NS::SharedPtr<MTL::Device> p)
+    device(const NS::SharedPtr<MTL::Device>& p)
     : ptr(p)
     {}
 
@@ -87,7 +87,7 @@ struct kernel {
     NS::SharedPtr<MTL::Function> function;
     NS::SharedPtr<MTL::ComputePipelineState> pipeline;
 
-    kernel(NS::SharedPtr<MTL::Function> f, NS::SharedPtr<MTL::ComputePipelineState> p)
+    kernel(const NS::SharedPtr<MTL::Function>& f, const NS::SharedPtr<MTL::ComputePipelineState>& p)
     : function(f),
       pipeline(p)
     {}
@@ -102,7 +102,7 @@ struct kernel {
 struct library {
     NS::SharedPtr<MTL::Library> ptr;
 
-    library(NS::SharedPtr<MTL::Library> p)
+    library(const NS::SharedPtr<MTL::Library>& p)
     : ptr(p)
     {}
 
