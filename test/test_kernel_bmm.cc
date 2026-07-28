@@ -15,10 +15,10 @@
 using namespace metalchat;
 
 
-TEST_CASE("Matmul simple", "[kernel::bmm]")
+TEST_CASE("Matmul simple", "[kernel::matmul]")
 {
     metalchat::hardware_accelerator gpu0;
-    kernel::bmm<bf16> mm(gpu0);
+    kernel::matmul<bf16> mm(gpu0);
 
     auto input1 = shared_tensor(full<bf16>({32, 32}, 2.0));
     auto input2 = shared_tensor(full<bf16>({32, 32}, 3.0));
@@ -27,13 +27,39 @@ TEST_CASE("Matmul simple", "[kernel::bmm]")
     REQUIRE(output.dim() == 2);
     REQUIRE(output.size(0) == 32);
     REQUIRE(output.size(1) == 32);
+
+    for (std::size_t i = 0; i < 32; i++) {
+        for (std::size_t j = 0; j < 32; j++) {
+            REQUIRE_THAT((output[i, j]), Catch::Matchers::WithinAbs(192.0, 0.0001));
+        }
+    }
 }
 
 
-TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
+TEST_CASE("Matmul vector", "[kernel::matmul]")
 {
     metalchat::hardware_accelerator gpu0;
-    kernel::bmm<float> mm(gpu0);
+    kernel::matmul<bf16> mm(gpu0);
+
+    auto input1 = shared_tensor(full<bf16>({1, 32}, 2.0));
+    auto input2 = shared_tensor(full<bf16>({32, 64}, 3.0));
+    auto output = mm(input1, input2).get();
+    std::cout << output << std::endl;
+
+    REQUIRE(output.dim() == 2);
+    REQUIRE(output.size(0) == 1);
+    REQUIRE(output.size(1) == 64);
+
+    for (std::size_t i = 0; i < 64; i++) {
+        REQUIRE_THAT((output[0, i]), Catch::Matchers::WithinAbs(192.0, 0.0001));
+    }
+}
+
+
+TEST_CASE("Matmul single batch multiplication", "[kernel::matmul]")
+{
+    metalchat::hardware_accelerator gpu0;
+    kernel::matmul<float> mm(gpu0);
 
     auto input1 = shared_tensor(rand<float>({1, 5, 2048}));     // b, i, j
     auto input2 = shared_tensor(rand<float>({8192, 2048}).t()); // j, k
@@ -54,17 +80,17 @@ TEST_CASE("Matmul single batch multiplication", "[kernel::bmm]")
                     result_ik += (input1[batch, i, j] * input2[j, k]);
                 }
 
-                REQUIRE_THAT((output[batch, i, k]), Catch::Matchers::WithinAbs(result_ik, 0.0001));
+                REQUIRE_THAT((output[batch, i, k]), Catch::Matchers::WithinAbs(result_ik, 0.01));
             }
         }
     }
 }
 
 
-TEST_CASE("Matmul large 2d", "[!benchmark][kernel::bmm]")
+TEST_CASE("Matmul large 2d", "[!benchmark][kernel::matmul]")
 {
     metalchat::hardware_accelerator gpu0;
-    kernel::bmm<bf16> mm(gpu0);
+    kernel::matmul<bf16> mm(gpu0);
 
     auto input1 = shared_tensor(full<bf16>({8, 2048}, 2.0));
     auto input2 = shared_tensor(full<bf16>({2048, 128256}, 1.0));

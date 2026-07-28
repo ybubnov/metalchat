@@ -25,7 +25,7 @@ template <immutable_tensor Tensor1, immutable_tensor Tensor2, std::size_t BlockS
 auto
 matmul(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 {
-    kernel::bmm<typename Tensor1::value_type, BlockSize> op(gpu);
+    kernel::matmul<typename Tensor1::value_type, BlockSize> op(gpu);
     return op(t1, t2);
 }
 
