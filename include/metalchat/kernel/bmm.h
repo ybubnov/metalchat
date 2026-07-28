@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
+
+#include <algorithm>
+#include <bit>
 
 #include <metalchat/accelerator.h>
 #include <metalchat/dtype.h>
@@ -15,13 +18,21 @@ namespace metalchat {
 namespace kernel {
 
 
-template <typename T, std::size_t BlockSize = 8> class bmm {
+template <typename T, std::size_t BlockSize = 8> class matmul {
 private:
-    basic_kernel _M_kernel;
+    basic_kernel _M_gemm;
+    basic_kernel _M_gemv;
+
+    template <immutable_tensor3_t<T> Input, immutable_tensor3_t<T> Weight>
+    auto
+    dispatch_gemv(Input input, Weight weight)
+    {}
 
 public:
-    bmm(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T>("bmm", BlockSize))
+    matmul(hardware_accelerator& gpu)
+    : _M_gemm(gpu.load<T>("gemm", BlockSize)),
+      _M_gemv(gpu.load<T>("gemv"))
+
     {}
 
     template <immutable_tensor3_t<T> Input, immutable_tensor3_t<T> Weight>
@@ -30,6 +41,7 @@ public:
     {
         auto num_batches = input.size(0);
         auto input_size1 = input.size(1);
+        auto dim_size = input.size(2);
         auto weight_size2 = weight.size(2);
 
         // Batched matmul does not support broadcasting operations, therefore throw an
@@ -37,8 +49,24 @@ public:
         auto expected_input =
             expected_tensor(input).same_dim(weight, 0).same_dim(weight, 2, 1).value();
 
-        auto alloc = _M_kernel.get_allocator();
+        auto alloc = _M_gemm.get_allocator();
         auto output = shared_empty<T>({num_batches, input_size1, weight_size2}, alloc);
+
+        if (input_size1 == 1) {
+            auto max_threads = _M_gemv.max_threads_per_threadgroup();
+            auto block_size = ceil_div(dim_size, max_threads);
+            auto thread_size = ceil_div(dim_size, block_size);
+
+            auto thread = dim3(thread_size);
+            auto grid = dim3(thread_size * weight_size2, num_batches);
+
+            auto task = kernel_task(_M_gemv, grid, thread);
+            auto task_future = task.bind_front(
+                flatten<2>(output), flatten<2>(expected_input), weight, scalar<int32_t>(block_size)
+            );
+
+            return future_tensor(output, std::move(task_future));
+        }
 
         auto grid = dim3(
             ceil_div(input_size1, BlockSize) * BlockSize,
@@ -46,7 +74,7 @@ public:
         );
         auto thread = dim3(BlockSize, BlockSize);
 
-        auto task = kernel_task(_M_kernel, grid, thread);
+        auto task = kernel_task(_M_gemm, grid, thread);
         auto task_future = task.bind_front(output, expected_input, weight);
 
         // A(MxK) @ B(KxN) -> C(MxN)
