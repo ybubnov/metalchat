@@ -80,7 +80,7 @@ TEST_CASE("Matmul single batch multiplication", "[kernel::matmul]")
                     result_ik += (input1[batch, i, j] * input2[j, k]);
                 }
 
-                REQUIRE_THAT((output[batch, i, k]), Catch::Matchers::WithinAbs(result_ik, 0.01));
+                REQUIRE_THAT((output[batch, i, k]), Catch::Matchers::WithinAbs(result_ik, 0.0001));
             }
         }
     }
