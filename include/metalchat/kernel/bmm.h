@@ -18,18 +18,14 @@ namespace metalchat {
 namespace kernel {
 
 
-template <typename T> class matmul {
+template <typename T, std::size_t BlockSize = 8> class matmul {
 private:
-    basic_kernel _M_gemm8;
-    basic_kernel _M_gemm16;
-    basic_kernel _M_gemm32;
+    basic_kernel _M_gemm;
     basic_kernel _M_gemv;
 
 public:
     matmul(hardware_accelerator& gpu)
-    : _M_gemm8(gpu.load<T>("gemm", 8)),
-      _M_gemm16(gpu.load<T>("gemm", 16)),
-      _M_gemm32(gpu.load<T>("gemm", 32)),
+    : _M_gemm(gpu.load<T>("gemm", BlockSize)),
       _M_gemv(gpu.load<T>("gemv"))
     {}
 
@@ -41,17 +37,6 @@ public:
         auto input_size1 = input.size(1);
         auto dim_size = input.size(2);
         auto weight_size2 = weight.size(2);
-
-        std::size_t block_size = 8;
-        auto* kernel = &_M_gemm8;
-        if (weight_size2 > 8) {
-            kernel = &_M_gemm16;
-            block_size = 16;
-        }
-        if (weight_size2 > 16) {
-            kernel = &_M_gemm32;
-            block_size = 32;
-        }
 
         // Batched matmul does not support broadcasting operations, therefore throw an
         // exception, when the number of batches for input tensors are different.
@@ -78,12 +63,12 @@ public:
         }
 
         auto grid = dim3(
-            ceil_div(input_size1, block_size) * block_size / 2,
-            ceil_div(weight_size2, block_size) * block_size, num_batches
+            ceil_div(input_size1, BlockSize) * BlockSize / 2,
+            ceil_div(weight_size2, BlockSize) * BlockSize, num_batches
         );
-        auto thread = dim3(block_size / 2, block_size);
+        auto thread = dim3(BlockSize / 2, BlockSize);
 
-        auto task = kernel_task(*kernel, grid, thread);
+        auto task = kernel_task(_M_gemm, grid, thread);
         auto task_future = task.bind_front(output, expected_input, weight);
 
         // A(MxK) @ B(KxN) -> C(MxN)
