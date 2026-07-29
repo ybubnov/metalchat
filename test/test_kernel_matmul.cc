@@ -8,7 +8,7 @@
 
 
 #include <metalchat/accelerator.h>
-#include <metalchat/kernel/bmm.h>
+#include <metalchat/kernel/matmul.h>
 #include <metalchat/tensor.h>
 
 
