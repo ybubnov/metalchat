@@ -63,10 +63,10 @@ public:
         }
 
         auto grid = dim3(
-            ceil_div(input_size1, BlockSize) * BlockSize / 2,
+            ceil_div(input_size1, BlockSize) * BlockSize,
             ceil_div(weight_size2, BlockSize) * BlockSize, num_batches
         );
-        auto thread = dim3(BlockSize / 2, BlockSize);
+        auto thread = dim3(BlockSize, BlockSize);
 
         auto task = kernel_task(_M_gemm, grid, thread);
         auto task_future = task.bind_front(output, expected_input, weight);
