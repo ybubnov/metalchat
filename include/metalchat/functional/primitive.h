@@ -6,9 +6,9 @@
 
 #include <metalchat/kernel/activation.h>
 #include <metalchat/kernel/arithmetic.h>
-#include <metalchat/kernel/matmul.h>
 #include <metalchat/kernel/copy.h>
 #include <metalchat/kernel/logical.h>
+#include <metalchat/kernel/matmul.h>
 #include <metalchat/kernel/mul.h>
 #include <metalchat/kernel/multinomial.h>
 #include <metalchat/kernel/roll.h>
