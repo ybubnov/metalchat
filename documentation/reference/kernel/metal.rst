@@ -43,7 +43,7 @@ Comparison kernels
 Batched matrix multiplication
 -----------------------------
 
-.. doxygenclass:: metalchat::kernel::bmm
+.. doxygenclass:: metalchat::kernel::matmul
    :members:
 
 
