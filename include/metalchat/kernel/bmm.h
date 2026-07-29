@@ -23,16 +23,10 @@ private:
     basic_kernel _M_gemm;
     basic_kernel _M_gemv;
 
-    template <immutable_tensor3_t<T> Input, immutable_tensor3_t<T> Weight>
-    auto
-    dispatch_gemv(Input input, Weight weight)
-    {}
-
 public:
     matmul(hardware_accelerator& gpu)
     : _M_gemm(gpu.load<T>("gemm", BlockSize)),
       _M_gemv(gpu.load<T>("gemv"))
-
     {}
 
     template <immutable_tensor3_t<T> Input, immutable_tensor3_t<T> Weight>
@@ -49,7 +43,7 @@ public:
         auto expected_input =
             expected_tensor(input).same_dim(weight, 0).same_dim(weight, 2, 1).value();
 
-        auto alloc = _M_gemm.get_allocator();
+        auto alloc = _M_gemv.get_allocator();
         auto output = shared_empty<T>({num_batches, input_size1, weight_size2}, alloc);
 
         if (input_size1 == 1) {
