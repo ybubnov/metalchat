@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2026 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
 
 #include <metalchat/kernel/activation.h>
 #include <metalchat/kernel/arithmetic.h>
-#include <metalchat/kernel/bmm.h>
 #include <metalchat/kernel/copy.h>
 #include <metalchat/kernel/logical.h>
+#include <metalchat/kernel/matmul.h>
 #include <metalchat/kernel/mul.h>
 #include <metalchat/kernel/multinomial.h>
 #include <metalchat/kernel/roll.h>
