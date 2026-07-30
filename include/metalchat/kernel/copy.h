@@ -35,8 +35,10 @@ private:
     auto
     copy(Input input, Output output)
     {
-        auto expected_input =
-            expected_tensor(input).same_last_dim(output).same_numel(output).value();
+        auto expected_input = expected_tensor(input)
+                                  .expect(matching_last_dim(output))
+                                  .expect(matching_numel(output))
+                                  .value();
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
         auto [grid, thread] = make_kernel_grid_2d(expected_input, max_threads);
@@ -120,7 +122,7 @@ public:
     auto
     operator()(Output output, Mask mask, T value)
     {
-        auto expected_output = expected_tensor(output).same_shape(mask).value();
+        auto expected_output = expected_tensor(output).expect(matching_shape(mask)).value();
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
         auto [grid, thread] = make_kernel_grid_2d(expected_output, max_threads);

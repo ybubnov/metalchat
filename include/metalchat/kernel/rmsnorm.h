@@ -32,7 +32,7 @@ public:
         auto dim_size = input.sizes().back();
         auto num_rows = input.numel() / dim_size;
 
-        auto expected_weight = expected_tensor(weight).same_dim(0, /*expect=*/dim_size).value();
+        auto expected_weight = expected_tensor(weight).expect(matching_dim(0, dim_size)).value();
 
         auto input_view = flatten<2>(input);
         auto output_view = shared_empty_like<T>(input_view, _M_kernel.get_allocator());
