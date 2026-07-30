@@ -86,7 +86,7 @@ gemm(
             metal::simdgroup_multiply_accumulate(mm_simd, m1_simd, m2_simd, mm_simd);
         }
 
-        simdgroup_barrier(metal::mem_flags::mem_none);
+        threadgroup_barrier(metal::mem_flags::mem_threadgroup);
     }
 
     // Unload the result to a unused threadgroup matrix used to cache values from the
