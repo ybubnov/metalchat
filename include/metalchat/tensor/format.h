@@ -7,6 +7,7 @@
 #include <format>
 #include <iomanip>
 #include <iostream>
+#include <source_location>
 #include <span>
 #include <vector>
 
@@ -192,6 +193,10 @@ operator<<(std::ostream& os, const std::vector<T>& vec)
     }
     return os;
 }
+
+
+std::string
+format_source_location(const std::source_location& source_location);
 
 
 } // namespace metalchat

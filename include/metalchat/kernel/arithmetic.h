@@ -50,7 +50,8 @@ public:
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        auto expected_input1 = expected_tensor(input1).same_dim(input2, 1, 0).value();
+        auto expected_input1 =
+            expected_tensor(input1).expect(matching_dim(1, input2.size(0))).value();
 
         auto alloc = _M_kernel.get_allocator();
         auto output = shared_empty_like<T>(expected_input1, alloc);

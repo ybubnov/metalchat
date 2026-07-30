@@ -146,8 +146,10 @@ public:
     auto
     operator()(Cosines freqs_cos, Sines freqs_sin, std::size_t start_pos)
     {
-        auto expected_freqs_cos =
-            expected_tensor(freqs_cos).same_dim(freqs_sin, 1).same_dim(1, _M_dim / 2).value();
+        auto expected_freqs_cos = expected_tensor(freqs_cos)
+                                      .expect(matching_dim(1, freqs_sin.size(1)))
+                                      .expect(matching_dim(1, _M_dim / 2))
+                                      .value();
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
         auto [grid, thread] = make_kernel_grid_2d(expected_freqs_cos, max_threads);

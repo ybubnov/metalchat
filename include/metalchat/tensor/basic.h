@@ -638,6 +638,7 @@ public:
     bool
     is_contiguous() const
     {
+#pragma clang loop unroll(full)
         for (size_t i = 0; i < N; i++) {
             if (offset(i) != 0) {
                 return false;
@@ -657,6 +658,7 @@ public:
     numel() const
     {
         std::size_t n = 1;
+#pragma clang loop unroll(full)
         for (std::size_t i = 0; i < N; i++) {
             n *= size(i);
         }
@@ -904,6 +906,7 @@ public:
     narrow(std::size_t dim, std::size_t start, std::size_t length) const
     {
         tensor t(_M_data);
+#pragma clang loop unroll(full)
         for (std::size_t i = 0; i < N; i++) {
             t.set_size(i, size(i));
             t.set_stride(i, stride(i));
@@ -1022,6 +1025,7 @@ public:
     transpose(const std::size_t (&&dims)[N]) const requires(N > 0)
     {
         tensor t(_M_data);
+#pragma clang loop unroll(full)
         for (std::size_t i = 0; i < N; i++) {
             t.set_size(i, size(dims[i]));
             t.set_stride(i, stride(dims[i]));
@@ -1161,6 +1165,7 @@ public:
     flatten() const requires(M <= N)
     {
         std::size_t sizes[M]{numel()};
+#pragma clang loop unroll(full)
         for (std::size_t i = 1; i <= M - 1; i++) {
             sizes[M - i] = size(N - i);
             sizes[0] /= sizes[M - i];

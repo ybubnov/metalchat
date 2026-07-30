@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <functional>
 #include <iostream>
+#include <sstream>
 #include <streambuf>
 #include <vector>
 
@@ -1077,6 +1078,30 @@ concept filebuf_accessor = requires {
     requires std::same_as<
         typename T::container_type, filebuf_memory_container<typename T::value_type>>;
 };
+
+
+template <typename T>
+std::string
+format_memory_container(const memory_container<T>& c)
+{
+    std::stringstream s;
+    auto size = c.size() / sizeof(T);
+    for (std::size_t i = 0; i < size; ++i) {
+        s << *(c.data() + i);
+        if (i != size - 1) {
+            s << ",";
+        }
+    }
+    return s.str();
+}
+
+
+template <typename T>
+std::string
+format_memory_container(const std::shared_ptr<memory_container<T>>& ptr)
+{
+    return format_memory_container(*ptr);
+}
 
 
 } // namespace metalchat
