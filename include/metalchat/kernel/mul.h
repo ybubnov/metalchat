@@ -47,8 +47,7 @@ public:
     auto
     operator()(Input1 input1, Input2 input2)
     {
-        auto expected_input1 =
-            expected_tensor(input1).expect(matching_dim(0, input2.size(0))).value();
+        auto expected_input1 = expected_tensor(input1).expect(matching_dim(0, input2.size(0)));
         auto expected_input2 = input2;
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
