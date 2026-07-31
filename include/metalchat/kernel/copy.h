@@ -35,10 +35,8 @@ private:
     auto
     copy(Input input, Output output)
     {
-        auto expected_input = expected_tensor(input)
-                                  .expect(matching_last_dim(output))
-                                  .expect(matching_numel(output))
-                                  .value();
+        auto expected_input =
+            expected_tensor(input).expect(matching_last_dim(output)).expect(matching_numel(output));
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
         auto [grid, thread] = make_kernel_grid_2d(expected_input, max_threads);

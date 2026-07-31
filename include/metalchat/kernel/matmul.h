@@ -39,8 +39,7 @@ public:
         // exception, when the number of batches for input tensors are different.
         auto expected_input = expected_tensor(input)
                                   .expect(matching_dim(0, weight.size(0)))
-                                  .expect(matching_dim(2, weight.size(1)))
-                                  .value();
+                                  .expect(matching_dim(2, weight.size(1)));
 
         auto alloc = _M_gemv.get_allocator();
         auto output = shared_empty<T>({num_batches, input_size1, weight_size2}, alloc);

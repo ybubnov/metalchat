@@ -527,6 +527,12 @@ template <typename Tensor, typename T>
 concept is_future_tensor3_v = is_future_tensor_v<Tensor, T, 3>;
 
 
+template <typename T, std::size_t N, std::size_t M>
+struct change_tensor_dimensions<future_tensor<T, N>, M> {
+    using type = future_tensor<T, M>;
+};
+
+
 template <
     typename T,
     std::size_t N,
