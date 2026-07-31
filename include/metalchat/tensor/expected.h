@@ -188,6 +188,20 @@ public:
 /// be used just a regular tensor in the kernel or nn library.
 ///
 /// \tparam Tensor a wrapped tensor type.
+///
+/// Consider the following example where a tensor `T2` is wrapped into an expected tensor:
+/// ```cpp
+/// auto T1 = full<float>({2, 4}, 1.0f);
+/// auto T2 = full<float>({3, 4}, 2.0f);
+///
+/// auto E = expected_tensor(T)
+///     .expect(matching_dim(1, T2.size(1)))
+///     .expect(matching_numel(T2));
+///
+/// // throws `std::invalid_argument` exception since T1 and T2
+/// // tensors have different number of elements (numel).
+/// E.value();
+/// ```
 template <immutable_tensor Tensor> class expected_tensor {
     using expected_type = std::expected<Tensor, std::exception_ptr>;
     using unexpected_type = std::unexpected<std::exception_ptr>;
@@ -212,14 +226,23 @@ public:
 
     using const_iterator = tensor_type::const_iterator;
 
+    /// Create an \ref expected_tensor by acquiring ownership of another tensor instance.
     expected_tensor(tensor_type&& t)
     : _M_value(std::move(t))
     {}
 
+    /// Create an \ref expected_tensor by copying another tensor instance.
     expected_tensor(const tensor_type& t)
     : _M_value(t)
     {}
 
+    /// Add a new expectation to the tensor.
+    ///
+    /// The expectation is executed immediately if the tensor has value,
+    /// otherwise the expectation is never executed.
+    ///
+    /// \tparam Expectation a type of the tensor expectation.
+    /// \param expectation a tensor expectation to assert.
     template <typename Expectation>
     expected_tensor&
     expect(const Expectation& expectation)
