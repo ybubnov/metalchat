@@ -48,3 +48,10 @@ Shared tensor
 
 .. doxygenclass:: metalchat::shared_tensor_ptr
    :members:
+
+
+Expected tensor
+---------------
+
+.. doxygenclass:: metalchat::expected_tensor
+   :members:
