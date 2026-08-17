@@ -476,6 +476,12 @@ public:
         );
     }
 
+    auto
+    operator[](std::size_t dim) requires(N > 1)
+    {
+        return future_tensor<T, N - 1>(_M_result[dim], _M_future_mutex, _M_future, _M_future_wait);
+    }
+
 private:
     future_tensor(
         result_type result,
