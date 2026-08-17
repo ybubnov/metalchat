@@ -31,7 +31,6 @@ TEST_CASE("Test conv1d fixed input", "[kernel::conv1d]")
     REQUIRE(output.size(0) == out_channels);
     REQUIRE(output.size(1) == 17);
 
-    std::cout << output << std::endl;
     for (std::size_t i = 0; i < output.size(0); i++) {
         for (std::size_t j = 0; j < output.size(1); j++) {
             REQUIRE_THAT((output[i, j]), Catch::Matchers::WithinAbs(5.0, 0.0001));

@@ -40,16 +40,22 @@ public:
         auto input_size = input.size(2);
         auto kernel_size = weight.size(2);
         auto output_size = compute_output_size(input_size, kernel_size, padding);
+
+        // Ensure that the number of input channels match both in the input tensor
+        // and in the weight tensor.
+        auto expected_input =
+            expected_tensor(input).expect(matching_dim(1, weight.size(1) * groups));
+
         auto alloc = _M_kernel.get_allocator();
         auto output = shared_empty<T>({num_batches, out_channels, output_size}, alloc);
 
         auto max_threads = _M_kernel.max_threads_per_threadgroup();
         auto thread = dim3(output_size, in_channels);
 
-        /// The thread could be scheduled either with a preference of input (sequence
-        /// length) to be processed by a thread, or different output channels. Since
-        /// convolution operation queries input data multiple times for the same set
-        /// of input channels, we give priority to the input.
+        // The thread could be scheduled either with a preference of input sequence
+        // length to be processed by a thread, or with a preference of output channels.
+        // Since convolution operation queries input data multiple times for the same set
+        // of input channels, we give priority to the input.
         if (output_size > max_threads) {
             thread = dim3(max_threads, 1);
         } else if (thread.numel() > max_threads) {
@@ -63,7 +69,7 @@ public:
 
         auto task = kernel_task(_M_kernel, grid, thread);
         auto task_future = task.bind_front(
-            output, input, weight, scalar<int32_t>(padding), scalar<uint32_t>(groups)
+            output, expected_input, weight, scalar<int32_t>(padding), scalar<uint32_t>(groups)
         );
 
         return future_tensor(output, std::move(task_future));
