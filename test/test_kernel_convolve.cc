@@ -39,6 +39,42 @@ TEST_CASE("Test conv1d fixed input", "[kernel::conv1d]")
 }
 
 
+TEST_CASE("Test conv1d non-random input", "[kernel::conv1d]")
+{
+    hardware_accelerator gpu0;
+    kernel::conv1d<float> conv(gpu0);
+
+    std::size_t in_channels = 16;
+    std::size_t out_channels = 32;
+    std::size_t groups = 4;
+    std::size_t input_size = 5;
+    std::size_t kernel_size = 5;
+
+    auto input = shared_tensor(full<float>({in_channels, input_size}, 1.0f));
+    for (std::size_t i = 0; i < in_channels; i++) {
+        for (std::size_t j = 0; j < input_size; j++) {
+            input[i, j] = static_cast<float>(j) + 1.0f;
+        }
+    }
+
+    auto weight =
+        shared_tensor(full<float>({out_channels, in_channels / groups, kernel_size}, 1.0f));
+    auto output = conv(input, weight, /*padding=*/2, /*groups=*/groups).get();
+
+    REQUIRE(output.dim() == 2);
+    REQUIRE(output.size(0) == out_channels);
+    REQUIRE(output.size(1) == 5);
+
+    std::vector<float> expect({24.0f, 40.0f, 60.0f, 56.0f, 48.0f});
+
+    for (std::size_t i = 0; i < output.size(0); i++) {
+        for (std::size_t j = 0; j < output.size(1); j++) {
+            REQUIRE_THAT((output[i, j]), Catch::Matchers::WithinAbs(expect[j], 0.0001));
+        }
+    }
+}
+
+
 TEST_CASE("Test conv1d random input", "[kernel::conv1d]")
 {
     hardware_accelerator gpu0;
