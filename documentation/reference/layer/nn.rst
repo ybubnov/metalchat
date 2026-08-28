@@ -25,6 +25,13 @@ Embedding
    :members:
 
 
+Convolution
+-----------
+
+.. doxygenclass:: metalchat::nn::conv1d
+   :members:
+
+
 Rotary positional embedding
 ---------------------------
 
