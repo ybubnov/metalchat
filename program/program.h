@@ -48,6 +48,9 @@ public:
     void
     handle_prompt(const command_context&);
 
+    void
+    handle_status(const command_context&);
+
 private:
     /// Loads an existing model (based on the configured scope) and runs it
     /// by prompting data specified in the stream.
@@ -107,6 +110,7 @@ private:
     parser_type _M_stdin;
     parser_type _M_prompt;
     parser_type _M_checkout;
+    parser_type _M_status;
 
     credential_command _M_credential;
     model_command _M_model;
