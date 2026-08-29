@@ -21,6 +21,7 @@ program::program()
   _M_stdin("-"),
   _M_prompt("prompt"),
   _M_checkout("checkout"),
+  _M_status("status"),
   _M_model_id()
 {
     constexpr auto arch_size = std::tuple_size_v<decltype(supported_architectures)>;
@@ -61,6 +62,9 @@ program::program()
         .required()
         .store_into(_M_model_id);
     push_handler(_M_checkout, [&](const command_context& c) { handle_checkout(c); });
+
+    _M_status.add_description("show the working directory status");
+    push_handler(_M_status, [&](const command_context& c) { handle_status(c); });
 }
 
 
@@ -148,6 +152,17 @@ program::handle_checkout(const command_context& context)
 
     m.model = model.manifest.model;
     manifest_file.write(m);
+}
+
+
+void
+program::handle_status(const command_context& context)
+{
+    auto manifest_file = context.resolve_manifest(context_scope::local, /*missing_ok=*/false);
+    auto manifest = manifest_file.read();
+
+    std::cout << ansi::yellow << manifest.id();
+    std::cout << ansi::reset << std::endl;
 }
 
 
