@@ -232,5 +232,70 @@ private:
 };
 
 
+struct window_caching_options {
+    /// The size of the window to cache.
+    std::size_t window_size;
+    /// The size of the embedding dimension.
+    std::size_t hidden_dim;
+    /// Batch size the model will be run with.
+    std::size_t max_batch_size;
+};
+
+
+template <typename T> class window_cache : public basic_layer {
+public:
+    using value_type = T;
+    using tensor_type = future_tensor<T, 3>;
+
+    /// Constructs a new instance of the convolution cache.
+    ///
+    /// \param kernel_size A size of convolution kernel.
+    /// \param accelerator A hardware accelerator.
+    window_cache(const window_caching_options& options, hardware_accelerator& accelerator)
+    : basic_layer(accelerator),
+      _M_clone(accelerator),
+      _M_cache(alloc(options)),
+      _M_options(options)
+    {
+        update_parameters();
+    }
+
+    /// Updates the cache tensor with new inputs.
+    ///
+    /// \param input The input sequence to cache.
+    /// \param start_pos Position of the next token in an output sequence.
+    tensor_type
+    update(tensor_type inputs, std::size_t start_pos)
+    {
+        if (start_pos == 0) {
+            return inputs;
+        }
+        return inputs;
+    }
+
+private:
+    auto
+    alloc(const window_caching_options& options)
+    {
+        return future_tensor(empty<T>(
+            {options.max_batch_size, options.hidden_dim, options.window_size},
+            accelerator().get_allocator()
+        ));
+    }
+
+    void
+    update_parameters()
+    {
+        register_parameter("inputs", _M_cache.get_nowait());
+    }
+
+    kernel::clone<value_type> _M_clone;
+
+    tensor_type _M_cache;
+
+    windowing_caching_options _M_options;
+};
+
+
 } // namespace nn
 } // namespace metalchat
