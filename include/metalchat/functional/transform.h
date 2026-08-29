@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2026 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
 
+#include <array>
 #include <cstring>
 #include <format>
 #include <functional>
@@ -87,6 +88,35 @@ repeat_interleave(Tensor t, std::size_t repeats, std::size_t dim, hardware_accel
     auto rep_tensor = std::views::repeat(expanded_tensor, repeats);
     auto output = concatenate<T>(rep_tensor.begin(), rep_tensor.end(), dim + 1, gpu);
     return output;
+}
+
+
+/// Splits a tensor into specified number of chunks along dimension ``dim``.
+///
+/// \tparam Chunks The number of sections to split into.
+/// \tparam Tensor The type of the tensor to slice.
+///
+/// \param t The tensor to split.
+/// \param dim The dimension along which to split the tensor.
+template <std::size_t Chunks, immutable_tensor Tensor>
+std::array<Tensor, Chunks>
+chunk(Tensor t, std::size_t dim = 0)
+{
+    auto dim_size = t.size(dim);
+    auto section_size = dim_size / Chunks;
+    if (dim_size % Chunks) {
+        throw std::invalid_argument(std::format(
+            "chunk: the tensor dimension ({}) of size ({}) is not "
+            "divisible by a number of chunks {}",
+            dim, dim_size, Chunks
+        ));
+    }
+
+    std::array<Tensor, Chunks> chunks;
+    for (std::size_t i = 0; i < dim_size / section_size; i++) {
+        chunks[i] = t.narrow(dim, i * section_size, section_size);
+    }
+    return chunks;
 }
 
 
