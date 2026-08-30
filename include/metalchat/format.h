@@ -9,6 +9,8 @@
 #include <ostream>
 #include <unordered_set>
 
+#include <metalchat/transformer.h>
+
 
 namespace metalchat {
 
@@ -244,8 +246,8 @@ make_default_scanner(
 template <typename Index, typename CharT> struct basic_formatter {
     using index_type = Index;
     using char_type = CharT;
-    using istream_type = std::basic_istream<index_type>;
-    using ostream_type = std::basic_ostream<index_type>;
+    using istream_type = std::basic_istream<index_type, token_traits<index_type>>;
+    using ostream_type = std::basic_ostream<index_type, token_traits<index_type>>;
     using message_type = basic_message<char_type>;
 
     virtual message_type
