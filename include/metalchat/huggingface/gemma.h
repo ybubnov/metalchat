@@ -172,7 +172,7 @@ public:
     void
     parse(istream_type& is, std::basic_ostream<char_type>& os)
     {
-        std::istreambuf_iterator<index_type> input(is);
+        std::istreambuf_iterator<index_type, token_traits<index_type>> input(is);
         std::ostreambuf_iterator<char_type> output(os);
 
         parse(input, output);
@@ -193,7 +193,7 @@ public:
     void
     format(const message_type& message, ostream_type& os)
     {
-        std::ostreambuf_iterator<index_type> output(os);
+        std::ostreambuf_iterator<index_type, token_traits<index_type>> output(os);
         // Begin formatting with the begin-of-text token.
         if (!_M_first) {
             tokenizer_traits::encode(_M_tokenizer, gemma3_prompt::bos, output);

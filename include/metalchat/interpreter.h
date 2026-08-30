@@ -30,8 +30,8 @@ private:
     using index_type = int32_t;
     using char_type = char;
 
-    using streambuf_type = std::basic_streambuf<index_type>;
-    using stream_type = std::basic_iostream<index_type>;
+    using streambuf_type = std::basic_streambuf<index_type, token_traits<index_type>>;
+    using stream_type = std::basic_iostream<index_type, token_traits<index_type>>;
 
 public:
     /// Type of the command handler used to process command calls.

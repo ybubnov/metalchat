@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
 
+#include <compare>
+#include <cstring>
 #include <fstream>
 #include <istream>
 #include <string_view>
@@ -336,10 +338,154 @@ private:
 };
 
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-template <typename Layer, typename CharT, typename Traits = std::char_traits<CharT>>
-#pragma clang diagnostic pop
+template <typename T> struct least_integer_type;
+
+template <> struct least_integer_type<int8_t> {
+    using value = uint_least8_t;
+};
+
+template <> struct least_integer_type<int16_t> {
+    using value = uint_least16_t;
+};
+
+template <> struct least_integer_type<int32_t> {
+    using value = uint_least32_t;
+};
+
+
+/// Token traits abstract basic token and token operations for a given token type. The defined
+/// operation set is such that generic algorithms almost always can be implemented in terms of it.
+///
+/// It almost identical to the standard ``std::char_traits`` but is specifically defined to
+/// support non-character sequences for using integer-token sequences in the transformer model.
+template <typename T> struct token_traits {
+    using state_type = std::mbstate_t;
+    using char_type = T;
+    using off_type = std::streamoff;
+    using pos_type = std::fpos<state_type>;
+    using int_type = least_integer_type<char_type>::value;
+    using comparison_category = std::strong_ordering;
+
+    /// Assigns a token.
+    static constexpr void
+    assign(char_type& c1, const char_type& c2) noexcept
+    {
+        c1 = c2;
+    }
+
+    /// Compares two tokens.
+    static constexpr bool
+    eq(char_type c1, char_type c2) noexcept
+    {
+        return c1 == c2;
+    }
+
+    /// Compares two tokens.
+    static constexpr bool
+    lt(char_type c1, char_type c2) noexcept
+    {
+        return c1 < c2;
+    }
+
+    /// Lexicographically compares two token sequences
+    static constexpr int
+    compare(const char_type* s1, const char_type* s2, size_t n)
+    {
+        for (; n; --n, ++s1, ++s2) {
+            if (lt(*s1, *s2)) {
+                return -1;
+            }
+            if (lt(*s2, *s1)) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    /// Returns a length of a token sequence.
+    ///
+    /// For token sequence the length is always zero, as null-terminated sequences are not
+    /// supported, and there is no other way to reliably compute the end of the sequence.
+    [[deprecated("Length of null-terminated sequences is not supported")]]
+    static constexpr size_t
+    length(const char_type* s)
+    {
+        return 0;
+    }
+
+    /// Finds a token in a token sequence.
+    static constexpr const char_type*
+    find(const char_type* s, std::size_t n, const char_type& a)
+    {
+        const char_type* match = std::find(s, s + n, a);
+        if (match == s + n) {
+            return nullptr;
+        }
+        return match;
+    }
+
+    /// Moves one token sequence onto another.
+    static constexpr char_type*
+    move(char_type* s1, const char_type* s2, std::size_t n)
+    {
+        auto s = std::memmove(s1, s2, n * sizeof(char_type));
+        return static_cast<char_type*>(s);
+    }
+
+    /// Copies a token sequence.
+    static constexpr char_type*
+    copy(char_type* s1, const char_type* s2, std::size_t n)
+    {
+        auto s = std::memmove(s1, s2, n * sizeof(char_type));
+        return static_cast<char_type*>(s);
+    }
+
+    /// Assigns ``a`` to each token in ``n`` tokens in the token sequence pointed to by ``s``.
+    static constexpr char_type*
+    assign(char_type* s, std::size_t n, char_type a)
+    {
+        std::fill_n(s, n, a);
+        return s;
+    }
+
+    /// Checks whether a token is eof value.
+    static constexpr int_type
+    not_eof(int_type c) noexcept
+    {
+        return eq_int_type(c, eof()) ? ~eof() : c;
+    }
+
+    /// Converts ``int_type`` to equivalent ``char_type``.
+    static constexpr char_type
+    to_char_type(int_type c) noexcept
+    {
+        return static_cast<char_type>(c);
+    }
+
+    /// Converts ``char_type`` to equivalent ``int_type``.
+    static constexpr int_type
+    to_int_type(char_type c) noexcept
+    {
+        return static_cast<int_type>(c);
+    }
+
+    /// Compares two ``int_type`` values.
+    static constexpr bool
+    eq_int_type(int_type c1, int_type c2) noexcept
+    {
+        return c1 == c2;
+    }
+
+    /// Returns an eof value.
+    static constexpr int_type
+    eof() noexcept
+    {
+        return int_type(EOF);
+    }
+};
+
+
+template <typename Layer, typename CharT, typename Traits = token_traits<CharT>>
 class basic_layerbuf : public std::basic_streambuf<CharT, Traits> {
 public:
     using streambuf_type = std::basic_streambuf<CharT, Traits>;
