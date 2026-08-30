@@ -75,12 +75,6 @@ public:
         return _M_conv1d(input, _M_weight, padding, groups);
     }
 
-    const weight_pointer&
-    weight() const
-    {
-        return _M_weight;
-    }
-
 private:
     conv1d(
         weight_pointer weight,
