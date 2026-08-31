@@ -23,6 +23,23 @@ namespace metalchat {
 namespace nn {
 
 
+template <typename T> class basic_attention : public basic_layer {
+public:
+    using value_type = T;
+
+    using input_type = future_tensor<value_type, 3>;
+    using result_type = future_tensor<value_type, 3>;
+    using mask_type = std::optional<future_tensor<value_type, 2>>;
+
+    using basic_layer::basic_layer;
+
+    virtual result_type
+    operator()(input_type input, mask_type mask, std::size_t start_pos) = 0;
+
+    virtual ~basic_attention() = default;
+};
+
+
 struct multihead_attention_options {
     /// Per-attention head embedding dimension.
     std::size_t head_dim;
@@ -64,10 +81,11 @@ struct multihead_attention_options {
 /// This \ref attention layer implements the original architecture described in the
 /// <a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need paper</a>.
 template <typename T, contiguous_container Container, cache_t<T> Cache = sink_cache<T>>
-class multihead_attention : public basic_layer {
+class multihead_attention : public basic_attention<T> {
 private:
     static constexpr std::size_t input_size = 4;
 
+    using Attention = basic_attention<T>;
     using BasicLinear = basic_linear<T, Container>;
     using Linear = linear<T, Container>;
     using RMSNorm = rmsnorm<T, Container>;
@@ -92,7 +110,8 @@ private:
     auto
     contiguous(Input input, std::size_t dim)
     {
-        auto output = future_tensor(empty_like<T>(input, accelerator().get_allocator()));
+        auto alloc = Attention::accelerator().get_allocator();
+        auto output = future_tensor(empty_like<T>(input, alloc));
 
         for (std::size_t offset = 0; offset < output.size(dim); offset++) {
             auto future = _M_clone(input.narrow(dim, offset, 1), output.narrow(dim, offset, 1));
@@ -102,24 +121,32 @@ private:
         return output;
     }
 
+    auto
+    create_rope(const multihead_attention_options& options, hardware_accelerator& accelerator) const
+    {
+        return indirect_layer<RotaryPositionalEmbedding>(
+            options.head_dim, options.max_seq_len, options.rope_theta, accelerator
+        );
+    }
+
 public:
     using value_type = T;
     using container_type = Container;
 
-    attention(
+    multihead_attention(
         const multihead_attention_options& options,
         const indirect_layer<RotaryPositionalEmbedding>& rope
     )
-    : basic_layer(rope.accelerator()),
+    : Attention(rope.accelerator()),
       _M_rope(rope),
       _M_options(options),
-      _M_clone(accelerator()),
+      _M_clone(Attention::accelerator()),
       _M_scale(options.scale)
     {
-        _M_wq = register_polymorphic_layer<Linear>("wq");
-        _M_wk = register_polymorphic_layer<Linear>("wk");
-        _M_wv = register_polymorphic_layer<Linear>("wv");
-        _M_wo = register_polymorphic_layer<Linear>("wo");
+        _M_wq = this->template register_polymorphic_layer<Linear>("wq");
+        _M_wk = this->template register_polymorphic_layer<Linear>("wk");
+        _M_wv = this->template register_polymorphic_layer<Linear>("wv");
+        _M_wo = this->template register_polymorphic_layer<Linear>("wo");
 
         caching_options cache_options{
             .head_dim = options.head_dim,
@@ -129,20 +156,17 @@ public:
             .max_batch_size = options.max_batch_size,
         };
 
-        _M_cache = register_layer<Cache>("cache", cache_options);
+        _M_cache = this->template register_layer<Cache>("cache", cache_options);
 
         if (options.norm_eps) {
             enable_norm(options.norm_eps.value(), options.norm_mu.value_or(0.0f));
         }
     }
 
-    attention(const multihead_attention_options& options, hardware_accelerator& accelerator)
-    : attention(
-          options,
-          indirect_layer<RotaryPositionalEmbedding>(
-              options.head_dim, options.max_seq_len, options.rope_theta, accelerator
-          )
-      )
+    multihead_attention(
+        const multihead_attention_options& options, hardware_accelerator& accelerator
+    )
+    : multihead_attention(options, create_rope(options, accelerator))
     {}
 
     /// Enable RMS-normalization of keys and queries.
@@ -151,8 +175,8 @@ public:
     {
         _M_options.norm_eps = eps;
         _M_options.norm_mu = mu;
-        _M_wq_norm = register_layer<RMSNorm>("q_norm", eps, mu);
-        _M_wk_norm = register_layer<RMSNorm>("k_norm", eps, mu);
+        _M_wq_norm = this->template register_layer<RMSNorm>("q_norm", eps, mu);
+        _M_wk_norm = this->template register_layer<RMSNorm>("k_norm", eps, mu);
     }
 
     /// Compute multi-head attention of the input sequence.
@@ -163,6 +187,27 @@ public:
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
     auto
     operator()(Input input, std::optional<Mask> mask = std::nullopt, std::size_t start_pos = 0)
+    {
+        return forward(input, mask, start_pos);
+    }
+
+    Attention::result_type
+    operator()(Attention::input_type input, Attention::mask_type mask, std::size_t start_pos)
+    {
+        return forward(input, mask, start_pos);
+    }
+
+    friend std::ostream&
+    operator<<(std::ostream& os, const multihead_attention&)
+    {
+        os << "nn::attention<" << type_traits<T>::name() << ">()";
+        return os;
+    }
+
+private:
+    template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
+    auto
+    forward(Input input, std::optional<Mask> mask = std::nullopt, std::size_t start_pos = 0)
     {
         int bs = input.size(0);
         int len = input.size(1);
@@ -179,10 +224,11 @@ public:
         k = _M_rope(_M_wk_norm ? _M_wk_norm(k) : k, /*start_pos=*/start_pos);
 
         auto [kk, vv] = _M_cache->update(k, v, start_pos);
+        auto& accelerator = this->accelerator();
 
         auto repeat_kv = [&]<immutable_tensor4_t<T> Tensor>(Tensor&& t) -> auto {
             int slen = t.size(1);
-            auto reps = repeat_interleave(t, n_reps, /*dim=*/2, accelerator());
+            auto reps = repeat_interleave(t, n_reps, /*dim=*/2, accelerator);
             return reps.view({bs, slen, n_heads, head_dim});
         };
 
@@ -194,31 +240,25 @@ public:
         keys = keys.transpose({0, 2, 3, 1});
         values = values.transpose({0, 2, 1, 3});
 
-        auto scores = matmul(queries, keys, accelerator());
-        scores = mul(scores, _M_scale, accelerator());
+        auto scores = matmul(queries, keys, accelerator);
+        scores = mul(scores, _M_scale, accelerator);
         if (mask.has_value()) {
-            scores = add_broadcast(scores, mask.value(), accelerator());
+            scores = add_broadcast(scores, mask.value(), accelerator);
         }
-        scores = softmax(scores, accelerator());
+        scores = softmax(scores, accelerator);
 
-        auto output = matmul(scores, values, accelerator()).transpose({0, 2, 1, 3});
+        auto output = matmul(scores, values, accelerator).transpose({0, 2, 1, 3});
         output = contiguous(output, /*dim=*/1);
 
         return _M_wo(output.view({bs, len, -1}));
-    }
-
-    friend std::ostream&
-    operator<<(std::ostream& os, const attention&)
-    {
-        os << "nn::attention<" << type_traits<T>::name() << ">()";
-        return os;
     }
 };
 
 
 template <typename T, contiguous_container Container, mutable_layer Cache = window_cache<T>>
-class recurrent_attention : public basic_layer {
+class recurrent_attention : public basic_attention<T> {
 private:
+    using Attention = basic_attention<T>;
     using Linear = linear<T, Container>;
     using Conv1d = conv1d<T, Container>;
 
@@ -227,37 +267,57 @@ public:
     using container_type = Container;
 
     recurrent_attention(std::size_t groups, hardware_accelerator& accelerator)
-    : basic_layer(accelerator)
+    : Attention(accelerator)
     {
-        _M_in_proj = register_layer<Linear>("in_proj");
-        _M_out_proj = register_layer<Linear>("out_proj");
-        _M_conv = register_layer<Conv1d>("conv", /*padding=*/0, /*groups=*/groups);
-        _M_cache = register_layer<Cache>("cache");
+        _M_in_proj = this->template register_layer<Linear>("in_proj");
+        _M_out_proj = this->template register_layer<Linear>("out_proj");
+        _M_conv = this->template register_layer<Conv1d>("conv", /*padding=*/0, /*groups=*/groups);
+        _M_cache = this->template register_layer<Cache>("cache");
     }
 
+    /// Compute recurrent attention of the input sequence.
+    ///
+    /// \param input an input embedding.
+    /// \param mask if specified, a 2-dim mask preventing attention to certain positions.
+    /// \param start_pos a start position of the input sequence.
     template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
     auto
     operator()(Input input, std::optional<Mask> mask = std::nullopt, std::size_t start_pos = 0)
     {
-        auto len = input.size(2);
+        return forward(input, mask, start_pos);
+    }
 
-        auto BCx = _M_in_proj(input).transpose({0, 2, 1});
+    Attention::result_type
+    operator()(Attention::input_type input, Attention::mask_type mask, std::size_t start_pos)
+    {
+        return forward(input, mask, start_pos);
+    }
+
+private:
+    template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
+    auto
+    forward(Input input, std::optional<Mask> mask = std::nullopt, std::size_t start_pos = 0)
+    {
+        auto& accelerator = Attention::accelerator();
+        auto hidden = mask ? hadamard_broadcast(input, mask.value(), accelerator) : input;
+
+        auto BCx = _M_in_proj(hidden).transpose({0, 2, 1});
         auto [B, C, x] = chunk(BCx, 3, /*dim=*/1);
 
-        auto hidden = hadamard(B, x, accelerator());
+        hidden = hadamard(B, x, accelerator);
         hidden = _M_cache.update(hidden, start_pos);
         hidden = _M_conv(hidden);
 
         // After the cache update, input will contain a padding containing the cached
         // rolling window. Drop the convolution of that window leaving only a tensor
         // of the input length.
+        auto len = input.size(2);
         hidden = hidden.narrow(2, hidden.size(2) - len, len);
 
-        hidden = hadamard(hidden, C, accelerator()).transpose({0, 2, 1});
+        hidden = hadamard(hidden, C, accelerator).transpose({0, 2, 1});
         return _M_out_proj(hidden);
     }
 
-private:
     indirect_layer<Linear> _M_in_proj;
     indirect_layer<Linear> _M_out_proj;
     indirect_layer<Conv1d> _M_conv;

@@ -40,7 +40,7 @@ public:
         hardware_accelerator& accelerator
     ) requires std::same_as<Container, hardware_memory_container<T>>
     : basic_layer(accelerator),
-      _M_kernel(accelerator),
+      _M_conv(accelerator),
       _M_weight(nullptr),
       _M_padding(padding),
       _M_groups(groups)
@@ -49,7 +49,7 @@ public:
             throw std::invalid_argument("nn::conv1d: in_channels must be divisible by groups");
         }
 
-        auto alloc = rebind_allocator<T, Allocator>(accelerator.get_allocator());
+        auto alloc = accelerator.get_allocator();
         auto weight = rand<T>({out_channels, in_channels / groups, kernel_size}, alloc);
 
         _M_weight = shared_tensor(std::move(weight));
@@ -64,14 +64,14 @@ public:
     auto
     operator()(Input input)
     {
-        return _M_conv1d(input, _M_weight, padding, groups);
+        return _M_conv1d(input, _M_weight, _M_padding, _M_groups);
     }
 
     template <immutable_tensor2_t<T> Input>
     auto
     operator()(Input input)
     {
-        return _M_conv1d(input, _M_weight, padding, groups);
+        return _M_conv1d(input, _M_weight, _M_padding, _M_groups);
     }
 
 private:

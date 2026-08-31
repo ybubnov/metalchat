@@ -772,7 +772,7 @@ requires std::constructible_from<Layer, Args..., hardware_accelerator&>
 polymorphic_layer<Layer>
 basic_layer::register_polymorphic_layer(const std::string& name, Args&&... args)
 {
-    auto layer = register_layer<Layer>(name, std::forward<Args>(args)...);
+    indirect_layer<Layer> layer(std::forward<Args>(args)..., _M_accelerator);
     return register_polymorphic_layer(name, polymorphic_layer<Layer>(layer));
 }
 
@@ -783,6 +783,7 @@ basic_layer::register_polymorphic_layer(
     const std::string& name, const polymorphic_layer<Layer>& layer
 )
 {
+    register_layer<Layer>(name, *layer.get().get());
     _M_polymorphic_pointers.insert_or_assign(name, *layer);
     return layer;
 }
