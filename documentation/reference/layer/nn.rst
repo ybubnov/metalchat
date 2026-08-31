@@ -14,7 +14,11 @@ like in the example below:
 Attention
 ---------
 
-.. doxygenclass:: metalchat::nn::attention
+.. doxygenclass:: metalchat::nn::multihead_attention
+   :members:
+
+
+.. doxygenclass:: metalchat::nn::recurrent_attention
    :members:
 
 

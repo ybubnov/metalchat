@@ -6,9 +6,7 @@
 
 #include <metalchat/functional.h>
 #include <metalchat/kernel/convolve.h>
-#include <metalchat/nn/cache.h>
 #include <metalchat/nn/layer.h>
-#include <metalchat/nn/linear.h>
 #include <metalchat/tensor/concept.h>
 
 
@@ -102,55 +100,6 @@ private:
     weight_pointer _M_weight;
     std::size_t _M_padding;
     std::size_t _M_groups;
-};
-
-
-template <typename T, contiguous_container Container, mutable_layer Cache = window_cache<T>>
-class short_conv : public basic_layer {
-private:
-    using Linear = linear<T, Container>;
-    using Conv1d = conv1d<T, Container>;
-
-public:
-    using value_type = T;
-    using container_type = Container;
-
-    short_conv(std::size_t groups, hardware_accelerator& accelerator)
-    : basic_layer(accelerator)
-    {
-        _M_in_proj = register_layer<Linear>("in_proj");
-        _M_out_proj = register_layer<Linear>("out_proj");
-        _M_conv = register_layer<Conv1d>("conv", /*padding=*/0, /*groups=*/groups);
-        _M_cache = register_layer<Cache>("cache");
-    }
-
-    template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
-    auto
-    operator()(Input input, std::optional<Mask> mask = std::nullopt, std::size_t start_pos = 0)
-    {
-        auto len = input.size(2);
-
-        auto BCx = _M_in_proj(input).transpose({0, 2, 1});
-        auto [B, C, x] = chunk(BCx, 3, /*dim=*/1);
-
-        auto hidden = hadamard(B, x, accelerator());
-        hidden = _M_cache.update(hidden, start_pos);
-        hidden = _M_conv(hidden);
-
-        // After the cache update, input will contain a padding containing the cached
-        // rolling window. Drop the convolution of that window leaving only a tensor
-        // of the input length.
-        hidden = hidden.narrow(2, hidden.size(2) - len, len);
-
-        hidden = hadamard(hidden, C, accelerator()).transpose({0, 2, 1});
-        return _M_out_proj(hidden);
-    }
-
-private:
-    indirect_layer<Linear> _M_in_proj;
-    indirect_layer<Linear> _M_out_proj;
-    indirect_layer<Conv1d> _M_conv;
-    indirect_layer<Cache> _M_cache;
 };
 
 

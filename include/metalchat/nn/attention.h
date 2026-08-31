@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
@@ -11,6 +11,7 @@
 #include <metalchat/kernel/copy.h>
 #include <metalchat/kernel/embedding.h>
 #include <metalchat/nn/cache.h>
+#include <metalchat/nn/convolve.h>
 #include <metalchat/nn/embedding.h>
 #include <metalchat/nn/layer.h>
 #include <metalchat/nn/linear.h>
@@ -22,7 +23,7 @@ namespace metalchat {
 namespace nn {
 
 
-struct attention_options {
+struct multihead_attention_options {
     /// Per-attention head embedding dimension.
     std::size_t head_dim;
     /// Number of query heads.
@@ -63,13 +64,13 @@ struct attention_options {
 /// This \ref attention layer implements the original architecture described in the
 /// <a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need paper</a>.
 template <typename T, contiguous_container Container, cache_t<T> Cache = sink_cache<T>>
-class attention : public basic_layer {
+class multihead_attention : public basic_layer {
 private:
     static constexpr std::size_t input_size = 4;
 
-    using BasicLinear = nn::basic_linear<T, Container>;
-    using Linear = nn::linear<T, Container>;
-    using RMSNorm = nn::rmsnorm<T, Container>;
+    using BasicLinear = basic_linear<T, Container>;
+    using Linear = linear<T, Container>;
+    using RMSNorm = rmsnorm<T, Container>;
     using RotaryPositionalEmbedding = nn::rope<T>;
 
     polymorphic_layer<BasicLinear> _M_wq;
@@ -82,7 +83,7 @@ private:
     indirect_layer<RMSNorm> _M_wk_norm;
     indirect_layer<Cache> _M_cache;
 
-    nn::attention_options _M_options;
+    multihead_attention_options _M_options;
     kernel::clone<T> _M_clone;
 
     T _M_scale;
@@ -106,7 +107,8 @@ public:
     using container_type = Container;
 
     attention(
-        const attention_options& options, const indirect_layer<RotaryPositionalEmbedding>& rope
+        const multihead_attention_options& options,
+        const indirect_layer<RotaryPositionalEmbedding>& rope
     )
     : basic_layer(rope.accelerator()),
       _M_rope(rope),
@@ -134,7 +136,7 @@ public:
         }
     }
 
-    attention(const attention_options& options, hardware_accelerator& accelerator)
+    attention(const multihead_attention_options& options, hardware_accelerator& accelerator)
     : attention(
           options,
           indirect_layer<RotaryPositionalEmbedding>(
@@ -211,6 +213,55 @@ public:
         os << "nn::attention<" << type_traits<T>::name() << ">()";
         return os;
     }
+};
+
+
+template <typename T, contiguous_container Container, mutable_layer Cache = window_cache<T>>
+class recurrent_attention : public basic_layer {
+private:
+    using Linear = linear<T, Container>;
+    using Conv1d = conv1d<T, Container>;
+
+public:
+    using value_type = T;
+    using container_type = Container;
+
+    recurrent_attention(std::size_t groups, hardware_accelerator& accelerator)
+    : basic_layer(accelerator)
+    {
+        _M_in_proj = register_layer<Linear>("in_proj");
+        _M_out_proj = register_layer<Linear>("out_proj");
+        _M_conv = register_layer<Conv1d>("conv", /*padding=*/0, /*groups=*/groups);
+        _M_cache = register_layer<Cache>("cache");
+    }
+
+    template <immutable_tensor3_t<T> Input, immutable_tensor2_t<T> Mask>
+    auto
+    operator()(Input input, std::optional<Mask> mask = std::nullopt, std::size_t start_pos = 0)
+    {
+        auto len = input.size(2);
+
+        auto BCx = _M_in_proj(input).transpose({0, 2, 1});
+        auto [B, C, x] = chunk(BCx, 3, /*dim=*/1);
+
+        auto hidden = hadamard(B, x, accelerator());
+        hidden = _M_cache.update(hidden, start_pos);
+        hidden = _M_conv(hidden);
+
+        // After the cache update, input will contain a padding containing the cached
+        // rolling window. Drop the convolution of that window leaving only a tensor
+        // of the input length.
+        hidden = hidden.narrow(2, hidden.size(2) - len, len);
+
+        hidden = hadamard(hidden, C, accelerator()).transpose({0, 2, 1});
+        return _M_out_proj(hidden);
+    }
+
+private:
+    indirect_layer<Linear> _M_in_proj;
+    indirect_layer<Linear> _M_out_proj;
+    indirect_layer<Conv1d> _M_conv;
+    indirect_layer<Cache> _M_cache;
 };
 
 

@@ -42,13 +42,13 @@ struct gemma3_options {
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class gemma3 : public basic_layer {
 private:
-    using Attention = nn::attention<T, Container>;
-    using Transformer = nn::transformer<T, Container, kernel::gelu<T>>;
-    using TransformerArray = nn::layer_array<Transformer>;
-    using Embedding = nn::embedding<T, Container>;
-    using RotaryPositionalEmbedding = nn::rope<T>;
-    using RMSNorm = nn::rmsnorm<T, Container>;
-    using Linear = nn::linear<T, Container>;
+    using Attention = multihead_attention<T, Container>;
+    using Transformer = transformer<T, Container, kernel::gelu<T>>;
+    using TransformerArray = layer_array<Transformer>;
+    using Embedding = embedding<T, Container>;
+    using RotaryPositionalEmbedding = rope<T>;
+    using RMSNorm = rmsnorm<T, Container>;
+    using Linear = linear<T, Container>;
 
     indirect_layer<Embedding> _M_embedding;
     indirect_layer<Linear> _M_output;
@@ -89,7 +89,7 @@ public:
         for (std::size_t i = 0; i < options.n_layers; i++) {
             auto rope = uses_sliding_attention(i) ? sliding_rope : rolling_rope;
 
-            attention_options attention_opts{
+            multihead_attention_options attention_opts{
                 .head_dim = options.head_dim,
                 .n_heads = options.n_heads,
                 .n_kv_heads = options.n_kv_heads,

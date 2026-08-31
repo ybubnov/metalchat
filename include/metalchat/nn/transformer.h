@@ -71,11 +71,11 @@ public:
 template <
     typename T,
     contiguous_container Container = hardware_memory_container<T>,
-    typename Activation = kernel::silu<T>>
+    typename Activation = kernel::silu<T>,
+    mutable_layer Attention = multihead_attention<T, Container>>
 class transformer : public basic_layer {
 private:
     using RMSNorm = nn::rmsnorm<T, Container>;
-    using Attention = nn::attention<T, Container>;
     using FeedForward = nn::feed_forward<T, Container, Activation>;
 
     indirect_layer<Attention> _M_attention;
@@ -97,7 +97,7 @@ public:
         _M_ff = register_layer<FeedForward>("feed_forward");
     }
 
-    transformer(const attention_options& options, hardware_accelerator& accelerator)
+    transformer(const multihead_attention_options& options, hardware_accelerator& accelerator)
     : transformer(indirect_layer<Attention>(options, accelerator))
     {}
 
