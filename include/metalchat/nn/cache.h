@@ -265,12 +265,11 @@ public:
     /// \param input The input sequence to cache.
     /// \param start_pos Position of the next token in an output sequence.
     tensor_type
-    update(tensor_type inputs, std::size_t start_pos)
+    update(tensor_type input, std::size_t start_pos)
     {
-        if (start_pos == 0) {
-            return inputs;
-        }
-        return inputs;
+        std::tie(_M_cache, input) = copy(_M_cache, input, start_pos);
+        update_parameters();
+        return input;
     }
 
 private:
@@ -283,17 +282,44 @@ private:
         ));
     }
 
+    template <immutable_hardware_tensor3_t<T> Cache, immutable_tensor3_t<T> Input>
+    auto
+    copy(Cache cache, Input input, std::size_t start_pos)
+    {
+        const auto len = input.size(2);
+        const auto cache_size = cache.size(2);
+
+        // Allocate a new tensor that holds both, the cache and input sequence.
+        //
+        // This is specifically implemented for the usage in Short Convolution layer,
+        // which is using zero padding. That means, during the pre-fill phase, the cache
+        // is filled with zeros imitating padding of the window size. During the prediction
+        // phase, cache contains a rolling window of input sequence.
+        std::size_t sizes[Input::dim()] = {input.size(0), input.size(1), cache_size + len};
+
+        auto alloc = accelerator().get_allocator();
+        auto data = future_tensor(empty<T>(std::move(sizes), alloc));
+
+        data = future_tensor(data, _M_clone(cache, data.narrow(2, 0, cache_size)));
+        data = future_tensor(data, _M_clone(input, data.narrow(2, cache_size, len)));
+
+        auto input_tail = input.narrow(2, input.size(2) - cache_size, cache_size);
+        cache = _M_clone(input_tail, cache);
+
+        return std::make_tuple(cache, data);
+    }
+
     void
     update_parameters()
     {
-        register_parameter("inputs", _M_cache.get_nowait());
+        register_parameter("data", _M_cache.get_nowait());
     }
 
     kernel::clone<value_type> _M_clone;
 
     tensor_type _M_cache;
 
-    windowing_caching_options _M_options;
+    window_caching_options _M_options;
 };
 
 
