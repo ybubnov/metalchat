@@ -232,5 +232,96 @@ private:
 };
 
 
+struct window_caching_options {
+    /// The size of the window to cache.
+    std::size_t window_size;
+    /// The size of the embedding dimension.
+    std::size_t hidden_dim;
+    /// Batch size the model will be run with.
+    std::size_t max_batch_size;
+};
+
+
+template <typename T> class window_cache : public basic_layer {
+public:
+    using value_type = T;
+    using tensor_type = future_tensor<T, 3>;
+
+    /// Constructs a new instance of the convolution cache.
+    ///
+    /// \param kernel_size A size of convolution kernel.
+    /// \param accelerator A hardware accelerator.
+    window_cache(const window_caching_options& options, hardware_accelerator& accelerator)
+    : basic_layer(accelerator),
+      _M_clone(accelerator),
+      _M_cache(alloc(options)),
+      _M_options(options)
+    {
+        update_parameters();
+    }
+
+    /// Updates the cache tensor with new inputs.
+    ///
+    /// \param input The input sequence to cache.
+    /// \param start_pos Position of the next token in an output sequence.
+    tensor_type
+    update(tensor_type input, std::size_t start_pos)
+    {
+        std::tie(_M_cache, input) = copy(_M_cache, input, start_pos);
+        update_parameters();
+        return input;
+    }
+
+private:
+    auto
+    alloc(const window_caching_options& options)
+    {
+        return future_tensor(empty<T>(
+            {options.max_batch_size, options.hidden_dim, options.window_size},
+            accelerator().get_allocator()
+        ));
+    }
+
+    template <immutable_hardware_tensor3_t<T> Cache, immutable_tensor3_t<T> Input>
+    auto
+    copy(Cache cache, Input input, std::size_t start_pos)
+    {
+        const auto len = input.size(2);
+        const auto cache_size = cache.size(2);
+
+        // Allocate a new tensor that holds both, the cache and input sequence.
+        //
+        // This is specifically implemented for the usage in Short Convolution layer,
+        // which is using zero padding. That means, during the pre-fill phase, the cache
+        // is filled with zeros imitating padding of the window size. During the prediction
+        // phase, cache contains a rolling window of input sequence.
+        std::size_t sizes[Input::dim()] = {input.size(0), input.size(1), cache_size + len};
+
+        auto alloc = accelerator().get_allocator();
+        auto data = future_tensor(empty<T>(std::move(sizes), alloc));
+
+        data = future_tensor(data, _M_clone(cache, data.narrow(2, 0, cache_size)));
+        data = future_tensor(data, _M_clone(input, data.narrow(2, cache_size, len)));
+
+        auto input_tail = input.narrow(2, input.size(2) - cache_size, cache_size);
+        cache = _M_clone(input_tail, cache);
+
+        return std::make_tuple(cache, data);
+    }
+
+    void
+    update_parameters()
+    {
+        register_parameter("data", _M_cache.get_nowait());
+    }
+
+    kernel::clone<value_type> _M_clone;
+
+    tensor_type _M_cache;
+
+    window_caching_options _M_options;
+};
+
+
 } // namespace nn
 } // namespace metalchat
