@@ -20,8 +20,7 @@ namespace metalchat {
 namespace nn {
 
 
-struct lfm2_options {
-};
+struct lfm2_options {};
 
 
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
@@ -47,8 +46,7 @@ public:
     lfm2(const lfm2_options& options, hardware_accelerator& accelerator)
     : basic_layer(accelerator),
       _M_options(options)
-    {
-    }
+    {}
 };
 
 
