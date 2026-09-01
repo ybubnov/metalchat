@@ -50,7 +50,7 @@ public:
     using Embedding = basic_embedding<T>;
 
     using value_type = T;
-    using container_type = T;
+    using container_type = Container;
     using weight_type = tensor<T, 2, Container>;
     using weight_pointer = shared_tensor_ptr<weight_type>;
 
