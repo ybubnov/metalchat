@@ -24,7 +24,7 @@ private:
     basic_kernel _M_kernel;
 
 public:
-    /// The \ref bucketize kernel constructor.
+    /// The kernel constructor.
     bucketize(hardware_accelerator& gpu)
     : _M_kernel(gpu.load<T>("bucketize"))
     {}
@@ -64,7 +64,7 @@ public:
     /// \return a \ref future_tensor with the indices of the boundaries.
     template <immutable_tensor_t<T> Input, immutable_tensor1_t<T> Boundaries>
     auto
-    operator()(Input input, Boundaries boundaries, bool right = false)
+    operator()(Input input, Boundaries boundaries, bool right = false) requires(Input::dim() > 2)
     {
         auto input_view = flatten<2>(input);
         auto output = operator()(input_view, boundaries, right);

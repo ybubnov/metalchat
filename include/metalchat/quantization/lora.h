@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
@@ -54,13 +54,13 @@ public:
 
 
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class lora_linear : public nn::basic_linear<T, Container> {
+class lora_linear : public nn::basic_linear<T> {
 public:
     using value_type = T;
     using container_type = Container;
 
 private:
-    using _Base = nn::basic_linear<T, Container>;
+    using Linear = nn::basic_linear<T>;
     using LoraAdaptor = lora_adaptor<T, Container>;
 
     using weight_traits = tensor_traits<std::int8_t, 2, container_type>;
@@ -78,7 +78,7 @@ private:
 
 public:
     lora_linear(T scale, std::size_t group_size, hardware_accelerator& accelerator)
-    : _Base(accelerator),
+    : Linear(accelerator),
       _M_adaptor(),
       _M_group_size(group_size),
       _M_weight(typename weight_traits::type()),
@@ -86,15 +86,15 @@ public:
       _M_scales(typename scales_traits::type()),
       _M_scale(scale)
     {
-        _M_adaptor = _Base::template register_layer<LoraAdaptor>("adaptor");
-        _Base::register_parameter("weight", _M_weight);
-        _Base::register_parameter("scales", _M_scales);
+        _M_adaptor = Linear::template register_layer<LoraAdaptor>("adaptor");
+        Linear::register_parameter("weight", _M_weight);
+        Linear::register_parameter("scales", _M_scales);
     }
 
-    _Base::result_type
-    operator()(_Base::input_type input)
+    Linear::result_type
+    operator()(Linear::input_type input)
     {
-        auto& accelerator = _Base::accelerator();
+        auto& accelerator = Linear::accelerator();
 
         // The parameters in this module are defined as 2-dimensional tensors, since
         // original model is distributed with 2-dimensional weights. So in order to
@@ -131,7 +131,7 @@ public:
 
 
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class lora_embedding : public nn::basic_embedding<T, Container> {
+class lora_embedding : public nn::basic_embedding<T> {
 private:
     using weight_traits = tensor_traits<std::int8_t, 2, Container>;
     using scales_traits = tensor_traits<float, 2, Container>;
@@ -144,7 +144,7 @@ private:
     bool _M_weight_done;
 
 public:
-    using Embedding = nn::basic_embedding<T, Container>;
+    using Embedding = nn::basic_embedding<T>;
 
     using value_type = T;
     using container_type = Container;

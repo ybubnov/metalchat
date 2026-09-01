@@ -78,7 +78,7 @@ struct multihead_attention_options {
 
 /// Allows the model to jointly attend to information from different representation subspaces.
 ///
-/// This \ref attention layer implements the original architecture described in the
+/// This \ref multihead_attention layer implements the original architecture described in the
 /// <a href="https://arxiv.org/abs/1706.03762">Attention Is All You Need paper</a>.
 template <typename T, contiguous_container Container, cache_t<T> Cache = sink_cache<T>>
 class multihead_attention : public basic_attention<T> {
@@ -86,10 +86,10 @@ private:
     static constexpr std::size_t input_size = 4;
 
     using Attention = basic_attention<T>;
-    using BasicLinear = basic_linear<T, Container>;
+    using BasicLinear = basic_linear<T>;
     using Linear = linear<T, Container>;
     using RMSNorm = rmsnorm<T, Container>;
-    using RotaryPositionalEmbedding = nn::rope<T>;
+    using RotaryPositionalEmbedding = rope<T>;
 
     polymorphic_layer<BasicLinear> _M_wq;
     polymorphic_layer<BasicLinear> _M_wk;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
@@ -887,11 +887,11 @@ struct layer_match_name {
 /// ```
 template <mutable_layer Layer, named_layer_predicate Pred, typename Generator>
 void
-replace_layer(nn::indirect_layer<Layer>& input, Pred pred, Generator generator)
+replace_layer(indirect_layer<Layer>& input, Pred pred, Generator generator)
 {
-    std::vector<nn::named_layer> candidates;
+    std::vector<named_layer> candidates;
 
-    auto find_candidates = [&](nn::named_layer layer) {
+    auto find_candidates = [&](named_layer layer) {
         if (pred(layer)) {
             candidates.push_back(layer);
         }
@@ -916,9 +916,7 @@ replace_layer(nn::indirect_layer<Layer>& input, Pred pred, Generator generator)
 /// \param replacement a replacement layer that will be assigned in each replacement case.
 template <mutable_layer Layer, named_layer_predicate Pred, mutable_layer Replacement>
 void
-replace_layer(
-    nn::indirect_layer<Layer>& input, Pred pred, nn::indirect_layer<Replacement> replacement
-)
+replace_layer(indirect_layer<Layer>& input, Pred pred, indirect_layer<Replacement> replacement)
 {
     return replace_layer(input, pred, [&]() { return replacement; });
 }

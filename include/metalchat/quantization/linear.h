@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
@@ -14,9 +14,9 @@ namespace quantization {
 
 
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class linear : public nn::basic_linear<T, Container> {
+class linear : public nn::basic_linear<T> {
 private:
-    using _Base = nn::basic_linear<T, Container>;
+    using Linear = nn::basic_linear<T>;
 
     using weight_traits = tensor_traits<std::int8_t, 2, Container>;
     using scales_traits = tensor_traits<float, 2, Container>;
@@ -32,20 +32,20 @@ public:
     using container_type = Container;
 
     linear(hardware_accelerator& accelerator)
-    : _Base(accelerator),
+    : Linear(accelerator),
       _M_weight(typename weight_traits::type()),
       _M_scales(typename scales_traits::type()),
       _M_weight_dequant(),
       _M_weight_done(false)
     {
-        _Base::register_parameter("weight", _M_weight);
-        _Base::register_parameter("scales", _M_scales);
+        Linear::register_parameter("weight", _M_weight);
+        Linear::register_parameter("scales", _M_scales);
     }
 
-    _Base::result_type
-    operator()(_Base::input_type input)
+    Linear::result_type
+    operator()(Linear::input_type input)
     {
-        auto& accelerator = _Base::accelerator();
+        auto& accelerator = Linear::accelerator();
 
         if (!_M_weight_done) {
             _M_weight_dequant = hadamard_broadcast<T>(_M_weight, _M_scales, accelerator);

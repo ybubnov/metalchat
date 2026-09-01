@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
@@ -46,11 +46,11 @@ private:
     using Attention = multihead_attention<T, Container>;
     using Transformer = transformer<T, Container>;
     using TransformerArray = layer_array<Transformer>;
-    using BasicEmbedding = basic_embedding<T, Container>;
+    using BasicEmbedding = basic_embedding<T>;
     using Embedding = embedding<T, Container>;
     using RotaryPositionalEmbedding = rope<T>;
     using RMSNorm = rmsnorm<T, Container>;
-    using BasicLinear = basic_linear<T, Container>;
+    using BasicLinear = basic_linear<T>;
     using Linear = linear<T, Container>;
 
     polymorphic_layer<BasicEmbedding> _M_embedding;

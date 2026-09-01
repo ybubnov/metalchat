@@ -249,7 +249,7 @@ public:
 
     /// Constructs a new instance of the convolution cache.
     ///
-    /// \param kernel_size A size of convolution kernel.
+    /// \param options Options of the window cache.
     /// \param accelerator A hardware accelerator.
     window_cache(const window_caching_options& options, hardware_accelerator& accelerator)
     : basic_layer(accelerator),
