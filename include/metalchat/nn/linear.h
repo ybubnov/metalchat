@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
@@ -26,7 +26,7 @@ public:
     using basic_layer::basic_layer;
 
     virtual result_type
-    operator()(input_type input);
+    operator()(input_type input) = 0;
 
     virtual ~basic_linear() = default;
 };

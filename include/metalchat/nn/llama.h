@@ -43,15 +43,15 @@ default_llama3_1b_options();
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class llama3 : public basic_layer {
 private:
-    using Attention = nn::attention<T, Container>;
-    using Transformer = nn::transformer<T, Container>;
-    using TransformerArray = nn::layer_array<Transformer>;
-    using BasicEmbedding = nn::basic_embedding<T, Container>;
-    using Embedding = nn::embedding<T, Container>;
-    using RotaryPositionalEmbedding = nn::rope<T>;
-    using RMSNorm = nn::rmsnorm<T, Container>;
-    using BasicLinear = nn::basic_linear<T, Container>;
-    using Linear = nn::linear<T, Container>;
+    using Attention = multihead_attention<T, Container>;
+    using Transformer = transformer<T, Container>;
+    using TransformerArray = layer_array<Transformer>;
+    using BasicEmbedding = basic_embedding<T, Container>;
+    using Embedding = embedding<T, Container>;
+    using RotaryPositionalEmbedding = rope<T>;
+    using RMSNorm = rmsnorm<T, Container>;
+    using BasicLinear = basic_linear<T, Container>;
+    using Linear = linear<T, Container>;
 
     polymorphic_layer<BasicEmbedding> _M_embedding;
     polymorphic_layer<BasicLinear> _M_output;
@@ -78,7 +78,7 @@ public:
         _M_embedding = register_polymorphic_layer<Embedding>("tok_embeddings");
         _M_output = register_polymorphic_layer<Linear>("output");
 
-        attention_options attention_opts{
+        multihead_attention_options attention_opts{
             .head_dim = options.head_dim,
             .n_heads = options.n_heads,
             .n_kv_heads = options.n_kv_heads,
