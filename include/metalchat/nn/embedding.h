@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
@@ -17,12 +17,9 @@ namespace metalchat {
 namespace nn {
 
 
-template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class basic_embedding : public basic_layer {
+template <typename T> class basic_embedding : public basic_layer {
 public:
     using value_type = T;
-    using container_type = Container;
-
     using input_type = future_tensor<int32_t, 2>;
     using result_type = future_tensor<value_type, 3>;
 
@@ -48,9 +45,9 @@ public:
 /// This module is often used to store word embeddings and retrieve them using indices. The input
 /// to the module is a list of indices, and the output is the corresponding word embeddings.
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class embedding : public basic_embedding<T, Container> {
+class embedding : public basic_embedding<T> {
 public:
-    using Embedding = basic_embedding<T, Container>;
+    using Embedding = basic_embedding<T>;
 
     using value_type = T;
     using container_type = T;

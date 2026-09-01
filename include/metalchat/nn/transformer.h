@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
@@ -26,8 +26,8 @@ template <
     typename Activation = kernel::silu<T>>
 class feed_forward : public basic_layer {
 private:
-    using BasicLinear = nn::basic_linear<T, Container>;
-    using Linear = nn::linear<T, Container>;
+    using BasicLinear = basic_linear<T>;
+    using Linear = linear<T, Container>;
 
     // These layers are declared as polymorphic to provide a way to replace them
     // in runtime with, for example, LoRA linear layer implementations.

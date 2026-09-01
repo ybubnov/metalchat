@@ -14,11 +14,9 @@ namespace metalchat {
 namespace nn {
 
 
-template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class basic_linear : public basic_layer {
+template <typename T> class basic_linear : public basic_layer {
 public:
     using value_type = T;
-    using container_type = Container;
 
     using input_type = future_tensor<value_type, 3>;
     using result_type = future_tensor<value_type, 3>;
@@ -34,9 +32,9 @@ public:
 
 /// Applies an affine linear transformation to the input data.
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class linear : public basic_linear<T, Container> {
+class linear : public basic_linear<T> {
 public:
-    using Linear = basic_linear<T, Container>;
+    using Linear = basic_linear<T>;
 
     using value_type = T;
     using container_type = Container;

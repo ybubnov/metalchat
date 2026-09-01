@@ -86,10 +86,10 @@ private:
     static constexpr std::size_t input_size = 4;
 
     using Attention = basic_attention<T>;
-    using BasicLinear = basic_linear<T, Container>;
+    using BasicLinear = basic_linear<T>;
     using Linear = linear<T, Container>;
     using RMSNorm = rmsnorm<T, Container>;
-    using RotaryPositionalEmbedding = nn::rope<T>;
+    using RotaryPositionalEmbedding = rope<T>;
 
     polymorphic_layer<BasicLinear> _M_wq;
     polymorphic_layer<BasicLinear> _M_wk;
