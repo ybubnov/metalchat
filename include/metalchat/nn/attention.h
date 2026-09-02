@@ -22,6 +22,13 @@
 namespace metalchat {
 namespace nn {
 
+using attentionkind = int32_t;
+
+struct attention {
+    static constexpr attentionkind multihead = 1 << 0;
+    static constexpr attentionkind recurrent = 1 << 1;
+};
+
 
 template <typename T> class basic_attention : public basic_layer {
 public:

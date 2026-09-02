@@ -21,29 +21,29 @@ namespace metalchat {
 namespace nn {
 
 
-struct gemma3_options {
+struct lfm2_options {
     std::size_t head_dim = 0;
     std::size_t hidden_dim = 0;
     std::size_t n_heads = 0;
     std::size_t n_kv_heads = 0;
-    std::size_t n_layers = 0;
     std::size_t max_seq_len = 0;
-    std::size_t sliding_window = 0;
-    std::size_t sliding_stride = 0;
-    float attn_scale = 0.0f;
+    std::size_t max_batch_size = 0;
     float rope_theta = 0.0f;
-    float rope_sliding_theta = 0.0f;
     float norm_eps = 0.0f;
+    std::vector<attentionkind> attentions = {};
 };
 
 
-/// Gemma is a family of lightweight open models from Google, built from the same research
-/// and technology used to create the Gemini models.
+/// LFM2 is a family of hybrid models designed for on-device deployment. It builds on the LFM2
+/// architecture with extended pre-training and reinforcement learning.
+///
+/// For more details refer to the `Liquid AI Documentation <https://www.liquid.ai/models>`_.
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
-class gemma3 : public basic_layer {
-private:
-    using Attention = multihead_attention<T, Container>;
-    using Transformer = transformer<T, Container, kernel::gelu<T>>;
+class lfm2 : public basic_layer {
+    using MultiheadAttention = multihead_attention<T, Container>;
+    using RecurrentAttention = recurrent_attention<T, Container>;
+
+    using Transformer = transformer<T, Container, kernel::silu<T>>;
     using TransformerArray = layer_array<Transformer>;
     using Embedding = embedding<T, Container>;
     using RotaryPositionalEmbedding = rope<T>;
@@ -56,12 +56,12 @@ private:
     indirect_layer<RMSNorm> _M_norm;
     indirect_layer<TransformerArray> _M_transforms;
 
-    gemma3_options _M_options;
+    lfm2_options _M_options;
 
-    inline bool
-    uses_sliding_attention(std::size_t i) const
+    bool
+    uses_recurrent_attention(std::size_t i)
     {
-        return (i + 1) % _M_options.sliding_stride;
+        return _M_options.attention[i] == attention::recurrent;
     }
 
 public:
@@ -70,7 +70,7 @@ public:
     using container_type = Container;
     using tensor_type = future_tensor<index_type, 2>;
 
-    gemma3(const gemma3_options& options, hardware_accelerator& accelerator)
+    lfm2(const lfm2_options& options, hardware_accelerator& accelerator)
     : basic_layer(accelerator),
       _M_options(options)
     {
@@ -79,31 +79,33 @@ public:
         _M_embedding = register_layer<Embedding>("tok_embeddings");
         _M_output = register_layer<Linear>("output");
 
-        indirect_layer<RotaryPositionalEmbedding> sliding_rope(
-            options.head_dim, options.max_seq_len, options.rope_sliding_theta, accelerator
-        );
-        indirect_layer<RotaryPositionalEmbedding> rolling_rope(
+        // Reuse positional encodings across all network layers.
+        indirect_layer<RotaryPositionalEmbedding> rope(
             options.head_dim, options.max_seq_len, options.rope_theta, accelerator
         );
 
-        multihead_attention_options attention_opts{
+        multihead_attention_options mha_options{
             .head_dim = options.head_dim,
             .n_heads = options.n_heads,
             .n_kv_heads = options.n_kv_heads,
             .max_seq_len = options.max_seq_len,
-            .max_batch_size = 1,
+            .max_batch_size = options.max_batch_size,
             .rope_theta = options.rope_theta,
-            .scale = 1.0f / std::sqrt(options.attn_scale),
+            .scale = 1.0f / std::sqrt(float(options.head_dim)),
+            // Enable key and value RMS normalization in multi-head attention.
             .norm_eps = options.norm_eps,
-            .norm_mu = 1.0f
+            .norm_mu = 0.0f
         };
 
-        for (std::size_t i = 0; i < options.n_layers; i++) {
-            auto rope = uses_sliding_attention(i) ? sliding_rope : rolling_rope;
+        for (std::size_t i = 0; i < options.attentions.size(); i++) {
+            if (uses_recurrent_attention(i)) {
+                _M_transforms->emplace_back(indirect_layer<RecurrentAttention>(options.hidden_dim));
+            } else {
+                _M_transforms->emplace_back(indirect_layer<MultiheadAttention>(mha_options, rope));
+            }
 
-            _M_transforms->emplace_back(indirect_layer<Attention>(attention_opts, rope));
-            _M_transforms->back().enable_norm(options.norm_eps, /*mu=*/1.0f);
-            _M_transforms->back().enable_post_norm(options.norm_eps, /*mu=*/1.0f);
+            // Enable attention (operator) norm and block normalization (ffn).
+            _M_transforms->back().enable_norm(options.norm_eps);
         }
     }
 
@@ -112,19 +114,16 @@ public:
     operator()(Input input, std::size_t start_pos = 0)
     {
         auto x = _M_embedding(input);
-        x = mul(x, T(std::sqrt(float(_M_options.hidden_dim))), accelerator());
 
         auto len = x.size(1);
         auto end_pos = std::min(start_pos + len, _M_options.max_seq_len);
 
         auto causal_mask = make_causal_mask<T>(len, end_pos, accelerator());
-        auto sliding_mask = make_sliding_causal_mask<T>(
-            len, end_pos, /*window=*/_M_options.sliding_window, accelerator()
-        );
+        auto recurrent_mask = make_causal_mask<T>(len, end_pos, accelerator());
 
         for (std::size_t i = 0; i < _M_transforms->size(); i++) {
             auto& transform = _M_transforms->at(i);
-            auto& mask = uses_sliding_attention(i) ? sliding_mask : causal_mask;
+            auto& mask = uses_recurrent_attention(i) ? recurrent_mask : causal_mask;
             x = transform(x, mask, start_pos);
         }
 
@@ -136,7 +135,7 @@ public:
         return _M_output(output);
     }
 
-    template <immutable_tensor2_t<index_type> Input>
+    template <immutable_tensor2_t<index_type> Index>
     auto
     operator()(Input input, std::size_t start_pos = 0)
     {

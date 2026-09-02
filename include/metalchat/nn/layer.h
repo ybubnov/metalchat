@@ -718,6 +718,20 @@ public:
     : _M_value(nullptr)
     {}
 
+    /// \copydoc basic_layer::accelerator() const
+    const hardware_accelerator&
+    accelerator() const
+    {
+        return _M_value->accelerator();
+    }
+
+    /// \copydoc basic_layer::accelerator()
+    hardware_accelerator&
+    accelerator()
+    {
+        return _M_value->accelerator();
+    }
+
     std::shared_ptr<layer_type>
     get() const
     {
