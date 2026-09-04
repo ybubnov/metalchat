@@ -26,6 +26,7 @@ def prepare_test_fixtures(root_path: str = "test_fixture") -> None:
     prepare_test_fixture("google/gemma-3-270m-it", root_path)
     prepare_test_fixture("meta-llama/Llama-3.2-1B-Instruct", root_path)
     prepare_test_fixture("meta-llama/LLama-3.2-1B-Instruct-QLORA_INT4_EO8", root_path)
+    prepare_test_fixture("LiquidAI/LFM2.5-230M", root_path)
 
     prepare_safetensors(
         "meta-llama/Llama-3.2-1B-Instruct",

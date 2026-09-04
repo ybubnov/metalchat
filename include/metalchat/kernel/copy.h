@@ -63,7 +63,7 @@ public:
     auto
     operator()(Input input, Output output)
     {
-        return copy(flatten<2>(input), flatten<2>(output));
+        return copy(flatten<2>(input), flatten<2>(output)).view(output.shape());
     }
 
     /// Creates an output tensor like the input and invokes the kernel.

@@ -262,6 +262,17 @@ private:
 };
 
 
+struct recurrent_attention_options {
+    std::size_t hidden_dim;
+    std::size_t kernel_size;
+    std::size_t groups;
+    /// Maximum sequence length model will be run with.
+    std::size_t max_seq_len;
+    /// Batch size the model will be run with.
+    std::size_t max_batch_size;
+};
+
+
 template <typename T, contiguous_container Container, mutable_layer Cache = window_cache<T>>
 class recurrent_attention : public basic_attention<T> {
 private:
@@ -269,17 +280,36 @@ private:
     using Linear = linear<T, Container>;
     using Conv1d = conv1d<T, Container>;
 
+
+    indirect_layer<Linear> _M_wq;
+    indirect_layer<Linear> _M_wo;
+    indirect_layer<Conv1d> _M_conv;
+    indirect_layer<Cache> _M_cache;
+
+    recurrent_attention_options _M_options;
+
 public:
     using value_type = T;
     using container_type = Container;
 
-    recurrent_attention(std::size_t groups, hardware_accelerator& accelerator)
-    : Attention(accelerator)
+    recurrent_attention(
+        const recurrent_attention_options& options, hardware_accelerator& accelerator
+    )
+    : Attention(accelerator),
+      _M_options(options)
     {
-        _M_in_proj = this->template register_layer<Linear>("in_proj");
-        _M_out_proj = this->template register_layer<Linear>("out_proj");
-        _M_conv = this->template register_layer<Conv1d>("conv", /*padding=*/0, /*groups=*/groups);
-        _M_cache = this->template register_layer<Cache>("cache");
+        _M_wq = this->template register_layer<Linear>("wq");
+        _M_wo = this->template register_layer<Linear>("wo");
+        _M_conv =
+            this->template register_layer<Conv1d>("conv", /*padding=*/0, /*groups=*/options.groups);
+
+        window_caching_options cache_options{
+            .window_size = options.kernel_size - 1,
+            .hidden_dim = options.hidden_dim,
+            .max_batch_size = options.max_batch_size
+        };
+
+        _M_cache = this->template register_layer<Cache>("cache", cache_options);
     }
 
     /// Compute recurrent attention of the input sequence.
@@ -308,27 +338,22 @@ private:
         auto& accelerator = Attention::accelerator();
         auto hidden = mask ? hadamard_broadcast(input, mask.value(), accelerator) : input;
 
-        auto BCx = _M_in_proj(hidden).transpose({0, 2, 1});
-        auto [B, C, x] = chunk(BCx, 3, /*dim=*/1);
+        auto BCx = _M_wq(hidden).transpose({0, 2, 1});
+        auto [B, C, x] = chunk<3>(BCx, /*dim=*/1);
 
         hidden = hadamard(B, x, accelerator);
-        hidden = _M_cache.update(hidden, start_pos);
+        hidden = _M_cache->update(hidden, start_pos);
         hidden = _M_conv(hidden);
 
         // After the cache update, input will contain a padding containing the cached
         // rolling window. Drop the convolution of that window leaving only a tensor
         // of the input length.
-        auto len = input.size(2);
+        const auto len = input.size(1);
         hidden = hidden.narrow(2, hidden.size(2) - len, len);
 
         hidden = hadamard(hidden, C, accelerator).transpose({0, 2, 1});
-        return _M_out_proj(hidden);
+        return _M_wo(hidden);
     }
-
-    indirect_layer<Linear> _M_in_proj;
-    indirect_layer<Linear> _M_out_proj;
-    indirect_layer<Conv1d> _M_conv;
-    indirect_layer<Cache> _M_cache;
 };
 
 

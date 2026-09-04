@@ -26,6 +26,7 @@ struct lfm2_options {
     std::size_t hidden_dim = 0;
     std::size_t n_heads = 0;
     std::size_t n_kv_heads = 0;
+    std::size_t kernel_size = 0;
     std::size_t max_seq_len = 0;
     std::size_t max_batch_size = 0;
     float rope_theta = 0.0f;
@@ -61,7 +62,7 @@ class lfm2 : public basic_layer {
     bool
     uses_recurrent_attention(std::size_t i)
     {
-        return _M_options.attention[i] == attention::recurrent;
+        return _M_options.attentions[i] == attention::recurrent;
     }
 
 public:
@@ -97,9 +98,19 @@ public:
             .norm_mu = 0.0f
         };
 
+        recurrent_attention_options ra_options{
+            .hidden_dim = options.hidden_dim,
+            .kernel_size = options.kernel_size,
+            .groups = options.hidden_dim,
+            .max_seq_len = options.max_seq_len,
+            .max_batch_size = options.max_batch_size
+        };
+
         for (std::size_t i = 0; i < options.attentions.size(); i++) {
             if (uses_recurrent_attention(i)) {
-                _M_transforms->emplace_back(indirect_layer<RecurrentAttention>(options.hidden_dim));
+                _M_transforms->emplace_back(
+                    indirect_layer<RecurrentAttention>(ra_options, accelerator)
+                );
             } else {
                 _M_transforms->emplace_back(indirect_layer<MultiheadAttention>(mha_options, rope));
             }
@@ -119,11 +130,10 @@ public:
         auto end_pos = std::min(start_pos + len, _M_options.max_seq_len);
 
         auto causal_mask = make_causal_mask<T>(len, end_pos, accelerator());
-        auto recurrent_mask = make_causal_mask<T>(len, end_pos, accelerator());
 
         for (std::size_t i = 0; i < _M_transforms->size(); i++) {
             auto& transform = _M_transforms->at(i);
-            auto& mask = uses_recurrent_attention(i) ? recurrent_mask : causal_mask;
+            const auto& mask = uses_recurrent_attention(i) ? std::nullopt : causal_mask;
             x = transform(x, mask, start_pos);
         }
 
@@ -135,7 +145,7 @@ public:
         return _M_output(output);
     }
 
-    template <immutable_tensor2_t<index_type> Index>
+    template <immutable_tensor2_t<index_type> Input>
     auto
     operator()(Input input, std::size_t start_pos = 0)
     {
