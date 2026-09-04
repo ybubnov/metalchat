@@ -23,26 +23,16 @@ template <typename T, nn::mutable_layer Layer> class llama3_safetensor_serialize
 public:
     using value_type = nn::indirect_layer<Layer>;
 
-    /// The safetensor serializer for a Llama3 model.
-    llama3_safetensor_serializer(
-        const nn::llama3_options& options, hardware_accelerator& accelerator
-    )
-    : _M_options(options),
-      _M_accelerator(accelerator)
-    {}
-
-    value_type
-    load(const safetensor_document& document)
+    void
+    load(const safetensor_document& document, value_type& layer) const
     {
-        value_type layer(_M_options, _M_accelerator);
         auto doc = adapt(document);
         doc.load(layer);
         adapt(layer);
-        return layer;
     }
 
     void
-    save(safetensor_document& document, value_type& layer) const
+    save(safetensor_document& document, const value_type& layer) const
     {
         // TODO: remove tok_embeddings.weight tensor.
         document.save(layer);
@@ -71,11 +61,21 @@ public:
     ///
     /// \param layer a layer to adapt to the HuggingFace's implementation.
     void
-    adapt(value_type& layer)
+    adapt(value_type& layer) const
     {
+        auto& accelerator = layer.accelerator();
+
+        const auto& embedding = layer.parameter("tok_embeddings.weight");
+        const auto& wk = layer.parameter("layers.0.attention.wk.weight");
+        const auto& wq = layer.parameter("layers.0.attention.wq.weight");
+
+        auto hidden_size = embedding.size(1);
+        auto n_kv_heads = hidden_size / wk.size(1);
+        auto n_heads = hidden_size / wq.size(1);
+
         const std::vector<std::pair<std::regex, std::size_t>> permutations = {
-            {std::regex(R"(layers\.(\d+)\.attention\.wk\.weight)"), _M_options.n_kv_heads},
-            {std::regex(R"(layers\.(\d+)\.attention\.wq\.weight)"), _M_options.n_heads},
+            {std::regex(R"(layers\.(\d+)\.attention\.wk\.weight)"), n_kv_heads},
+            {std::regex(R"(layers\.(\d+)\.attention\.wq\.weight)"), n_heads},
         };
 
         // Create a typed container, duplicate accessor attributes (strides, sizes, and offsets);
@@ -84,7 +84,7 @@ public:
         auto permute_attention = [&](nn::named_parameter param) {
             for (auto& [re, n_heads] : permutations) {
                 if (std::regex_match(param.path, re)) {
-                    nn::permute_attention_heads<T>(param.ptr, n_heads, _M_accelerator);
+                    nn::permute_attention_heads<T>(param.ptr, n_heads, accelerator);
                     break;
                 }
             }
@@ -92,10 +92,6 @@ public:
 
         layer.apply(permute_attention);
     }
-
-private:
-    nn::llama3_options _M_options;
-    hardware_accelerator _M_accelerator;
 };
 
 

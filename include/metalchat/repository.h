@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
@@ -97,11 +97,12 @@ struct filesystem_repository {
     transformer_type
     retrieve_transformer(const std::filesystem::path& p, const options_type& options)
     {
-        layer_serializer serializer(options, _M_accelerator);
-
         auto document_path = _M_repo_path / p;
         auto document = document_type::open(document_path, _M_accelerator);
-        auto layer = serializer.load(document);
+
+        layer_serializer serializer;
+        nn::indirect_layer<layer_type> layer(options, _M_accelerator);
+        serializer.load(document, layer);
 
         return transformer_type(layer);
     }
@@ -125,8 +126,6 @@ struct filesystem_repository {
         const std::filesystem::path& p, const options_type& options, Allocator alloc = Allocator()
     )
     {
-        layer_serializer serializer(options, _M_accelerator);
-
         auto document_path = _M_repo_path / p;
         auto document_stream = std::ifstream(document_path, std::ios::binary);
         if (!document_stream.is_open()) {
@@ -135,8 +134,11 @@ struct filesystem_repository {
             ));
         }
 
+        layer_serializer serializer;
+        nn::indirect_layer<layer_type> layer(options, _M_accelerator);
+
         auto document = document_type::open(document_stream, alloc);
-        auto layer = serializer.load(document);
+        serializer.load(document, layer);
 
         return transformer<layer_type>(layer);
     }

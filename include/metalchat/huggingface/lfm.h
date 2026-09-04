@@ -33,26 +33,19 @@ struct lfm2_options_serializer {
 };
 
 
-template <typename T, nn::mutable_layer Layer> class lfm2_safetensor_serializer {
+template <nn::mutable_layer Layer> class lfm2_safetensor_serializer {
 public:
     using value_type = nn::indirect_layer<Layer>;
 
-    lfm2_safetensor_serializer(const nn::lfm2_options& options, hardware_accelerator& accelerator)
-    : _M_options(options),
-      _M_accelerator(accelerator)
-    {}
-
-    value_type
-    load(safetensor_document& document)
+    void
+    load(const safetensor_document& document, value_type& layer) const
     {
-        value_type layer(_M_options, _M_accelerator);
         auto doc = adapt(document);
         doc.load(layer);
-        return layer;
     }
 
     void
-    save(safetensor_document& document, value_type layer)
+    save(safetensor_document& document, const value_type& layer) const
     {
         document.save(layer);
     }
@@ -81,10 +74,6 @@ public:
 
         return doc;
     }
-
-private:
-    nn::lfm2_options _M_options;
-    hardware_accelerator _M_accelerator;
 };
 
 
@@ -93,7 +82,7 @@ template <contiguous_container Container> struct lfm2_traits {
     using container_type = Container;
 
     using layer_type = nn::lfm2<value_type, Container>;
-    using layer_serializer = lfm2_safetensor_serializer<value_type, layer_type>;
+    using layer_serializer = lfm2_safetensor_serializer<layer_type>;
 
     using options_type = nn::lfm2_options;
     using options_serializer = lfm2_options_serializer;

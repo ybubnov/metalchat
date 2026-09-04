@@ -520,8 +520,11 @@ concept safetensor_serializer = requires(Serializer s) {
     typename Serializer::value_type;
 
     {
-        s.load(std::declval<safetensor_document&>())
-    } -> std::same_as<typename Serializer::value_type>;
+        s.load(
+            std::declval<safetensor_document&>(), std::declval<typename Serializer::value_type&>()
+        )
+    } -> std::same_as<void>;
+
     {
         s.save(
             std::declval<safetensor_document&>(), std::declval<typename Serializer::value_type&>()

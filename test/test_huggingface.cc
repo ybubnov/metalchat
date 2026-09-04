@@ -15,9 +15,8 @@ using namespace Catch::Matchers;
 
 TEST_CASE("Test llama3 huggingface model adaptor", "[huggingface][integration]")
 {
-    using value_type = bf16;
     using layer_type = nn::llama3<bf16>;
-    using serializer_type = huggingface::llama3_safetensor_serializer<value_type, layer_type>;
+    using serializer_type = huggingface::llama3_safetensor_serializer<layer_type>;
 
     hardware_accelerator gpu0;
     auto repo_path = test_fixture_path() / "meta-llama/Llama-3.2-1B-Instruct";
@@ -25,7 +24,7 @@ TEST_CASE("Test llama3 huggingface model adaptor", "[huggingface][integration]")
     auto document = safetensor_document::open(document_path, gpu0);
 
     auto options = nn::default_llama3_1b_options();
-    auto serializer = serializer_type(options, gpu0);
+    serializer_type serializer;
 
     document = serializer.adapt(document);
     for (auto it = document.begin(); it != document.end(); ++it) {

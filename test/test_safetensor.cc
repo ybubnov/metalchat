@@ -71,8 +71,10 @@ TEST_CASE("Test model load", "[safetensor][integration]")
     auto doc_path = repo_path / "model.safetensors";
     auto doc = safetensor_document::open(doc_path, gpu0);
 
-    auto serializer = serializer_type(options, gpu0);
-    auto m = serializer.load(doc);
+    nn::indirect_layer<layer_type> m(options, gpu0);
+
+    serializer_type serializer;
+    serializer.load(doc, m);
     auto params = m.parameters();
 
     REQUIRE(params.size() == 179);
