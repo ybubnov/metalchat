@@ -90,16 +90,20 @@ public:
     using value_type = T;
     using container_type = Container;
 
-    template <mutable_layer Attention>
-    transformer(const indirect_layer<Attention>& attention)
+    template <std::derived_from<BasicAttention> Attention>
+    transformer(const polymorphic_layer<Attention>& attention)
     : basic_layer(attention.accelerator())
     {
-        _M_attention =
-            register_polymorphic_layer<Attention>("attention", polymorphic_layer(attention));
+        _M_attention = register_polymorphic_layer<Attention>("attention", attention);
         _M_ff = register_layer<FeedForward>("feed_forward");
     }
 
-    template <mutable_layer Attention>
+    template <std::derived_from<BasicAttention> Attention>
+    transformer(const indirect_layer<Attention>& attention)
+    : transformer(polymorphic_layer(attention))
+    {}
+
+    template <std::derived_from<BasicAttention> Attention>
     transformer(const multihead_attention_options& options, hardware_accelerator& accelerator)
     : transformer(indirect_layer<Attention>(options, accelerator))
     {}

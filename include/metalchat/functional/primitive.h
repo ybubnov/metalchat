@@ -60,6 +60,15 @@ hadamard_broadcast(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 
 
 template <immutable_tensor Tensor1, immutable_tensor Tensor2>
+requires std::same_as<typename Tensor1::value_type, typename Tensor2::value_type>
+auto
+hadamard_broadcast(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
+{
+    return hadamard_broadcast<typename Tensor1::value_type, Tensor1, Tensor2>(t1, t2, gpu);
+}
+
+
+template <immutable_tensor Tensor1, immutable_tensor Tensor2>
 auto
 add(Tensor1 t1, Tensor2 t2, hardware_accelerator& gpu)
 {

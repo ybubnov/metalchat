@@ -81,8 +81,10 @@ hadamard_broadcast(
 
 __lib_metalchat_kernel2_mixed3(hadamard_broadcast, bfloat, int8_t, bfloat);
 __lib_metalchat_kernel2_mixed3(hadamard_broadcast, bfloat, int8_t, float);
+__lib_metalchat_kernel2_mixed3(hadamard_broadcast, bfloat, bfloat, bfloat);
 __lib_metalchat_kernel2_mixed3(hadamard_broadcast, float, int8_t, bfloat);
 __lib_metalchat_kernel2_mixed3(hadamard_broadcast, float, int8_t, float);
+__lib_metalchat_kernel2_mixed3(hadamard_broadcast, float, float, float);
 
 
 template <typename T> struct __scalar_mul_parameters {

@@ -20,7 +20,7 @@ gemma3_options_serializer::load(std::istream& is) const
     auto options = jsoncons::decode_json<options_type>(is);
 
     auto sliding_stride =
-        options._sliding_window_pattern.value_or(options._sliding_window_pattern.value_or(0));
+        options._sliding_window_pattern.value_or(options.sliding_window_pattern.value_or(0));
 
     return nn::gemma3_options{
         .head_dim = options.head_dim,

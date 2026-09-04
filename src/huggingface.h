@@ -17,6 +17,11 @@ namespace huggingface {
 namespace detail {
 
 
+struct rope_parameters {
+    float rope_theta;
+};
+
+
 /// Partial view of the HuggingFace's Llama configuration. The original model
 /// supports more parameters. But MetalChat has no use of that, therefore only
 /// supported subset of options is defined in this structure.
@@ -44,6 +49,19 @@ struct gemma3_options {
     float rms_norm_eps = 0.0f;
     float rope_theta = 0.0f;
     float rope_local_base_freq = 0.0f;
+};
+
+
+/// Partial view of the HuggingFace's LFM2.5 configuration.
+struct lfm2_options {
+    std::size_t hidden_size = 0;
+    std::size_t num_hidden_layers = 0;
+    std::size_t num_attention_heads = 0;
+    std::size_t num_key_value_heads = 0;
+    std::size_t conv_L_cache = 0;
+    std::vector<std::string> layer_types = {};
+    float norm_eps = 0.0f;
+    rope_parameters rope_parameters;
 };
 
 
@@ -120,6 +138,8 @@ namespace hf = metalchat::huggingface::detail;
 
 
 // clang-format off
+JSONCONS_ALL_MEMBER_TRAITS(hf::rope_parameters, rope_theta);
+
 JSONCONS_ALL_MEMBER_TRAITS(
     hf::llama3_options,
     head_dim,
@@ -129,6 +149,20 @@ JSONCONS_ALL_MEMBER_TRAITS(
     rms_norm_eps,
     rope_theta
 );
+
+
+JSONCONS_ALL_MEMBER_TRAITS(
+    hf::lfm2_options,
+    hidden_size,
+    num_hidden_layers,
+    num_attention_heads,
+    num_key_value_heads,
+    conv_L_cache,
+    layer_types,
+    norm_eps,
+    rope_parameters
+);
+
 
 JSONCONS_N_MEMBER_TRAITS(
     hf::gemma3_options,

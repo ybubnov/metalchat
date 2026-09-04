@@ -64,14 +64,14 @@ public:
     auto
     operator()(Input input)
     {
-        return _M_conv1d(input, _M_weight, _M_padding, _M_groups);
+        return _M_conv(input, _M_weight, _M_padding, _M_groups);
     }
 
     template <immutable_tensor2_t<T> Input>
     auto
     operator()(Input input)
     {
-        return _M_conv1d(input, _M_weight, _M_padding, _M_groups);
+        return _M_conv(input, _M_weight, _M_padding, _M_groups);
     }
 
 private:
@@ -79,7 +79,7 @@ private:
         weight_pointer weight,
         std::size_t padding,
         std::size_t groups,
-        hardware_accelerator& acelerator
+        hardware_accelerator& accelerator
     )
     : basic_layer(accelerator),
       _M_conv(accelerator),
