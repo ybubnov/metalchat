@@ -46,33 +46,20 @@ struct llama3_options_serializer {
 
 /// Safetensor serializer for Llama3 model distributed through HuggingFace repository.
 ///
-/// \tparam T a type of the attention weights (Wq, Wk).
 /// \tparam Layer a Llama3 implementation layer.
-template <typename T, nn::mutable_layer Layer> class llama3_safetensor_serializer {
+template <nn::mutable_layer Layer> class llama3_safetensor_serializer {
 public:
     using value_type = nn::indirect_layer<Layer>;
 
-    /// Creates a new instance of a layer serializer with Llama3 options.
-    llama3_safetensor_serializer(
-        const nn::llama3_options& options, hardware_accelerator& accelerator
-    )
-    : _M_options(options),
-      _M_accelerator(accelerator)
-    {}
-
-    value_type
-    load(safetensor_document& document)
+    void
+    load(const safetensor_document& document, value_type& layer) const
     {
-        value_type layer(_M_options, _M_accelerator);
-
         auto doc = adapt(document);
         doc.load(layer);
-
-        return layer;
     }
 
     void
-    save(safetensor_document& document, value_type layer)
+    save(safetensor_document& document, const value_type& layer) const
     {
         // TODO: remove tok_embeddings.weight tensor, permute back layers?
         document.save(layer);
@@ -110,10 +97,6 @@ public:
 
         return doc;
     }
-
-private:
-    nn::llama3_options _M_options;
-    hardware_accelerator _M_accelerator;
 };
 
 
@@ -131,24 +114,15 @@ template <typename T, nn::mutable_layer Layer> class llama3_qlora_safetensor_ser
 public:
     using value_type = nn::indirect_layer<Layer>;
 
-    llama3_qlora_safetensor_serializer(
-        const nn::llama3_options& options, hardware_accelerator& accelerator
-    )
-    : _M_options(options),
-      _M_accelerator(accelerator)
-    {}
-
-    value_type
-    load(safetensor_document& document)
+    void
+    load(const safetensor_document& document, value_type& layer) const
     {
-        value_type layer(_M_options, _M_accelerator);
         adapt(layer);
         document.load(layer);
-        return layer;
     }
 
     void
-    save(safetensor_document& document, value_type layer)
+    save(safetensor_document& document, const value_type& layer) const
     {
         document.save(layer);
     }
@@ -156,8 +130,9 @@ public:
     /// Adapt the Llama3 model before loading weights. Performs in-place replacement of linear
     /// and embedding layers.
     void
-    adapt(value_type layer)
+    adapt(value_type& layer) const
     {
+        auto& accelerator = layer.accelerator();
         auto is_basic_linear = nn::layer_common_with<nn::basic_linear<T>>();
         auto is_basic_embedding = nn::layer_common_with<nn::basic_embedding<T>>();
         auto is_output = nn::layer_match_all(is_basic_linear, nn::layer_match_name("output"));
@@ -166,19 +141,15 @@ public:
         using QLoraEmbedding = quantization::lora_embedding<T>;
         using QLoraLinear = quantization::lora_linear<T>;
 
-        nn::indirect_layer<QLinear> linear(_M_accelerator);
-        nn::indirect_layer<QLoraEmbedding> embedding(_M_accelerator);
+        nn::indirect_layer<QLinear> linear(accelerator);
+        nn::indirect_layer<QLoraEmbedding> embedding(accelerator);
 
         nn::replace_layer(layer, is_basic_linear, [&] {
-            return nn::indirect_layer<QLoraLinear>(2.0, 32, _M_accelerator);
+            return nn::indirect_layer<QLoraLinear>(2.0, 32, accelerator);
         });
         nn::replace_layer(layer, is_basic_embedding, embedding);
         nn::replace_layer(layer, is_output, linear);
     }
-
-private:
-    nn::llama3_options _M_options;
-    hardware_accelerator _M_accelerator;
 };
 
 
@@ -381,7 +352,7 @@ template <contiguous_container Container> struct llama3_traits {
     using container_type = Container;
 
     using layer_type = nn::llama3<value_type, Container>;
-    using layer_serializer = llama3_safetensor_serializer<value_type, layer_type>;
+    using layer_serializer = llama3_safetensor_serializer<layer_type>;
 
     using options_type = nn::llama3_options;
     using options_serializer = llama3_options_serializer;
