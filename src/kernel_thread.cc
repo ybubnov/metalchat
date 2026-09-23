@@ -20,7 +20,7 @@ struct kernel_queue {
 
     kernel_queue() {}
 
-    kernel_queue(metal::shared_device device)
+    kernel_queue(const metal::shared_device& device)
     : id(0),
       queue(NS::TransferPtr(device->ptr->newCommandQueue())),
       commands(NS::TransferPtr(queue->commandBuffer())),
@@ -53,6 +53,21 @@ struct kernel_queue {
             callback();
         });
     }
+
+    void
+    commit(std::optional<std::string> message = std::nullopt)
+    {
+        encoder->endEncoding();
+
+        if (message) {
+            auto label = NS::String::string(message.value().c_str(), NS::UTF8StringEncoding);
+            auto label_ptr = NS::TransferPtr(label);
+            commands->setLabel(label_ptr.get());
+        }
+
+        commands->encodeSignalEvent(event.get(), id + 1);
+        commands->commit();
+    }
 };
 
 
@@ -67,7 +82,7 @@ hardware_function_encoder::hardware_function_encoder(
 
 
 void
-hardware_function_encoder::initialize(const std::string& name, const metal::shared_kernel kernel)
+hardware_function_encoder::initialize(const std::string& name, const metal::shared_kernel& kernel)
 {
     _M_name = name;
     _M_queue->encoder->setComputePipelineState(kernel->pipeline.get());
@@ -82,14 +97,14 @@ hardware_function_encoder::encode(const void* data, std::size_t size)
 
 
 void
-hardware_function_encoder::encode(metal::shared_buffer buffer, std::size_t offset)
+hardware_function_encoder::encode(const metal::shared_buffer& buffer, std::size_t offset)
 {
     _M_queue->encoder->setBuffer(buffer->ptr, offset, _M_buffer++);
 }
 
 
 void
-hardware_function_encoder::encode_memory_barrier(metal::shared_buffer buffer)
+hardware_function_encoder::encode_memory_barrier(const metal::shared_buffer& buffer)
 {
     const MTL::Resource* resources[1] = {buffer->ptr};
     _M_queue->encoder->memoryBarrier(resources, 1);
@@ -185,22 +200,14 @@ void
 kernel_thread::make_ready_at_thread_exit()
 {
     if (!_M_committed) {
-        auto label = std::format("metalchat commands (size={})", _M_size);
-        auto cmd_label = NS::TransferPtr(NS::String::string(label.c_str(), NS::UTF8StringEncoding));
-
-        _M_queue->encoder->endEncoding();
-
-        _M_queue->commands->setLabel(cmd_label.get());
-        _M_queue->commands->encodeSignalEvent(_M_queue->event.get(), _M_queue->id + 1);
-        _M_queue->commands->commit();
-
+        _M_queue->commit(std::format("metalchat commands (size={})", _M_size));
         _M_committed = true;
     }
 }
 
 
 recursive_kernel_thread::recursive_kernel_thread(
-    metal::shared_device device, std::size_t thread_capacity
+    const metal::shared_device& device, std::size_t thread_capacity
 )
 : _M_allocator(hardware_memory_allocator(device)),
   _M_queue(std::make_shared<kernel_queue>(device)),

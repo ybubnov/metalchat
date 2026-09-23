@@ -88,10 +88,10 @@ private:
     encode(const void* data, std::size_t size);
 
     void
-    encode(metal::shared_buffer buffer, std::size_t offset);
+    encode(const metal::shared_buffer& buffer, std::size_t offset);
 
     void
-    encode_memory_barrier(metal::shared_buffer buffer);
+    encode_memory_barrier(const metal::shared_buffer& buffer);
 
     void
     on_completed(kernel_callback_type callback);
@@ -100,7 +100,7 @@ public:
     hardware_function_encoder(const std::shared_ptr<kernel_queue>& queue, allocator_type alloc);
 
     void
-    initialize(const std::string& name, const metal::shared_kernel kernel);
+    initialize(const std::string& name, const metal::shared_kernel& kernel);
 
     template <typename T, immutable_scalar_t<T> Scalar>
     void
@@ -262,7 +262,7 @@ private:
 public:
     recursive_kernel_thread(const recursive_kernel_thread&) noexcept = default;
 
-    recursive_kernel_thread(metal::shared_device device, std::size_t thread_capacity);
+    recursive_kernel_thread(const metal::shared_device& device, std::size_t thread_capacity);
 
     allocator_type
     get_allocator() const
