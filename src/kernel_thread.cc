@@ -53,6 +53,21 @@ struct kernel_queue {
             callback();
         });
     }
+
+    void
+    commit(std::optional<std::string> message = std::nullopt)
+    {
+        encoder->endEncoding();
+
+        if (message) {
+            auto label = NS::String::string(message.value().c_str(), NS::UTF8StringEncoding);
+            auto label_ptr = NS::TransferPtr(label);
+            commands->setLabel(label_ptr.get());
+        }
+
+        commands->encodeSignalEvent(event.get(), id + 1);
+        commands->commit();
+    }
 };
 
 
@@ -185,15 +200,7 @@ void
 kernel_thread::make_ready_at_thread_exit()
 {
     if (!_M_committed) {
-        auto label = std::format("metalchat commands (size={})", _M_size);
-        auto cmd_label = NS::TransferPtr(NS::String::string(label.c_str(), NS::UTF8StringEncoding));
-
-        _M_queue->encoder->endEncoding();
-
-        _M_queue->commands->setLabel(cmd_label.get());
-        _M_queue->commands->encodeSignalEvent(_M_queue->event.get(), _M_queue->id + 1);
-        _M_queue->commands->commit();
-
+        _M_queue->commit(std::format("metalchat commands (size={})", _M_size));
         _M_committed = true;
     }
 }
