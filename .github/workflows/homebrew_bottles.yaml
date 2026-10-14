@@ -29,9 +29,8 @@ jobs:
     - name: Checkout Source Code
       uses: actions/checkout@v6
 
-    steps:
     - name: Install Metal Toolchain
-      if ${{ matrix.os == 'xcode-27' }}
+      continue-on-error: true
       run: |
         xcodebuild -downloadComponent MetalToolchain
 
