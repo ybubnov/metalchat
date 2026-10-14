@@ -37,6 +37,7 @@ jobs:
 
     - name: Build a Homebrew Bottle
       run: |
+        xcodebuild -downloadComponent MetalToolchain
         brew install --build-bottle $HOMEBREW_TAP/metalchat
         brew bottle --root-url $HOMEBREW_ROOT_URL --json $HOMEBREW_TAP/metalchat
 
