@@ -29,6 +29,12 @@ jobs:
     - name: Checkout Source Code
       uses: actions/checkout@v6
 
+    steps:
+    - name: Install Metal Toolchain
+      if ${{ matrix.os == 'xcode-27' }}
+      run: |
+        xcodebuild -downloadComponent MetalToolchain
+
     - name: Configure a Homebrew Tap
       run: |
         brew tap-new --no-git $HOMEBREW_TAP
@@ -37,7 +43,6 @@ jobs:
 
     - name: Build a Homebrew Bottle
       run: |
-        xcodebuild -downloadComponent MetalToolchain
         brew install --build-bottle $HOMEBREW_TAP/metalchat
         brew bottle --root-url $HOMEBREW_ROOT_URL --json $HOMEBREW_TAP/metalchat
 
