@@ -10,7 +10,26 @@
 namespace metalchat {
 
 
+struct kernel_queue_callback {
+    std::shared_ptr<std::promise<void>> _M_promise;
+
+    void
+    operator()(const MTL::CommandBuffer* buffer) const
+    {
+        if (buffer->error() != nullptr) {
+            auto failure_reason = buffer->error()->localizedDescription();
+            auto exception_ptr =
+                std::make_exception_ptr(std::runtime_error(failure_reason->utf8String()));
+            _M_promise->set_exception(exception_ptr);
+        } else {
+            _M_promise->set_value();
+        }
+    }
+};
+
+
 struct kernel_queue {
+
     std::size_t id;
 
     NS::SharedPtr<MTL::CommandQueue> queue;
@@ -24,9 +43,10 @@ struct kernel_queue {
     : id(0),
       queue(NS::TransferPtr(device->ptr->newCommandQueue())),
       commands(NS::TransferPtr(queue->commandBuffer())),
-      encoder(NS::TransferPtr(commands->computeCommandEncoder(MTL::DispatchTypeConcurrent))),
+      encoder(NS::TransferPtr(commands->computeCommandEncoder(MTL::DispatchTypeSerial))),
       event(NS::TransferPtr(device->ptr->newEvent()))
     {
+        commands->enqueue();
         auto label = NS::TransferPtr(NS::String::string("metalchat", NS::UTF8StringEncoding));
         queue->setLabel(label.get());
     }
@@ -39,7 +59,7 @@ struct kernel_queue {
         kq.id++;
         kq.commands = NS::TransferPtr(kq.queue->commandBuffer());
         kq.commands->enqueue();
-        kq.commands->encodeWait(kq.event.get(), id);
+        kq.commands->encodeWait(kq.event.get(), kq.id);
 
         auto encoder = kq.commands->computeCommandEncoder(MTL::DispatchTypeConcurrent);
         kq.encoder = NS::TransferPtr(encoder);
@@ -49,9 +69,14 @@ struct kernel_queue {
     void
     on_completed(kernel_callback_type callback)
     {
-        commands->addCompletedHandler([callback = callback](const MTL::CommandBuffer* buf) {
-            callback();
-        });
+        commands->addCompletedHandler([callback = std::move(callback)](const MTL::CommandBuffer* buf
+                                      ) { callback(); });
+    }
+
+    void
+    on_completed(const MTL::HandlerFunction& callback)
+    {
+        commands->addCompletedHandler(callback);
     }
 
     void
@@ -77,7 +102,8 @@ hardware_function_encoder::hardware_function_encoder(
 : _M_allocator(alloc),
   _M_queue(queue_ptr),
   _M_buffer(0),
-  _M_name()
+  _M_name(),
+  _M_resources()
 {}
 
 
@@ -99,6 +125,7 @@ hardware_function_encoder::encode(const void* data, std::size_t size)
 void
 hardware_function_encoder::encode(const metal::shared_buffer& buffer, std::size_t offset)
 {
+    _M_resources.buffers.push_back(buffer);
     _M_queue->encoder->setBuffer(buffer->ptr, offset, _M_buffer++);
 }
 
@@ -118,7 +145,7 @@ hardware_function_encoder::on_completed(kernel_callback_type callback)
 }
 
 
-void
+const hardware_resources&
 hardware_function_encoder::dispatch(dim3 grid, dim3 group)
 {
     std::stringstream command_name_stream;
@@ -132,6 +159,7 @@ hardware_function_encoder::dispatch(dim3 grid, dim3 group)
     MTL::Size threads_per_grid(grid.x, grid.y, grid.z);
     MTL::Size threads_per_group(group.x, group.y, group.z);
     _M_queue->encoder->dispatchThreads(threads_per_grid, threads_per_group);
+    return _M_resources;
 }
 
 
@@ -139,31 +167,18 @@ kernel_thread::kernel_thread(const kernel_queue& queue, std::size_t capacity, al
 : _M_allocator(alloc),
   _M_queue(std::make_shared<kernel_queue>(queue)),
   _M_promise(std::make_shared<promise_type>()),
+  _M_callbacks(),
   _M_future(_M_promise->get_future()),
   _M_size(0),
   _M_capacity(capacity),
   _M_committed(false)
-{
-    // After the completion of the kernel execution, release the promise and all blocks
-    // waiting for the completion of this kernel.
-    _M_queue->commands->addCompletedHandler([promise =
-                                                 _M_promise](const MTL::CommandBuffer* buffer) {
-        if (buffer->error() != nullptr) {
-            auto failure_reason = buffer->error()->localizedDescription();
-            auto exception_ptr =
-                std::make_exception_ptr(std::runtime_error(failure_reason->utf8String()));
-            promise->set_exception(exception_ptr);
-        } else {
-            promise->set_value();
-        }
-    });
-}
+{}
 
 
 void
 kernel_thread::on_completed(kernel_callback_type callback)
 {
-    _M_queue->on_completed(callback);
+    _M_callbacks.push(std::move(callback));
 }
 
 
@@ -200,8 +215,17 @@ void
 kernel_thread::make_ready_at_thread_exit()
 {
     if (!_M_committed) {
-        _M_queue->commit(std::format("metalchat commands (size={})", _M_size));
         _M_committed = true;
+        _M_queue->on_completed(kernel_queue_callback{_M_promise});
+
+        while (_M_callbacks.size() > 0) {
+            _M_queue->on_completed(std::move(_M_callbacks.front()));
+            _M_callbacks.pop();
+        }
+
+        // After the completion of the kernel execution, release the promise
+        // and all blocked threads waiting for the completion of this kernel.
+        _M_queue->commit(std::format("metalchat commands (size={})", _M_size));
     }
 }
 
