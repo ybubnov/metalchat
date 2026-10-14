@@ -24,7 +24,6 @@ TEST_CASE("Kernel thread", "[kernel::thread]")
     auto output3 = add(output2, output2);
 
     auto result = output3.get();
-    std::cout << "-- main thread --" << std::endl;
     REQUIRE(result.dim() == 3);
     REQUIRE(result.size(0) == input1.size(0));
     REQUIRE(result.size(1) == input1.size(1));

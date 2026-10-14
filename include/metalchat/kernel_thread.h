@@ -9,7 +9,9 @@
 #include <format>
 #include <future>
 #include <iostream>
+#include <list>
 #include <memory>
+#include <queue>
 
 #include <metalchat/accelerator.h>
 #include <metalchat/allocator.h>
@@ -55,6 +57,19 @@ struct dim3 {
 };
 
 
+struct hardware_resources {
+    using container_type = hardware_memory_container<void>;
+    using container_pointer = std::shared_ptr<container_type>;
+
+    std::list<metal::shared_buffer> buffers;
+
+    /// The \hardware_resources default constructor.
+    hardware_resources()
+    : buffers()
+    {}
+};
+
+
 class hardware_function_encoder {
 public:
     using allocator_type = polymorphic_hardware_allocator<void>;
@@ -64,6 +79,7 @@ private:
     std::shared_ptr<kernel_queue> _M_queue;
     std::size_t _M_buffer;
     std::string _M_name;
+    hardware_resources _M_resources;
 
     /// Encode the specified raw block of memory as bytes.
     ///
@@ -163,7 +179,7 @@ public:
         encode(container_ptr->storage(), container_ptr->storage_offset());
     }
 
-    void
+    const hardware_resources&
     dispatch(dim3 grid, dim3 group);
 };
 
@@ -187,6 +203,7 @@ private:
     std::shared_ptr<kernel_queue> _M_queue;
     std::shared_ptr<promise_type> _M_promise;
     std::shared_future<void> _M_future;
+    std::queue<kernel_callback_type> _M_callbacks;
 
     std::size_t _M_size;
     std::size_t _M_capacity;
@@ -201,7 +218,7 @@ private:
     on_completed(kernel_callback_type callback);
 
 public:
-    kernel_thread(const kernel_thread&) noexcept = default;
+    kernel_thread(kernel_thread&&) noexcept = default;
 
     kernel_thread(const kernel_queue& queue, std::size_t capacity, allocator_type alloc);
 
@@ -233,7 +250,8 @@ public:
             on_completed(callback.value());
         }
 
-        f.encode(hardware_function_encoder(_M_queue, _M_allocator));
+        hardware_function_encoder hw_encoder(_M_queue, _M_allocator);
+        f.encode(hw_encoder);
 
         _M_size++;
 

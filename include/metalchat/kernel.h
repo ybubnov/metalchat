@@ -6,6 +6,7 @@
 
 #include <format>
 #include <future>
+#include <mutex>
 #include <tuple>
 
 #include <metalchat/accelerator.h>
@@ -105,6 +106,9 @@ private:
     basic_kernel _M_kernel;
     std::shared_ptr<kernel_thread> _M_this_thread_ptr;
     std::shared_ptr<arguments_type> _M_args;
+    std::shared_ptr<hardware_resources> _M_resources;
+    std::shared_ptr<std::recursive_mutex> _M_mu;
+    std::shared_future<void> _M_future;
 
     /// Configuration of the Metal grid to invoke this particular kernel. Grid specifies
     /// the total number of threads in a grid, while thread defines a number of threads
@@ -120,6 +124,9 @@ public:
     : _M_kernel(kernel),
       _M_this_thread_ptr(nullptr),
       _M_args(std::make_shared<arguments_type>(args)),
+      _M_resources(std::make_shared<hardware_resources>()),
+      _M_mu(std::make_shared<std::recursive_mutex>()),
+      _M_future(),
       _M_grid(grid),
       _M_thread(thread)
     {
@@ -173,7 +180,8 @@ public:
         }
 
         _M_this_thread_ptr = _M_kernel.get_accelerator().get_this_thread();
-        return _M_this_thread_ptr->push(*this);
+        _M_future = _M_this_thread_ptr->push(*this);
+        return _M_future;
     }
 
     /// Schedules execution of the stored kernel. The method returns a shared future that could
@@ -193,7 +201,8 @@ public:
         }
 
         _M_this_thread_ptr = _M_kernel.get_accelerator().get_this_thread();
-        return _M_this_thread_ptr->push(*this, callback);
+        _M_future = _M_this_thread_ptr->push(*this, callback);
+        return _M_future;
     }
 
     /// Encode the kernel and all it's arguments with the specified encoder.
@@ -206,7 +215,7 @@ public:
     /// \ref kernel_task::operator()(std::function<void()>), or \ref kernel_task::operator()()
     /// therefore there is no need to call this method manually.
     void
-    encode(hardware_function_encoder encoder)
+    encode(hardware_function_encoder& encoder)
     {
         return encode(encoder, std::index_sequence_for<Args...>{});
     }
@@ -223,6 +232,8 @@ public:
     void
     make_ready_at_thread_exit()
     {
+        const std::scoped_lock lock(*_M_mu);
+
         if (_M_this_thread_ptr == nullptr) {
             throw std::runtime_error(
                 std::format("kernel_task: kernel '{}' was not invoked", _M_kernel.name())
@@ -230,7 +241,10 @@ public:
         }
 
         _M_this_thread_ptr->make_ready_at_thread_exit();
+        _M_future.wait();
+
         _M_args.reset();
+        _M_resources.reset();
     }
 
     /// Returns a new kernel task with bound arguments at positions starting from the beginning
@@ -281,7 +295,7 @@ public:
 protected:
     template <std::size_t... Indices>
     void
-    encode(hardware_function_encoder encoder, std::index_sequence<Indices...>)
+    encode(hardware_function_encoder& encoder, std::index_sequence<Indices...>)
     {
         encoder.initialize(_M_kernel.name(), _M_kernel.get_metal_kernel());
 
@@ -293,7 +307,7 @@ protected:
             encoder.encode<value_type>(arg);
         }(), ...);
 
-        encoder.dispatch(_M_grid, _M_thread);
+        *_M_resources = encoder.dispatch(_M_grid, _M_thread);
     }
 };
 

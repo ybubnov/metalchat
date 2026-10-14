@@ -65,7 +65,7 @@ class MetalChat(ConanFile):
 
     def requirements(self):
         self.requires("mbits-mstch/1.0.4")
-        self.requires("metal-cpp/15.2")
+        self.requires("metal-cpp/[>=15.2]")
         self.requires("rapidhash/3.0")
         self.requires("jsoncons/1.3.0")
         self.requires("pcre2/[>=10.30 <11.0]")
