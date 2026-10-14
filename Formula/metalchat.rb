@@ -6,8 +6,9 @@ class Metalchat < Formula
 
   bottle do
     root_url "https://ghcr.io/v2/ybubnov/stable"
-    sha256 cellar: :any, arm64_tahoe:   "67ab460b14993aa354822b3b49faa2195210c6b4dea8c198da485ef1d2afe15f"
-    sha256 cellar: :any, arm64_sequoia: "d021a5073b5bfa1776728fac1303587a57486de89e0e17ed8a256568e6b95f3d"
+    sha256 cellar: :any, arm64_golden_gate: "52fd8192fc2accaa308157b7dd0e24ba62e6227c1f63049672d2050d7e0089bb"
+    sha256 cellar: :any, arm64_tahoe:       "6fb06e8218dfa5b5c0e96e5440c5fae6b47d1c74e252cc4295a867151ff40a96"
+    sha256 cellar: :any, arm64_sequoia:     "801be42c881dad0a2253b7439c0610a1dbf3a5cbb676f408978e1ab7dcdced69"
   end
 
   def source_path
