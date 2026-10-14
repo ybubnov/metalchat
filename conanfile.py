@@ -13,7 +13,7 @@ class MetalChat(ConanFile):
     package_type = "library"
     license = "GPL-3.0-or-later"
     author = "Yakau Bubnou (girokompass@gmail.com)"
-    description = "Llama inference for Apple Devices"
+    description = "LLM inference for Apple Silicon"
     url = "https://github.com/ybubnov/metalchat"
     topics = ("deep-learning", "machine-learning", "neural-networks", "llama")
 

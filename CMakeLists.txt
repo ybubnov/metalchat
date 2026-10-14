@@ -3,7 +3,7 @@ file(STRINGS version.txt metalchat_LIBRARY_VERSION)
 
 project(metalchat
         VERSION ${metalchat_LIBRARY_VERSION}
-        DESCRIPTION "Llama inference for Apple Devices"
+        DESCRIPTION "LLM inference for Apple Silicon"
         HOMEPAGE_URL "https://github.com/ybubnov/metalchat"
         LANGUAGES CXX)
 
