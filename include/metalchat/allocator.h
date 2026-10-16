@@ -270,16 +270,14 @@ public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    _HardwareNocopyAllocator(metal::shared_device device);
+    _HardwareNocopyAllocator(const metal::shared_device& device);
     _HardwareNocopyAllocator(const _HardwareNocopyAllocator&) = default;
 
     container_pointer
     allocate(const void* ptr, std::size_t size);
 
 private:
-    struct _Memory;
-
-    std::shared_ptr<_Memory> _M_mem;
+    metal::shared_device _M_device;
 };
 
 
@@ -299,12 +297,12 @@ public:
     using container_type = Allocator::container_type;
     using container_pointer = Allocator::container_pointer;
 
-    nocopy_allocator(const Allocator& alloc, metal::shared_device device)
+    nocopy_allocator(const Allocator& alloc, const metal::shared_device& device)
     : _M_alloc(alloc),
       _M_nocopy_alloc(device)
     {}
 
-    nocopy_allocator(Allocator&& alloc, metal::shared_device device)
+    nocopy_allocator(Allocator&& alloc, const metal::shared_device& device)
     : _M_alloc(std::move(alloc)),
       _M_nocopy_alloc(device)
     {}
@@ -328,7 +326,8 @@ private:
 
 
 template <hardware_allocator_t<void> Allocator>
-nocopy_allocator(Allocator alloc, metal::shared_device device) -> nocopy_allocator<void, Allocator>;
+nocopy_allocator(Allocator alloc, const metal::shared_device& device)
+    -> nocopy_allocator<void, Allocator>;
 
 
 /// This class creates buffer resources with an offset from the specified buffer.
@@ -445,7 +444,7 @@ public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    _HardwareResidentAllocator(metal::shared_device device, std::size_t capacity);
+    _HardwareResidentAllocator(const metal::shared_device& device, std::size_t capacity);
     _HardwareResidentAllocator(const _HardwareResidentAllocator&) = delete;
 
     ~_HardwareResidentAllocator();
@@ -518,7 +517,7 @@ public:
     /// \param device A shared pointer to the Metal device instance.
     /// \param capacity A maximum number of allocations that residency set could hold.
     hardware_resident_allocator(
-        const Allocator& alloc, metal::shared_device device, std::size_t capacity = 256
+        const Allocator& alloc, const metal::shared_device& device, std::size_t capacity = 256
     )
     : _M_alloc(alloc),
       _M_resident_alloc(std::make_shared<_HardwareResidentAllocator>(device, capacity))
@@ -530,7 +529,7 @@ public:
     /// \param device A shared pointer to the Metal device instance.
     /// \param capacity A maximum number of allocations that residency set could hold.
     hardware_resident_allocator(
-        Allocator&& alloc, metal::shared_device device, std::size_t capacity = 256
+        Allocator&& alloc, const metal::shared_device& device, std::size_t capacity = 256
     )
     : _M_alloc(std::forward<Allocator>(alloc)),
       _M_resident_alloc(std::make_shared<_HardwareResidentAllocator>(device, capacity))
@@ -570,27 +569,6 @@ private:
 };
 
 
-class _HardwareMemoryAllocator {
-public:
-    using container_type = hardware_memory_container<void>;
-    using container_pointer = std::shared_ptr<container_type>;
-
-    _HardwareMemoryAllocator(metal::shared_device device);
-    _HardwareMemoryAllocator(const _HardwareMemoryAllocator&) = default;
-
-    container_pointer
-    allocate(std::size_t size);
-
-    container_pointer
-    allocate(const void* ptr, std::size_t size);
-
-private:
-    struct _Memory;
-
-    std::shared_ptr<_Memory> _M_mem;
-};
-
-
 /// This class creates tracked buffer resources directly from the device.
 ///
 /// This is the default implementation of the hardware memory allocator, all resources are
@@ -605,24 +583,16 @@ public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    hardware_memory_allocator(metal::shared_device device)
-    : _M_alloc(device)
-    {}
+    hardware_memory_allocator(const metal::shared_device& device);
 
     container_pointer
-    allocate(size_type size)
-    {
-        return _M_alloc.allocate(size);
-    }
+    allocate(size_type size);
 
     container_pointer
-    allocate(const_pointer ptr, size_type size)
-    {
-        return _M_alloc.allocate(ptr, size);
-    }
+    allocate(const_pointer ptr, size_type size);
 
 private:
-    _HardwareMemoryAllocator _M_alloc;
+    metal::shared_device _M_device;
 };
 
 
@@ -631,7 +601,7 @@ public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    _HardwareHeapAllocator(metal::shared_device device, std::size_t capacity);
+    _HardwareHeapAllocator(const metal::shared_device& device, std::size_t capacity);
     _HardwareHeapAllocator(const _HardwareHeapAllocator&) = default;
 
     container_pointer
@@ -661,7 +631,7 @@ template <typename T> class hardware_heap_allocator {
     using container_type = hardware_memory_container<T>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    hardware_heap_allocator(metal::shared_device device, std::size_t capacity)
+    hardware_heap_allocator(const metal::shared_device& device, std::size_t capacity)
     : _M_alloc(device, capacity)
     {}
 
@@ -695,7 +665,7 @@ public:
     using container_type = hardware_memory_container<void>;
     using container_pointer = std::shared_ptr<container_type>;
 
-    hardware_heap_allocator(metal::shared_device device, std::size_t capacity)
+    hardware_heap_allocator(const metal::shared_device& device, std::size_t capacity)
     : _M_alloc(device, capacity)
     {}
 
