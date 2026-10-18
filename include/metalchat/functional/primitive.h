@@ -175,6 +175,19 @@ gather(Tensor t, Index index, hardware_accelerator& gpu)
 }
 
 
+template <
+    typename T,
+    immutable_tensor_t<bool> Cond,
+    immutable_tensor_t<T> Input,
+    immutable_tensor_t<T> Other>
+auto
+where(Cond cond, Input input, Other other, hardware_accelerator& gpu)
+{
+    kernel::where<T> op(gpu);
+    return op(cond, input, other);
+}
+
+
 template <immutable_tensor Tensor>
 auto
 clone(Tensor t, hardware_accelerator& gpu)

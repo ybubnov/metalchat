@@ -1351,7 +1351,7 @@ zeros(std::size_t (&&sizes)[N])
 ///
 /// The shape of the tensor is defined by the variable argument `sizes`.
 template <typename T, std::size_t N, allocator_t<T> Allocator = random_memory_allocator<T>>
-requires(N > 0)
+requires(N > 0 && !std::integral<T>)
 auto
 rand(std::size_t (&&sizes)[N], Allocator alloc = Allocator())
 {
@@ -1360,9 +1360,7 @@ rand(std::size_t (&&sizes)[N], Allocator alloc = Allocator())
     std::uniform_real_distribution<T> distribution(0.0, 1.0);
 
     auto t = empty<T>(std::move(sizes), alloc);
-
     std::generate_n(t.data_ptr(), t.numel(), [&]() { return distribution(generator); });
-
     return t;
 }
 
@@ -1379,7 +1377,7 @@ rand(std::size_t (&&sizes)[N], hardware_accelerator& accelerator)
 
 
 template <std::integral T, std::size_t N, allocator_t<T> Allocator = random_memory_allocator<T>>
-requires(N > 0)
+requires(N > 0 && !std::same_as<T, bool>)
 auto
 rand(
     std::size_t (&&sizes)[N],
@@ -1393,9 +1391,25 @@ rand(
     std::uniform_int_distribution<T> distribution(a, b);
 
     auto t = empty<T>(std::move(sizes), alloc);
-
     std::generate_n(t.data_ptr(), t.numel(), [&]() { return distribution(generator); });
+    return t;
+}
 
+
+template <
+    std::same_as<bool> T,
+    std::size_t N,
+    allocator_t<T> Allocator = random_memory_allocator<T>>
+requires(N > 0)
+auto
+rand(std::size_t (&&sizes)[N], double p = 0.5, Allocator alloc = Allocator())
+{
+    std::random_device rd;
+    std::mt19937 generator(rd());
+    std::bernoulli_distribution distribution(p);
+
+    auto t = empty<T>(std::move(sizes), alloc);
+    std::generate_n(t.data_ptr(), t.numel(), [&]() { return distribution(generator); });
     return t;
 }
 

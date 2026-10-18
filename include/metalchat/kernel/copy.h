@@ -191,5 +191,66 @@ public:
 };
 
 
+/// Return a tensor of elements selected from either `input` or `other`, depending on `condition`.
+///
+/// ```cpp
+/// #include <metalchat/functional.h>
+///
+/// hardware_accelerator gpu0;
+/// auto x = rand<float>({3, 2});
+/// auto y = full<float>({3, 2}, 1.0f);
+///
+/// std::cout << x << std::endl;
+/// // out:
+/// // [[0.9104, 0.0129],
+/// //  [0.9620, 0.9459],
+/// //  [0.2709, 0.3100]], sizes=(3, 2)
+///
+/// auto z = where(gt(x, 0.5f, gpu0), x, y, gpu0);
+/// std::cout << z.get() << std::endl;
+/// // out:
+/// // [[0.9104, 1.0],
+/// //  [0.9620, 0.9459],
+/// //  [1.0, 1.0]], sizes=(3, 2)
+/// ```
+template <typename T> class where {
+private:
+    basic_kernel _M_kernel;
+
+public:
+    /// The kernel constructor
+    where(hardware_accelerator& gpu)
+    : _M_kernel(gpu.load<T>("where"))
+    {}
+
+    // Invokes the kernel.
+    //
+    // \param cond When true, yield `input`, otherwise yield `other`.
+    // \param input Values selected at indices where `condition` is true.
+    // \param other Values selected at indices where `condition` is false.
+    template <
+        immutable_tensor_t<bool> Cond,
+        immutable_tensor_t<T> Input,
+        immutable_tensor_t<T> Other>
+    auto
+    operator()(Cond cond, Input input, Other other)
+    {
+        auto max_threads = _M_kernel.max_threads_per_threadgroup();
+        auto [grid, thread] = make_kernel_grid_2d(cond, max_threads);
+
+        auto cond_view = flatten<2>(cond);
+        auto input_view = flatten<2>(input);
+        auto other_view = flatten<2>(other);
+        auto output_view = shared_empty_like<T>(cond_view, _M_kernel.get_allocator());
+
+        auto task = kernel_task(_M_kernel, grid, thread);
+        auto task_future = task.bind_front(output_view, cond_view, input_view, other_view);
+
+        auto output = future_tensor(output_view, std::move(task_future));
+        return output.view(cond.shape());
+    }
+};
+
+
 } // namespace kernel
 } // namespace metalchat
