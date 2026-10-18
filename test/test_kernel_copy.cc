@@ -128,3 +128,26 @@ TEST_CASE("Gather by index", "[kernel::gather]")
         }
     }
 }
+
+
+TEST_CASE("Conditional copy", "[kernel::where]")
+{
+    hardware_accelerator gpu0;
+    kernel::where<float> where(gpu0);
+
+    auto cond = rand<bool>({8, 16});
+    auto input = rand<float>({8, 16});
+    auto other = rand<float>({8, 16});
+
+    auto output = where(cond, input, other).get();
+    REQUIRE(output.dim() == 2);
+    REQUIRE(output.size(0) == cond.size(0));
+    REQUIRE(output.size(1) == cond.size(1));
+
+    for (std::size_t i = 0; i < output.size(0); i++) {
+        for (std::size_t j = 0; j < output.size(1); j++) {
+            const auto& expect = cond[i, j] ? input[i, j] : other[i, j];
+            REQUIRE((output[i, j]) == expect);
+        }
+    }
+}

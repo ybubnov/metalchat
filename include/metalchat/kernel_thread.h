@@ -63,7 +63,7 @@ struct hardware_resources {
 
     std::list<metal::shared_buffer> buffers;
 
-    /// The \hardware_resources default constructor.
+    /// The \ref hardware_resources default constructor.
     hardware_resources()
     : buffers()
     {}

@@ -111,3 +111,45 @@ gather(
 __lib_metalchat_kernel2(gather, float);
 __lib_metalchat_kernel2(gather, bfloat);
 __lib_metalchat_kernel2(gather, int32_t);
+
+
+template <typename T> struct __where_parameters {
+    constant layout2& output_layout;
+    device T* output_data;
+    constant layout2& cond_layout;
+    device const bool* cond_data;
+    constant layout2& input_layout;
+    device const T* input_data;
+    constant layout2& other_layout;
+    device const T* other_data;
+};
+
+
+template <typename T>
+kernel void
+where(
+    __where_parameters<T> params,
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
+)
+{
+    tensor2<T> output(params.output_layout, params.output_data);
+    tensor2<const bool> cond(params.cond_layout, params.cond_data);
+    tensor2<const T> input(params.input_layout, params.input_data);
+    tensor2<const T> other(params.other_layout, params.other_data);
+
+    const uint row_size = cond.size(0);
+    const uint dim_size = cond.size(1);
+    const uint i = gid.y * threadgroup_size.y + tid.y;
+    const uint k = gid.x * threadgroup_size.x + tid.x;
+
+    if (i < row_size && k < dim_size) {
+        output.at(i, k) = cond.at(i, k) ? input.at(i, k) : other.at(i, k);
+    }
+}
+
+
+__lib_metalchat_kernel2(where, float);
+__lib_metalchat_kernel2(where, bfloat);
+__lib_metalchat_kernel2(where, int32_t);
