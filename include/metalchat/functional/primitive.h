@@ -166,6 +166,19 @@ scatter(Tensor t, Mask m, T value, hardware_accelerator& gpu)
 }
 
 
+template <
+    typename T,
+    immutable_tensor_t<T> Output,
+    immutable_tensor_t<int32_t> Index,
+    immutable_tensor_t<T> Input>
+auto
+scatter(Output output, Index index, Input input, hardware_accelerator& gpu)
+{
+    kernel::scatter<T> op(gpu);
+    return op(output, index, input);
+}
+
+
 template <immutable_tensor Tensor, immutable_tensor_t<int32_t> Index>
 auto
 gather(Tensor t, Index index, hardware_accelerator& gpu)

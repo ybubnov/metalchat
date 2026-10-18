@@ -62,6 +62,9 @@ Copying kernels
 .. doxygenclass:: metalchat::kernel::scatter
    :members:
 
+.. doxygenclass:: metalchat::kernel::where
+   :members:
+
 
 Sparse kernels
 --------------

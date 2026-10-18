@@ -33,6 +33,8 @@ template <typename T, typename Index> struct basic_sampling_context {
     logits_tensor logits;
     /// The logits indices.
     index_tensor indices;
+    /// The input indices;
+    index_tensor inputs;
 };
 
 
@@ -44,9 +46,9 @@ template <typename T> struct basic_sampler {
     using logits_tensor = context_type::logits_tensor;
     using index_tensor = context_type::index_tensor;
 
-    template <immutable_tensor2_t<T> Tensor>
+    template <immutable_tensor2_t<T> Logits, immutable_tensor2_t<index_type> Inputs>
     static context_type
-    construct_context(Tensor logits, hardware_accelerator& accelerator)
+    construct_context(Logits logits, Inputs inputs, hardware_accelerator& accelerator)
     {
         auto alloc = accelerator.get_allocator();
         auto indices = shared_empty_like<index_type>(logits, alloc);
@@ -58,7 +60,7 @@ template <typename T> struct basic_sampler {
             }
         }
 
-        return context_type{logits, future_tensor(indices)};
+        return context_type{logits, future_tensor(indices), future_tensor<index_type, 2>()};
     }
 
     /// Return subset of raw logits and their indices (context) that should be
@@ -66,11 +68,11 @@ template <typename T> struct basic_sampler {
     virtual context_type
     sample(const context_type& context, hardware_accelerator& accelerator) = 0;
 
-    template <immutable_tensor_t<T> Tensor>
+    template <immutable_tensor_t<T> Logits, immutable_tensor_t<index_type> Inputs>
     index_tensor
-    sample(Tensor logits, hardware_accelerator& accelerator)
+    sample(Logits logits, Inputs inputs, hardware_accelerator& accelerator)
     {
-        auto context = construct_context(logits, accelerator);
+        auto context = construct_context(logits, inputs, accelerator);
         context = sample(context, accelerator);
         return context.indices;
     }
@@ -196,7 +198,7 @@ public:
         probs_sort = scatter(probs_sort, mask, T(0), accelerator);
         probs_idx = gather(context.indices, probs_idx, accelerator);
 
-        return context_type{probs_sort, probs_idx};
+        return context_type{probs_sort, probs_idx, context.inputs};
     }
 
 private:
@@ -262,7 +264,7 @@ public:
         indices = indices[slice(), slice(0, k)];
         auto logits = gather(values, indices, accelerator);
 
-        return context_type{logits, indices};
+        return context_type{logits, indices, context.inputs};
     }
 };
 
@@ -295,11 +297,51 @@ public:
         auto logits = gather(context.logits, next_token, accelerator);
         auto indices = gather(context.indices, next_token, accelerator);
 
-        return context_type{logits, indices};
+        return context_type{logits, indices, context.inputs};
     }
 
 private:
     std::size_t _M_sample_size;
+};
+
+
+/// Prevents repetition of previous tokens through a penalty. This penalty is applied at most
+/// once per token.
+template <typename T> class frequency_sampler : public basic_sampler<T> {
+public:
+    using value_type = T;
+    using index_type = int32_t;
+
+    using context_type = basic_sampling_context<value_type, index_type>;
+    using logits_tensor = context_type::logits_tensor;
+    using index_tensor = context_type::index_tensor;
+
+    // The \ref frequency_sampler constructor.
+    //
+    // \param penalty Float that penalizes new tokens based on whether they appear in the prompt
+    // and the generated text so far. Values > 1 encourage the model to use new tokens, while
+    // values < 1 encourage the model to repeat tokens.
+    frequency_sampler(T penalty)
+    : _M_penalty(penalty)
+    {}
+
+    context_type
+    sample(const context_type& context, hardware_accelerator& accelerator)
+    {
+        auto scores = gather(context.logits, context.inputs, accelerator);
+
+        auto scores_gt_zero = gt(scores, T(0), accelerator);
+        auto scores_mul = mul(scores, _M_penalty, accelerator);
+        auto scores_div = mul(scores, T(1) / _M_penalty, accelerator);
+
+        scores = where(scores_gt_zero, scores_div, scores_mul, accelerator);
+        scores = scatter(context.logits, context.inputs, scores, accelerator);
+
+        return context_type{scores, context.indices, context.inputs};
+    }
+
+private:
+    T _M_penalty;
 };
 
 

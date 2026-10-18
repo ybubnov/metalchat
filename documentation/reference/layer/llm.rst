@@ -61,7 +61,6 @@ For example, to access cache for the 2-nd layer use the following approach:
 .. doxygenstruct:: metalchat::nn::caching_options
    :members:
 
-
 .. doxygenstruct:: metalchat::nn::caching_result
    :members:
 
@@ -75,22 +74,20 @@ Sampling
 .. doxygenstruct:: metalchat::nn::basic_sampling_context
    :members:
 
-
 .. doxygenstruct:: metalchat::nn::basic_sampler
    :members:
 
+.. doxygenclass:: metalchat::nn::frequency_sampler
+   :members:
 
 .. doxygenclass:: metalchat::nn::nucleus_sampler
    :members:
 
-
 .. doxygenclass:: metalchat::nn::multinomial_sampler
    :members:
 
-
 .. doxygenclass:: metalchat::nn::topk_sampler
    :members:
-
 
 .. doxygenclass:: metalchat::nn::sequential_sampler
    :members:

@@ -322,10 +322,10 @@ public:
     {
         auto& accelerator = _M_layer.accelerator();
         auto logits = _M_layer(input, start_pos).template flatten<2>();
-        return _M_sampler->sample(logits, accelerator);
+        return _M_sampler->sample(logits, input, accelerator);
     }
 
-    template <immutable_tensor_t<index_type> Input>
+    template <immutable_tensor1_t<index_type> Input>
     auto
     transform(Input input, std::size_t start_pos = 0)
     {
