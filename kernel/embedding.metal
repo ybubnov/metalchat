@@ -13,12 +13,9 @@
 
 
 template <typename T> struct __embedding_parameters {
-    constant layout3& output_layout;
-    device T* output;
-    constant layout2& input_layout;
-    device const int32_t* input;
-    constant layout2& weight_layout;
-    device const T* weight;
+    RWStructuredBuffer(T, 3, output);
+    StructuredBuffer(int32_t, 2, input);
+    StructuredBuffer(T, 2, weight);
     constant uint& block_size;
 };
 
@@ -44,12 +41,12 @@ embedding(
     uint3 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    tensor2<const int32_t> in(params.input_layout, params.input);
-    tensor2<const T> w(params.weight_layout, params.weight);
-    tensor3<T> out(params.output_layout, params.output);
+    Tensor(params, output);
+    Tensor(params, input);
+    Tensor(params, weight);
 
-    const uint dim_size = in.size(1);
-    const uint emb_size = w.size(1);
+    const uint dim_size = input.size(1);
+    const uint emb_size = weight.size(1);
     const uint i = gid.z;
 
     const uint begin = gid.x * threadgroup_size.x + tid.x * params.block_size;
@@ -60,7 +57,7 @@ embedding(
     if (k < emb_size) {
 #pragma unroll
         for (uint j = begin; j < end && j < dim_size; j++) {
-            out.at(i, j, k) = w.at(in.at(i, j), k);
+            output.at(i, j, k) = weight.at(input.at(i, j), k);
         }
     }
 }

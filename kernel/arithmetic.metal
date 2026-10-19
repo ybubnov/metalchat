@@ -1,7 +1,7 @@
 // vi: set filetype=cpp :
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #include <metal_common>
@@ -11,12 +11,9 @@
 
 
 template <typename T> struct __add_parameters {
-    constant layout2& output_layout [[buffer(0)]];
-    device T* output [[buffer(1)]];
-    constant layout2& input1_layout [[buffer(2)]];
-    device const T* input1 [[buffer(3)]];
-    constant layout2& input2_layout [[buffer(4)]];
-    device const T* input2 [[buffer(5)]];
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(T, 2, input1);
+    StructuredBuffer(T, 2, input2);
 };
 
 
@@ -27,17 +24,17 @@ add(__add_parameters<T> params,
     uint2 tid [[thread_position_in_threadgroup]],
     uint2 threadgroup_size [[threads_per_threadgroup]])
 {
-    tensor2<const T> in1(params.input1_layout, params.input1);
-    tensor2<const T> in2(params.input2_layout, params.input2);
-    tensor2<T> out(params.output_layout, params.output);
+    Tensor(params, output);
+    Tensor(params, input1);
+    Tensor(params, input2);
 
-    const uint row_size = in1.size(0);
-    const uint dim_size = in1.size(1);
+    const uint row_size = input1.size(0);
+    const uint dim_size = input1.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (i < row_size && k < dim_size) {
-        out.at(i, k) = in1.at(i, k) + in2.at(i, k);
+        output.at(i, k) = input1.at(i, k) + input2.at(i, k);
     }
 }
 
@@ -47,12 +44,9 @@ __lib_metalchat_kernel2(add, float);
 
 
 template <typename T> struct __add_broadcast_parameters {
-    constant layout2& output_layout;
-    device T* output;
-    constant layout2& input1_layout;
-    device const T* input1;
-    constant layout1& input2_layout;
-    device const T* input2;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(T, 2, input1);
+    StructuredBuffer(T, 1, input2);
 };
 
 
@@ -65,18 +59,18 @@ add_broadcast(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    tensor2<const T> in1(params.input1_layout, params.input1);
-    tensor1<const T> in2(params.input2_layout, params.input2);
-    tensor2<T> out(params.output_layout, params.output);
+    Tensor(params, output);
+    Tensor(params, input1);
+    Tensor(params, input2);
 
-    const uint dim0_size = in1.size(0);
-    const uint dim1_size = in1.size(1);
+    const uint dim0_size = input1.size(0);
+    const uint dim1_size = input1.size(1);
 
     const uint j = gid.x * threadgroup_size.x + tid.x;
     const uint i = gid.y * threadgroup_size.y + tid.y;
 
     if (i < dim0_size && j < dim1_size) {
-        out.at(i, j) = in1.at(i, j) + in2.at(j % in2.size(0));
+        output.at(i, j) = input1.at(i, j) + input2.at(j % input2.size(0));
     }
 }
 
@@ -86,12 +80,9 @@ __lib_metalchat_kernel2(add_broadcast, float);
 
 
 template <typename T> struct __sub_parameters {
-    constant layout2& output_layout;
-    device T* output;
-    constant layout2& input1_layout;
-    device const T* input1;
-    constant layout2& input2_layout;
-    device const T* input2;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(T, 2, input1);
+    StructuredBuffer(T, 2, input2);
 };
 
 
@@ -102,17 +93,17 @@ sub(__sub_parameters<T> params,
     uint2 tid [[thread_position_in_threadgroup]],
     uint2 threadgroup_size [[threads_per_threadgroup]])
 {
-    tensor2<const T> in1(params.input1_layout, params.input1);
-    tensor2<const T> in2(params.input2_layout, params.input2);
-    tensor2<T> out(params.output_layout, params.output);
+    Tensor(params, output);
+    Tensor(params, input1);
+    Tensor(params, input2);
 
-    const uint row_size = in1.size(0);
-    const uint dim_size = in1.size(1);
+    const uint row_size = input1.size(0);
+    const uint dim_size = input1.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (i < row_size && k < dim_size) {
-        out.at(i, k) = in1.at(i, k) - in2.at(i, k);
+        output.at(i, k) = input1.at(i, k) - input2.at(i, k);
     }
 }
 
@@ -122,12 +113,9 @@ __lib_metalchat_kernel2(sub, float);
 
 
 template <typename T> struct __div_parameters {
-    constant layout2& output_layout;
-    device T* output;
-    constant layout2& input1_layout;
-    device const T* input1;
-    constant layout2& input2_layout;
-    device const T* input2;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(T, 2, input1);
+    StructuredBuffer(T, 2, input2);
 };
 
 
@@ -138,17 +126,17 @@ div(__div_parameters<T> params,
     uint2 tid [[thread_position_in_threadgroup]],
     uint2 threadgroup_size [[threads_per_threadgroup]])
 {
-    tensor2<const T> in1(params.input1_layout, params.input1);
-    tensor2<const T> in2(params.input2_layout, params.input2);
-    tensor2<T> out(params.output_layout, params.output);
+    Tensor(params, output);
+    Tensor(params, input1);
+    Tensor(params, input2);
 
-    const uint row_size = in1.size(0);
-    const uint dim_size = in1.size(1);
+    const uint row_size = input1.size(0);
+    const uint dim_size = input1.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (i < row_size && k < dim_size) {
-        out.at(i, k) = in1.at(i, k) / in2.at(i, k);
+        output.at(i, k) = input1.at(i, k) / input2.at(i, k);
     }
 }
 

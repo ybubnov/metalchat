@@ -22,7 +22,7 @@ __swap(device T& a, device T& b)
 
 template <typename T>
 uint
-__binary_search(thread tensor1<const T> data, T value, bool right)
+__binary_search(thread tensor<const T, 1> data, T value, bool right)
 {
     uint low = 0;
     uint high = data.size(0);
@@ -43,9 +43,9 @@ __binary_search(thread tensor1<const T> data, T value, bool right)
 
 
 template <typename T> struct __sort_parameters {
-    tensor2<T> values;
-    tensor2<int32_t> indices;
-    tensor2<const T> input;
+    RWStructuredBuffer(T, 2, values);
+    RWStructuredBuffer(int32_t, 2, indices);
+    StructuredBuffer(T, 2, input);
     constant uint& block_size;
 };
 
@@ -59,8 +59,12 @@ sort(
     uint threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    const uint dim_size = params.input.size(1);
-    const uint dim_size_aligned = params.values.size(1);
+    Tensor(params, values);
+    Tensor(params, indices);
+    Tensor(params, input);
+
+    const uint dim_size = input.size(1);
+    const uint dim_size_aligned = values.size(1);
 
     const uint batch = gid;
     const uint begin = tid * params.block_size;
@@ -68,11 +72,11 @@ sort(
 
     for (uint k = begin; k < end; k++) {
         if (k < dim_size) {
-            params.values.at(batch, k) = params.input.at(batch, k);
+            values.at(batch, k) = input.at(batch, k);
         } else {
-            params.values.at(batch, k) = T(-INFINITY);
+            values.at(batch, k) = T(-INFINITY);
         }
-        params.indices.at(batch, k) = k;
+        indices.at(batch, k) = k;
     }
 
     // k is doubled every iteration
@@ -85,17 +89,17 @@ sort(
             for (uint i = begin; i < end; i++) {
                 uint ij = i ^ j;
 
-                device T& value_i = params.values.at(batch, i);
-                device T& value_ij = params.values.at(batch, ij);
+                device T& value_i = values.at(batch, i);
+                device T& value_ij = values.at(batch, ij);
 
                 if (i < ij) {
                     if (((i & k) == 0) && (value_i < value_ij)) {
                         __swap(value_i, value_ij);
-                        __swap(params.indices.at(batch, i), params.indices.at(batch, ij));
+                        __swap(indices.at(batch, i), indices.at(batch, ij));
                     }
                     if (((i & k) != 0) && (value_i > value_ij)) {
                         __swap(value_i, value_ij);
-                        __swap(params.indices.at(batch, i), params.indices.at(batch, ij));
+                        __swap(indices.at(batch, i), indices.at(batch, ij));
                     }
                 }
             }
@@ -109,9 +113,9 @@ __lib_metalchat_kernel(sort, float);
 
 
 template <typename T> struct __bucketize_parameters {
-    tensor2<int32_t> output;
-    tensor2<const T> input;
-    tensor1<const T> boundaries;
+    RWStructuredBuffer(int32_t, 2, output);
+    StructuredBuffer(T, 2, input);
+    StructuredBuffer(T, 1, boundaries);
     constant bool& right;
 };
 
@@ -127,14 +131,18 @@ bucketize(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    const uint row_size = params.output.size(0);
-    const uint dim_size = params.output.size(1);
+    Tensor(params, output);
+    Tensor(params, input);
+    Tensor(params, boundaries);
+
+    const uint row_size = output.size(0);
+    const uint dim_size = output.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (i < row_size && k < dim_size) {
-        T input = params.input.at(i, k);
-        params.output.at(i, k) = __binary_search(params.boundaries, input, /*right=*/params.right);
+        T input_i = input.at(i, k);
+        output.at(i, k) = __binary_search(boundaries, input_i, /*right=*/params.right);
     }
 }
 

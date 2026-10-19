@@ -12,8 +12,8 @@
 
 
 template <typename T> struct __roll_parameters {
-    tensor1<T> output;
-    tensor1<const T> input;
+    RWStructuredBuffer(T, 1, output);
+    StructuredBuffer(T, 1, input);
     constant uint& shift;
     constant uint& size;
     constant uint& stride;
@@ -29,6 +29,9 @@ roll(
     uint threadgroup_size [[threads_per_threadgroup]]
 )
 {
+    Tensor(params, output);
+    Tensor(params, input);
+
     const uint k = gid * threadgroup_size + tid;
 
     const uint dim_size = params.size;
@@ -39,8 +42,8 @@ roll(
     uint j = k % params.stride;
     uint m = size + i * params.stride + j;
 
-    if (k < params.input.size(0)) {
-        params.output.at(k) = params.input.at(m);
+    if (k < input.size(0)) {
+        output.at(k) = input.at(m);
     }
 }
 

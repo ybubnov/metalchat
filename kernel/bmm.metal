@@ -14,11 +14,9 @@
 
 
 template <typename T> struct __gemm_parameters {
-    tensor3<T> output;
-    constant layout3& mat1_layout;
-    device const T* mat1;
-    constant layout3& mat2_layout;
-    device const T* mat2;
+    RWStructuredBuffer(T, 3, output);
+    StructuredBuffer(T, 3, mat1);
+    StructuredBuffer(T, 3, mat2);
 };
 
 
@@ -38,12 +36,13 @@ gemm(
     uint simdgroup_size [[simdgroups_per_threadgroup]]
 )
 {
-    tensor3<const T> m1(params.mat1_layout, params.mat1);
-    tensor3<const T> m2(params.mat2_layout, params.mat2);
+    Tensor(params, output);
+    Tensor(params, mat1);
+    Tensor(params, mat2);
 
-    const uint M = m1.size(1);
-    const uint K = m1.size(2);
-    const uint N = m2.size(2);
+    const uint M = mat1.size(1);
+    const uint K = mat1.size(2);
+    const uint N = mat2.size(2);
 
     threadgroup T m1_local[BlockSize][BlockSize];
     threadgroup T m2_local[BlockSize][BlockSize];
@@ -72,10 +71,10 @@ gemm(
 
     for (uint k = 0; k < K; k += BlockSize) {
         uint col_k = k + thread_col;
-        m1_local[thread_row][thread_col] = (row < M && col_k < K) ? m1.at(batch, row, col_k) : 0;
+        m1_local[thread_row][thread_col] = (row < M && col_k < K) ? mat1.at(batch, row, col_k) : 0;
 
         uint row_k = k + thread_row;
-        m2_local[thread_row][thread_col] = (row_k < K && col < N) ? m2.at(batch, row_k, col) : 0;
+        m2_local[thread_row][thread_col] = (row_k < K && col < N) ? mat2.at(batch, row_k, col) : 0;
 
         threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
@@ -95,7 +94,7 @@ gemm(
     threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     if (row < M && col < N) {
-        params.output.at(batch, row, col) = m1_local[thread_row][thread_col];
+        output.at(batch, row, col) = m1_local[thread_row][thread_col];
     }
 }
 
@@ -109,9 +108,9 @@ __lib_metalchat_kernel3_tiled(gemm, 32, float);
 
 
 template <typename T> struct __gemv_parameters {
-    tensor2<T> output;
-    tensor2<const T> vec;
-    tensor3<const T> mat;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(T, 2, vec);
+    StructuredBuffer(T, 3, mat);
     constant uint& block_size;
 };
 
@@ -128,8 +127,12 @@ gemv(
     uint simd_gid [[simdgroup_index_in_threadgroup]]
 )
 {
-    const uint K = params.vec.size(1);
-    const uint N = params.mat.size(2);
+    Tensor(params, output);
+    Tensor(params, vec);
+    Tensor(params, mat);
+
+    const uint K = vec.size(1);
+    const uint N = mat.size(2);
 
     float threadlocal_sum = 0.0f;
 
@@ -140,7 +143,7 @@ gemv(
     const uint end = begin + params.block_size;
 
     for (uint k = begin; k < end && k < K && n < N; k++) {
-        threadlocal_sum += params.vec.at(batch, k) * params.mat.at(batch, k, n);
+        threadlocal_sum += vec.at(batch, k) * mat.at(batch, k, n);
     }
 
     float acc = metal::simd_sum(threadlocal_sum);
@@ -167,7 +170,7 @@ gemv(
     threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     if (n < N && tid.x == 0) {
-        params.output.at(batch, n) = T(threadgroup_total_sum[0]);
+        output.at(batch, n) = T(threadgroup_total_sum[0]);
     }
 }
 

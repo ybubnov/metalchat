@@ -1,7 +1,7 @@
 // vi: set filetype=cpp :
 //
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #include <metal_common>
@@ -12,8 +12,8 @@
 
 
 template <typename T> struct __copy_parameters {
-    tensor2<T> output;
-    tensor2<const T> input;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(T, 2, input);
 };
 
 
@@ -26,13 +26,16 @@ copy(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    const uint row_size = params.input.size(0);
-    const uint dim_size = params.input.size(1);
+    Tensor(params, output);
+    Tensor(params, input);
+
+    const uint row_size = input.size(0);
+    const uint dim_size = input.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (i < row_size && k < dim_size) {
-        params.output.at(i, k) = params.input.at(i, k);
+        output.at(i, k) = input.at(i, k);
     }
 }
 
@@ -43,8 +46,8 @@ __lib_metalchat_kernel2(copy, int32_t);
 
 
 template <typename T> struct __scatter_parameters {
-    tensor2<T> output;
-    tensor2<const bool> mask;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(bool, 2, mask);
     constant T& value;
 };
 
@@ -58,14 +61,17 @@ scatter(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    const uint row_size = params.output.size(0);
-    const uint dim_size = params.output.size(1);
+    Tensor(params, output);
+    Tensor(params, mask);
+
+    const uint row_size = output.size(0);
+    const uint dim_size = output.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (i < row_size && k < dim_size) {
-        if (params.mask.at(i, k)) {
-            params.output.at(i, k) = params.value;
+        if (mask.at(i, k)) {
+            output.at(i, k) = params.value;
         }
     }
 }
@@ -75,12 +81,9 @@ __lib_metalchat_kernel2(scatter, float);
 
 
 template <typename T> struct __gather_parameters {
-    constant layout2& output_layout;
-    device T* output_data;
-    constant layout2& input_layout;
-    device const T* input_data;
-    constant layout2& index_layout;
-    device const int32_t* index_data;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(T, 2, input);
+    StructuredBuffer(int32_t, 2, index);
 };
 
 
@@ -93,9 +96,9 @@ gather(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    tensor2<T> output(params.output_layout, params.output_data);
-    tensor2<const T> input(params.input_layout, params.input_data);
-    tensor2<const int32_t> index(params.index_layout, params.index_data);
+    Tensor(params, output);
+    Tensor(params, input);
+    Tensor(params, index);
 
     const uint row_size = index.size(0);
     const uint dim_size = index.size(1);
@@ -114,14 +117,10 @@ __lib_metalchat_kernel2(gather, int32_t);
 
 
 template <typename T> struct __where_parameters {
-    constant layout2& output_layout;
-    device T* output_data;
-    constant layout2& cond_layout;
-    device const bool* cond_data;
-    constant layout2& input_layout;
-    device const T* input_data;
-    constant layout2& other_layout;
-    device const T* other_data;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(bool, 2, cond);
+    StructuredBuffer(T, 2, input);
+    StructuredBuffer(T, 2, other);
 };
 
 
@@ -134,10 +133,10 @@ where(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    tensor2<T> output(params.output_layout, params.output_data);
-    tensor2<const bool> cond(params.cond_layout, params.cond_data);
-    tensor2<const T> input(params.input_layout, params.input_data);
-    tensor2<const T> other(params.other_layout, params.other_data);
+    Tensor(params, output);
+    Tensor(params, cond);
+    Tensor(params, input);
+    Tensor(params, other);
 
     const uint row_size = cond.size(0);
     const uint dim_size = cond.size(1);

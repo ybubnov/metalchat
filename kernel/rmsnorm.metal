@@ -13,12 +13,9 @@
 
 
 template <typename T> struct __rmsnorm_parameters {
-    constant layout2& output_layout;
-    device T* output;
-    constant layout2& input_layout;
-    device const T* input;
-    constant tensor_layout<1>& weight_layout;
-    device const T* weight;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(T, 2, input);
+    StructuredBuffer(T, 1, weight);
     constant float& eps;
     constant float& mu;
     constant uint& block_size;
@@ -38,20 +35,20 @@ rmsnorm(
 {
     constexpr uint SIMD_SIZE = 32;
 
-    tensor2<const T> in(params.input_layout, params.input);
-    tensor<const T, 1> w{params.weight, params.weight_layout};
-    tensor2<T> out(params.output_layout, params.output);
+    Tensor(params, output);
+    Tensor(params, input);
+    Tensor(params, weight);
 
     float threadlocal_sum = 0.0f;
 
-    const uint dim_size = in.size(1);
+    const uint dim_size = input.size(1);
     const uint i = gid;
 
     const uint begin = tid * params.block_size;
     const uint end = begin + params.block_size;
 
     for (uint j = begin; j < end && j < dim_size; j++) {
-        float xj = in.at(i, j);
+        float xj = input.at(i, j);
         threadlocal_sum += xj * xj;
     }
 
@@ -84,9 +81,9 @@ rmsnorm(
 
     // Write the outputs
     for (uint j = begin; j < end && j < dim_size; j++) {
-        const float x = in.at(i, j);
-        const float weight = params.mu + w.at(j);
-        out.at(i, j) = T(weight * x * threadgroup_inv_mean[0]);
+        const float x = input.at(i, j);
+        const float w = params.mu + weight.at(j);
+        output.at(i, j) = T(w * x * threadgroup_inv_mean[0]);
     }
 }
 
