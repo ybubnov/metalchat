@@ -16,8 +16,8 @@ using namespace metal;
 
 
 template <typename T> struct __sum_parameters {
-    tensor1<T> output;
-    tensor2<const T> input;
+    RWStructuredBuffer(T, 1, output);
+    StructuredBuffer(T, 2, input);
     constant uint& block_size;
 };
 
@@ -32,17 +32,19 @@ sum(__sum_parameters<T> params,
 {
     constexpr uint SIMD_SIZE = 32;
 
+    Tensor(params, output);
+    Tensor(params, input);
     float threadlocal_sum = 0.0f;
 
-    const uint row_size = params.input.size(0);
-    const uint dim_size = params.input.size(1);
+    const uint row_size = input.size(0);
+    const uint dim_size = input.size(1);
     const uint i = gid;
 
     const uint begin = tid * params.block_size;
     const uint end = begin + params.block_size;
 
     for (uint j = begin; i < row_size && j < end && j < dim_size; j++) {
-        threadlocal_sum += params.input.at(i, j);
+        threadlocal_sum += input.at(i, j);
     }
 
     float acc = metal::simd_sum(threadlocal_sum);
@@ -69,7 +71,7 @@ sum(__sum_parameters<T> params,
     threadgroup_barrier(metal::mem_flags::mem_threadgroup);
 
     if (i < row_size && tid == 0) {
-        params.output.at(i) = T(threadgroup_total_sum[0]);
+        output.at(i) = T(threadgroup_total_sum[0]);
     }
 }
 

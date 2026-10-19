@@ -59,7 +59,7 @@ public:
 
 template <typename T>
 uint
-__binary_search(thread tensor2<const T> data, uint batch, T value)
+__binary_search(thread tensor<const T, 2> data, uint batch, T value)
 {
     uint low = 0;
     uint high = data.size(1);
@@ -80,8 +80,8 @@ __binary_search(thread tensor2<const T> data, uint batch, T value)
 
 
 template <typename T> struct __multinomial_parameters {
-    tensor2<int32_t> output;
-    tensor2<const T> input;
+    RWStructuredBuffer(int32_t, 2, output);
+    StructuredBuffer(T, 2, input);
     constant uint64_t& init_state;
     constant uint64_t& init_seq;
 };
@@ -103,18 +103,21 @@ multinomial(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    const uint row_size = params.output.size(0);
-    const uint dim_size = params.output.size(1);
+    Tensor(params, output);
+    Tensor(params, input);
+
+    const uint row_size = output.size(0);
+    const uint dim_size = output.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
-    const float a = params.input.at(i, dim_size - 1);
-    const float b = params.input.at(i, 0);
+    const float a = input.at(i, dim_size - 1);
+    const float b = input.at(i, 0);
     pcg32 generator(params.init_state + i, params.init_seq + k);
 
     if (i < row_size && k < dim_size) {
         T random = T(generator.uniform() * (b - a) + a);
-        params.output.at(i, k) = __binary_search(params.input, i, random);
+        output.at(i, k) = __binary_search(input, i, random);
     }
 }
 

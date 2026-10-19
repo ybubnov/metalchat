@@ -11,12 +11,9 @@
 
 
 template <typename T> struct __hadamard_parameters {
-    constant layout2& output_layout;
-    device T* output_data;
-    constant layout2& input1_layout;
-    const device T* input1_data;
-    constant layout2& input2_layout;
-    const device T* input2_data;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(T, 2, input1);
+    StructuredBuffer(T, 2, input2);
 };
 
 
@@ -29,9 +26,9 @@ hadamard(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    tensor2<T> output(params.output_layout, params.output_data);
-    tensor2<const T> input1(params.input1_layout, params.input1_data);
-    tensor2<const T> input2(params.input2_layout, params.input2_data);
+    Tensor(params, output);
+    Tensor(params, input1);
+    Tensor(params, input2);
 
     const uint row_size = input1.size(0);
     const uint dim_size = input1.size(1);
@@ -50,9 +47,9 @@ __lib_metalchat_kernel2(hadamard, float);
 
 template <typename Output, typename Input1, typename Input2>
 struct __hadamard_broadcast_parameters {
-    tensor2<Output> output;
-    tensor2<const Input1> input1;
-    tensor1<const Input2> input2;
+    RWStructuredBuffer(Output, 2, output);
+    StructuredBuffer(Input1, 2, input1);
+    StructuredBuffer(Input2, 1, input2);
 };
 
 
@@ -65,16 +62,20 @@ hadamard_broadcast(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    const uint dim0_size = params.input1.size(0);
-    const uint dim1_size = params.input1.size(1);
+    Tensor(params, output);
+    Tensor(params, input1);
+    Tensor(params, input2);
+
+    const uint dim0_size = input1.size(0);
+    const uint dim1_size = input1.size(1);
 
     const uint j = gid.x * threadgroup_size.x + tid.x;
     const uint i = gid.y * threadgroup_size.y + tid.y;
 
     if (i < dim0_size && j < dim1_size) {
-        params.output.at(i, j) =
-            (static_cast<Output>(params.input1.at(i, j)) *
-             static_cast<Output>(params.input2.at(i % params.input2.size(0))));
+        output.at(i, j) =
+            (static_cast<Output>(input1.at(i, j)) *
+             static_cast<Output>(input2.at(i % input2.size(0))));
     }
 }
 
@@ -88,10 +89,8 @@ __lib_metalchat_kernel2_mixed3(hadamard_broadcast, float, float, float);
 
 
 template <typename T> struct __scalar_mul_parameters {
-    constant layout2& output_layout;
-    device T* output;
-    constant layout2& input_layout;
-    device const T* input;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(T, 2, input);
     constant const T& multiplier;
 };
 
@@ -105,16 +104,16 @@ scalar_mul(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    tensor2<const T> in(params.input_layout, params.input);
-    tensor2<T> out(params.output_layout, params.output);
+    Tensor(params, output);
+    Tensor(params, input);
 
-    const uint row_size = in.size(0);
-    const uint dim_size = in.size(1);
+    const uint row_size = input.size(0);
+    const uint dim_size = input.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (i < row_size && k < dim_size) {
-        out.at(i, k) = in.at(i, k) * params.multiplier;
+        output.at(i, k) = input.at(i, k) * params.multiplier;
     }
 }
 

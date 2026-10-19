@@ -14,12 +14,10 @@
 
 
 template <typename T> struct __rope_parameters {
-    tensor2<T> output;
-    tensor2<const T> input;
-    constant layout2& freqs_cos_layout;
-    device const float* freqs_cos;
-    constant layout2& freqs_sin_layout;
-    device const float* freqs_sin;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(T, 2, input);
+    StructuredBuffer(float, 2, freqs_cos);
+    StructuredBuffer(float, 2, freqs_sin);
     constant uint& batch_size;
     constant uint& n_head;
     constant uint& start_pos;
@@ -35,11 +33,13 @@ rope(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    tensor2<const float> f_cos(params.freqs_cos_layout, params.freqs_cos);
-    tensor2<const float> f_sin(params.freqs_sin_layout, params.freqs_sin);
+    Tensor(params, output);
+    Tensor(params, input);
+    Tensor(params, freqs_cos);
+    Tensor(params, freqs_sin);
 
-    const uint row_size = params.input.size(0);
-    const uint head_dim = f_cos.size(1);
+    const uint row_size = input.size(0);
+    const uint head_dim = freqs_cos.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
@@ -47,14 +47,14 @@ rope(
     const uint pos = i / (params.batch_size * params.n_head);
 
     if (i < row_size && k < head_dim) {
-        float x1 = params.input.at(i, k);
-        float x2 = params.input.at(i, head_dim + k);
+        float x1 = input.at(i, k);
+        float x2 = input.at(i, head_dim + k);
 
-        float fcos = f_cos.at(params.start_pos + pos, k);
-        float fsin = f_sin.at(params.start_pos + pos, k);
+        float fcos = freqs_cos.at(params.start_pos + pos, k);
+        float fsin = freqs_sin.at(params.start_pos + pos, k);
 
-        params.output.at(i, k) = T(fcos * x1 - fsin * x2);
-        params.output.at(i, head_dim + k) = T(fsin * x1 + fcos * x2);
+        output.at(i, k) = T(fcos * x1 - fsin * x2);
+        output.at(i, head_dim + k) = T(fsin * x1 + fcos * x2);
     }
 }
 
@@ -64,10 +64,8 @@ __lib_metalchat_kernel2(rope, float);
 
 
 template <typename T> struct __rope_freqs_parameters {
-    constant layout2& freqs_cos_layout;
-    device T* freqs_cos;
-    constant layout2& freqs_sin_layout;
-    device T* freqs_sin;
+    RWStructuredBuffer(T, 2, freqs_cos);
+    RWStructuredBuffer(T, 2, freqs_sin);
     constant uint& dim;
     constant uint& start_pos;
     constant T& theta;
@@ -83,18 +81,18 @@ rope_freqs(
     uint2 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    tensor2<T> f_cos(params.freqs_cos_layout, params.freqs_cos);
-    tensor2<T> f_sin(params.freqs_sin_layout, params.freqs_sin);
+    Tensor(params, freqs_cos);
+    Tensor(params, freqs_sin);
 
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint j = gid.x * threadgroup_size.x + tid.x;
 
-    if (i < f_cos.size(0) && j < params.dim / 2) {
+    if (i < freqs_cos.size(0) && j < params.dim / 2) {
         float freq = 1.0f / metal::precise::pow(params.theta, 2.0f * j / params.dim);
         float angle = float(params.start_pos + i) * freq;
 
-        f_cos.at(i, j) = T(metal::precise::cos(angle));
-        f_sin.at(i, j) = T(metal::precise::sin(angle));
+        freqs_cos.at(i, j) = T(metal::precise::cos(angle));
+        freqs_sin.at(i, j) = T(metal::precise::sin(angle));
     }
 }
 

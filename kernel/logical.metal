@@ -11,8 +11,8 @@
 
 
 template <typename T> struct __gt_parameters {
-    tensor2<bool> output;
-    tensor2<const T> input;
+    RWStructuredBuffer(bool, 2, output);
+    StructuredBuffer(T, 2, input);
     constant T& value;
 };
 
@@ -24,12 +24,15 @@ gt(__gt_parameters<T> params,
    uint2 tid [[thread_position_in_threadgroup]],
    uint2 threadgroup_size [[threads_per_threadgroup]])
 {
-    const uint dim_size = params.input.size(1);
+    Tensor(params, output);
+    Tensor(params, input);
+
+    const uint dim_size = input.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (k < dim_size) {
-        params.output.at(i, k) = (params.input.at(i, k) > params.value);
+        output.at(i, k) = (input.at(i, k) > params.value);
     }
 }
 
@@ -39,8 +42,8 @@ __lib_metalchat_kernel2(gt, float);
 
 
 template <typename T> struct __le_parameters {
-    tensor2<bool> output;
-    tensor2<const T> input;
+    RWStructuredBuffer(bool, 2, output);
+    StructuredBuffer(T, 2, input);
     constant T& value;
 };
 
@@ -52,12 +55,15 @@ le(__le_parameters<T> params,
    uint2 tid [[thread_position_in_threadgroup]],
    uint2 threadgroup_size [[threads_per_threadgroup]])
 {
-    const uint dim_size = params.input.size(1);
+    Tensor(params, output);
+    Tensor(params, input);
+
+    const uint dim_size = input.size(1);
     const uint i = gid.y * threadgroup_size.y + tid.y;
     const uint k = gid.x * threadgroup_size.x + tid.x;
 
     if (k < dim_size) {
-        params.output.at(i, k) = (params.input.at(i, k) <= params.value);
+        output.at(i, k) = (input.at(i, k) <= params.value);
     }
 }
 

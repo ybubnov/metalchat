@@ -15,8 +15,8 @@ using namespace metal;
 
 
 template <typename T> struct __softmax_parameters {
-    tensor2<T> output;
-    tensor2<const T> input;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(T, 2, input);
     constant uint& block_size;
 };
 
@@ -33,16 +33,18 @@ softmax(
 {
     constexpr uint SIMD_SIZE = 32;
 
+    Tensor(params, output);
+    Tensor(params, input);
     float threadlocal_sum = 0.0f;
 
-    const uint dim_size = params.input.size(1);
+    const uint dim_size = input.size(1);
     const uint i = gid;
 
     const uint begin = tid * params.block_size;
     const uint end = begin + params.block_size;
 
     for (uint j = begin; j < end && j < dim_size; j++) {
-        float xj = float(params.input.at(i, j));
+        float xj = float(input.at(i, j));
         threadlocal_sum += metal::precise::exp(xj);
     }
 
@@ -75,8 +77,8 @@ softmax(
     // Write the outputs
     const float exp_sum = threadgroup_exp_sum[0];
     for (uint j = begin; j < end && j < dim_size; j++) {
-        const float x = params.input.at(i, j);
-        params.output.at(i, j) = T(metal::precise::exp(x) * exp_sum);
+        const float x = input.at(i, j);
+        output.at(i, j) = T(metal::precise::exp(x) * exp_sum);
     }
 }
 

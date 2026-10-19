@@ -11,11 +11,9 @@
 
 
 template <typename T> struct __conv1d_parameters {
-    tensor3<T> output;
-    constant layout3& input_layout;
-    device const T* input;
-    constant layout3& weight_layout;
-    device const T* weight;
+    RWStructuredBuffer(T, 3, output);
+    StructuredBuffer(T, 3, input);
+    StructuredBuffer(T, 3, weight);
     constant int& padding;
     constant uint& groups;
 };
@@ -30,8 +28,9 @@ conv1d(
     uint3 threadgroup_size [[threads_per_threadgroup]]
 )
 {
-    tensor3<const T> input(params.input_layout, params.input);
-    tensor3<const T> weight(params.weight_layout, params.weight);
+    Tensor(params, output);
+    Tensor(params, input);
+    Tensor(params, weight);
 
     const int input_size = static_cast<int>(input.size(2));
     const uint in_channels = weight.size(1) * params.groups;
@@ -44,7 +43,7 @@ conv1d(
     const uint input_id = gid.x * threadgroup_size.x + tid.x;
     const uint out_channel_id = gid.y * threadgroup_size.y + tid.y;
 
-    const uint output_size = params.output.size(2);
+    const uint output_size = output.size(2);
 
     if (input_id < output_size && out_channel_id < out_channels) {
         T group_conv = T(0);
@@ -64,7 +63,7 @@ conv1d(
             }
         }
 
-        params.output.at(i, out_channel_id, input_id) = group_conv;
+        output.at(i, out_channel_id, input_id) = group_conv;
     }
 }
 

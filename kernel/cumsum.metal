@@ -12,10 +12,8 @@
 
 
 template <typename T> struct __cumsum_parameters {
-    constant layout2& output_layout;
-    device T* output;
-    constant layout2& input_layout;
-    device const T* input;
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(T, 2, input);
 };
 
 
@@ -30,11 +28,11 @@ cumsum(
 {
     constexpr uint MaxBlocks = 256;
 
-    tensor2<const T> in(params.input_layout, params.input);
-    tensor2<T> out(params.output_layout, params.output);
+    Tensor(params, input);
+    Tensor(params, output);
 
-    const uint row_size = in.size(0);
-    const uint dim_size = in.size(1);
+    const uint row_size = input.size(0);
+    const uint dim_size = input.size(1);
     const uint i = gid;
 
     const uint begin = tid * BlockSize;
@@ -47,9 +45,9 @@ cumsum(
     for (uint k = begin, j = 0; k < end && k < dim_size; k++, j++) {
         if (i < row_size) {
             if (j > 0) {
-                local_sums[j] = in.at(i, k) + local_sums[j - 1];
+                local_sums[j] = input.at(i, k) + local_sums[j - 1];
             } else {
-                local_sums[j] = in.at(i, k);
+                local_sums[j] = input.at(i, k);
             }
         }
     }
@@ -69,7 +67,7 @@ cumsum(
 
     for (uint k = begin; k < end && k < dim_size; k++) {
         if (i < row_size) {
-            out.at(i, k) = local_sums[k - begin];
+            output.at(i, k) = local_sums[k - begin];
         }
     }
 }
