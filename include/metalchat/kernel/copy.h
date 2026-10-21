@@ -86,12 +86,14 @@ public:
 /// \warning When indices are not unique, the behaviour is non-deterministic.
 template <typename T> class scatter {
 private:
-    basic_kernel _M_kernel;
+    basic_kernel _M_scalar_scatter;
+    basic_kernel _M_scatter;
 
 public:
-    /// The kernel constructor.
+    /// The \ref scatter kernel constructor.
     scatter(hardware_accelerator& gpu)
-    : _M_kernel(gpu.load<T>("scatter"))
+    : _M_scalar_scatter(gpu.load<T>("scalar_scatter")),
+      _M_scatter(gpu.load<T>("scatter"))
     {}
 
     /// Invokes the kernel, and writes a single value to the output tensor according to
@@ -122,17 +124,37 @@ public:
     {
         auto expected_output = expected_tensor(output).expect(matching_shape(mask)).value();
 
-        auto max_threads = _M_kernel.max_threads_per_threadgroup();
+        auto max_threads = _M_scalar_scatter.max_threads_per_threadgroup();
         auto [grid, thread] = make_kernel_grid_2d(expected_output, max_threads);
 
         auto output_view = flatten<2>(expected_output);
         auto mask_view = flatten<2>(mask);
 
-        auto task = kernel_task(_M_kernel, grid, thread);
+        auto task = kernel_task(_M_scalar_scatter, grid, thread);
         auto task_future = task.bind_front(output_view, mask_view, scalar(value));
 
         auto result = future_tensor(expected_output, std::move(task_future));
         return result.view(expected_output.shape());
+    }
+
+    template <
+        immutable_tensor_t<T> Output,
+        immutable_tensor_t<int32_t> Index,
+        immutable_tensor_t<T> Input>
+    auto
+    operator()(Output output, Index index, Input input)
+    {
+        auto max_threads = _M_scatter.max_threads_per_threadgroup();
+        auto [grid, thread] = make_kernel_grid_2d(index, max_threads);
+
+        auto output_view = flatten<2>(output);
+        auto index_view = flatten<2>(index);
+        auto input_view = flatten<2>(input);
+
+        auto task = kernel_task(_M_scatter, grid, thread);
+        auto task_future = task.bind_front(output_view, index_view, input_view);
+
+        return future_tensor(output, std::move(task_future));
     }
 };
 

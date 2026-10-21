@@ -74,7 +74,7 @@ public:
     : _M_result(result),
       _M_future_mutex(std::make_shared<std::mutex>())
     {
-        const std::scoped_lock __lock(*_M_future_mutex);
+        const std::scoped_lock lock(*_M_future_mutex);
         auto task_ptr = std::make_shared<Task>(std::move(task));
 
         // Enqueue the calculations to compute the tensor, upon the completion,
@@ -102,7 +102,7 @@ public:
     : _M_result(result),
       _M_future_mutex(std::make_shared<std::mutex>())
     {
-        const std::scoped_lock __lock(*future._M_future_mutex);
+        const std::scoped_lock lock(*future._M_future_mutex);
 
         // Wait on the same future.
         _M_future = future._M_future;
@@ -216,7 +216,7 @@ public:
     explicit
     operator bool() const noexcept
     {
-        return _M_result;
+        return static_cast<bool>(_M_result);
     }
 
     /// Waits for (by calling \ref future_tensor::wait) until the shared tensor is ready, then
@@ -242,7 +242,7 @@ public:
     void
     wait()
     {
-        const std::scoped_lock __lock(*_M_future_mutex);
+        const std::scoped_lock lock(*_M_future_mutex);
 
         if (_M_future_wait) {
             (*_M_future_wait)();
@@ -545,12 +545,20 @@ template <
     asynchronously_invocable Task,
     hardware_allocator_t<T> Allocator>
 auto
-empty_future(std::size_t (&&sizes)[N], Task&& task, Allocator alloc)
+future_empty(std::size_t (&&sizes)[N], Task&& task, Allocator alloc)
 {
     auto result = shared_tensor(empty<T>(std::move(sizes), alloc));
     auto result_task = task.bind_front(result);
 
     return future_tensor(result, std::move(result_task));
+}
+
+
+template <typename T, std::size_t N, hardware_allocator_t<void> Allocator>
+auto
+future_empty(std::size_t (&&sizes)[N], Allocator alloc)
+{
+    return future_tensor(shared_tensor(empty<T>(std::move(sizes), alloc)));
 }
 
 
@@ -560,9 +568,9 @@ template <
     asynchronously_invocable Task,
     hardware_allocator_t<void> Allocator>
 auto
-empty_future(std::size_t (&&sizes)[N], Task&& task, Allocator alloc)
+future_empty(std::size_t (&&sizes)[N], Task&& task, Allocator alloc)
 {
-    return empty_future<T>(
+    return future_empty<T>(
         std::move(sizes), std::move(task), rebind_hardware_allocator<T, Allocator>(alloc)
     );
 }

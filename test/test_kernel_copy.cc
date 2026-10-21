@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2025 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
+#include <unordered_set>
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -70,21 +72,13 @@ TEST_CASE("Copy into slice", "[kernel::clone]")
 }
 
 
-TEST_CASE("Inplace index set", "[kernel::scatter]")
+TEST_CASE("Inplace scalar scatter", "[kernel::scatter]")
 {
-    metalchat::hardware_accelerator gpu0;
+    hardware_accelerator gpu0;
     kernel::scatter<float> scatter(gpu0);
 
-    auto input = shared_tensor(empty<float>({16, 128}, gpu0.get_allocator()));
-    auto mask = shared_tensor(empty<bool>({16, 128}));
-
-    std::random_device rd;
-    std::mt19937 generator(rd());
-    std::uniform_real_distribution<float> distribution(0.0, 1.0);
-
-    std::generate_n(mask.data_ptr(), mask.numel(), [&]() -> bool {
-        return distribution(generator) > 0.5 ? true : false;
-    });
+    auto input = shared_tensor(full<float>({16, 128}, 1.0f, gpu0.get_allocator()));
+    auto mask = shared_tensor(rand<bool>({16, 128}));
 
     auto output = scatter(input, mask, 9.0f).get();
     REQUIRE(output.dim() == 2);
@@ -95,7 +89,41 @@ TEST_CASE("Inplace index set", "[kernel::scatter]")
         for (std::size_t j = 0; j < input.size(1); j++) {
             if (mask[i, j]) {
                 REQUIRE_THAT((input[i, j]), Catch::Matchers::WithinAbs(9.0f, 0.0001));
+            } else {
+                REQUIRE_THAT((input[i, j]), Catch::Matchers::WithinAbs(1.0f, 0.0001));
             }
+        }
+    }
+}
+
+
+TEST_CASE("Inplace tensor scatter", "[kernel::scatter]")
+{
+    hardware_accelerator gpu0;
+    kernel::scatter<float> scatter(gpu0);
+
+    auto output = shared_tensor(full<float>({16, 128}, 1.0f, gpu0.get_allocator()));
+    auto index = shared_tensor(rand<int32_t>({16, 8}, 0, 127));
+    auto input = shared_tensor(rand<float>({16, 8}));
+
+    for (std::size_t i = 0; i < index.size(0); i++) {
+        std::unordered_set<int32_t> set;
+        for (std::size_t j = 0; j < index.size(1); j++) {
+            while (set.contains(index[i, j])) {
+                index[i, j] = (index[i, j] + 1) % 128;
+            }
+            set.insert(index[i, j]);
+        }
+    }
+
+    auto result = scatter(output, index, input).get();
+    REQUIRE(result.dim() == 2);
+    REQUIRE(result.size(0) == output.size(0));
+    REQUIRE(result.size(1) == output.size(1));
+
+    for (std::size_t i = 0; i < index.size(0); i++) {
+        for (std::size_t j = 0; j < index.size(1); j++) {
+            REQUIRE((result[i, index[i, j]]) == (input[i, j]));
         }
     }
 }
@@ -107,15 +135,7 @@ TEST_CASE("Gather by index", "[kernel::gather]")
     kernel::gather<float> gather(gpu0);
 
     auto input = shared_tensor(rand<float>({16, 128}));
-    auto index = shared_tensor(empty<int32_t>({16, 10}));
-
-    std::random_device rd;
-    std::mt19937 generator(rd());
-    std::uniform_int_distribution<int32_t> distribution(0, 127);
-
-    std::generate_n(index.data_ptr(), index.numel(), [&]() -> int32_t {
-        return distribution(generator);
-    });
+    auto index = shared_tensor(rand<int32_t>({16, 10}, 0, 127));
 
     auto output = gather(input, index).get();
     REQUIRE(output.dim() == 2);

@@ -45,7 +45,7 @@ __lib_metalchat_kernel2(copy, float);
 __lib_metalchat_kernel2(copy, int32_t);
 
 
-template <typename T> struct __scatter_parameters {
+template <typename T> struct __scalar_scatter_parameters {
     RWStructuredBuffer(T, 2, output);
     StructuredBuffer(bool, 2, mask);
     constant T& value;
@@ -54,8 +54,8 @@ template <typename T> struct __scatter_parameters {
 
 template <typename T>
 kernel void
-scatter(
-    __scatter_parameters<T> params,
+scalar_scatter(
+    __scalar_scatter_parameters<T> params,
     uint2 gid [[threadgroup_position_in_grid]],
     uint2 tid [[thread_position_in_threadgroup]],
     uint2 threadgroup_size [[threads_per_threadgroup]]
@@ -75,6 +75,41 @@ scatter(
         }
     }
 }
+
+__lib_metalchat_kernel2(scalar_scatter, bfloat);
+__lib_metalchat_kernel2(scalar_scatter, float);
+
+
+template <typename T> struct __scatter_parameters {
+    RWStructuredBuffer(T, 2, output);
+    StructuredBuffer(int32_t, 2, index);
+    StructuredBuffer(T, 2, input);
+};
+
+
+template <typename T>
+kernel void
+scatter(
+    __scatter_parameters<T> params,
+    uint2 gid [[threadgroup_position_in_grid]],
+    uint2 tid [[thread_position_in_threadgroup]],
+    uint2 threadgroup_size [[threads_per_threadgroup]]
+)
+{
+    Tensor(params, output);
+    Tensor(params, index);
+    Tensor(params, input);
+
+    const uint row_size = index.size(0);
+    const uint dim_size = index.size(1);
+    const uint i = gid.y * threadgroup_size.y + tid.y;
+    const uint k = gid.x * threadgroup_size.x + tid.x;
+
+    if (i < row_size && k < dim_size) {
+        output.at(i, index.at(i, k)) = input.at(i, k);
+    }
+}
+
 
 __lib_metalchat_kernel2(scatter, bfloat);
 __lib_metalchat_kernel2(scatter, float);
