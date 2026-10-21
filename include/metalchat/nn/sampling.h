@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// SPDX-FileCopyrightText: 2025 Yakau Bubnou
+// SPDX-FileCopyrightText: 2025-2026 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
 #pragma once
@@ -46,7 +46,7 @@ template <typename T> struct basic_sampler {
     using logits_tensor = context_type::logits_tensor;
     using index_tensor = context_type::index_tensor;
 
-    template <immutable_tensor2_t<T> Logits, immutable_tensor2_t<index_type> Inputs>
+    template <immutable_tensor2_t<T> Logits, immutable_hardware_tensor2_t<index_type> Inputs>
     static context_type
     construct_context(Logits logits, Inputs inputs, hardware_accelerator& accelerator)
     {
@@ -60,7 +60,16 @@ template <typename T> struct basic_sampler {
             }
         }
 
-        return context_type{logits, future_tensor(indices), future_tensor<index_type, 2>()};
+        return context_type{logits, index_tensor(indices), index_tensor(inputs)};
+    }
+
+    template <immutable_tensor2_t<T> Logits, immutable_tensor2_t<index_type> Inputs>
+    static context_type
+    construct_context(Logits logits, Inputs inputs_, hardware_accelerator& accelerator)
+    {
+        auto alloc = accelerator.get_allocator();
+        auto inputs = shared_tensor_ptr(move(inputs_, alloc));
+        return construct_context(logits, inputs, accelerator);
     }
 
     /// Return subset of raw logits and their indices (context) that should be
@@ -132,6 +141,32 @@ public:
     : _M_samplers({})
     {}
 
+    template <std::derived_from<sampler_type> Sampler>
+    void
+    push_front(Sampler&& sampler)
+    {
+        _M_samplers.push_front(std::make_shared<Sampler>(std::move(sampler)));
+    }
+
+    void
+    push_front(const sampler_pointer& sampler_ptr)
+    {
+        _M_samplers.push_front(sampler_ptr);
+    }
+
+    template <std::derived_from<sampler_type> Sampler>
+    void
+    push_back(Sampler&& sampler)
+    {
+        _M_samplers.push_back(std::make_shared<Sampler>(std::move(sampler)));
+    }
+
+    void
+    push_back(const sampler_pointer& sampler_ptr)
+    {
+        _M_samplers.push_back(sampler_ptr);
+    }
+
     context_type
     sample(const context_type& context, hardware_accelerator& accelerator)
     {
@@ -143,7 +178,7 @@ public:
     }
 
 private:
-    std::vector<sampler_pointer> _M_samplers;
+    std::list<sampler_pointer> _M_samplers;
 };
 
 
@@ -307,7 +342,7 @@ private:
 
 /// Prevents repetition of previous tokens through a penalty. This penalty is applied at most
 /// once per token.
-template <typename T> class frequency_sampler : public basic_sampler<T> {
+template <typename T> class repetition_penalty_sampler : public basic_sampler<T> {
 public:
     using value_type = T;
     using index_type = int32_t;
@@ -316,32 +351,56 @@ public:
     using logits_tensor = context_type::logits_tensor;
     using index_tensor = context_type::index_tensor;
 
-    // The \ref frequency_sampler constructor.
+    // The \ref repetition_penalty_sampler constructor.
     //
     // \param penalty Float that penalizes new tokens based on whether they appear in the prompt
     // and the generated text so far. Values > 1 encourage the model to use new tokens, while
     // values < 1 encourage the model to repeat tokens.
-    frequency_sampler(T penalty)
-    : _M_penalty(penalty)
+    repetition_penalty_sampler(T penalty)
+    : _M_penalty(penalty),
+      _M_penalty_inv(T(1) / _M_penalty),
+      _M_observed_inputs()
     {}
 
     context_type
     sample(const context_type& context, hardware_accelerator& accelerator)
     {
-        auto scores = gather(context.logits, context.inputs, accelerator);
+        kernel::clone<index_type> copy(accelerator);
+
+        if (!_M_observed_inputs) {
+            _M_observed_inputs = copy(context.inputs);
+        } else {
+            const auto bs = _M_observed_inputs.size(0);
+            const auto obs_size = _M_observed_inputs.size(1);
+            const auto inputs_size = context.inputs.size(1);
+            auto alloc = accelerator.get_allocator();
+
+            auto inputs = future_empty<index_type>({bs, obs_size + inputs_size}, alloc);
+            auto inputs_head = inputs.narrow(1, 0, obs_size);
+            auto inputs_tail = inputs.narrow(1, obs_size, inputs_size);
+
+            inputs = future_tensor(inputs, copy(_M_observed_inputs, inputs_head));
+            inputs = future_tensor(inputs, copy(context.inputs, inputs_tail));
+
+            _M_observed_inputs = inputs;
+        }
+
+        auto scores = gather(context.logits, _M_observed_inputs, accelerator);
 
         auto scores_gt_zero = gt(scores, T(0), accelerator);
         auto scores_mul = mul(scores, _M_penalty, accelerator);
-        auto scores_div = mul(scores, T(1) / _M_penalty, accelerator);
+        auto scores_div = mul(scores, _M_penalty_inv, accelerator);
 
-        scores = where(scores_gt_zero, scores_div, scores_mul, accelerator);
-        scores = scatter(context.logits, context.inputs, scores, accelerator);
+        scores = where<T>(scores_gt_zero, scores_div, scores_mul, accelerator);
+        scores = scatter<T>(context.logits, _M_observed_inputs, scores, accelerator);
 
         return context_type{scores, context.indices, context.inputs};
     }
 
 private:
     T _M_penalty;
+    T _M_penalty_inv;
+    index_tensor _M_observed_inputs;
 };
 
 

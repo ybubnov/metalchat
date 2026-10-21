@@ -77,7 +77,7 @@ Sampling
 .. doxygenstruct:: metalchat::nn::basic_sampler
    :members:
 
-.. doxygenclass:: metalchat::nn::frequency_sampler
+.. doxygenclass:: metalchat::nn::repetition_penalty_sampler
    :members:
 
 .. doxygenclass:: metalchat::nn::nucleus_sampler

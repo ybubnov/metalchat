@@ -33,7 +33,12 @@ TEST_CASE("Test lfm2", "[lfm][integration]")
     TokenizerTraits::encode(tokenizer, "<|startoftext|>", output);
     TokenizerTraits::encode(tokenizer, input_text, output);
 
+    using value_type = huggingface::lfm2::value_type;
     auto transformer = repository.retrieve_transformer("model.safetensors", options);
+
+    auto sampler = nn::make_default_sampler<value_type>();
+    sampler->push_front(nn::repetition_penalty_sampler<value_type>(1.15));
+    transformer.set_sampler(sampler);
 
     auto heap_size = std::size_t(512) * 1024 * 1024;
     auto alloc0 = hardware_heap_allocator<void>(gpu0.get_metal_device(), heap_size);

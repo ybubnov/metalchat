@@ -2,6 +2,8 @@
 // SPDX-FileCopyrightText: 2025 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
+#include <unordered_set>
+
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -101,8 +103,18 @@ TEST_CASE("Inplace tensor scatter", "[kernel::scatter]")
     kernel::scatter<float> scatter(gpu0);
 
     auto output = shared_tensor(full<float>({16, 128}, 1.0f, gpu0.get_allocator()));
-    auto index = shared_tensor(rand<int32_t>({16, 128}, 0, 127));
-    auto input = shared_tensor(rand<float>({16, 128}));
+    auto index = shared_tensor(rand<int32_t>({16, 8}, 0, 127));
+    auto input = shared_tensor(rand<float>({16, 8}));
+
+    for (std::size_t i = 0; i < index.size(0); i++) {
+        std::unordered_set<int32_t> set;
+        for (std::size_t j = 0; j < index.size(1); j++) {
+            while (set.contains(index[i, j])) {
+                index[i, j] = (index[i, j] + 1) % 128;
+            }
+            set.insert(index[i, j]);
+        }
+    }
 
     auto result = scatter(output, index, input).get();
     REQUIRE(result.dim() == 2);
@@ -111,8 +123,7 @@ TEST_CASE("Inplace tensor scatter", "[kernel::scatter]")
 
     for (std::size_t i = 0; i < index.size(0); i++) {
         for (std::size_t j = 0; j < index.size(1); j++) {
-            const auto& expect = input[i, index[i, j]];
-            REQUIRE_THAT((result[i, j]), Catch::Matchers::WithinAbs(expect, 0.0001));
+            REQUIRE((result[i, index[i, j]]) == (input[i, j]));
         }
     }
 }
