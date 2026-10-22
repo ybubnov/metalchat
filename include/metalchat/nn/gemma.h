@@ -21,6 +21,7 @@ namespace metalchat {
 namespace nn {
 
 
+/// Configuration options for Gemma3 model.
 struct gemma3_options {
     std::size_t head_dim = 0;
     std::size_t hidden_dim = 0;
@@ -70,6 +71,7 @@ public:
     using container_type = Container;
     using tensor_type = future_tensor<index_type, 2>;
 
+    /// Constructs a new Gemma3 model with uninitialized weights with the given options.
     gemma3(const gemma3_options& options, hardware_accelerator& accelerator)
     : basic_layer(accelerator),
       _M_options(options)
@@ -136,6 +138,13 @@ public:
         return _M_output(output);
     }
 
+    /// Invoke the layer.
+    ///
+    /// \tparam Input type of the input tensor.
+    /// \param input a 2-dimensional tensor with the indices of the input tokens.
+    /// \param start_pos a start position of the input sequence.
+    ///
+    /// \returns a \ref future_tensor with logits of model vocabulary.
     template <immutable_tensor2_t<index_type> Input>
     auto
     operator()(Input input, std::size_t start_pos = 0)
