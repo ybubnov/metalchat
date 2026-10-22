@@ -7,6 +7,8 @@
 #include <istream>
 #include <list>
 #include <ostream>
+#include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 
 #include <metalchat/transformer.h>
@@ -250,6 +252,10 @@ template <typename Index, typename CharT> struct basic_formatter {
     using ostream_type = std::basic_ostream<index_type, token_traits<index_type>>;
     using message_type = basic_message<char_type>;
 
+    basic_formatter()
+    : _M_format_roles()
+    {}
+
     virtual message_type
     parse(istream_type& is) = 0;
 
@@ -261,6 +267,37 @@ template <typename Index, typename CharT> struct basic_formatter {
 
     /// The \ref basic_formatter virtual destructor.
     virtual ~basic_formatter() = default;
+
+    const std::string&
+    message_role(rolekind role) const
+    {
+        return _M_format_roles.at(role);
+    }
+
+    template <typename... Roles>
+    void
+    register_message_roles(const std::tuple<Roles...>& roles)
+    {
+        constexpr auto roles_size = sizeof...(Roles);
+        register_message_roles(roles, std::make_index_sequence<roles_size>{});
+    }
+
+    void
+    register_message_role(const rolekind role, const std::string_view& alias)
+    {
+        _M_format_roles.insert_or_assign(role, std::string(alias));
+    }
+
+private:
+    std::unordered_map<rolekind, std::string> _M_format_roles;
+
+    template <typename... Roles, std::size_t... Indices>
+    void
+    register_message_roles(const std::tuple<Roles...>& roles, std::index_sequence<Indices...>)
+    {
+        (register_message_role(std::get<Indices>(roles).first, std::get<Indices>(roles).second),
+         ...);
+    }
 };
 
 
