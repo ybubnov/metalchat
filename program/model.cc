@@ -157,7 +157,7 @@ model_command::model_command(basic_command& parent)
     _M_pull.add_argument("-a", "--arch")
         .help("a model architecture")
         .metavar("<architecture>")
-        .choices(architecture::llama3, architecture::gemma3)
+        .choices(architecture::llama3, architecture::gemma3, architecture::lfm2)
         .required()
         .store_into(_M_arch);
     _M_pull.add_argument("-V", "--variant")

@@ -9,6 +9,7 @@
 #include <variant>
 
 #include <metalchat/huggingface/gemma.h>
+#include <metalchat/huggingface/lfm.h>
 #include <metalchat/huggingface/llama.h>
 #include <toml.hpp>
 
@@ -26,12 +27,14 @@ using namespace std::literals;
 struct architecture {
     static std::string llama3;
     static std::string gemma3;
+    static std::string lfm2;
 };
 
 
 static constexpr auto supported_architectures = std::make_tuple(
     std::make_pair("llama3"sv, std::type_identity<huggingface::llama3>{}),
-    std::make_pair("gemma3"sv, std::type_identity<huggingface::gemma3>{})
+    std::make_pair("gemma3"sv, std::type_identity<huggingface::gemma3>{}),
+    std::make_pair("lfm2"sv, std::type_identity<huggingface::lfm2>{})
 );
 
 

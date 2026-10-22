@@ -12,6 +12,7 @@ namespace runtime {
 
 std::string architecture::llama3 = "llama3";
 std::string architecture::gemma3 = "gemma3";
+std::string architecture::lfm2 = "lfm2";
 std::string variant::huggingface = "huggingface";
 std::string partitioning::sharded = "sharded";
 std::string partitioning::consolidated = "consolidated";

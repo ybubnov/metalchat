@@ -225,13 +225,12 @@ public:
     using message_type = formatter_type::message_type;
 
     llama3_formatter(const Tokenizer& tokenizer)
-    : _M_tokenizer(tokenizer),
+    : basic_formatter(),
+      _M_tokenizer(tokenizer),
       _M_scanner(nullptr),
-      _M_first(false),
-      _M_format_roles()
+      _M_first(false)
     {
-        constexpr auto default_roles_size = std::tuple_size_v<decltype(default_roles)>;
-        register_default_roles(std::make_index_sequence<default_roles_size>{});
+        register_message_roles(default_roles);
 
         std::vector<index_type> terminals;
         auto terminals_iterator = std::back_inserter(terminals);
@@ -301,14 +300,10 @@ private:
     void
     format_header(rolekind role, OutputIt output) const
     {
-        if (auto it = _M_format_roles.find(role); it != _M_format_roles.end()) {
-            tokenizer_traits::encode(_M_tokenizer, llama3_prompt::begin_header, output);
-            tokenizer_traits::encode(_M_tokenizer, it->second, output);
-            tokenizer_traits::encode(_M_tokenizer, llama3_prompt::end_header, output);
-            tokenizer_traits::encode(_M_tokenizer, "\n\n", output);
-        } else {
-            throw std::runtime_error(std::format("llama3_formatter: role {} not found", role));
-        }
+        tokenizer_traits::encode(_M_tokenizer, llama3_prompt::begin_header, output);
+        tokenizer_traits::encode(_M_tokenizer, message_role(role), output);
+        tokenizer_traits::encode(_M_tokenizer, llama3_prompt::end_header, output);
+        tokenizer_traits::encode(_M_tokenizer, "\n\n", output);
     }
 
     template <typename OutputIt>
@@ -321,29 +316,9 @@ private:
         }
     }
 
-    template <std::size_t... Indices>
-    void
-    register_default_roles(std::index_sequence<Indices...>)
-    {
-        (register_default_role<Indices>(), ...);
-    }
-
-    template <std::size_t Index>
-    void
-    register_default_role()
-    {
-        auto default_role = std::get<Index>(default_roles);
-        auto role = default_role.first;
-        auto role_synonym = std::string(default_role.second);
-
-        _M_format_roles.insert_or_assign(role, role_synonym);
-    }
-
     tokenizer_type _M_tokenizer;
     scanner_pointer _M_scanner;
     bool _M_first;
-
-    std::unordered_map<rolekind, std::string> _M_format_roles;
 };
 
 

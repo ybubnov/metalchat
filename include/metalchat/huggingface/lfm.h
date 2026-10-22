@@ -77,6 +77,131 @@ public:
 };
 
 
+struct lfm2_prompt {
+    static constexpr std::string_view start_of_text = "<|startoftext|>";
+    static constexpr std::string_view end_of_text = "<|endoftext|>";
+    static constexpr std::string_view message_start = "<|im_start|>";
+    static constexpr std::string_view message_end = "<|im_end|>";
+    static constexpr std::string_view tool_list_start = "<|tool_list_start|>";
+    static constexpr std::string_view tool_list_end = "<|tool_list_end|>";
+    static constexpr std::string_view tool_call_start = "<|tool_call_start|>";
+    static constexpr std::string_view tool_call_end = "<|tool_call_end|>";
+};
+
+
+template <typename Tokenizer> class lfm2_formatter : public basic_formatter<int32_t, char> {
+public:
+    static constexpr auto default_roles = std::make_tuple(
+        std::make_pair(role::system, "system"sv),
+        std::make_pair(role::request, "user"sv),
+        std::make_pair(role::response, "assistant"sv),
+        std::make_pair(role::result, "tool"sv)
+    );
+
+    using index_type = int32_t;
+    using char_type = char;
+
+    using formatter_type = basic_formatter<index_type, char_type>;
+    using scanner_type = basic_token_scanner<index_type>;
+    using scanner_pointer = std::shared_ptr<scanner_type>;
+
+    using prompt_type = lfm2_prompt;
+    using tokenizer_type = Tokenizer;
+    using tokenizer_traits = text::tokenizer_traits<tokenizer_type>;
+
+    using istream_type = formatter_type::istream_type;
+    using ostream_type = formatter_type::ostream_type;
+    using message_type = formatter_type::message_type;
+
+    lfm2_formatter(const Tokenizer& tokenizer)
+    : basic_formatter(),
+      _M_tokenizer(tokenizer),
+      _M_scanner(nullptr),
+      _M_first(false)
+    {
+        register_message_roles(default_roles);
+
+        std::vector<index_type> terminals;
+        auto terminals_iterator = std::back_inserter(terminals);
+
+        tokenizer_traits::encode(_M_tokenizer, prompt_type::message_end, terminals_iterator);
+        tokenizer_traits::encode(_M_tokenizer, prompt_type::end_of_text, terminals_iterator);
+
+        auto scanner = make_default_scanner(terminals.cbegin(), terminals.cend());
+        _M_scanner = std::make_shared<decltype(scanner)>(std::move(scanner));
+    }
+
+    message_type
+    parse(istream_type& is)
+    {
+        std::basic_stringstream<char_type> content_stream;
+        parse(is, content_stream);
+
+        return message(role::response, content_stream.str());
+    }
+
+    void
+    parse(istream_type& is, std::basic_ostream<char_type>& os)
+    {
+        std::istreambuf_iterator<index_type, token_traits<index_type>> input(is);
+        std::ostreambuf_iterator<char_type> output(os);
+
+        parse(input, output);
+    }
+
+    template <std::input_iterator InputIt, std::output_iterator<char_type> OutputIt>
+    void
+    parse(InputIt input, OutputIt output)
+    {
+        _M_scanner->reset();
+        for (auto token = *input; _M_scanner->scan(token); token = *++input) {
+            auto str = tokenizer_traits::decode(_M_tokenizer, token);
+            std::copy(str.cbegin(), str.cend(), output);
+        }
+        ++input;
+    }
+
+    void
+    format(const message_type& message, ostream_type& os)
+    {
+        std::ostreambuf_iterator<index_type, token_traits<index_type>> output(os);
+        // Begin formatting with the begin-of-text token.
+        if (!_M_first) {
+            tokenizer_traits::encode(_M_tokenizer, prompt_type::start_of_text, output);
+            _M_first = true;
+        }
+
+        format_header(message.role(), output);
+        format_content(message.content(), output);
+    }
+
+private:
+    template <typename OutputIt>
+    void
+    format_header(rolekind role, OutputIt output) const
+    {
+        tokenizer_traits::encode(_M_tokenizer, prompt_type::message_start, output);
+        tokenizer_traits::encode(_M_tokenizer, message_role(role), output);
+        tokenizer_traits::encode(_M_tokenizer, "\n", output);
+    }
+
+    template <typename OutputIt>
+    void
+    format_content(const std::basic_string<char_type>& content, OutputIt output) const
+    {
+        if (!content.empty()) {
+            tokenizer_traits::encode(_M_tokenizer, content, output);
+            tokenizer_traits::encode(_M_tokenizer, prompt_type::message_end, output);
+            tokenizer_traits::encode(_M_tokenizer, "\n", output);
+        }
+    }
+
+    tokenizer_type _M_tokenizer;
+    scanner_pointer _M_scanner;
+    bool _M_first;
+};
+
+
 template <contiguous_container Container> struct lfm2_traits {
     using value_type = Container::value_type;
     using container_type = Container;
@@ -89,6 +214,7 @@ template <contiguous_container Container> struct lfm2_traits {
 
     using tokenizer_type = text::byte_pair_encoder<char>;
     using tokenizer_loader = llama3_tokenizer_loader;
+    using formatter_type = lfm2_formatter<tokenizer_type>;
 
     static constexpr std::string_view tokenizer_location = "tokenizer.json";
     static constexpr std::string_view options_location = "config.json";
