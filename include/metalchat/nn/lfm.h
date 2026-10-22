@@ -21,6 +21,7 @@ namespace metalchat {
 namespace nn {
 
 
+/// Configuration options for LFM2 model.
 struct lfm2_options {
     std::size_t head_dim = 0;
     std::size_t hidden_dim = 0;
@@ -38,7 +39,7 @@ struct lfm2_options {
 /// LFM2 is a family of hybrid models designed for on-device deployment. It builds on the LFM2
 /// architecture with extended pre-training and reinforcement learning.
 ///
-/// For more details refer to the `Liquid AI Documentation <https://www.liquid.ai/models>`_.
+/// For more details refer to the [Liquid AI Documentation](https://www.liquid.ai/models).
 template <typename T, contiguous_container Container = hardware_memory_container<T>>
 class lfm2 : public basic_layer {
     using MultiheadAttention = multihead_attention<T, Container>;
@@ -71,6 +72,7 @@ public:
     using container_type = Container;
     using tensor_type = future_tensor<index_type, 2>;
 
+    /// Constructs a new LFM2 model with uninitialized weights with the given options.
     lfm2(const lfm2_options& options, hardware_accelerator& accelerator)
     : basic_layer(accelerator),
       _M_options(options)
@@ -145,6 +147,13 @@ public:
         return _M_output(output);
     }
 
+    /// Invoke the kernel
+    ///
+    /// \tparam Input type of the input tensor.
+    /// \param input a 2-dimensional tensor with the indices of the input tokens.
+    /// \param start_pos a start position of the input sequence.
+    ///
+    /// \returns a \ref future_tensor with logits of model vocabulary.
     template <immutable_tensor2_t<index_type> Input>
     auto
     operator()(Input input, std::size_t start_pos = 0)

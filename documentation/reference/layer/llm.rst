@@ -29,6 +29,15 @@ Google Gemma 3
 .. doxygenclass:: metalchat::nn::gemma3
    :members:
 
+Liquid Foundation Model 2.5
+---------------------------
+
+.. doxygenstruct:: metalchat::nn::lfm2_options
+   :members:
+
+.. doxygenclass:: metalchat::nn::lfm2
+   :members:
+
 
 Key-value caching
 -----------------
