@@ -62,7 +62,10 @@ gemma3_options_serializer::save(std::ostream& os, const nn::gemma3_options& opti
                               .float_format(jsoncons::float_chars_format::general)
                               .precision(os.precision());
 
-    jsoncons::encode_json<options_type>(hf_options, os, encode_options);
+    auto result = jsoncons::try_encode_json<options_type>(hf_options, os, encode_options);
+    if (!result) {
+        throw jsoncons::ser_error(result.error());
+    }
 }
 
 

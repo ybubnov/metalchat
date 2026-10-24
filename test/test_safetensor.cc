@@ -190,7 +190,9 @@ TEST_CASE("Test sharded document", "[safetensor]")
     };
 
     std::ofstream index_file(index_path);
-    jsoncons::encode_json<safetensor_index>(index, index_file);
+    auto result = jsoncons::try_encode_json<safetensor_index>(index, index_file);
+    REQUIRE(result.has_value());
+
     index_file.close();
 
     auto doc = sharded_safetensor_document::open(index_path);

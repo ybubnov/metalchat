@@ -305,7 +305,10 @@ safetensor_document::save(const std::filesystem::path& p)
     }
 
     std::string header_json;
-    jsoncons::encode_json(header, header_json);
+    auto result = jsoncons::try_encode_json(header, header_json);
+    if (!result) {
+        throw jsoncons::ser_error(result.error());
+    }
 
     auto header_size = header_json.size();
 
