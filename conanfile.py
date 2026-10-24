@@ -64,15 +64,15 @@ class MetalChat(ConanFile):
             )
 
     def requirements(self):
-        self.requires("mbits-mstch/1.0.4")
-        self.requires("metal-cpp/15.2")
-        self.requires("rapidhash/3.0")
-        self.requires("jsoncons/1.3.0")
+        self.requires("mbits-mstch/[>=1.0.0 <2.0.0]")
+        self.requires("metal-cpp/[>=15.2]")
+        self.requires("rapidhash/[>=3.0 <4.0]")
+        self.requires("jsoncons/[>=1.3.0 <2.0.0]")
         self.requires("pcre2/[>=10.30 <11.0]")
-        self.requires("simdutf/9.0.0")
+        self.requires("simdutf/[>=8.2.0 <9.0.0]")
 
         if self.options.build_executable:
-            self.requires("argparse/[>=3.2 <4.0.0]")
+            self.requires("argparse/[>=3.0 <4.0.0]")
             self.requires("keychain/[>=1.3.0 <2.0.0]")
             self.requires("toml11/[>=4.0.0 <5.0.0]")
 
@@ -82,7 +82,7 @@ class MetalChat(ConanFile):
 
     def build_requirements(self):
         self.tool_requires("cmake/[>=3.31.0]")
-        self.tool_requires("ninja/[~1.13.2]")
+        self.tool_requires("ninja/[>=1.10.2]")
         self.test_requires("catch2/[>=3.7.0 <4.0.0]")
 
     def generate(self):
