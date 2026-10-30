@@ -47,7 +47,7 @@ class MetalChat(ConanFile):
         "LICENSE",
         "include/*",
         "kernel/*",
-        "src/*",
+        "lib/*",
         "test/*",
         "module.modulemap",
     )

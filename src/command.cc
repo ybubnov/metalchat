@@ -2,166 +2,83 @@
 // SPDX-FileCopyrightText: 2025 Yakau Bubnou
 // SPDX-FileType: SOURCE
 
-#include <string_view>
-
-#include <jsoncons/json.hpp>
-#include <jsoncons_ext/jsonschema/jsonschema.hpp>
-
-#include <metalchat/command.h>
+#include "command.h"
 
 
 namespace metalchat {
+namespace runtime {
 
 
-namespace jsonschema = jsoncons::jsonschema;
-
-
-command_statement::command_statement(const std::shared_ptr<basic_command_statement>& stmt)
-: _M_ptr(stmt)
+basic_command::basic_command(const std::string& name)
+: _M_command(name),
+  _M_handlers()
 {}
 
 
-std::string
-command_statement::get_name() const
-{
-    return _M_ptr->get_name();
-}
-
-
-std::optional<std::string>
-command_statement::get_parameter(const std::string& p) const
-{
-    return _M_ptr->get_parameter(p);
-}
-
-
-std::string
-command_statement::str() const
-{
-    return _M_ptr->str();
-}
-
-
-struct json_command_statement::_Members {
-    std::string str;
-    std::string name;
-    jsoncons::json params;
-};
-
-
-json_command_statement::json_command_statement(_Members&& data)
-: _M_data(std::make_shared<_Members>(std::move(data)))
+basic_command::basic_command(const std::string& name, const std::string& version)
+: _M_command(name, version),
+  _M_handlers()
 {}
 
 
-std::string
-json_command_statement::get_name() const
+basic_command::basic_command(const std::string& name, basic_command& parent)
+: basic_command(name)
 {
-    return _M_data->name;
+    parent.push_handler(_M_command, [&](const command_context& c) { handle(c); });
 }
 
 
-std::optional<std::string>
-json_command_statement::get_parameter(const std::string& p) const
+void
+basic_command::push_handler(parser_type& parser, handler_type&& handler)
 {
-    if (_M_data->params.contains(p)) {
-        std::string value;
-        jsoncons::encode_json(_M_data->params[p], value);
-        return value;
-    }
-
-    return std::nullopt;
+    _M_command.add_subparser(parser);
+    _M_handlers.emplace_back(std::ref(parser), std::move(handler));
 }
 
 
-std::string
-json_command_statement::str() const
+void
+basic_command::push_handler(basic_command& command)
 {
-    return _M_data->str;
+    push_handler(command._M_command, [&](const command_context& c) { command.handle(c); });
 }
 
 
-struct json_command_scanner::_Members {
-    using schema_type = jsonschema::json_schema<jsoncons::json>;
-
-    schema_type command_schema;
-    std::unordered_map<std::string, schema_type> commands;
-
-    _Members()
-    : command_schema(jsonschema::make_json_schema(
-          jsoncons::json::parse(json_command_scanner::command_schema),
-          jsonschema::evaluation_options().require_format_validation(true)
-      )),
-      commands()
-    {}
-};
-
-
-json_command_scanner::json_command_scanner()
-: _M_data(std::make_shared<_Members>())
-{}
-
-
-std::string
-json_command_scanner::declare(const std::string& decl)
+void
+basic_command::handle(const command_context& context) const
 {
-    auto command = jsoncons::json::parse(decl);
-    if (!_M_data->command_schema.is_valid(command)) {
-        // TODO: improve error.
-        throw std::runtime_error("json_command_scanner: command schema is not valid");
-    }
-
-    auto command_name = command["name"].as<std::string>();
-
-    // The name and type properties of the function declaration are not valid
-    // properties of the JSON schema, therefore we remove name, and change type.
-    command.erase("name");
-    command["type"] = std::string("object");
-
-    auto command_opts = jsonschema::evaluation_options().require_format_validation(true);
-    auto command_schema = jsonschema::make_json_schema(command, command_opts);
-
-    _M_data->commands.insert_or_assign(command_name, std::move(command_schema));
-    return command_name;
-}
-
-
-std::optional<command_statement>
-json_command_scanner::scan(const std::string& text)
-{
-    try {
-        auto command = jsoncons::json::parse(text);
-        auto command_name = command["name"].as<std::string>();
-
-        auto command_it = _M_data->commands.find(command_name);
-        if (command_it == _M_data->commands.end()) {
-            return std::nullopt;
+    for (const auto& [parser, handler] : _M_handlers) {
+        if (_M_command.is_subcommand_used(parser)) {
+            handler(context);
         }
-
-        auto& command_schema = command_it->second;
-        if (!command_schema.is_valid(command)) {
-            return std::nullopt;
-        }
-
-        auto stmt = json_command_statement(json_command_statement::_Members{
-            .str = text,
-            .name = command_name,
-            .params = std::move(command["parameters"]),
-        });
-
-        return command_statement(std::move(stmt));
-
-    } catch (const jsoncons::ser_error&) {
-        return std::nullopt;
     }
 }
 
 
-std::shared_ptr<basic_command_scanner>
-make_json_scanner()
+void
+basic_command::add_scope_arguments(parser_type& parser) const
 {
-    return std::make_shared<json_command_scanner>();
+    auto& group = parser.add_mutually_exclusive_group(/*required=*/false);
+    group.add_argument("--local").help("use a current working directory manifest").flag();
+    group.add_argument("--global").help("use a global manifest").flag();
 }
 
 
+command_scope
+basic_command::resolve_scope(const parser_type& parser) const
+{
+    auto is_local = parser.is_used("--local");
+    auto is_global = parser.is_used("--global");
+    return context_scope::make_from_bool(is_local, is_global);
+}
+
+
+command_context::manifest_file
+basic_command::resolve_manifest(const command_context& context, const parser_type& parser) const
+{
+    auto scope = resolve_scope(parser);
+    return context.resolve_manifest(scope);
+}
+
+
+} // namespace runtime
 } // namespace metalchat

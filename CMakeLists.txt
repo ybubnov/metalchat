@@ -45,8 +45,8 @@ set(metalchat_METALLIB metalchat.metallib)
 set(metalchat_MODULEMAP ${CMAKE_CURRENT_SOURCE_DIR}/module.modulemap)
 set(metalchat_IDENTIFIER org.metalchat.framework)
 
-aux_source_directory(src metalchat_SOURCES)
-aux_source_directory(program metalchat_PROGRAM)
+aux_source_directory(lib metalchat_SOURCES)
+aux_source_directory(src metalchat_PROGRAM)
 aux_source_directory(include metalchat_HEADERS)
 
 # Metal shaders are pre-compiled and therefore only available after building an

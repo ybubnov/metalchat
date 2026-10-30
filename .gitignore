@@ -1,6 +1,6 @@
 # Build
 build/
-lib/
+deps/
 test_fixture/
 
 # Ignore conan-generated presents
